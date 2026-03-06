@@ -14,6 +14,13 @@ import ProductCard from "@/components/product-card";
 import ContactModal from "@/components/contact-modal";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import type { Category, ProductWithCategory } from "@shared/schema";
+
+interface ShippingSettings {
+  freeShippingThreshold: string;
+  standardShippingCost: string;
+  currency: string;
+  vatPercentage: string;
+}
 import xhaccpLogo from "@assets/logo_xHACCP-S1_1772812623761.png";
 import suppliesEquipmentImg from "@assets/generated_images/chef_checking_kitchen_inventory.png";
 import businessConsultingImg from "@assets/generated_images/business_consulting_meeting_chef.png";
@@ -29,6 +36,24 @@ export default function Home() {
   const { data: featuredProducts = [] } = useQuery<ProductWithCategory[]>({
     queryKey: ["/api/products", { featured: true, limit: 20 }],
   });
+
+  const { data: shippingSettings } = useQuery<ShippingSettings>({
+    queryKey: ["/api/shipping-settings"],
+  });
+
+  const getCurrencySymbol = (curr: string) => {
+    switch (curr) {
+      case 'EUR': return '€';
+      case 'USD': return '$';
+      case 'GBP': return '£';
+      case 'RON': return 'lei';
+      default: return curr;
+    }
+  };
+
+  const shippingThresholdText = shippingSettings
+    ? `${getCurrencySymbol(shippingSettings.currency)}${parseFloat(shippingSettings.freeShippingThreshold).toFixed(0)}`
+    : '';
 
   // Carousel setup for featured products with autoplay
   const autoplayRef = useRef(
@@ -82,7 +107,7 @@ export default function Home() {
   };
 
   const trustIndicators = [
-    { icon: Truck, text: t('home.features.shipping') },
+    { icon: Truck, text: t('home.features.shipping').replace('{threshold}', shippingThresholdText) },
     { icon: Shield, text: t('home.features.compliant') },
     { icon: Award, text: t('home.features.certified') },
     { icon: MessageSquare, text: t('home.features.support') },
