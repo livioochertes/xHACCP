@@ -78,7 +78,6 @@ interface AdminAuthRequest extends Request {
 const authenticateAdmin = async (req: AdminAuthRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
-    console.log("Auth header received:", authHeader);
     const token = authHeader?.replace("Bearer ", "");
     
     if (!token) {
