@@ -54,7 +54,7 @@ const billingAddressSchema = z.object({
 
 const checkoutSchema = z.object({
   email: z.string().email("Invalid email address"),
-  phone: z.string().min(1, "Phone number is required"),
+  phone: z.string().default(""),
   shippingAddress: shippingAddressSchema,
   billingAddress: billingAddressSchema,
   paymentMethod: z.enum(["revolut", "stripe", "paypal", "cash"]),
@@ -335,8 +335,12 @@ export default function Checkout() {
     let fieldsToValidate: any[] = [];
     
     if (step === 1 && !isAuthenticated) {
-      // Guest users need to validate email and phone on step 1
-      fieldsToValidate = ["email", "phone"];
+      fieldsToValidate = ["email"];
+      const phoneValue = form.getValues("phone");
+      if (!phoneValue || phoneValue.trim() === "") {
+        form.setError("phone", { type: "manual", message: "Phone number is required" });
+        return;
+      }
     } else if ((step === 1 && isAuthenticated) || (step === 2)) {
       // Address validation for authenticated users on step 1 or guest users on step 2
       fieldsToValidate = [
