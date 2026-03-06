@@ -130,7 +130,6 @@ export const processImages = async (req: Request, res: Response, next: NextFunct
 
     // Check if R2 is configured
     const r2Configured = isR2Configured();
-    console.log("☁️ R2 Storage configured:", r2Configured);
     
     if (r2Configured) {
       console.log("☁️ Attempting to upload to Cloudflare R2...");
