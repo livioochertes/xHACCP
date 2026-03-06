@@ -54,6 +54,7 @@ const billingAddressSchema = z.object({
 
 const checkoutSchema = z.object({
   email: z.string().email("Invalid email address"),
+  phone: z.string().min(1, "Phone number is required"),
   shippingAddress: shippingAddressSchema,
   billingAddress: billingAddressSchema,
   paymentMethod: z.enum(["revolut", "stripe", "paypal", "cash"]),
@@ -114,6 +115,7 @@ export default function Checkout() {
       // Pre-populate with user data for authenticated users
       return {
         email: user.email || "",
+        phone: user.billingPhone || user.phone || "",
         shippingAddress: {
           firstName: user.firstName || "",
           lastName: user.lastName || "",
@@ -147,6 +149,7 @@ export default function Checkout() {
     // Default empty values for guest users
     return {
       email: "",
+      phone: "",
       shippingAddress: {
         firstName: "",
         lastName: "",
@@ -206,14 +209,23 @@ export default function Checkout() {
         totalPrice: (parseFloat(item.product.price) * item.quantity).toString(),
       }));
 
+      const shippingAddr = { ...data.shippingAddress };
+      if (!shippingAddr.phone && data.phone) {
+        shippingAddr.phone = data.phone;
+      }
+      const billingAddr = sameAsBilling ? shippingAddr : { ...data.billingAddress };
+      if (!billingAddr.phone && data.phone) {
+        billingAddr.phone = data.phone;
+      }
+
       return await apiRequest("POST", "/api/orders", {
-        shippingAddress: data.shippingAddress,
-        billingAddress: sameAsBilling ? data.shippingAddress : data.billingAddress,
+        shippingAddress: shippingAddr,
+        billingAddress: billingAddr,
         paymentMethod: data.paymentMethod,
         items: orderItems,
         notes: data.notes,
-        // Only send voucher code - server will validate and calculate discount
         voucherCode: appliedVoucher?.code || null,
+        contactPhone: data.phone,
       });
     },
     onSuccess: (data) => {
@@ -323,8 +335,8 @@ export default function Checkout() {
     let fieldsToValidate: any[] = [];
     
     if (step === 1 && !isAuthenticated) {
-      // Guest users need to validate email on step 1
-      fieldsToValidate = ["email"];
+      // Guest users need to validate email and phone on step 1
+      fieldsToValidate = ["email", "phone"];
     } else if ((step === 1 && isAuthenticated) || (step === 2)) {
       // Address validation for authenticated users on step 1 or guest users on step 2
       fieldsToValidate = [
@@ -359,6 +371,15 @@ export default function Checkout() {
     console.log("Validation result:", isValid, "will go to step:", step + 1);
     
     if (isValid) {
+      if (step === 1 && !isAuthenticated) {
+        const contactPhone = form.getValues("phone");
+        if (contactPhone && !form.getValues("shippingAddress.phone")) {
+          form.setValue("shippingAddress.phone", contactPhone);
+        }
+        if (contactPhone && !form.getValues("billingAddress.phone")) {
+          form.setValue("billingAddress.phone", contactPhone);
+        }
+      }
       setStep(step + 1);
     }
   };
@@ -512,6 +533,19 @@ export default function Checkout() {
                             <FormLabel>Email Address</FormLabel>
                             <FormControl>
                               <Input placeholder="your@email.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone Number</FormLabel>
+                            <FormControl>
+                              <Input placeholder="+40 7XX XXX XXX" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
