@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 
 import ProductCard from "@/components/product-card";
 import ContactModal from "@/components/contact-modal";
+import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import type { Category, ProductWithCategory } from "@shared/schema";
 import xhaccpLogo from "@assets/logo_xHACCP-S1_1772812623761.png";
 import suppliesEquipmentImg from "@assets/generated_images/chef_checking_kitchen_inventory.png";
@@ -68,14 +69,16 @@ export default function Home() {
     };
   }, [emblaApi, onSelect]);
 
-  // Function to get category name - use database name directly for admin-editable names
+  const { getCategoryName: getTranslatedCategoryName, getCategoryDescription: getTranslatedCategoryDescription } = useCategoryTranslations(
+    categories.map(c => c.id)
+  );
+
   const getCategoryName = (category: Category) => {
-    return category.name;
+    return getTranslatedCategoryName(category.id, category.name);
   };
 
-  // Function to get category description - use database description directly
   const getCategoryDescription = (category: Category) => {
-    return category.description;
+    return getTranslatedCategoryDescription(category.id, category.description);
   };
 
   const trustIndicators = [

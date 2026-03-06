@@ -31,7 +31,7 @@ The platform features a modern React frontend with Radix UI components styled wi
 - **Monorepo Structure**: Shared schema definitions between frontend and backend ensure type safety across the entire stack.
 - **Modularity**: Location data is modular for easy expansion and maintenance of country, county, and city dropdowns.
 - **Caching**: Aggressive caching strategy with in-memory data storage, server-side pre-warming, and cache-busting ensures high performance and data freshness.
-- **Localization**: System design inherently supports internationalization with dynamic currency handling, multilingual content, and region-specific features (e.g., Romanian tax compliance).
+- **Localization**: System design inherently supports internationalization with dynamic currency handling, multilingual content (including `category_translations` and `product_translations` tables for per-language names/descriptions), and region-specific features (e.g., Romanian tax compliance).
 
 ## External Dependencies
 

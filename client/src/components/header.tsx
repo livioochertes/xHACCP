@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/hooks/useTranslation";
 import LanguageSwitcher from "@/components/language-switcher";
 import ContactModal from "@/components/contact-modal";
+import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import xhaccpLogo from "@assets/logo_xHACCP-S1_1772812623761.png";
 
 interface CompanySettings {
@@ -51,9 +52,11 @@ export default function Header() {
     return `${t('footer.freeShippingPrefix')} ${formattedAmount} ${currencyLabel}`;
   }, [companySettings, t]);
 
-  // Function to get category name - use database name directly for admin-editable names
+  const categoryIds = Array.isArray(categories) ? categories.map((c: any) => c.id) : [];
+  const { getCategoryName: getTranslatedCategoryName } = useCategoryTranslations(categoryIds);
+
   const getCategoryName = (category: any) => {
-    return category.name;
+    return getTranslatedCategoryName(category.id, category.name);
   };
 
   const handleSearch = (e: React.FormEvent) => {

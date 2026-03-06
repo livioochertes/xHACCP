@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
+import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { Link } from "wouter";
 import type { ProductWithCategory, Review } from "@shared/schema";
 
@@ -34,6 +35,10 @@ export default function ProductDetails() {
     product?.id, 
     product?.name || '', 
     product?.description || null
+  );
+
+  const { getCategoryName } = useCategoryTranslations(
+    product?.category ? [product.category.id] : []
   );
 
   const allImages = useMemo(() => {
@@ -120,7 +125,7 @@ export default function ProductDetails() {
             <>
               <span>/</span>
               <Link href={`/products?category=${product.category.slug}`} className="hover:text-primary">
-                {product.category.name}
+                {getCategoryName(product.category.id, product.category.name)}
               </Link>
             </>
           )}
@@ -171,7 +176,7 @@ export default function ProductDetails() {
             <div>
               {product.category && (
                 <Badge variant="secondary" className="mb-2">
-                  {product.category.name}
+                  {getCategoryName(product.category.id, product.category.name)}
                 </Badge>
               )}
               <h1 className="text-3xl font-bold text-primary mb-4">{translatedName}</h1>

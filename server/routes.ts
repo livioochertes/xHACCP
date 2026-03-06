@@ -994,6 +994,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/categories/:id/translation/:language", async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      const language = req.params.language;
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+      const translation = await storage.getCategoryTranslation(categoryId, language);
+      if (!translation) {
+        return res.status(404).json({ message: "Translation not found" });
+      }
+      res.json(translation);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get category translation" });
+    }
+  });
+
+  app.get("/api/category-translations/:language", async (req, res) => {
+    try {
+      const language = req.params.language;
+      const categoryIds = req.query.ids?.toString().split(',').map(Number).filter(id => !isNaN(id)) || [];
+      if (categoryIds.length === 0) {
+        return res.json({});
+      }
+      const results = await storage.getCategoryTranslationsBatch(categoryIds, language);
+      const translations: Record<number, { name: string; description: string | null }> = {};
+      for (const t of results) {
+        translations[t.categoryId] = { name: t.name, description: t.description };
+      }
+      res.json(translations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get category translations" });
+    }
+  });
+
   // Get all translations for multiple products by language (batch endpoint)
   app.get("/api/translations/:language", async (req, res) => {
     try {

@@ -7,6 +7,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
+import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import type { ProductWithCategory } from "@shared/schema";
 import { memo } from "react";
 
@@ -19,6 +20,9 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { name: translatedName } = useProductTranslation(product.id, product.name, product.description);
+  const { getCategoryName } = useCategoryTranslations(
+    product.category ? [product.category.id] : []
+  );
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -60,7 +64,7 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
               
               {product.category && (
                 <Badge variant="secondary" className="mb-3 text-xs">
-                  {product.category.name}
+                  {getCategoryName(product.category.id, product.category.name)}
                 </Badge>
               )}
               

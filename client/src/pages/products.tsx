@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "@/hooks/useTranslation";
 
 import ProductCard from "@/components/product-card";
+import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import type { Category, ProductWithCategory } from "@shared/schema";
 
 export default function Products() {
@@ -78,14 +79,6 @@ export default function Products() {
   const [sortBy, setSortBy] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
-  // Function to get category name - use database name directly for admin-editable names
-  const getCategoryName = (category: Category | null | undefined) => {
-    if (!category) return '';
-    return category.name;
-  };
-  
-  // Remove local state - use React Query caching directly
-  
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
     staleTime: Infinity, // Never consider data stale
@@ -96,6 +89,15 @@ export default function Products() {
     networkMode: 'offlineFirst', // Prefer cached data
 
   });
+
+  const { getCategoryName: getTranslatedCategoryName } = useCategoryTranslations(
+    categories.map(c => c.id)
+  );
+
+  const getCategoryName = (category: Category | null | undefined) => {
+    if (!category) return '';
+    return getTranslatedCategoryName(category.id, category.name);
+  };
 
   // Server-side caching handles prefetching, no need for client-side prefetch
 

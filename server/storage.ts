@@ -3,6 +3,7 @@ import {
   categories,
   products,
   productTranslations,
+  categoryTranslations,
   orders,
   orderItems,
   cartItems,
@@ -22,6 +23,8 @@ import {
   type ProductWithCategory,
   type ProductTranslation,
   type InsertProductTranslation,
+  type CategoryTranslation,
+  type InsertCategoryTranslation,
   type Order,
   type InsertOrder,
   type OrderWithItems,
@@ -47,7 +50,7 @@ import {
   type InsertVoucher,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, like, and, sql } from "drizzle-orm";
+import { eq, desc, like, and, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -81,6 +84,14 @@ export interface IStorage {
   createProductTranslation(translation: InsertProductTranslation): Promise<ProductTranslation>;
   updateProductTranslation(id: number, translation: Partial<InsertProductTranslation>): Promise<ProductTranslation>;
   deleteProductTranslation(id: number): Promise<void>;
+
+  // Category translation operations
+  getCategoryTranslation(categoryId: number, language: string): Promise<CategoryTranslation | undefined>;
+  getCategoryTranslations(categoryId: number): Promise<CategoryTranslation[]>;
+  getCategoryTranslationsBatch(categoryIds: number[], language: string): Promise<CategoryTranslation[]>;
+  createCategoryTranslation(translation: InsertCategoryTranslation): Promise<CategoryTranslation>;
+  updateCategoryTranslation(id: number, translation: Partial<InsertCategoryTranslation>): Promise<CategoryTranslation>;
+  deleteCategoryTranslation(id: number): Promise<void>;
 
   // Order operations
   getOrders(userId?: number): Promise<OrderWithItems[]>;
@@ -495,6 +506,43 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProductTranslation(id: number): Promise<void> {
     await db.delete(productTranslations).where(eq(productTranslations.id, id));
+  }
+
+  async getCategoryTranslation(categoryId: number, language: string): Promise<CategoryTranslation | undefined> {
+    const [translation] = await db.select().from(categoryTranslations)
+      .where(and(eq(categoryTranslations.categoryId, categoryId), eq(categoryTranslations.language, language)));
+    return translation;
+  }
+
+  async getCategoryTranslations(categoryId: number): Promise<CategoryTranslation[]> {
+    return await db.select().from(categoryTranslations).where(eq(categoryTranslations.categoryId, categoryId));
+  }
+
+  async getCategoryTranslationsBatch(categoryIds: number[], language: string): Promise<CategoryTranslation[]> {
+    if (categoryIds.length === 0) return [];
+    return await db.select().from(categoryTranslations)
+      .where(and(
+        inArray(categoryTranslations.categoryId, categoryIds),
+        eq(categoryTranslations.language, language)
+      ));
+  }
+
+  async createCategoryTranslation(translation: InsertCategoryTranslation): Promise<CategoryTranslation> {
+    const [newTranslation] = await db.insert(categoryTranslations).values(translation).returning();
+    return newTranslation;
+  }
+
+  async updateCategoryTranslation(id: number, translation: Partial<InsertCategoryTranslation>): Promise<CategoryTranslation> {
+    const [updatedTranslation] = await db
+      .update(categoryTranslations)
+      .set({ ...translation, updatedAt: new Date() })
+      .where(eq(categoryTranslations.id, id))
+      .returning();
+    return updatedTranslation;
+  }
+
+  async deleteCategoryTranslation(id: number): Promise<void> {
+    await db.delete(categoryTranslations).where(eq(categoryTranslations.id, id));
   }
 
   // Order operations
