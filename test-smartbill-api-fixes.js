@@ -72,7 +72,6 @@ async function testSmartbillAPI() {
   try {
     const seriesUrl = `https://ws.smartbill.ro/SBORO/api/series?cif=${encodeURIComponent(credentials.companyVat)}`;
     console.log('   URL:', seriesUrl);
-    console.log('   Headers:', JSON.stringify(getHeaders(), null, 4));
     
     const seriesResponse = await fetch(seriesUrl, {
       method: 'GET',
