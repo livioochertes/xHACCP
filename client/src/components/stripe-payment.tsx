@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import {
+  Elements,
+  CardElement,
+  PaymentRequestButtonElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -32,52 +38,103 @@ function CheckoutForm({ amount, currency, onSuccess, onError, disabled, cartItem
   const stripe = useStripe();
   const elements = useElements();
   const [isLoading, setIsLoading] = useState(false);
+  const [paymentRequest, setPaymentRequest] = useState<any>(null);
   const { toast } = useToast();
 
-  const handleSubmit = async () => {
-    console.log("Stripe payment button clicked");
+  useEffect(() => {
+    if (!stripe || !amount || amount <= 0) return;
 
-    if (!stripe || !elements || isLoading) {
-      console.log("Stripe not ready:", { stripe: !!stripe, elements: !!elements, isLoading });
-      return;
-    }
+    const pr = stripe.paymentRequest({
+      country: 'RO',
+      currency: currency.toLowerCase(),
+      total: {
+        label: 'xHACCP Order',
+        amount: Math.round(amount * 100),
+      },
+      requestPayerName: true,
+      requestPayerEmail: true,
+    });
+
+    pr.canMakePayment().then((result) => {
+      if (result) {
+        setPaymentRequest(pr);
+      }
+    });
+
+    pr.on('paymentmethod', async (ev) => {
+      try {
+        const response = await apiRequest("POST", "/api/payments/stripe/create-payment-intent", {
+          amount: Math.round(amount * 100),
+          currency: currency.toLowerCase(),
+          cartItems: cartItems || [],
+          voucherCode: voucherCode || null,
+        });
+
+        const { clientSecret } = await response.json();
+
+        const { error, paymentIntent } = await stripe.confirmCardPayment(
+          clientSecret,
+          { payment_method: ev.paymentMethod.id },
+          { handleActions: false }
+        );
+
+        if (error) {
+          ev.complete('fail');
+          onError(error.message || "Payment failed");
+        } else if (paymentIntent.status === 'requires_action') {
+          ev.complete('success');
+          const { error: actionError } = await stripe.confirmCardPayment(clientSecret);
+          if (actionError) {
+            onError(actionError.message || "Payment failed");
+          } else {
+            toast({
+              title: "Payment Successful",
+              description: "Your payment has been processed successfully.",
+            });
+            onSuccess(paymentIntent.id);
+          }
+        } else {
+          ev.complete('success');
+          toast({
+            title: "Payment Successful",
+            description: "Your payment has been processed successfully.",
+          });
+          onSuccess(paymentIntent.id);
+        }
+      } catch (err: any) {
+        ev.complete('fail');
+        onError(err.message || "Payment failed");
+      }
+    });
+  }, [stripe, amount, currency]);
+
+  const handleSubmit = async () => {
+    if (!stripe || !elements || isLoading) return;
 
     setIsLoading(true);
 
     try {
-      console.log("Creating payment intent for amount:", amount, "currency:", currency);
-      
-      // Create payment intent with cart items for server-side calculation
       const response = await apiRequest("POST", "/api/payments/stripe/create-payment-intent", {
         amount: Math.round(amount * 100),
         currency: currency.toLowerCase(),
         cartItems: cartItems || [],
         voucherCode: voucherCode || null,
       });
-      
-      console.log("Payment intent response:", response.status);
-      const { clientSecret } = await response.json();
-      console.log("Got client secret:", clientSecret ? "✓" : "✗");
 
-      // Confirm payment
+      const { clientSecret } = await response.json();
+
       const cardElement = elements.getElement(CardElement);
-      console.log("Card element:", cardElement ? "✓" : "✗");
-      
       if (!cardElement) {
         throw new Error('Card element not found');
       }
 
-      console.log("Confirming payment with client secret...");
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: cardElement,
         }
       });
 
-      console.log("Payment result:", result);
-
       if (result.error) {
-        console.error('Payment error:', result.error);
         toast({
           title: "Payment Failed",
           description: result.error.message,
@@ -85,7 +142,6 @@ function CheckoutForm({ amount, currency, onSuccess, onError, disabled, cartItem
         });
         onError(result.error.message || "Payment failed");
       } else {
-        console.log('Payment successful:', result.paymentIntent);
         toast({
           title: "Payment Successful",
           description: "Your payment has been processed successfully.",
@@ -93,7 +149,6 @@ function CheckoutForm({ amount, currency, onSuccess, onError, disabled, cartItem
         onSuccess(result.paymentIntent.id);
       }
     } catch (error: any) {
-      console.error('Payment error:', error);
       toast({
         title: "Payment Failed",
         description: error.message || "Payment processing failed",
@@ -107,6 +162,24 @@ function CheckoutForm({ amount, currency, onSuccess, onError, disabled, cartItem
 
   return (
     <div className="space-y-4">
+      {paymentRequest && (
+        <div className="space-y-3">
+          <PaymentRequestButtonElement
+            options={{ paymentRequest }}
+            className="w-full"
+          />
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">
+                or pay with card
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="p-4 border rounded-lg">
         <CardElement
           options={{
@@ -131,7 +204,7 @@ function CheckoutForm({ amount, currency, onSuccess, onError, disabled, cartItem
         disabled={!stripe || isLoading || disabled}
         className="w-full"
       >
-        {isLoading ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
+        {isLoading ? 'Processing...' : `Pay ${amount.toFixed(2)} ${currency}`}
       </Button>
     </div>
   );
@@ -145,17 +218,14 @@ export default function StripePayment(props: StripePaymentProps) {
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
             <span className="text-white font-bold text-sm">$</span>
           </div>
-          Credit Card Payment
+          Secure Payment
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-sm text-gray-600 mb-4">
-          Secure payment processing with Stripe
+          Pay with card, Apple Pay, or Google Pay
           <div className="text-xs text-green-600 mt-1">
-            ✅ Payment system fully operational
-          </div>
-          <div className="text-xs text-blue-600 mt-1">
-            Using live mode - Real cards only
+            ✅ Secure payment powered by Stripe
           </div>
         </div>
         <Elements stripe={stripePromise}>
