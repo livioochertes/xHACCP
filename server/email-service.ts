@@ -1,21 +1,20 @@
 import { MailService } from '@sendgrid/mail';
 import type { OrderWithItems, User } from '../shared/schema';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
-}
-
-if (!process.env.SENDGRID_FROM_EMAIL) {
-  throw new Error("SENDGRID_FROM_EMAIL environment variable must be set");
-}
-
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
-
-// Get the verified sender email from environment
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const VERIFIED_SENDER = process.env.SENDGRID_FROM_EMAIL;
 
-console.log(`🔧 Email service initialized with verified sender: ${VERIFIED_SENDER}`);
+let mailService: MailService | null = null;
+
+if (!SENDGRID_API_KEY) {
+  console.warn("Warning: SENDGRID_API_KEY environment variable is not set. Email sending will be disabled.");
+} else if (!VERIFIED_SENDER) {
+  console.warn("Warning: SENDGRID_FROM_EMAIL environment variable is not set. Email sending will be disabled.");
+} else {
+  mailService = new MailService();
+  mailService.setApiKey(SENDGRID_API_KEY);
+  console.log(`Email service initialized with verified sender: ${VERIFIED_SENDER}`);
+}
 
 interface EmailParams {
   to: string;
@@ -27,8 +26,12 @@ interface EmailParams {
 }
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
+  if (!mailService) {
+    console.warn("Email service not configured. Skipping email send.");
+    return false;
+  }
   try {
-    console.log(`📧 Attempting to send email: from=${params.from}, to=${params.to}, subject=${params.subject.substring(0, 50)}...`);
+    console.log(`Attempting to send email: from=${params.from}, to=${params.to}, subject=${params.subject.substring(0, 50)}...`);
     
     const emailData: any = {
       to: params.to,

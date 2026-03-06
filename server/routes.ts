@@ -82,10 +82,14 @@ const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunc
 const cache = new Map<string, any>();
 const CACHE_REFRESH_INTERVAL = 300000; // 5 minutes
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client (optional - only if API key is provided)
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn("Warning: OPENAI_API_KEY environment variable is not set. AI chat will be disabled.");
+}
 
 // Initialize Invoice Service with Smartbill enabled
 process.env.ENABLE_SMARTBILL = 'true';
@@ -1807,6 +1811,15 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         }).join('\n');
         
         enhancedMessage = `${message}\n\nUser's Order History:\n${orderDetails}`;
+      }
+
+      if (!openai) {
+        return res.json({
+          response: "AI chat is currently unavailable. Please contact us directly for assistance with your kitchen equipment needs.",
+          sessionId,
+          timestamp: new Date().toISOString(),
+          suggestedActions: []
+        });
       }
 
       // Call OpenAI ChatGPT API with timeout and error handling
