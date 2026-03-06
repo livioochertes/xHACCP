@@ -13,7 +13,7 @@ import { Request, Response, NextFunction } from "express";
 import { upload, processImages, serveUploads, deleteUploadedFile } from "./upload-middleware";
 import { loadAllDataIntoMemory } from "./routes";
 import multer from "multer";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import * as cheerio from "cheerio";
 
 // Helper function to extract URL from image object or string
