@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, CreditCard, Truck, MapPin, User } from "lucide-react";
+import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -46,10 +46,15 @@ const billingAddressSchema = z.object({
   address: z.string().min(1, "Address is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
-  county: z.string().optional(), // Optional for billing - will be copied from shipping when same
+  county: z.string().optional(),
   zipCode: z.string().min(1, "ZIP code is required"),
   country: z.string().min(1, "Country is required"),
   phone: z.string().min(1, "Phone number is required"),
+  clientType: z.enum(["individual", "company"]).default("individual"),
+  identityDocument: z.string().default(""),
+  companyName: z.string().default(""),
+  vatNumber: z.string().default(""),
+  registrationNumber: z.string().default(""),
 });
 
 const checkoutSchema = z.object({
@@ -61,7 +66,6 @@ const checkoutSchema = z.object({
   sameAsBilling: z.boolean().default(false),
   notes: z.string().optional(),
 }).refine((data) => {
-  // When billing address is different from shipping, county becomes required
   if (!data.sameAsBilling && !data.billingAddress.county) {
     return false;
   }
@@ -139,9 +143,14 @@ export default function Checkout() {
           zipCode: user.companyZip || "",
           country: user.companyCountry || "Romania",
           phone: user.billingPhone || "",
+          clientType: user.companyName ? "company" : "individual",
+          identityDocument: "",
+          companyName: user.companyName || "",
+          vatNumber: user.vatNumber || "",
+          registrationNumber: user.registrationNumber || "",
         },
         paymentMethod: "cash",
-        sameAsBilling: !user.deliveryAddress, // Default to same if no separate delivery address
+        sameAsBilling: !user.deliveryAddress,
         notes: "",
       };
     }
@@ -173,6 +182,11 @@ export default function Checkout() {
         zipCode: "",
         country: "Romania",
         phone: "",
+        clientType: "individual",
+        identityDocument: "",
+        companyName: "",
+        vatNumber: "",
+        registrationNumber: "",
       },
       paymentMethod: "cash",
       sameAsBilling: false,
@@ -198,6 +212,7 @@ export default function Checkout() {
   }, [isAuthenticated, user, form]);
 
   const sameAsBilling = form.watch("sameAsBilling");
+  const clientType = form.watch("billingAddress.clientType");
 
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
@@ -213,7 +228,9 @@ export default function Checkout() {
       if (!shippingAddr.phone && data.phone) {
         shippingAddr.phone = data.phone;
       }
-      const billingAddr = sameAsBilling ? shippingAddr : { ...data.billingAddress };
+      const billingAddr = sameAsBilling 
+        ? { ...shippingAddr, clientType: data.billingAddress.clientType, identityDocument: data.billingAddress.identityDocument, companyName: data.billingAddress.companyName, vatNumber: data.billingAddress.vatNumber, registrationNumber: data.billingAddress.registrationNumber }
+        : { ...data.billingAddress };
       if (!billingAddr.phone && data.phone) {
         billingAddr.phone = data.phone;
       }
@@ -355,7 +372,6 @@ export default function Checkout() {
         "shippingAddress.phone"
       ];
       
-      // Only validate billing address if it's different from shipping
       if (!sameAsBilling) {
         fieldsToValidate.push(
           "billingAddress.firstName",
@@ -363,11 +379,25 @@ export default function Checkout() {
           "billingAddress.address", 
           "billingAddress.city",
           "billingAddress.state",
-          "billingAddress.county", // Required when billing is different
+          "billingAddress.county",
           "billingAddress.zipCode",
           "billingAddress.country",
           "billingAddress.phone"
         );
+      }
+
+      const currentClientType = form.getValues("billingAddress.clientType");
+      if (currentClientType === "company") {
+        const companyName = form.getValues("billingAddress.companyName");
+        const vatNum = form.getValues("billingAddress.vatNumber");
+        if (!companyName || companyName.trim() === "") {
+          form.setError("billingAddress.companyName", { type: "manual", message: "Company name is required" });
+          return;
+        }
+        if (!vatNum || vatNum.trim() === "") {
+          form.setError("billingAddress.vatNumber", { type: "manual", message: "VAT number (CUI/CIF) is required" });
+          return;
+        }
       }
     }
     
@@ -741,8 +771,8 @@ export default function Checkout() {
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center">
-                          <MapPin className="h-5 w-5 mr-2" />
-                          Billing Address
+                          <FileText className="h-5 w-5 mr-2" />
+                          Address / Invoice
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
@@ -888,6 +918,105 @@ export default function Checkout() {
                             />
                           </div>
                         )}
+
+                        <Separator className="my-4" />
+                        
+                        <div className="space-y-4">
+                          <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Invoice Details</Label>
+                          <FormField
+                            control={form.control}
+                            name="billingAddress.clientType"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <RadioGroup
+                                    onValueChange={field.onChange}
+                                    value={field.value}
+                                    className="flex gap-4"
+                                  >
+                                    <div className="flex items-center space-x-2 border rounded-lg px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors flex-1">
+                                      <RadioGroupItem value="individual" id="individual" />
+                                      <Label htmlFor="individual" className="cursor-pointer flex items-center gap-2">
+                                        <UserCircle className="h-4 w-4" />
+                                        Persoană Fizică
+                                      </Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2 border rounded-lg px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors flex-1">
+                                      <RadioGroupItem value="company" id="company" />
+                                      <Label htmlFor="company" className="cursor-pointer flex items-center gap-2">
+                                        <Building2 className="h-4 w-4" />
+                                        Persoană Juridică
+                                      </Label>
+                                    </div>
+                                  </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {clientType === "individual" && (
+                            <FormField
+                              control={form.control}
+                              name="billingAddress.identityDocument"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Identity Serie/Number (CI)</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="e.g. CJ1234567" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
+
+                          {clientType === "company" && (
+                            <div className="space-y-4">
+                              <FormField
+                                control={form.control}
+                                name="billingAddress.companyName"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Company Name *</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="e.g. SC Exemplu SRL" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name="billingAddress.vatNumber"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>VAT Number (CUI/CIF) *</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder="e.g. RO12345678" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="billingAddress.registrationNumber"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Registration Number (Reg. Com.)</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder="e.g. J40/1234/2024" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                   </div>
