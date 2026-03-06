@@ -314,7 +314,7 @@ export default function Header() {
             <div className="hidden lg:flex items-center space-x-4">
               <span className="text-sm text-muted-foreground">{t('footer.needHelp')}</span>
               <Link href="/ai-assistant" className="text-sm text-secondary font-medium">
-                {t('footer.chat')} Support Chat
+                Support Chat
               </Link>
             </div>
           </div>
