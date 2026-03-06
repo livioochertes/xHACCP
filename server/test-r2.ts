@@ -14,7 +14,6 @@ async function testR2Connection() {
   console.log("📋 R2 Configuration:");
   console.log("  - Account ID:", config.accountId ? config.accountId.slice(0, 8) + "..." : "NOT SET");
   console.log("  - Access Key ID:", config.accessKeyId ? config.accessKeyId.slice(0, 8) + "..." : "NOT SET");
-  console.log("  - Secret Access Key:", config.secretAccessKey ? "SET (hidden)" : "NOT SET");
   console.log("  - Bucket Name:", config.bucketName || "NOT SET");
   console.log("  - CDN URL:", config.cdnUrl || "NOT SET");
   console.log("");
