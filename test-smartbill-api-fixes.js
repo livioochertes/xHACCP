@@ -97,7 +97,6 @@ async function testSmartbillAPI() {
   // Test 2: Test invoice creation with fixes
   console.log('2️⃣ Testing invoice creation with API fixes...');
   try {
-    console.log('   Request headers:', JSON.stringify(getHeaders(), null, 4));
     console.log('   Request data:', JSON.stringify(testInvoiceData, null, 4));
     
     const invoiceResponse = await fetch('https://ws.smartbill.ro/SBORO/api/invoice', {
