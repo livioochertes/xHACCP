@@ -82,7 +82,6 @@ export default function Header() {
               alt="xHACCP Logo" 
               className="w-[100px] h-[100px] object-contain -my-4"
             />
-            <span className="text-xl font-bold text-primary">xHACCP</span>
           </Link>
 
           {/* Search Bar */}

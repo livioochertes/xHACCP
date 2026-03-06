@@ -399,7 +399,6 @@ export default function Home() {
                     className="w-14 h-14 object-contain"
                   />
                 </div>
-                <span className="text-xl font-bold text-white">xHACCP</span>
               </div>
               <p className="text-slate-300 mb-4">
                 {t('footer.company.description')}
