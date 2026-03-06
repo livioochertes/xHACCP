@@ -1815,6 +1815,7 @@ When user asks about orders, invoices, or order status, provide specific informa
       // Language context for multilingual support
       const languageMap = {
         'en': 'English',
+        'ro': 'Romanian',
         'es': 'Spanish',
         'fr': 'French', 
         'de': 'German',
