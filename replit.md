@@ -46,7 +46,7 @@ The platform features a modern React frontend with Radix UI components styled wi
 - **Shipping API**: Sameday Courier API
 - **AI/NLP**: OpenAI ChatGPT API (GPT-4o model)
 - **Image Processing**: Sharp (for WebP conversion and thumbnails)
-- **Object Storage**: Cloudflare R2
+- **Object Storage**: Cloudflare R2 (images served via `/r2/` Express proxy route from `xhaccp` bucket)
 - **UI Libraries**: Radix UI, shadcn/ui, Lucide React (icons)
 - **Validation**: Zod
 - **Build Tools**: Vite, esbuild, tsx

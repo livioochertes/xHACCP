@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import path from "path";
 
@@ -13,10 +13,10 @@ function getR2Config() {
   };
 }
 
-// Check if R2 is configured
+// Check if R2 is configured (CDN URL no longer required - images served via /r2/ proxy)
 export function isR2Configured(): boolean {
   const config = getR2Config();
-  return !!(config.accountId && config.accessKeyId && config.secretAccessKey && config.bucketName && config.cdnUrl);
+  return !!(config.accountId && config.accessKeyId && config.secretAccessKey && config.bucketName);
 }
 
 // Log R2 status (called once at startup)
@@ -27,7 +27,7 @@ export function logR2Status() {
   if (configured) {
     console.log("  - Account ID:", config.accountId?.slice(0, 8) + "...");
     console.log("  - Bucket:", config.bucketName);
-    console.log("  - CDN URL:", config.cdnUrl);
+    console.log("  - Images served via: /r2/ proxy route");
   }
 }
 
@@ -113,14 +113,12 @@ export async function uploadImageToR2(
       ContentType: 'image/webp',
     }));
 
-    const cdnBase = config.cdnUrl!.replace(/\/$/, ''); // Remove trailing slash if present
-
     console.log(`✅ Uploaded to R2: ${mainKey}`);
 
     return {
       filename: `processed-${baseFilename}.jpeg`,
-      url: `${cdnBase}/${mainKey}`,
-      thumbnailUrl: `${cdnBase}/${thumbKey}`,
+      url: `/r2/${mainKey}`,
+      thumbnailUrl: `/r2/${thumbKey}`,
       originalName: originalFilename,
       size: processedBuffer.length,
     };
@@ -134,14 +132,19 @@ export async function deleteImageFromR2(imageUrl: string): Promise<boolean> {
   const config = getR2Config();
   const client = getR2Client();
   
-  if (!client || !config.cdnUrl) {
+  if (!client || !config.bucketName) {
     return false;
   }
 
   try {
-    // Extract key from URL
-    const cdnBase = config.cdnUrl.replace(/\/$/, '');
-    const key = imageUrl.replace(`${cdnBase}/`, '');
+    // Extract key from URL (supports both /r2/ proxy and CDN URLs)
+    let key = imageUrl;
+    if (key.startsWith("/r2/")) {
+      key = key.replace("/r2/", "");
+    } else if (config.cdnUrl) {
+      const cdnBase = config.cdnUrl.replace(/\/$/, "");
+      key = key.replace(`${cdnBase}/`, "");
+    }
 
     await client.send(new DeleteObjectCommand({
       Bucket: config.bucketName!,
@@ -164,6 +167,25 @@ export async function deleteImageFromR2(imageUrl: string): Promise<boolean> {
   } catch (error) {
     console.error("❌ R2 delete error:", error);
     return false;
+  }
+}
+
+export async function getImageFromR2(key: string): Promise<{ body: any; contentType: string } | null> {
+  const client = getR2Client();
+  const config = getR2Config();
+  if (!client || !config.bucketName) return null;
+
+  try {
+    const res = await client.send(new GetObjectCommand({
+      Bucket: config.bucketName,
+      Key: key,
+    }));
+    return {
+      body: res.Body,
+      contentType: res.ContentType || "image/jpeg",
+    };
+  } catch (e) {
+    return null;
   }
 }
 

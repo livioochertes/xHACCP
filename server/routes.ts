@@ -208,6 +208,25 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction)
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.get("/r2/:prefix/:filename", async (req, res) => {
+    try {
+      const { getImageFromR2 } = await import("./r2-storage");
+      const key = `${req.params.prefix}/${req.params.filename}`;
+      const result = await getImageFromR2(key);
+      if (!result) {
+        return res.status(404).send("Not found");
+      }
+      res.set({
+        "Content-Type": result.contentType,
+        "Cache-Control": "public, max-age=31536000, immutable",
+      });
+      const stream = result.body;
+      stream.pipe(res);
+    } catch (e) {
+      res.status(500).send("Error");
+    }
+  });
+
   // Admin interface route (original flow preserved)
   app.get("/admin", (req, res) => {
     try {
