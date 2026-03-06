@@ -4,8 +4,6 @@ import { promises as fs } from "fs";
 async function testImageUpload() {
   console.log("🧪 Testing Image Upload to R2...\n");
 
-  console.log("☁️ R2 Configured:", isR2Configured());
-
   // Read a test image from local uploads
   const testImagePath = "/home/runner/workspace/uploads/products/processed-product-1752692757057-943.jpeg";
   
