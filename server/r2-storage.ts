@@ -23,7 +23,6 @@ export function isR2Configured(): boolean {
 export function logR2Status() {
   const config = getR2Config();
   const configured = isR2Configured();
-  console.log("☁️ R2 Storage Status:", configured ? "CONFIGURED" : "NOT CONFIGURED");
   if (configured) {
     console.log("  - Account ID:", config.accountId?.slice(0, 8) + "...");
     console.log("  - Bucket:", config.bucketName);
