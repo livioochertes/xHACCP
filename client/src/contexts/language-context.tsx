@@ -43,7 +43,7 @@ interface LanguageProviderProps {
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const [language, setLanguageState] = useState<Language>(() => {
     // Get language from localStorage or browser preference
-    const savedLanguage = localStorage.getItem('kitchenoff-language') as Language;
+    const savedLanguage = localStorage.getItem('xhaccp-language') as Language;
     if (savedLanguage && SUPPORTED_LANGUAGES.some(lang => lang.code === savedLanguage)) {
       return savedLanguage;
     }
@@ -59,7 +59,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('kitchenoff-language', lang);
+    localStorage.setItem('xhaccp-language', lang);
     
     // Update document direction for RTL languages
     const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === lang);

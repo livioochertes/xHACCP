@@ -106,8 +106,8 @@ export default function Invoice() {
             <div className="flex justify-between items-start mb-8">
               <div>
                 <img 
-                  src="/attached_assets/KitchenOff_Logo_Background_Removed_1752520997429.png" 
-                  alt="KitchenOff" 
+                  src="/attached_assets/logo_xHACCP-S1_1772812623761.png" 
+                  alt="xHACCP" 
                   className="h-12 mb-4"
                 />
                 <div className="space-y-1">
@@ -120,7 +120,7 @@ export default function Invoice() {
                   {companySettings?.registrationNumber && (
                     <p className="text-sm text-gray-600">Reg. No.: {companySettings.registrationNumber}</p>
                   )}
-                  <p className="text-sm text-gray-600">{companySettings?.email || 'info@kitchen-off.com'}</p>
+                  <p className="text-sm text-gray-600">{companySettings?.email || 'info@xhaccp.com'}</p>
                   {companySettings?.phone && (
                     <p className="text-sm text-gray-600">{companySettings.phone}</p>
                   )}
@@ -286,7 +286,7 @@ export default function Invoice() {
             <div className="mt-8 pt-6 border-t text-center text-sm text-gray-500">
               <p>Thank you for your business!</p>
               <p className="mt-2">
-                For questions about this invoice, please contact us at {companySettings?.email || 'info@kitchen-off.com'}
+                For questions about this invoice, please contact us at {companySettings?.email || 'info@xhaccp.com'}
               </p>
             </div>
           </CardContent>

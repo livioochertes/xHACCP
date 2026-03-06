@@ -89,11 +89,11 @@ export async function sendOrderConfirmationEmail(
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Order Confirmation - KitchenOff</title>
+      <title>Order Confirmation - xHACCP</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2c3e50; margin-bottom: 10px;">KitchenOff</h1>
+        <h1 style="color: #2c3e50; margin-bottom: 10px;">xHACCP</h1>
         <h2 style="color: #27ae60; margin-top: 0;">Order Confirmation</h2>
       </div>
       
@@ -174,10 +174,10 @@ export async function sendOrderConfirmationEmail(
       <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
         <p style="margin: 0; color: #666;">
           Questions about your order? Contact us at 
-          <a href="mailto:info@kitchen-off.com" style="color: #27ae60;">info@kitchen-off.com</a>
+          <a href="mailto:info@xhaccp.com" style="color: #27ae60;">info@xhaccp.com</a>
         </p>
         <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
-          Thank you for choosing KitchenOff - Your Professional Kitchen Partner
+          Thank you for choosing xHACCP - Your Professional Kitchen Partner
         </p>
       </div>
     </body>
@@ -185,7 +185,7 @@ export async function sendOrderConfirmationEmail(
   `;
 
   const textContent = `
-    KitchenOff - Order Confirmation
+    xHACCP - Order Confirmation
     
     Hello ${user.firstName} ${user.lastName},
     
@@ -215,15 +215,15 @@ export async function sendOrderConfirmationEmail(
     
     Your order will be prepared for shipping and you'll receive tracking information soon.
     
-    Questions? Contact us at info@kitchen-off.com
+    Questions? Contact us at info@xhaccp.com
     
-    Thank you for choosing KitchenOff!
+    Thank you for choosing xHACCP!
   `;
 
   return await sendEmail({
     to: user.email,
     from: VERIFIED_SENDER,
-    subject: `Order Confirmation #${order.id} - KitchenOff`,
+    subject: `Order Confirmation #${order.id} - xHACCP`,
     text: textContent,
     html: html,
   });
@@ -242,7 +242,7 @@ export async function sendNewOrderNotificationEmail(
   const billingAddress = order.billingAddress as any;
   
   // Create admin URL for order management
-  const adminOrderUrl = `https://kitchen-off.com/admin#orders-${order.id}`;
+  const adminOrderUrl = `https://xhaccp.com/admin#orders-${order.id}`;
   
   const orderItemsText = order.items
     .map(item => `- ${item.product.name} (Qty: ${item.quantity}) - ${item.totalPrice} lei`)
@@ -253,11 +253,11 @@ export async function sendNewOrderNotificationEmail(
     <html>
     <head>
       <meta charset="utf-8">
-      <title>New Order Created - KitchenOff</title>
+      <title>New Order Created - xHACCP</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2c3e50; margin-bottom: 10px;">KitchenOff</h1>
+        <h1 style="color: #2c3e50; margin-bottom: 10px;">xHACCP</h1>
         <h2 style="color: #f39c12; margin-top: 0;">🔔 New Order Created</h2>
       </div>
       
@@ -352,10 +352,10 @@ export async function sendNewOrderNotificationEmail(
       <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
         <p style="margin: 0; color: #666;">
           Direct admin link: 
-          <a href="${adminOrderUrl}" style="color: #27ae60;">kitchen-off.com/admin#orders-${order.id}</a>
+          <a href="${adminOrderUrl}" style="color: #27ae60;">xhaccp.com/admin#orders-${order.id}</a>
         </p>
         <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
-          KitchenOff - Order Management System
+          xHACCP - Order Management System
         </p>
       </div>
     </body>
@@ -363,7 +363,7 @@ export async function sendNewOrderNotificationEmail(
   `;
 
   const textContent = `
-    KitchenOff - New Order Created
+    xHACCP - New Order Created
     
     🔔 NEW ORDER AWAITING REVIEW
     
@@ -402,7 +402,7 @@ export async function sendNewOrderNotificationEmail(
     3. Verify product availability
     4. Accept the order to begin processing
     
-    Direct link: kitchen-off.com/admin#orders-${order.id}
+    Direct link: xhaccp.com/admin#orders-${order.id}
   `;
 
   return await sendEmail({
@@ -433,11 +433,11 @@ export async function sendLogisticsNotificationEmail(
     <html>
     <head>
       <meta charset="utf-8">
-      <title>New Order for Processing - KitchenOff</title>
+      <title>New Order for Processing - xHACCP</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2c3e50; margin-bottom: 10px;">KitchenOff</h1>
+        <h1 style="color: #2c3e50; margin-bottom: 10px;">xHACCP</h1>
         <h2 style="color: #e74c3c; margin-top: 0;">New Order for Processing</h2>
       </div>
       
@@ -509,7 +509,7 @@ export async function sendLogisticsNotificationEmail(
       <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
         <p style="margin: 0; color: #666;">
           Access the admin panel at 
-          <a href="https://kitchen-off.com/admin" style="color: #e74c3c;">kitchen-off.com/admin</a>
+          <a href="https://xhaccp.com/admin" style="color: #e74c3c;">xhaccp.com/admin</a>
           to manage this order
         </p>
       </div>
@@ -518,7 +518,7 @@ export async function sendLogisticsNotificationEmail(
   `;
 
   const textContent = `
-    KitchenOff - New Order for Processing
+    xHACCP - New Order for Processing
     
     ORDER ACCEPTED - READY FOR PROCESSING
     
@@ -551,7 +551,7 @@ export async function sendLogisticsNotificationEmail(
     4. Update order status to "shipped" in the system
     5. Send tracking information to customer
     
-    Access the admin panel at kitchen-off.com/admin to manage this order.
+    Access the admin panel at xhaccp.com/admin to manage this order.
   `;
 
   return await sendEmail({
@@ -625,11 +625,11 @@ export async function sendNotificationPreferencesEmail(
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Notification Preferences Updated - KitchenOff</title>
+      <title>Notification Preferences Updated - xHACCP</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2c3e50; margin-bottom: 10px;">KitchenOff</h1>
+        <h1 style="color: #2c3e50; margin-bottom: 10px;">xHACCP</h1>
         <h2 style="color: #27ae60; margin-top: 0;">Notification Preferences Updated</h2>
       </div>
       
@@ -651,8 +651,8 @@ export async function sendNotificationPreferencesEmail(
       </div>
       
       <div style="margin-top: 30px; text-align: center; color: #666; font-size: 12px;">
-        <p>This is a confirmation email from KitchenOff.</p>
-        <p>© 2025 KitchenOff. All rights reserved.</p>
+        <p>This is a confirmation email from xHACCP.</p>
+        <p>© 2025 xHACCP. All rights reserved.</p>
       </div>
     </body>
     </html>
@@ -661,7 +661,7 @@ export async function sendNotificationPreferencesEmail(
   return await sendEmail({
     to: user.email,
     from: VERIFIED_SENDER,
-    subject: 'Notification Preferences Updated - KitchenOff',
+    subject: 'Notification Preferences Updated - xHACCP',
     html,
     text: `Hello ${user.firstName}, your notification preferences have been updated successfully. Email notifications: ${preferences.emailNotifications ? 'Enabled' : 'Disabled'}, Order updates: ${preferences.orderUpdates ? 'Enabled' : 'Disabled'}, Product restocks: ${preferences.productRestocks ? 'Enabled' : 'Disabled'}, Price drops: ${preferences.priceDrops ? 'Enabled' : 'Disabled'}, Promotions: ${preferences.promotions ? 'Enabled' : 'Disabled'}.`
   });
@@ -680,21 +680,21 @@ interface ContactFormData {
 
 // Send contact form emails - to business and confirmation to customer
 export async function sendContactFormEmails(data: ContactFormData): Promise<{ toBusinessSent: boolean; toCustomerSent: boolean }> {
-  const BUSINESS_EMAIL = 'info@kitchen-off.com';
+  const BUSINESS_EMAIL = 'info@xhaccp.com';
   const ticketId = `TICKET_${Date.now()}`;
   const timestamp = new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' });
 
-  // Email to business (info@kitchen-off.com)
+  // Email to business (info@xhaccp.com)
   const businessHtml = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Mesaj nou de contact - KitchenOff</title>
+      <title>Mesaj nou de contact - xHACCP</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2c3e50; margin-bottom: 10px;">KitchenOff</h1>
+        <h1 style="color: #2c3e50; margin-bottom: 10px;">xHACCP</h1>
         <h2 style="color: #e74c3c; margin-top: 0;">📩 Mesaj nou de contact</h2>
       </div>
       
@@ -731,7 +731,7 @@ export async function sendContactFormEmails(data: ContactFormData): Promise<{ to
   `;
 
   const businessText = `
-    KitchenOff - Mesaj nou de contact
+    xHACCP - Mesaj nou de contact
     
     ID Ticket: ${ticketId}
     Data: ${timestamp}
@@ -756,11 +756,11 @@ export async function sendContactFormEmails(data: ContactFormData): Promise<{ to
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Confirmare mesaj - KitchenOff</title>
+      <title>Confirmare mesaj - xHACCP</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2c3e50; margin-bottom: 10px;">KitchenOff</h1>
+        <h1 style="color: #2c3e50; margin-bottom: 10px;">xHACCP</h1>
         <h2 style="color: #27ae60; margin-top: 0;">✅ Am primit mesajul dumneavoastră</h2>
       </div>
       
@@ -784,16 +784,16 @@ export async function sendContactFormEmails(data: ContactFormData): Promise<{ to
         <h3 style="margin-top: 0; color: #0c5460;">Aveți nevoie de ajutor urgent?</h3>
         <p style="margin: 0;">Dacă aveți întrebări urgente, ne puteți contacta la:</p>
         <ul style="margin: 10px 0 0 0; padding-left: 20px;">
-          <li>Email: <a href="mailto:info@kitchen-off.com" style="color: #27ae60;">info@kitchen-off.com</a></li>
+          <li>Email: <a href="mailto:info@xhaccp.com" style="color: #27ae60;">info@xhaccp.com</a></li>
         </ul>
       </div>
 
       <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
         <p style="margin: 0; color: #666;">
-          Vă mulțumim că ați ales KitchenOff!
+          Vă mulțumim că ați ales xHACCP!
         </p>
         <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
-          © 2025 KitchenOff. Toate drepturile rezervate.
+          © 2025 xHACCP. Toate drepturile rezervate.
         </p>
       </div>
     </body>
@@ -801,7 +801,7 @@ export async function sendContactFormEmails(data: ContactFormData): Promise<{ to
   `;
 
   const customerText = `
-    KitchenOff - Confirmare mesaj
+    xHACCP - Confirmare mesaj
     
     Bună ${data.name},
     
@@ -818,9 +818,9 @@ export async function sendContactFormEmails(data: ContactFormData): Promise<{ to
     ${data.message}
     
     Aveți nevoie de ajutor urgent?
-    Email: info@kitchen-off.com
+    Email: info@xhaccp.com
     
-    Vă mulțumim că ați ales KitchenOff!
+    Vă mulțumim că ați ales xHACCP!
   `;
 
   // Send both emails
@@ -838,7 +838,7 @@ export async function sendContactFormEmails(data: ContactFormData): Promise<{ to
   const toCustomerSent = await sendEmail({
     to: data.email,
     from: VERIFIED_SENDER,
-    subject: `Confirmare mesaj - KitchenOff (${ticketId})`,
+    subject: `Confirmare mesaj - xHACCP (${ticketId})`,
     text: customerText,
     html: customerHtml,
   });

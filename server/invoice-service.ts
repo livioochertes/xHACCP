@@ -360,7 +360,7 @@ export class InvoiceService {
           invoice.smartbillSeries,
           invoice.smartbillNumber,
           email,
-          `Invoice ${invoice.invoiceNumber} from KitchenOff`,
+          `Invoice ${invoice.invoiceNumber} from xHACCP`,
           'Please find attached your invoice. Thank you for your business!'
         );
         return true;
@@ -415,7 +415,7 @@ export async function createInvoiceService(): Promise<InvoiceService> {
   
   const config: InvoiceServiceConfig = {
     smartbill: {
-      username: 'liviu.chertes@gmail.com', // Corrected username - was @kitchen-off.com
+      username: 'liviu.chertes@gmail.com', // Corrected username - was @xhaccp.com
       token: '001|2af8fcdc3ea579cb7a81093ca404b31e', // Use hardcoded credentials
       companyVat: 'RO16582983', // Use hardcoded credentials with RO prefix
     },
@@ -453,9 +453,9 @@ async function getCompanySettings() {
     } else {
       // Return default company settings
       return {
-        name: 'KitchenOff',
-        email: 'info@kitchen-off.com',
-        logisticsEmail: 'logistics@kitchen-off.com',
+        name: 'xHACCP',
+        email: 'info@xhaccp.com',
+        logisticsEmail: 'logistics@xhaccp.com',
         phone: '+40 123 456 789',
         address: 'Calea Mosilor 158',
         city: 'Bucharest',
@@ -463,7 +463,7 @@ async function getCompanySettings() {
         zipCode: '020883',
         country: 'Romania',
         contactPerson: 'Company Administrator',
-        website: 'https://kitchen-off.com',
+        website: 'https://xhaccp.com',
         vatNumber: '',
         registrationNumber: '',
         description: 'Professional kitchen equipment and supplies for the HORECA industry.'
@@ -473,9 +473,9 @@ async function getCompanySettings() {
     console.error('Error fetching company settings for invoice:', error);
     // Return defaults on error
     return {
-      name: 'KitchenOff',
-      email: 'info@kitchen-off.com',
-      logisticsEmail: 'logistics@kitchen-off.com',
+      name: 'xHACCP',
+      email: 'info@xhaccp.com',
+      logisticsEmail: 'logistics@xhaccp.com',
       vatNumber: '',
       registrationNumber: ''
     };

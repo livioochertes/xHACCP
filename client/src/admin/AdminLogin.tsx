@@ -257,7 +257,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
           </div>
           <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
           <CardDescription>
-            Access the KitchenOff admin dashboard
+            Access the xHACCP admin dashboard
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -279,7 +279,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                       <Input
                         {...field}
                         type="email"
-                        placeholder="admin@kitchen-off.com"
+                        placeholder="admin@xhaccp.com"
                         disabled={loading}
                       />
                     </FormControl>

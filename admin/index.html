@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KitchenOff Admin Panel</title>
+  <title>xHACCP Admin Panel</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -443,7 +443,7 @@
   <!-- Initial loading overlay -->
   <div id="initial-loading" class="initial-loading">
     <div class="loading-spinner"></div>
-    <div class="loading-text">Loading KitchenOff Admin Panel...</div>
+    <div class="loading-text">Loading xHACCP Admin Panel...</div>
   </div>
   
   <div id="admin-root"></div>
@@ -591,8 +591,8 @@
         <div className="login-container">
           <div className="login-header">
             <div className="login-logo">
-              <img src="/attached_assets/KitchenOff_Logo_Background_Removed_1752520997429.png" alt="KitchenOff Logo" />
-              <span>KitchenOff</span>
+              <img src="/attached_assets/logo_xHACCP-S1_1772812623761.png" alt="xHACCP Logo" />
+              <span>xHACCP</span>
             </div>
             <h1 className="login-title">Admin Panel</h1>
             <p className="login-subtitle">Welcome back! Please sign in to continue.</p>
@@ -609,7 +609,7 @@
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 required
-                placeholder="admin@kitchen-off.com"
+                placeholder="admin@xhaccp.com"
               />
             </div>
             
@@ -633,7 +633,7 @@
           
           <div className="text-sm text-center" style={{marginTop: '20px'}}>
             <p><strong>Demo Credentials:</strong></p>
-            <p>Email: admin@kitchen-off.com</p>
+            <p>Email: admin@xhaccp.com</p>
             <p>Password: admin123</p>
           </div>
         </div>
@@ -1523,7 +1523,7 @@
             'Product Code': 'KO001',
             'NC Code': '3924100000',
             'CPV Code': '39830000-9',
-            'Supplier Name': 'KitchenOff Direct',
+            'Supplier Name': 'xHACCP Direct',
             'Weight (kg)': '2.5',
             'Length (cm)': '25.0',
             'Width (cm)': '15.0',
@@ -1542,7 +1542,7 @@
             'Product Code': 'KO002',
             'NC Code': '4821100000',
             'CPV Code': '30199700-3',
-            'Supplier Name': 'KitchenOff Direct',
+            'Supplier Name': 'xHACCP Direct',
             'Weight (kg)': '1.0',
             'Length (cm)': '20.0',
             'Width (cm)': '15.0',
@@ -1569,7 +1569,7 @@
           { Field: 'Product Code', Required: 'No', Description: 'Alphanumeric product code' },
           { Field: 'NC Code', Required: 'No', Description: 'Nomenclature code' },
           { Field: 'CPV Code', Required: 'No', Description: 'Common Procurement Vocabulary code' },
-          { Field: 'Supplier Name', Required: 'No', Description: 'Supplier name (default: KitchenOff Direct)' },
+          { Field: 'Supplier Name', Required: 'No', Description: 'Supplier name (default: xHACCP Direct)' },
           { Field: 'Weight (kg)', Required: 'No', Description: 'Product weight in kilograms (minimum 1kg for parcel compliance)' },
           { Field: 'Length (cm)', Required: 'No', Description: 'Product length in centimeters for shipping calculations' },
           { Field: 'Width (cm)', Required: 'No', Description: 'Product width in centimeters for shipping calculations' },
@@ -1581,7 +1581,7 @@
         XLSX.utils.book_append_sheet(wb, instructionsWs, 'Instructions');
 
         // Download file
-        XLSX.writeFile(wb, 'KitchenOff_Products_Import_Template.xlsx');
+        XLSX.writeFile(wb, 'xHACCP_Products_Import_Template.xlsx');
         alert('✅ Excel template downloaded successfully!\\n\\nPlease fill in the template with your product data and use "Import from Excel" to upload it.');
       };
 
@@ -1948,8 +1948,8 @@
           } else {
             // Set default values if no company settings exist
             setCompanySettings({
-              name: 'KitchenOff',
-              email: 'info@kitchen-off.com',
+              name: 'xHACCP',
+              email: 'info@xhaccp.com',
               phone: '+40 123 456 789',
               address: 'Calea Mosilor 158',
               city: 'Bucharest',
@@ -1957,7 +1957,7 @@
               zipCode: '020883',
               country: 'Romania',
               contactPerson: 'Company Administrator',
-              website: 'https://kitchen-off.com',
+              website: 'https://xhaccp.com',
               vatNumber: '',
               registrationNumber: '',
               defaultCurrency: 'EUR',
@@ -4230,7 +4230,7 @@
                 <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                   <h3 style={{marginBottom: '20px', color: '#333'}}>System Overview</h3>
                   <p style={{color: '#666', lineHeight: '1.6'}}>
-                    Welcome to the KitchenOff Admin Panel. Here you can manage your e-commerce platform, 
+                    Welcome to the xHACCP Admin Panel. Here you can manage your e-commerce platform, 
                     view statistics, and monitor system performance. The dashboard shows real-time data 
                     from your PostgreSQL database.
                   </p>
@@ -8807,8 +8807,8 @@ TOTAL: $${selectedOrder.totalAmount}
         <div className="container">
           <div className="admin-header">
             <div className="logo" onClick={() => setActiveView('dashboard')} style={{cursor: 'pointer'}}>
-              <img src="/attached_assets/KitchenOff_Logo_Background_Removed_1752520997429.png" alt="KitchenOff Logo" />
-              <span>KitchenOff Admin</span>
+              <img src="/attached_assets/logo_xHACCP-S1_1772812623761.png" alt="xHACCP Logo" />
+              <span>xHACCP Admin</span>
             </div>
             <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
               <span style={{fontSize: '14px', color: '#666'}}>Welcome, {admin?.firstName || 'Admin'}</span>

@@ -1,7 +1,7 @@
-# KitchenOff - E-commerce Platform
+# xHACCP - E-commerce Platform
 
 ## Overview
-KitchenOff is a full-stack e-commerce platform specializing in kitchen equipment and supplies. It features a React frontend with TypeScript, a Node.js Express backend, and a PostgreSQL database utilizing Drizzle ORM. The platform supports user authentication, a comprehensive product catalog, shopping cart functionality, order management, and administrative controls. The business vision is to provide a robust, modern, and localized solution for the HORECA market, specifically tailored for the Romanian market with ambitions for international expansion. Key capabilities include multi-parcel AWB generation, Smartbill API integration for invoicing, and comprehensive logistics management.
+xHACCP is a full-stack e-commerce platform specializing in kitchen equipment and supplies. It features a React frontend with TypeScript, a Node.js Express backend, and a PostgreSQL database utilizing Drizzle ORM. The platform supports user authentication, a comprehensive product catalog, shopping cart functionality, order management, and administrative controls. The business vision is to provide a robust, modern, and localized solution for the HORECA market, specifically tailored for the Romanian market with ambitions for international expansion. Key capabilities include multi-parcel AWB generation, Smartbill API integration for invoicing, and comprehensive logistics management.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -46,6 +46,7 @@ The platform features a modern React frontend with Radix UI components styled wi
 - **Shipping API**: Sameday Courier API
 - **AI/NLP**: OpenAI ChatGPT API (GPT-4o model)
 - **Image Processing**: Sharp (for WebP conversion and thumbnails)
+- **Object Storage**: Cloudflare R2
 - **UI Libraries**: Radix UI, shadcn/ui, Lucide React (icons)
 - **Validation**: Zod
 - **Build Tools**: Vite, esbuild, tsx

@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/hooks/useTranslation";
 import LanguageSwitcher from "@/components/language-switcher";
 import ContactModal from "@/components/contact-modal";
-import kitchenOffLogo from "@assets/KitchenOff_Logo_Background_Removed_1752520997429.png";
+import xhaccpLogo from "@assets/logo_xHACCP-S1_1772812623761.png";
 
 interface CompanySettings {
   freeShippingThreshold?: string;
@@ -78,11 +78,11 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 flex-shrink-0">
             <img 
-              src={kitchenOffLogo} 
-              alt="KitchenOff Logo" 
+              src={xhaccpLogo} 
+              alt="xHACCP Logo" 
               className="w-[100px] h-[100px] object-contain -my-4"
             />
-            <span className="text-xl font-bold text-primary">KitchenOff</span>
+            <span className="text-xl font-bold text-primary">xHACCP</span>
           </Link>
 
           {/* Search Bar */}

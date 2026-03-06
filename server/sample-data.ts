@@ -547,7 +547,7 @@ export async function seedDatabase() {
     
     const insertedUsers = await db.insert(users).values([
       {
-        email: "admin@kitchen-off.com",
+        email: "admin@xhaccp.com",
         password: adminPassword,
         firstName: "Admin",
         lastName: "User",

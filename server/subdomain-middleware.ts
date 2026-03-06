@@ -25,13 +25,13 @@ function extractSubdomain(host: string | undefined): string | null {
   
   const parts = host.split('.');
   
-  // For kitchen-off.com, admin.kitchen-off.com
-  if (parts.length >= 3 && parts[parts.length - 2] === 'kitchen-off') {
+  // For xhaccp.com, admin.xhaccp.com
+  if (parts.length >= 3 && parts[parts.length - 2] === 'xhaccp') {
     return parts[0];
   }
   
-  // Handle Replit domains - admin.kitchen-off.replit.app
-  if (parts.length >= 4 && parts[parts.length - 3] === 'kitchen-off' && parts[parts.length - 2] === 'replit') {
+  // Handle Replit domains - admin.xhaccp.replit.app
+  if (parts.length >= 4 && parts[parts.length - 3] === 'xhaccp' && parts[parts.length - 2] === 'replit') {
     return parts[0];
   }
   
@@ -98,7 +98,7 @@ function serveAdminApp(req: Request, res: Response, next: NextFunction) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KitchenOff Admin</title>
+  <title>xHACCP Admin</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
     .container { max-width: 400px; margin: 50px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -110,10 +110,10 @@ function serveAdminApp(req: Request, res: Response, next: NextFunction) {
 </head>
 <body>
   <div class="container">
-    <h1>KitchenOff Admin</h1>
+    <h1>xHACCP Admin</h1>
     <div class="info">
       <p><strong>Admin Access:</strong></p>
-      <p>Email: admin@kitchen-off.com</p>
+      <p>Email: admin@xhaccp.com</p>
       <p>Password: admin123</p>
     </div>
     <p>The admin interface is being loaded. If you see this message, please access the admin panel directly at:</p>

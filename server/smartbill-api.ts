@@ -310,7 +310,7 @@ export class SmartbillAPI {
           seriesname: seriesName,
           number: number,
           to: to,
-          subject: subject || 'Invoice from KitchenOff',
+          subject: subject || 'Invoice from xHACCP',
           bodyText: bodyText || 'Please find attached your invoice.'
         })
       });

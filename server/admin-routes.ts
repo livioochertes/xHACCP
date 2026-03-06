@@ -607,8 +607,8 @@ export async function registerAdminRoutes(app: Express) {
 
       // Generate secret
       const secret = speakeasy.generateSecret({
-        name: `KitchenOff Admin (${req.admin.email})`,
-        issuer: 'KitchenOff',
+        name: `xHACCP Admin (${req.admin.email})`,
+        issuer: 'xHACCP',
         length: 32
       });
 
@@ -3073,8 +3073,8 @@ export async function registerAdminRoutes(app: Express) {
         // Return default company settings if none exist
         res.json({
           name: 'Namarte CCL SRL',
-          email: 'info@kitchen-off.com',
-          logisticsEmail: 'logistics@kitchen-off.com',
+          email: 'info@xhaccp.com',
+          logisticsEmail: 'logistics@xhaccp.com',
           phone: '+40 123 456 789',
           address: 'Calea Mosilor 158',
           city: 'Bucharest',
@@ -3082,7 +3082,7 @@ export async function registerAdminRoutes(app: Express) {
           zipCode: '020883',
           country: 'Romania',
           contactPerson: 'Company Administrator',
-          website: 'https://kitchen-off.com',
+          website: 'https://xhaccp.com',
           vatNumber: 'RO12345678',
           registrationNumber: 'J40/12345/2020',
           bankName: 'Banca Comercială Română',
@@ -3317,7 +3317,7 @@ export async function registerAdminRoutes(app: Express) {
           const productCode = row['Product Code']?.toString()?.trim() || '';
           const ncCode = row['NC Code']?.toString()?.trim() || '';
           const cpvCode = row['CPV Code']?.toString()?.trim() || '';
-          const supplierName = row['Supplier Name']?.toString()?.trim() || 'KitchenOff Direct';
+          const supplierName = row['Supplier Name']?.toString()?.trim() || 'xHACCP Direct';
           
           // Extract logistics fields with defaults and validation
           const weight = Math.max(1, Math.round(parseFloat(row['Weight (kg)']?.toString()?.replace(',', '.') || '1')));

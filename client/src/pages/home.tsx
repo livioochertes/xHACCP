@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import ProductCard from "@/components/product-card";
 import ContactModal from "@/components/contact-modal";
 import type { Category, ProductWithCategory } from "@shared/schema";
-import kitchenOffLogo from "@assets/KitchenOff_Logo_Background_Removed_1752520997429.png";
+import xhaccpLogo from "@assets/logo_xHACCP-S1_1772812623761.png";
 import suppliesEquipmentImg from "@assets/generated_images/chef_checking_kitchen_inventory.png";
 import businessConsultingImg from "@assets/generated_images/business_consulting_meeting_chef.png";
 import kitchenManagementImg from "@assets/generated_images/chef_using_tablet_management.png";
@@ -91,7 +91,7 @@ export default function Home() {
       name: "Sarah Johnson",
       role: "Restaurant Manager",
       rating: 5,
-      comment: "Excellent quality labels and fast shipping. Our restaurant has been using KitchenOff for over 2 years now. Highly recommended!",
+      comment: "Excellent quality labels and fast shipping. Our restaurant has been using xHACCP for over 2 years now. Highly recommended!",
     },
     {
       name: "Mike Chen",
@@ -394,12 +394,12 @@ export default function Home() {
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-16 h-16 bg-white rounded-lg p-1 flex items-center justify-center">
                   <img 
-                    src={kitchenOffLogo} 
-                    alt="KitchenOff Logo" 
+                    src={xhaccpLogo} 
+                    alt="xHACCP Logo" 
                     className="w-14 h-14 object-contain"
                   />
                 </div>
-                <span className="text-xl font-bold text-white">KitchenOff</span>
+                <span className="text-xl font-bold text-white">xHACCP</span>
               </div>
               <p className="text-slate-300 mb-4">
                 {t('footer.company.description')}
@@ -468,7 +468,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <i className="fas fa-envelope text-secondary"></i>
-                  <span className="text-slate-300">info@kitchen-off.com</span>
+                  <span className="text-slate-300">info@xhaccp.com</span>
                 </div>
                 <div className="flex items-start space-x-2">
                   <i className="fas fa-map-marker-alt text-secondary mt-1"></i>
@@ -487,7 +487,7 @@ export default function Home() {
 
           <div className="border-t border-slate-700 mt-8 pt-8 text-center">
             <p className="text-slate-300">
-              &copy; 2025 KitchenOff. All rights reserved. | 
+              &copy; 2025 xHACCP. All rights reserved. | 
               <Link href="/privacy" className="hover:text-white ml-2">Privacy Policy</Link> | 
               <Link href="/terms" className="hover:text-white ml-2">Terms & Conditions</Link>
             </p>

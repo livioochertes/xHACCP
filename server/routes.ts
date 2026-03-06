@@ -697,7 +697,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create payment link for wire transfer
       let paymentLink = '';
       if (paymentMethod === 'wire_transfer') {
-        paymentLink = `https://www.kitchenoff.app/pay/invoice/${invoiceNumber}`;
+        paymentLink = `https://www.xhaccp.com/pay/invoice/${invoiceNumber}`;
       }
 
       // Calculate totals with 21% VAT for RON
@@ -1480,7 +1480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parcels: parcels,
         codAmount: 0,
         insuredValue: parseFloat(order.totalAmount.toString()),
-        observation: `Order #${order.id} - KitchenOff E-commerce`,
+        observation: `Order #${order.id} - xHACCP E-commerce`,
         reference: `ORDER_${order.id}`,
       };
 
@@ -1651,7 +1651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ip: req.ip || 'unknown'
       });
 
-      // Send emails: to business (info@kitchen-off.com) and confirmation to customer
+      // Send emails: to business (info@xhaccp.com) and confirmation to customer
       const emailResults = await sendContactFormEmails({
         name,
         email,
@@ -1777,8 +1777,8 @@ When user asks about orders, invoices, or order status, provide specific informa
         ? `\n\nIMPORTANT: Respond in ${userLanguage} language. The user interface is in ${userLanguage}, so provide your response in the same language to ensure consistency.`
         : '';
 
-      // Create system prompt with KitchenOff context
-      const systemPrompt = `You are an AI assistant for KitchenOff, a professional kitchen equipment and supplies company. You help customers with:
+      // Create system prompt with xHACCP context
+      const systemPrompt = `You are an AI assistant for xHACCP, a professional kitchen equipment and supplies company. You help customers with:
 
 1. Product recommendations from our catalog
 2. Kitchen setup advice for commercial and home kitchens
@@ -1957,7 +1957,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         amount: Math.round(finalAmount),
         currency: currency.toLowerCase(),
         metadata: {
-          source: 'kitchenoff',
+          source: 'xhaccp',
           orderId: orderId?.toString() || '',
           voucherCode: voucherCode || ''
         }
@@ -2246,7 +2246,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KitchenOff Admin</title>
+  <title>xHACCP Admin</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
@@ -2262,14 +2262,14 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 </head>
 <body>
   <div class="container">
-    <div class="logo">🍴 KitchenOff</div>
+    <div class="logo">🍴 xHACCP</div>
     <h1>Admin Panel</h1>
     <div class="info">
       <p><strong>Admin Credentials:</strong></p>
-      <div class="credentials">Email: admin@kitchen-off.com</div>
+      <div class="credentials">Email: admin@xhaccp.com</div>
       <div class="credentials">Password: admin123</div>
     </div>
-    <p>Welcome to the KitchenOff admin interface. Please use the credentials above to access your dashboard.</p>
+    <p>Welcome to the xHACCP admin interface. Please use the credentials above to access your dashboard.</p>
     <a href="/admin" class="button">Enter Admin Panel</a>
     <div class="note">
       <p>🔐 Features: JWT Authentication, 2FA Support, Real-time Dashboard</p>

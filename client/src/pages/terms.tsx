@@ -161,7 +161,7 @@ export default function Terms() {
                     <div className="flex items-center space-x-3">
                       <Mail className="h-5 w-5 text-secondary" />
                       <div>
-                        <p className="text-slate-600">info@kitchen-off.com</p>
+                        <p className="text-slate-600">info@xhaccp.com</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
@@ -225,7 +225,7 @@ export default function Terms() {
                     {t('terms.footer.support')}
                   </Link>
                   <span className="hidden sm:inline text-slate-400">|</span>
-                  <a href="mailto:dpo@kitchen-off.com" className="text-secondary hover:text-secondary/80 font-medium">
+                  <a href="mailto:dpo@xhaccp.com" className="text-secondary hover:text-secondary/80 font-medium">
                     {t('terms.footer.privacy')}
                   </a>
                 </div>

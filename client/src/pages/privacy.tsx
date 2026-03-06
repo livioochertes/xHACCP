@@ -55,7 +55,7 @@ export default function Privacy() {
       icon: FileText,
       title: "What Types of Personal Data Are Processed and For What Purpose?",
       content: [
-        "When completing and submitting the contact form (\"Any Questions? Send Us a Message\") on the main page of the Company's website www.kitchen-off.com, we process the following types of personal data: first and last name, email address, phone number, as well as any other data provided at the data subject's initiative regarding the services marketed by the Company, in the \"Your message\" field.",
+        "When completing and submitting the contact form (\"Any Questions? Send Us a Message\") on the main page of the Company's website www.xhaccp.com, we process the following types of personal data: first and last name, email address, phone number, as well as any other data provided at the data subject's initiative regarding the services marketed by the Company, in the \"Your message\" field.",
         "You must check the box stating \"I have read and agree to the Privacy Policy\" – and then click the \"Send message\" button.",
         "For visitors of the website, we may collect data through cookies or similar technologies, such as: IP address, internet browser, location, web pages accessed on our website, time spent on the website, internet network, and device used. For more details on this, please consult our Cookies Policy.",
         "We do not use your personal data to send you marketing communications, such as newsletters, unless you have given your explicit consent for such communications by ticking a corresponding consent box. In this respect, we only process your email address, and we ensure that you have a simple option to unsubscribe at any time, i.e., to withdraw your consent regarding these types of communications."
@@ -115,7 +115,7 @@ export default function Privacy() {
         "• The right to object to processing;",
         "• The right not to be subject to a decision based solely on automated processing, including profiling;",
         "• The right to lodge a complaint with the National Supervisory Authority for Personal Data Processing (www.dataprotection.ro) and to refer the matter to the courts.",
-        "Individuals may exercise these rights by sending a written request either to the headquarters of NAMARTE (Bucharest, Sector 2, Calea Moșilor no. 158, Romania) or electronically to the Data Protection Officer's email address: info@kitchen-off.com, or by phone at: +40740000520. The Data Protection Officer (DPO) services are outsourced and provided by GDPRComplet.",
+        "Individuals may exercise these rights by sending a written request either to the headquarters of NAMARTE (Bucharest, Sector 2, Calea Moșilor no. 158, Romania) or electronically to the Data Protection Officer's email address: info@xhaccp.com, or by phone at: +40740000520. The Data Protection Officer (DPO) services are outsourced and provided by GDPRComplet.",
         "We will respond to your request within the legal timeframe of 30 days (with the possibility of extension if the request is complex, but we will inform you accordingly)."
       ]
     }
@@ -192,7 +192,7 @@ export default function Privacy() {
                     <div className="flex items-center space-x-3">
                       <Mail className="h-5 w-5 text-secondary" />
                       <div>
-                        <p className="text-slate-600">info@kitchen-off.com</p>
+                        <p className="text-slate-600">info@xhaccp.com</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
@@ -260,7 +260,7 @@ export default function Privacy() {
                 Contact Support
               </Link>
               <a 
-                href="mailto:info@kitchen-off.com" 
+                href="mailto:info@xhaccp.com" 
                 className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-secondary transition-colors"
               >
                 Email Us

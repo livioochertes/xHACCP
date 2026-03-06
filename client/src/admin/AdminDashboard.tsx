@@ -329,7 +329,7 @@ export default function AdminDashboard({ token, admin, onLogout }: AdminDashboar
               <div className="flex items-center space-x-2">
                 <Shield className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                  KitchenOff Admin
+                  xHACCP Admin
                 </h1>
               </div>
             </div>

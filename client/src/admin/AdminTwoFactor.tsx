@@ -160,12 +160,12 @@ export default function AdminTwoFactor({ token, enabled, onUpdate }: AdminTwoFac
   };
 
   const downloadBackupCodes = () => {
-    const content = `KitchenOff Admin 2FA Backup Codes\n\nGenerated: ${new Date().toISOString()}\n\n${backupCodes.join('\n')}\n\nKeep these codes secure - they can be used to access your account if you lose your authenticator device.`;
+    const content = `xHACCP Admin 2FA Backup Codes\n\nGenerated: ${new Date().toISOString()}\n\n${backupCodes.join('\n')}\n\nKeep these codes secure - they can be used to access your account if you lose your authenticator device.`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'kitchenoff-admin-backup-codes.txt';
+    a.download = 'xhaccp-admin-backup-codes.txt';
     a.click();
     URL.revokeObjectURL(url);
   };
