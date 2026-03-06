@@ -3218,10 +3218,26 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       // Parse Excel file
-      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet) as Array<Record<string, any>>;
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(req.file.buffer);
+      const worksheet = workbook.worksheets[0];
+      const headers: string[] = [];
+      const jsonData: Array<Record<string, any>> = [];
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) {
+          (row.values as any[]).forEach((value, idx) => {
+            if (idx > 0) headers.push(String(value ?? ''));
+          });
+        } else {
+          const obj: Record<string, any> = {};
+          (row.values as any[]).forEach((value, idx) => {
+            if (idx > 0 && headers[idx - 1]) {
+              obj[headers[idx - 1]] = value;
+            }
+          });
+          jsonData.push(obj);
+        }
+      });
 
       if (!jsonData || jsonData.length === 0) {
         return res.status(400).json({ message: "Excel file is empty or invalid" });
