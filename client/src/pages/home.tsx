@@ -51,8 +51,18 @@ export default function Home() {
     }
   };
 
+  const formatThreshold = (amount: string, currency: string) => {
+    const num = parseFloat(amount);
+    const formatted = num.toLocaleString('ro-RO', { maximumFractionDigits: 0 });
+    const symbol = getCurrencySymbol(currency);
+    if (currency === 'RON') {
+      return `${formatted} ${symbol}`;
+    }
+    return `${symbol}${formatted}`;
+  };
+
   const shippingThresholdText = shippingSettings
-    ? `${getCurrencySymbol(shippingSettings.currency)}${parseFloat(shippingSettings.freeShippingThreshold).toFixed(0)}`
+    ? formatThreshold(shippingSettings.freeShippingThreshold, shippingSettings.currency)
     : '';
 
   // Carousel setup for featured products with autoplay
