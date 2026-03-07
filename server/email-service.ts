@@ -424,8 +424,12 @@ export async function sendLogisticsNotificationEmail(
     logisticsEmail = await getLogisticsEmailFromSettings() || 'liviu.chertes@gmail.com';
   }
   const shippingAddress = order.shippingAddress as any;
+  const customerName = `${user.firstName || shippingAddress?.firstName || 'Guest'} ${user.lastName || shippingAddress?.lastName || 'Customer'}`;
+  const customerEmail = user.email || shippingAddress?.email || '';
+  const customerPhone = shippingAddress?.phone || '';
+
   const orderItemsText = order.items
-    .map(item => `- ${item.product.name} (Qty: ${item.quantity}) - $${item.totalPrice}`)
+    .map(item => `- ${item.product.name} (Qty: ${item.quantity}) - ${item.totalPrice} lei`)
     .join('\n');
 
   const html = `
@@ -445,10 +449,10 @@ export async function sendLogisticsNotificationEmail(
         <h3 style="margin-top: 0; color: #856404;">Order Accepted - Ready for Processing</h3>
         <p><strong>Order ID:</strong> #${order.id}</p>
         <p><strong>Order Date:</strong> ${new Date(order.createdAt!).toLocaleDateString()}</p>
-        <p><strong>Customer:</strong> ${user.firstName} ${user.lastName}</p>
-        <p><strong>Customer Email:</strong> ${user.email}</p>
-        <p><strong>Customer Phone:</strong> ${shippingAddress.phone}</p>
-        <p><strong>Total Amount:</strong> $${order.totalAmount}</p>
+        <p><strong>Customer:</strong> ${customerName}</p>
+        <p><strong>Customer Email:</strong> ${customerEmail}</p>
+        <p><strong>Customer Phone:</strong> ${customerPhone}</p>
+        <p><strong>Total Amount:</strong> ${order.totalAmount} lei</p>
         <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
         <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
       </div>
@@ -469,8 +473,8 @@ export async function sendLogisticsNotificationEmail(
               <tr>
                 <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.product.name}</td>
                 <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${item.price}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${item.totalPrice}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.price} lei</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} lei</td>
               </tr>
             `).join('')}
           </tbody>
@@ -525,10 +529,10 @@ export async function sendLogisticsNotificationEmail(
     Order Details:
     - Order ID: #${order.id}
     - Order Date: ${new Date(order.createdAt!).toLocaleDateString()}
-    - Customer: ${user.firstName} ${user.lastName}
-    - Customer Email: ${user.email}
-    - Customer Phone: ${shippingAddress.phone}
-    - Total Amount: $${order.totalAmount}
+    - Customer: ${customerName}
+    - Customer Email: ${customerEmail}
+    - Customer Phone: ${customerPhone}
+    - Total Amount: ${order.totalAmount} lei
     - Payment Method: ${order.paymentMethod}
     - Payment Status: ${order.paymentStatus}
     

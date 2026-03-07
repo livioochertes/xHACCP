@@ -971,34 +971,157 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(400).json({ success: false, message: 'Invalid order ID' });
       }
 
-      // Get the order details first
       const order = await storage.getOrder(orderId);
       if (!order) {
         return res.status(404).json({ success: false, message: 'Order not found' });
       }
 
-      // Check if order is already processed
       if (order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered') {
         return res.status(400).json({ success: false, message: 'Order has already been processed' });
       }
 
-      // Accept the order
       const updatedOrder = await storage.acceptOrder(orderId);
-      
-      // Get user details for email
-      const user = await storage.getUser(order.userId!);
-      if (!user) {
-        return res.status(404).json({ success: false, message: 'User not found' });
+
+      let user: any = null;
+      if (order.userId) {
+        user = await storage.getUser(order.userId);
       }
 
-      // Import email functions
+      const shippingAddr = order.shippingAddress as any;
+      const billingAddr = order.billingAddress as any;
+
+      if (!user) {
+        const guestEmail = shippingAddr?.email || billingAddr?.email || '';
+        const notesEmailMatch = order.notes?.match(/Guest email:\s*([^\s,]+)/);
+        const resolvedEmail = guestEmail || (notesEmailMatch ? notesEmailMatch[1] : '');
+
+        user = {
+          id: 0,
+          email: resolvedEmail,
+          firstName: shippingAddr?.firstName || billingAddr?.firstName || 'Guest',
+          lastName: shippingAddr?.lastName || billingAddr?.lastName || 'Customer',
+          isAdmin: false,
+        };
+        console.log(`📧 Accept order #${orderId}: guest order, resolved email: ${resolvedEmail}`);
+      }
+
       const { sendOrderConfirmationEmail, sendLogisticsNotificationEmail } = await import('./email-service');
-      
-      // Send confirmation email to customer
-      const customerEmailSent = await sendOrderConfirmationEmail(order, user);
-      
-      // Send notification to logistics
+
+      let customerEmailSent = false;
+      if (user.email) {
+        customerEmailSent = await sendOrderConfirmationEmail(order, user);
+      }
+
       const logisticsEmailSent = await sendLogisticsNotificationEmail(order, user);
+
+      let invoiceGenerated = false;
+      let awbGenerated = false;
+      const isCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod';
+
+      if (isCOD) {
+        try {
+          const { createInvoiceService } = await import('./invoice-service.js');
+          const invoiceService = await createInvoiceService();
+          const invoice = await invoiceService.generateInvoiceAfterPayment(
+            orderId,
+            {
+              status: 'succeeded',
+              paymentMethod: 'cash_on_delivery',
+              paymentId: `cod_${orderId}`,
+              amount: parseFloat(String(order.totalAmount)),
+            }
+          );
+          console.log(`✅ Invoice generated for COD order #${orderId}:`, invoice.invoiceNumber);
+          invoiceGenerated = true;
+        } catch (invoiceError) {
+          console.error(`Failed to generate invoice for COD order #${orderId}:`, invoiceError);
+        }
+
+        try {
+          const { createSamedayAPI } = await import('./sameday-api');
+          const samedayAPI = createSamedayAPI();
+          if (samedayAPI) {
+            const existingOrder = await storage.getOrder(orderId);
+            if (existingOrder && !existingOrder.awbNumber) {
+              const [pickupPoints, services] = await Promise.all([
+                samedayAPI.getPickupPoints(),
+                samedayAPI.getServices()
+              ]);
+
+              if (pickupPoints.length > 0 && services.length > 0) {
+                const selectedPickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
+                const parcels: any[] = [];
+                let parcelCounter = 1;
+
+                if (existingOrder.items && existingOrder.items.length > 0) {
+                  for (const item of existingOrder.items) {
+                    const product = await storage.getProduct(item.productId);
+                    if (!product) continue;
+                    const quantity = item.quantity;
+                    const piecesPerPackage = (product as any).piecesPerPackage || 1;
+                    const weight = (product as any).weight || 1;
+                    const numberOfPackages = Math.ceil(quantity / piecesPerPackage);
+                    for (let i = 0; i < numberOfPackages; i++) {
+                      parcels.push({
+                        sequenceNo: parcelCounter++,
+                        weight: weight,
+                        width: 30,
+                        height: 20,
+                        length: 40,
+                      });
+                    }
+                  }
+                }
+                if (parcels.length === 0) {
+                  parcels.push({ sequenceNo: 1, weight: 1, width: 30, height: 20, length: 40 });
+                }
+
+                const codAmount = parseFloat(String(existingOrder.totalAmount));
+                const awbData = {
+                  pickupPointId: selectedPickupPoint.id,
+                  serviceId: services[0].id,
+                  contactPerson: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || 'Customer',
+                  phoneNumber: shippingAddr?.phone || '',
+                  address: shippingAddr?.streetAddress || shippingAddr?.address || '',
+                  city: shippingAddr?.city || '',
+                  county: shippingAddr?.state || shippingAddr?.county || '',
+                  postalCode: shippingAddr?.zipCode || '',
+                  parcels,
+                  cashOnDelivery: codAmount,
+                  cashOnDeliveryType: 1,
+                  thirdPartyPickup: 0,
+                  packageType: 1,
+                  insuredValue: codAmount,
+                  observation: `Order #${orderId}`,
+                  clientReference: `order_${orderId}`,
+                };
+
+                const awbResult = await samedayAPI.createAWB(awbData);
+                if (awbResult && awbResult.awbNumber) {
+                  await storage.updateOrder(orderId, {
+                    awbNumber: awbResult.awbNumber,
+                    awbCost: String(awbResult.awbCost || 0),
+                    awbCurrency: 'RON',
+                    status: 'processing',
+                  });
+                  console.log(`✅ AWB generated for COD order #${orderId}: ${awbResult.awbNumber}`);
+                  awbGenerated = true;
+
+                  try {
+                    const { sendLogisticsAWBEmail } = await import('./email-service');
+                    await sendLogisticsAWBEmail(existingOrder, awbResult.awbNumber);
+                    console.log(`✅ Logistics AWB email sent for order #${orderId}`);
+                  } catch (awbEmailError) {
+                    console.error(`Failed to send logistics AWB email for order #${orderId}:`, awbEmailError);
+                  }
+                }
+              }
+            }
+          }
+        } catch (awbError) {
+          console.error(`Failed to generate AWB for COD order #${orderId}:`, awbError);
+        }
+      }
 
       res.json({
         success: true,
@@ -1006,8 +1129,10 @@ export async function registerAdminRoutes(app: Express) {
         order: updatedOrder,
         notifications: {
           customerEmail: customerEmailSent,
-          logisticsEmail: logisticsEmailSent
-        }
+          logisticsEmail: logisticsEmailSent,
+        },
+        invoiceGenerated,
+        awbGenerated,
       });
     } catch (error) {
       console.error("Error accepting order:", error);
