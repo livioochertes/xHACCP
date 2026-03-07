@@ -985,3 +985,278 @@ export async function sendLogisticsAWBEmail(
     return false;
   }
 }
+
+export async function sendSupplierOrderEmail(
+  supplierEmail: string,
+  supplierName: string,
+  order: OrderWithItems,
+  supplierItems: { productName: string; quantity: number }[],
+  awbNumber: string,
+  awbPdfBuffer?: Buffer
+): Promise<boolean> {
+  if (!mailService || !VERIFIED_SENDER) {
+    console.warn("Email service not configured. Skipping supplier order email.");
+    return false;
+  }
+
+  const shippingAddress = order.shippingAddress as any;
+
+  const itemsHtml = supplierItems.map(item => `
+    <tr>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #eee;">${item.productName}</td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+    </tr>
+  `).join('');
+
+  const itemsText = supplierItems.map(item => `- ${item.productName} x ${item.quantity}`).join('\n');
+  const trackingUrl = `https://sameday.ro/track/${awbNumber}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><title>New Order - xHACCP</title></head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #2c3e50; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h1 style="margin: 0; font-size: 22px;">📦 New Order Request</h1>
+        <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">Order #${order.id}</p>
+      </div>
+
+      <div style="background: #f8f9fa; padding: 20px; border: 1px solid #e9ecef;">
+        <p>Dear ${supplierName},</p>
+        <p>We have a new order that requires the following products to be prepared:</p>
+
+        <h3 style="color: #2c3e50; margin-top: 20px;">Products to Prepare</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #e9ecef;">
+              <th style="padding: 10px 8px; text-align: left;">Product</th>
+              <th style="padding: 10px 8px; text-align: center;">Quantity</th>
+            </tr>
+          </thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+
+        <h3 style="color: #2c3e50; margin-top: 20px;">Delivery Information</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold; width: 140px;">AWB Number:</td>
+            <td style="padding: 4px 0;">${awbNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold;">Tracking:</td>
+            <td style="padding: 4px 0;"><a href="${trackingUrl}" style="color: #1a56db;">${trackingUrl}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold;">Courier:</td>
+            <td style="padding: 4px 0;">Sameday</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold;">Deliver to:</td>
+            <td style="padding: 4px 0;">
+              ${shippingAddress?.firstName || ''} ${shippingAddress?.lastName || ''}<br>
+              ${shippingAddress?.streetAddress || shippingAddress?.address || ''}<br>
+              ${shippingAddress?.city || ''}, ${shippingAddress?.state || shippingAddress?.county || ''} ${shippingAddress?.zipCode || ''}<br>
+              ${shippingAddress?.country || 'Romania'}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold;">Phone:</td>
+            <td style="padding: 4px 0;">${shippingAddress?.phone || 'N/A'}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="text-align: center; padding: 15px; background: #e8f5e9; border-radius: 0 0 8px 8px; border: 1px solid #e9ecef; border-top: none;">
+        <p style="margin: 0; color: #2e7d32; font-size: 14px;">
+          ${awbPdfBuffer ? '📎 AWB label attached as PDF' : ''}
+        </p>
+      </div>
+
+      <p style="text-align: center; color: #999; font-size: 12px; margin-top: 20px;">
+        This is an automated notification from xHACCP E-commerce Platform
+      </p>
+    </body>
+    </html>
+  `;
+
+  const emailData: any = {
+    to: supplierEmail,
+    from: VERIFIED_SENDER,
+    subject: `📦 New Order #${order.id} - Products to Prepare`,
+    text: `New Order #${order.id}\n\nProducts to Prepare:\n${itemsText}\n\nAWB: ${awbNumber}\nTracking: ${trackingUrl}\nDeliver to: ${shippingAddress?.firstName || ''} ${shippingAddress?.lastName || ''}, ${shippingAddress?.streetAddress || shippingAddress?.address || ''}, ${shippingAddress?.city || ''}\nPhone: ${shippingAddress?.phone || 'N/A'}`,
+    html,
+  };
+
+  if (awbPdfBuffer && awbPdfBuffer.length > 0) {
+    emailData.attachments = [{
+      content: awbPdfBuffer.toString('base64'),
+      filename: `AWB_${awbNumber}.pdf`,
+      type: 'application/pdf',
+      disposition: 'attachment',
+    }];
+  }
+
+  try {
+    await mailService.send(emailData);
+    console.log(`✅ Supplier order email sent to ${supplierEmail} for order #${order.id}`);
+    return true;
+  } catch (error: any) {
+    console.error(`❌ Failed to send supplier order email to ${supplierEmail}:`, error.message);
+    if (error.response?.body?.errors) {
+      console.error('SendGrid error details:', error.response.body.errors);
+    }
+    return false;
+  }
+}
+
+export async function sendCustomerShipmentEmail(
+  customerEmail: string,
+  order: OrderWithItems,
+  awbNumber: string,
+  invoicePdfBuffer?: Buffer | null,
+  invoiceNumber?: string
+): Promise<boolean> {
+  if (!mailService || !VERIFIED_SENDER) {
+    console.warn("Email service not configured. Skipping customer shipment email.");
+    return false;
+  }
+
+  const shippingAddress = order.shippingAddress as any;
+  const trackingUrl = `https://sameday.ro/track/${awbNumber}`;
+  const customerName = `${shippingAddress?.firstName || 'Customer'} ${shippingAddress?.lastName || ''}`.trim();
+
+  const orderItemsHtml = order.items.map(item => `
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.product.name}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} lei</td>
+    </tr>
+  `).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><title>Order Shipped - xHACCP</title></head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #27ae60; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h1 style="margin: 0; font-size: 22px;">✅ Order Accepted & Shipped</h1>
+        <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">Order #${order.id}</p>
+      </div>
+
+      <div style="background: #f8f9fa; padding: 20px; border: 1px solid #e9ecef;">
+        <p>Dear ${customerName},</p>
+        <p>Your order has been accepted and is being prepared for delivery. Here are the shipping details:</p>
+
+        <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #e0e0e0;">
+          <h3 style="color: #27ae60; margin-top: 0;">Shipping Details</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; width: 140px;">AWB Number:</td>
+              <td style="padding: 6px 0; font-size: 16px; font-weight: bold; color: #1a56db;">${awbNumber}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold;">Courier:</td>
+              <td style="padding: 6px 0;">Sameday</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold;">Tracking:</td>
+              <td style="padding: 6px 0;"><a href="${trackingUrl}" style="color: #1a56db; text-decoration: none;">Track your package →</a></td>
+            </tr>
+          </table>
+        </div>
+
+        <h3 style="color: #2c3e50;">Order Summary</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #e9ecef;">
+              <th style="padding: 8px; text-align: left;">Product</th>
+              <th style="padding: 8px; text-align: center;">Qty</th>
+              <th style="padding: 8px; text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${orderItemsHtml}
+            <tr style="font-weight: bold; background-color: #f0f0f0;">
+              <td style="padding: 10px 8px;" colspan="2">Total</td>
+              <td style="padding: 10px 8px; text-align: right;">${order.totalAmount} lei</td>
+            </tr>
+          </tbody>
+        </table>
+
+        ${invoiceNumber ? `
+          <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin-top: 15px; border: 1px solid #ffc107;">
+            <p style="margin: 0; font-size: 14px;">
+              📄 Invoice <strong>${invoiceNumber}</strong> ${invoicePdfBuffer ? 'is attached to this email' : 'has been issued'}
+            </p>
+          </div>
+        ` : ''}
+
+        <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #e0e0e0;">
+          <h3 style="color: #2c3e50; margin-top: 0;">Delivery Address</h3>
+          <p style="margin: 0; line-height: 1.8;">
+            ${shippingAddress?.firstName || ''} ${shippingAddress?.lastName || ''}<br>
+            ${shippingAddress?.streetAddress || shippingAddress?.address || ''}<br>
+            ${shippingAddress?.city || ''}, ${shippingAddress?.state || shippingAddress?.county || ''} ${shippingAddress?.zipCode || ''}<br>
+            ${shippingAddress?.country || 'Romania'}<br>
+            Phone: ${shippingAddress?.phone || 'N/A'}
+          </p>
+        </div>
+      </div>
+
+      <div style="text-align: center; padding: 15px; background: #e8f5e9; border-radius: 0 0 8px 8px; border: 1px solid #e9ecef; border-top: none;">
+        <a href="${trackingUrl}" style="display: inline-block; background-color: #27ae60; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold;">Track Your Package</a>
+      </div>
+
+      <p style="text-align: center; color: #999; font-size: 12px; margin-top: 20px;">
+        Thank you for your order! - xHACCP E-commerce Platform
+      </p>
+    </body>
+    </html>
+  `;
+
+  const emailData: any = {
+    to: customerEmail,
+    from: VERIFIED_SENDER,
+    subject: `✅ Order #${order.id} Accepted & Shipped - AWB: ${awbNumber}`,
+    text: `Your order #${order.id} has been accepted!\n\nAWB: ${awbNumber}\nTracking: ${trackingUrl}\nCourier: Sameday\n\nTotal: ${order.totalAmount} lei\n${invoiceNumber ? `Invoice: ${invoiceNumber}` : ''}\n\nThank you for your order!`,
+    html,
+  };
+
+  const attachments: any[] = [];
+  if (invoicePdfBuffer && invoicePdfBuffer.length > 0) {
+    attachments.push({
+      content: invoicePdfBuffer.toString('base64'),
+      filename: `Invoice_${invoiceNumber || order.id}.pdf`,
+      type: 'application/pdf',
+      disposition: 'attachment',
+    });
+  }
+  if (attachments.length > 0) {
+    emailData.attachments = attachments;
+  }
+
+  try {
+    await mailService.send(emailData);
+    console.log(`✅ Customer shipment email sent to ${customerEmail} for order #${order.id}, AWB: ${awbNumber}`);
+    return true;
+  } catch (error: any) {
+    console.error(`❌ Failed to send customer shipment email to ${customerEmail}:`, error.message);
+    if (error.response?.body?.errors) {
+      console.error('SendGrid error details:', error.response.body.errors);
+    }
+    return false;
+  }
+}
+
+async function getCompanyEmailFromSettings(): Promise<string | null> {
+  try {
+    const { pool } = await import('./db.js');
+    const result = await pool.query('SELECT email FROM company_settings ORDER BY id DESC LIMIT 1');
+    return result.rows.length > 0 ? result.rows[0].email : null;
+  } catch (error) {
+    console.error('Error fetching company email from settings:', error);
+    return null;
+  }
+}
+
+export { getCompanyEmailFromSettings };

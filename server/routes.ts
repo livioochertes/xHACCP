@@ -1403,13 +1403,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.userId) {
         const user = await storage.getUser(req.userId);
         if (fullOrder && user) {
-          const { sendNewOrderNotificationEmail, sendOrderConfirmationEmail } = await import('./email-service.js');
+          const { sendNewOrderNotificationEmail, sendOrderConfirmationEmail, getCompanyEmailFromSettings } = await import('./email-service.js');
           sendNewOrderNotificationEmail(fullOrder, user).catch(error => {
             console.error('Failed to send new order notification email:', error);
           });
           sendOrderConfirmationEmail(fullOrder, user).catch(error => {
             console.error('Failed to send order confirmation to customer:', error);
           });
+          getCompanyEmailFromSettings().then((companyEmail: string | null) => {
+            if (companyEmail && companyEmail !== user.email) {
+              const companyUser = { ...user, email: companyEmail };
+              sendOrderConfirmationEmail(fullOrder, companyUser as any).catch(error => {
+                console.error('Failed to send order confirmation to company:', error);
+              });
+            }
+          }).catch((err: any) => console.error('Failed to get company email:', err));
         }
         await storage.clearCart(req.userId);
       } else if (fullOrder) {
@@ -1420,13 +1428,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: shippingAddress?.lastName || '',
           name: `${shippingAddress?.firstName || 'Guest'} ${shippingAddress?.lastName || ''}`.trim(),
         };
-        const { sendNewOrderNotificationEmail, sendOrderConfirmationEmail } = await import('./email-service.js');
+        const { sendNewOrderNotificationEmail, sendOrderConfirmationEmail, getCompanyEmailFromSettings } = await import('./email-service.js');
         sendNewOrderNotificationEmail(fullOrder, guestUser as any).catch(error => {
           console.error('Failed to send guest order notification email:', error);
         });
         sendOrderConfirmationEmail(fullOrder, guestUser as any).catch(error => {
           console.error('Failed to send guest order confirmation email:', error);
         });
+        getCompanyEmailFromSettings().then((companyEmail: string | null) => {
+          if (companyEmail && companyEmail !== guestEmail) {
+            const companyRecipient = { ...guestUser, email: companyEmail };
+            sendOrderConfirmationEmail(fullOrder, companyRecipient as any).catch(error => {
+              console.error('Failed to send order confirmation to company:', error);
+            });
+          }
+        }).catch((err: any) => console.error('Failed to get company email:', err));
       }
       
       res.json(order);
