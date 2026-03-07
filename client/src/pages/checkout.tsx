@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle, ChevronDown, ChevronUp, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -81,7 +81,8 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 export default function Checkout() {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
-  const [step, setStep] = useState(isAuthenticated ? 2 : 1); // Skip contact info for logged-in users
+  const [step, setStep] = useState(isAuthenticated ? 2 : 1);
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [, navigate] = useLocation();
   const { cart, clearCart } = useCart();
   const { toast } = useToast();
@@ -467,14 +468,13 @@ export default function Checkout() {
         </div>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-center mb-6 sm:mb-8">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {isAuthenticated ? (
-              // For authenticated users: only Address and Payment steps
               <>
                 <div className="flex items-center">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
                       step >= 2
                         ? "kitchen-pro-secondary text-white"
                         : "bg-slate-200 text-slate-500"
@@ -482,16 +482,16 @@ export default function Checkout() {
                   >
                     1
                   </div>
-                  <div className="ml-2 text-sm">{t('checkout.stepAddress')}</div>
+                  <div className="ml-1.5 sm:ml-2 text-xs sm:text-sm">{t('checkout.stepAddress')}</div>
                 </div>
                 <div
-                  className={`w-16 h-0.5 ${
+                  className={`w-8 sm:w-16 h-0.5 ${
                     step >= 3 ? "bg-blue-500" : "bg-slate-200"
                   }`}
                 />
                 <div className="flex items-center">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
                       step >= 3
                         ? "kitchen-pro-secondary text-white"
                         : "bg-slate-200 text-slate-500"
@@ -499,11 +499,10 @@ export default function Checkout() {
                   >
                     2
                   </div>
-                  <div className="ml-2 text-sm">{t('checkout.stepPayment')}</div>
+                  <div className="ml-1.5 sm:ml-2 text-xs sm:text-sm">{t('checkout.stepPayment')}</div>
                 </div>
               </>
             ) : (
-              // For guest users: Contact, Address, and Payment steps
               <>
                 {[
                   { num: 1, label: t('checkout.stepContact') },
@@ -512,7 +511,7 @@ export default function Checkout() {
                 ].map((stepInfo, index) => (
                   <div key={stepInfo.num} className="flex items-center">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
                         stepInfo.num <= step
                           ? "kitchen-pro-secondary text-white"
                           : "bg-slate-200 text-slate-500"
@@ -520,10 +519,10 @@ export default function Checkout() {
                     >
                       {stepInfo.num}
                     </div>
-                    <div className="ml-2 text-sm">{stepInfo.label}</div>
+                    <div className="ml-1.5 sm:ml-2 text-xs sm:text-sm hidden sm:block">{stepInfo.label}</div>
                     {index < 2 && (
                       <div
-                        className={`w-16 h-0.5 mx-2 ${
+                        className={`w-6 sm:w-16 h-0.5 mx-1 sm:mx-2 ${
                           stepInfo.num < step ? "bg-blue-500" : "bg-slate-200"
                         }`}
                       />
@@ -1039,6 +1038,58 @@ export default function Checkout() {
 
                 {step === 3 && (
                   <div className="space-y-6">
+                    <div className="lg:hidden">
+                      <Card className="border-blue-200 bg-blue-50/30">
+                        <CardContent className="p-3">
+                          <button
+                            type="button"
+                            onClick={() => setMobileSummaryOpen(!mobileSummaryOpen)}
+                            className="w-full flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2">
+                              <ShoppingBag className="h-4 w-4 text-blue-600" />
+                              <span className="text-sm font-medium">{t('checkout.orderSummary')} ({cart.length})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">{finalTotal.toFixed(2)} {currencySymbol}</span>
+                              {mobileSummaryOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </div>
+                          </button>
+                          {mobileSummaryOpen && (
+                            <div className="mt-3 pt-3 border-t space-y-2">
+                              {cart.filter(item => item.product?.price).map((item) => (
+                                <div key={item.id} className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <img
+                                      src={item.product?.imageUrl || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=40&h=40"}
+                                      alt={item.product?.name || "Product"}
+                                      className="w-8 h-8 object-cover rounded flex-shrink-0"
+                                    />
+                                    <span className="truncate">{item.product?.name || "Product"}</span>
+                                    <span className="text-muted-foreground flex-shrink-0">x{item.quantity}</span>
+                                  </div>
+                                  <span className="font-medium flex-shrink-0 ml-2">
+                                    {(parseFloat(item.product.price) * item.quantity).toFixed(2)} {currencySymbol}
+                                  </span>
+                                </div>
+                              ))}
+                              <Separator />
+                              <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>{t('checkout.shipping')}:</span>
+                                <span>{shipping === 0 ? t('checkout.freeShipping') : `${shipping.toFixed(2)} ${currencySymbol}`}</span>
+                              </div>
+                              {appliedVoucher && (
+                                <div className="flex justify-between text-xs text-green-600">
+                                  <span>Voucher ({appliedVoucher.code}):</span>
+                                  <span>-{appliedVoucher.discountAmount} {currencySymbol}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center">
@@ -1240,8 +1291,8 @@ export default function Checkout() {
             </Form>
           </div>
 
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
+          {/* Order Summary - hidden on mobile at payment step since we show compact summary above */}
+          <div className={`lg:col-span-1 ${step === 3 ? 'hidden lg:block' : ''}`}>
             <Card className="sticky top-24">
               <CardHeader>
                 <CardTitle>{t('checkout.orderSummary')}</CardTitle>
@@ -1249,19 +1300,19 @@ export default function Checkout() {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex items-center space-x-3">
+                    <div key={item.id} className="flex items-center gap-2">
                       <img
                         src={item.product.imageUrl || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=60&h=60"}
                         alt={item.product.name}
-                        className="w-12 h-12 object-cover rounded"
+                        className="w-10 h-10 object-cover rounded flex-shrink-0"
                       />
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{item.product.name}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{item.product.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {t('checkout.qty')}: {item.quantity}
                         </p>
                       </div>
-                      <p className="text-sm font-medium">
+                      <p className="text-sm font-medium flex-shrink-0">
                         {(parseFloat(item.product.price) * item.quantity).toFixed(2)} {currencySymbol}
                       </p>
                     </div>

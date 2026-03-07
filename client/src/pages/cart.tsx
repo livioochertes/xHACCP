@@ -119,67 +119,67 @@ export default function Cart() {
             <div className="lg:col-span-2 space-y-4">
               {validCart.map((item) => (
                 <Card key={item.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start space-x-4">
+                  <CardContent className="p-3 sm:p-6">
+                    <div className="flex items-start gap-3 sm:gap-4">
                       <img
                         src={item.product?.imageUrl || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=150&h=150"}
                         alt={item.product?.name || "Product"}
-                        className="w-20 h-20 object-cover rounded-lg"
+                        className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg flex-shrink-0"
                       />
                       
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-primary mb-1">
-                          {item.product?.name || "Unknown Product"}
-                        </h3>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold text-primary mb-1 text-sm sm:text-base truncate">
+                            {item.product?.name || "Unknown Product"}
+                          </h3>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveItem(item.id, item.product?.name || "Unknown Product")}
+                            className="text-red-600 hover:text-red-700 flex-shrink-0 h-7 w-7 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                         <p className="text-sm text-muted-foreground mb-2">
                           {item.product?.price ? parseFloat(item.product.price).toFixed(2) : "0.00"} {item.product?.currency === 'RON' ? 'lei' : item.product?.currency || 'RON'} each
                         </p>
                         
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center space-x-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                              className="h-8 w-8 p-0"
                             >
-                              <Minus className="h-4 w-4" />
+                              <Minus className="h-3 w-3" />
                             </Button>
-                            <span className="w-8 text-center">{item.quantity}</span>
+                            <span className="w-8 text-center text-sm">{item.quantity}</span>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                               disabled={item.quantity >= (item.product?.stockQuantity || 0)}
+                              className="h-8 w-8 p-0"
                             >
-                              <Plus className="h-4 w-4" />
+                              <Plus className="h-3 w-3" />
                             </Button>
                           </div>
                           
-                          <div className="flex items-center space-x-2">
-                            <span className="font-semibold">
-                              {item.product?.price ? (parseFloat(item.product.price) * item.quantity).toFixed(2) : "0.00"} {item.product?.currency === 'RON' ? 'lei' : item.product?.currency || 'RON'}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveItem(item.id, item.product?.name || "Unknown Product")}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <span className="font-semibold text-sm sm:text-base">
+                            {item.product?.price ? (parseFloat(item.product.price) * item.quantity).toFixed(2) : "0.00"} {item.product?.currency === 'RON' ? 'lei' : item.product?.currency || 'RON'}
+                          </span>
                         </div>
                       </div>
-
-                      {/* Product Description on the Right */}
-                      {item.product?.description && (
-                        <div className="w-1/3 pl-4 border-l border-gray-200 dark:border-gray-700">
-                          <p className="text-sm text-muted-foreground line-clamp-3">
-                            {item.product.description}
-                          </p>
-                        </div>
-                      )}
                     </div>
+                    {item.product?.description && (
+                      <div className="hidden md:block mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {item.product.description}
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
