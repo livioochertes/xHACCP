@@ -1403,10 +1403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.userId) {
         const user = await storage.getUser(req.userId);
         if (fullOrder && user) {
-          const { sendNewOrderNotificationEmail, sendOrderConfirmationEmail, getCompanyEmailFromSettings } = await import('./email-service.js');
-          sendNewOrderNotificationEmail(fullOrder, user).catch(error => {
-            console.error('Failed to send new order notification email:', error);
-          });
+          const { sendOrderConfirmationEmail, getCompanyEmailFromSettings } = await import('./email-service.js');
           sendOrderConfirmationEmail(fullOrder, user).catch(error => {
             console.error('Failed to send order confirmation to customer:', error);
           });
@@ -1428,10 +1425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: shippingAddress?.lastName || '',
           name: `${shippingAddress?.firstName || 'Guest'} ${shippingAddress?.lastName || ''}`.trim(),
         };
-        const { sendNewOrderNotificationEmail, sendOrderConfirmationEmail, getCompanyEmailFromSettings } = await import('./email-service.js');
-        sendNewOrderNotificationEmail(fullOrder, guestUser as any).catch(error => {
-          console.error('Failed to send guest order notification email:', error);
-        });
+        const { sendOrderConfirmationEmail, getCompanyEmailFromSettings } = await import('./email-service.js');
         sendOrderConfirmationEmail(fullOrder, guestUser as any).catch(error => {
           console.error('Failed to send guest order confirmation email:', error);
         });
