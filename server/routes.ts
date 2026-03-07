@@ -2071,22 +2071,21 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       let dbOrderId: number;
       try {
+        let orderNotes = orderData.notes || '';
+        if (voucherCode && discountAmount > 0) {
+          orderNotes = `Voucher: ${voucherCode} (-${discountAmount.toFixed(2)})${orderNotes ? '\n' + orderNotes : ''}`;
+        }
+
         const newOrder = await storage.createOrder({
           userId: userId,
           status: 'pending',
-          paymentStatus: 'pending',
-          paymentMethod: 'viva',
+          totalAmount: (discountedSubtotal + shippingCost).toFixed(2),
           shippingAddress: orderData.shippingAddress || {},
           billingAddress: orderData.billingAddress || {},
-          items: orderItems,
-          subtotal: subtotal.toString(),
-          shippingCost: shippingCost.toString(),
-          total: (discountedSubtotal + shippingCost).toString(),
-          notes: orderData.notes || '',
-          contactPhone: orderData.contactPhone || '',
-          voucherCode: voucherCode || null,
-          discountAmount: discountAmount > 0 ? discountAmount.toString() : null,
-        } as any);
+          paymentMethod: 'viva',
+          paymentStatus: 'pending',
+          notes: orderNotes || undefined,
+        }, orderItems);
 
         dbOrderId = newOrder.id;
         console.log(`Created order ${dbOrderId} for Viva payment`);
