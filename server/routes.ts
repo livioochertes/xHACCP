@@ -470,7 +470,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/apple", (req, res) => {
     const clientId = process.env.APPLE_CLIENT_ID;
+    console.log(`[Apple Auth] APPLE_CLIENT_ID: ${clientId ? 'SET (' + clientId.length + ' chars)' : 'NOT SET'}`);
     if (!clientId) {
+      console.error('[Apple Auth] APPLE_CLIENT_ID is not set - redirecting with error');
       return res.redirect("/login?error=apple_not_configured");
     }
     const proto = req.headers['x-forwarded-proto'] || req.protocol;
@@ -553,9 +555,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/auth/social/status", (req, res) => {
+    const googleId = process.env.GOOGLE_CLIENT_ID;
+    const appleId = process.env.APPLE_CLIENT_ID;
+    const appleSecret = process.env.APPLE_CLIENT_SECRET;
+    console.log(`[Social Status] GOOGLE_CLIENT_ID: ${googleId ? 'SET (' + googleId.length + ' chars)' : 'NOT SET'}`);
+    console.log(`[Social Status] APPLE_CLIENT_ID: ${appleId ? 'SET (' + appleId.length + ' chars)' : 'NOT SET'}`);
+    console.log(`[Social Status] APPLE_CLIENT_SECRET: ${appleSecret ? 'SET (' + appleSecret.length + ' chars)' : 'NOT SET'}`);
     res.json({
-      google: !!process.env.GOOGLE_CLIENT_ID,
-      apple: !!process.env.APPLE_CLIENT_ID,
+      google: !!googleId,
+      apple: !!appleId,
+      debug: {
+        googleClientIdSet: !!googleId,
+        googleClientIdLength: googleId?.length || 0,
+        appleClientIdSet: !!appleId,
+        appleClientIdLength: appleId?.length || 0,
+        appleClientSecretSet: !!appleSecret,
+        appleClientSecretLength: appleSecret?.length || 0,
+      }
     });
   });
 
