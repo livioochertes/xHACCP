@@ -1312,8 +1312,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new Error(`Product not found: ${item.productId}`);
         }
         
-        // Check if product is active
-        if (!product.isActive) {
+        const productActive = product.status === 'active' || product.isActive === true;
+        if (!productActive) {
           throw new Error(`Product is not available: ${product.name}`);
         }
         
@@ -1424,9 +1424,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(order);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Create order error:", error);
-      res.status(400).json({ message: "Failed to create order" });
+      const errorMessage = error?.message || "Failed to create order";
+      res.status(400).json({ message: errorMessage });
     }
   });
 
