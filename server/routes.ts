@@ -2108,16 +2108,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       const vivaOrderPayload: any = {
         amount: finalAmountCents,
-        customerTrns: `xHACCP Order${dbOrderId ? ` #${dbOrderId}` : ''}`,
-        merchantTrns: dbOrderId ? `order_${dbOrderId}` : `order_${Date.now()}`,
+        customerTrns: `xHACCP Order #${dbOrderId}`,
+        merchantTrns: `order_${dbOrderId}`,
         sourceCode: sourceCode,
-        allowRecurring: false,
-        maxInstallments: 0,
-        forceMaxInstallments: false,
-        paymentNotification: true,
-        disableExactAmount: false,
-        disableCash: true,
-        disableWallet: false,
       };
 
       if (orderData?.shippingAddress?.email) {
@@ -2129,6 +2122,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           requestLang: 'ro-RO',
         };
       }
+
+      console.log("Viva order payload:", JSON.stringify(vivaOrderPayload));
 
       // Create payment order via Viva API
       const vivaResponse = await fetch("https://api.vivapayments.com/checkout/v2/orders", {
