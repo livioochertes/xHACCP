@@ -60,6 +60,7 @@ export default function Login() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [registerEmail, setRegisterEmail] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -103,6 +104,7 @@ export default function Login() {
     setIsLogin(!isLogin);
     loginForm.reset();
     registerForm.reset();
+    setRegisterEmail("");
   };
 
   const loginForm = useForm<LoginFormData>({
@@ -174,6 +176,7 @@ export default function Login() {
 
   const handleRegisterSubmit = (data: RegisterFormData) => {
     const { confirmPassword, ...registerData } = data;
+    registerData.email = registerEmail;
     registerMutation.mutate(registerData as any);
   };
 
@@ -278,25 +281,27 @@ export default function Login() {
                       )}
                     />
                   </div>
-                  <FormField
-                    control={registerForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <div>
-                          <Input
-                            type="text"
-                            inputMode="email"
-                            placeholder="your@email.com"
-                            autoComplete="new-email"
-                            {...field}
-                          />
-                        </div>
-                        <FormMessage />
-                      </FormItem>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Email
+                    </label>
+                    <Input
+                      type="text"
+                      inputMode="email"
+                      placeholder="your@email.com"
+                      autoComplete="off"
+                      value={registerEmail}
+                      onChange={(e) => {
+                        setRegisterEmail(e.target.value);
+                        registerForm.setValue("email", e.target.value);
+                      }}
+                    />
+                    {registerForm.formState.errors.email && (
+                      <p className="text-sm font-medium text-destructive">
+                        {registerForm.formState.errors.email.message}
+                      </p>
                     )}
-                  />
+                  </div>
                   <FormField
                     control={registerForm.control}
                     name="password"
