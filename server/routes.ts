@@ -2114,11 +2114,46 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       };
 
       if (orderData?.shippingAddress?.email) {
+        const countryName = (orderData.shippingAddress.country || '').toLowerCase();
+        const countryMap: Record<string, string> = {
+          'romania': 'RO', 'ro': 'RO',
+          'germany': 'DE', 'de': 'DE',
+          'france': 'FR', 'fr': 'FR',
+          'italy': 'IT', 'it': 'IT',
+          'spain': 'ES', 'es': 'ES',
+          'united kingdom': 'GB', 'uk': 'GB', 'gb': 'GB',
+          'netherlands': 'NL', 'nl': 'NL',
+          'belgium': 'BE', 'be': 'BE',
+          'austria': 'AT', 'at': 'AT',
+          'greece': 'GR', 'gr': 'GR',
+          'portugal': 'PT', 'pt': 'PT',
+          'poland': 'PL', 'pl': 'PL',
+          'hungary': 'HU', 'hu': 'HU',
+          'czech republic': 'CZ', 'czechia': 'CZ', 'cz': 'CZ',
+          'bulgaria': 'BG', 'bg': 'BG',
+          'croatia': 'HR', 'hr': 'HR',
+          'sweden': 'SE', 'se': 'SE',
+          'denmark': 'DK', 'dk': 'DK',
+          'finland': 'FI', 'fi': 'FI',
+          'ireland': 'IE', 'ie': 'IE',
+          'cyprus': 'CY', 'cy': 'CY',
+          'luxembourg': 'LU', 'lu': 'LU',
+          'malta': 'MT', 'mt': 'MT',
+          'slovakia': 'SK', 'sk': 'SK',
+          'slovenia': 'SI', 'si': 'SI',
+          'estonia': 'EE', 'ee': 'EE',
+          'latvia': 'LV', 'lv': 'LV',
+          'lithuania': 'LT', 'lt': 'LT',
+          'moldova': 'MD', 'md': 'MD',
+          'republic of moldova': 'MD',
+        };
+        const isoCode = countryMap[countryName] || (countryName.length === 2 ? countryName.toUpperCase() : 'RO');
+
         vivaOrderPayload.customer = {
           email: orderData.shippingAddress.email,
           fullName: `${orderData.shippingAddress.firstName || ''} ${orderData.shippingAddress.lastName || ''}`.trim(),
           phone: orderData.contactPhone || orderData.shippingAddress.phone || '',
-          countryCode: orderData.shippingAddress.country || 'RO',
+          countryCode: isoCode,
           requestLang: 'ro-RO',
         };
       }
