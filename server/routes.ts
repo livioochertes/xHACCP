@@ -385,6 +385,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/auth/google", (req, res) => {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ message: "Google login is not configured yet" });
+    }
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    const scope = encodeURIComponent('openid email profile');
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&prompt=select_account`;
+    res.redirect(url);
+  });
+
+  app.get("/api/auth/google/callback", async (req, res) => {
+    try {
+      const { code } = req.query;
+      if (!code) {
+        return res.redirect("/login?error=google_failed");
+      }
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      if (!clientId || !clientSecret) {
+        return res.redirect("/login?error=google_not_configured");
+      }
+      const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: code as string,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        console.error('Google token exchange failed:', await tokenResponse.text());
+        return res.redirect("/login?error=google_failed");
+      }
+
+      const tokenData = await tokenResponse.json() as any;
+
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      if (!userInfoResponse.ok) {
+        return res.redirect("/login?error=google_failed");
+      }
+
+      const googleUser = await userInfoResponse.json() as any;
+      const email = googleUser.email;
+      const firstName = googleUser.given_name || googleUser.name?.split(' ')[0] || '';
+      const lastName = googleUser.family_name || googleUser.name?.split(' ').slice(1).join(' ') || '';
+
+      let user = await storage.getUserByEmail(email);
+      if (!user) {
+        const randomPassword = require('crypto').randomBytes(32).toString('hex');
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+        user = await storage.createUser({
+          email,
+          firstName,
+          lastName,
+          password: hashedPassword,
+        });
+      }
+
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        process.env.JWT_SECRET || "your-secret-key",
+        { expiresIn: "24h" }
+      );
+
+      res.redirect(`/login?token=${token}&userId=${user.id}`);
+    } catch (error) {
+      console.error("Google OAuth callback error:", error);
+      res.redirect("/login?error=google_failed");
+    }
+  });
+
+  app.get("/api/auth/apple", (req, res) => {
+    const clientId = process.env.APPLE_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ message: "Apple login is not configured yet" });
+    }
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/apple/callback`;
+    const scope = encodeURIComponent('name email');
+    const url = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&response_mode=form_post`;
+    res.redirect(url);
+  });
+
+  app.post("/api/auth/apple/callback", async (req, res) => {
+    try {
+      const { code, id_token } = req.body;
+      if (!code) {
+        return res.redirect("/login?error=apple_failed");
+      }
+      const clientId = process.env.APPLE_CLIENT_ID;
+      const clientSecret = process.env.APPLE_CLIENT_SECRET;
+      if (!clientId || !clientSecret) {
+        return res.redirect("/login?error=apple_not_configured");
+      }
+
+      const tokenResponse = await fetch('https://appleid.apple.com/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: code as string,
+          client_id: clientId,
+          client_secret: clientSecret,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        console.error('Apple token exchange failed:', await tokenResponse.text());
+        return res.redirect("/login?error=apple_failed");
+      }
+
+      const tokenData = await tokenResponse.json() as any;
+      const appleIdToken = tokenData.id_token || id_token;
+      
+      if (!appleIdToken) {
+        return res.redirect("/login?error=apple_failed");
+      }
+
+      const payload = JSON.parse(Buffer.from(appleIdToken.split('.')[1], 'base64').toString());
+      const email = payload.email || payload.sub;
+
+      const userBody = req.body.user ? JSON.parse(req.body.user) : null;
+      const firstName = userBody?.name?.firstName || '';
+      const lastName = userBody?.name?.lastName || '';
+
+      let user = await storage.getUserByEmail(email);
+      if (!user) {
+        const randomPassword = require('crypto').randomBytes(32).toString('hex');
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+        user = await storage.createUser({
+          email,
+          firstName: firstName || 'Apple',
+          lastName: lastName || 'User',
+          password: hashedPassword,
+        });
+      }
+
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        process.env.JWT_SECRET || "your-secret-key",
+        { expiresIn: "24h" }
+      );
+
+      res.redirect(`/login?token=${token}&userId=${user.id}`);
+    } catch (error) {
+      console.error("Apple OAuth callback error:", error);
+      res.redirect("/login?error=apple_failed");
+    }
+  });
+
+  app.get("/api/auth/social/status", (req, res) => {
+    res.json({
+      google: !!process.env.GOOGLE_CLIENT_ID,
+      apple: !!process.env.APPLE_CLIENT_ID,
+    });
+  });
+
   app.get("/api/auth/me", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const user = await storage.getUser(req.userId!);

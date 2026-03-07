@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { Eye, EyeOff } from "lucide-react";
+import { SiGoogle, SiApple } from "react-icons/si";
+import { Separator } from "@/components/ui/separator";
 
 
 const loginSchema = z.object({
@@ -24,6 +26,10 @@ const registerSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -34,6 +40,56 @@ export default function Login() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { login } = useAuth();
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const { data: socialStatus } = useQuery<{ google: boolean; apple: boolean }>({
+    queryKey: ['/api/auth/social/status'],
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const error = params.get('error');
+
+    if (token) {
+      (async () => {
+        try {
+          const response = await fetch('/api/auth/me', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const user = await response.json();
+            await login(token, user);
+            toast({ title: "Welcome!", description: "You have been logged in successfully." });
+            navigate("/");
+          }
+        } catch (err) {
+          console.error('OAuth login failed:', err);
+        }
+      })();
+      window.history.replaceState({}, '', '/login');
+    } else if (error) {
+      toast({
+        title: "Login failed",
+        description: error === 'google_not_configured' || error === 'apple_not_configured'
+          ? "Social login is not configured yet."
+          : "Social login failed. Please try again.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, '', '/login');
+    }
+  }, []);
+
+  const handleSocialLogin = (provider: 'google' | 'apple') => {
+    const isConfigured = provider === 'google' ? socialStatus?.google : socialStatus?.apple;
+    if (isConfigured) {
+      window.location.href = `/api/auth/${provider}`;
+    } else {
+      toast({ title: "Coming soon", description: `${provider === 'google' ? 'Google' : 'Apple'} login will be available soon.` });
+    }
+  };
 
   const toggleForm = () => {
     setIsLogin(!isLogin);
@@ -57,6 +113,7 @@ export default function Login() {
       lastName: "",
       email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
@@ -109,7 +166,8 @@ export default function Login() {
   };
 
   const handleRegisterSubmit = (data: RegisterFormData) => {
-    registerMutation.mutate(data);
+    const { confirmPassword, ...registerData } = data;
+    registerMutation.mutate(registerData as any);
   };
 
   return (
@@ -133,7 +191,12 @@ export default function Login() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="your@email.com" {...field} />
+                          <Input 
+                            type="email" 
+                            placeholder="your@email.com" 
+                            autoComplete="username"
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -146,7 +209,22 @@ export default function Login() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Password" {...field} />
+                          <div className="relative">
+                            <Input 
+                              type={showLoginPassword ? "text" : "password"} 
+                              placeholder="Password" 
+                              autoComplete="current-password"
+                              {...field} 
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                              onClick={() => setShowLoginPassword(!showLoginPassword)}
+                              tabIndex={-1}
+                            >
+                              {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -201,10 +279,11 @@ export default function Login() {
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input 
-                            key="register-email"
+                            key="register-email-field"
                             type="email" 
                             placeholder="your@email.com" 
-                            autoComplete="email"
+                            autoComplete="off"
+                            data-form-type="other"
                             {...field} 
                           />
                         </FormControl>
@@ -219,7 +298,50 @@ export default function Login() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Password" {...field} />
+                          <div className="relative">
+                            <Input 
+                              type={showRegisterPassword ? "text" : "password"} 
+                              placeholder="Password" 
+                              autoComplete="new-password"
+                              {...field} 
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                              onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                              tabIndex={-1}
+                            >
+                              {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={registerForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input 
+                              type={showConfirmPassword ? "text" : "password"} 
+                              placeholder="Confirm password" 
+                              autoComplete="new-password"
+                              {...field} 
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              tabIndex={-1}
+                            >
+                              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -236,6 +358,33 @@ export default function Login() {
               </Form>
             )}
             
+            <div className="mt-6 flex items-center gap-4">
+              <Separator className="flex-1" />
+              <span className="text-sm text-gray-500">or</span>
+              <Separator className="flex-1" />
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full flex items-center gap-2"
+                onClick={() => handleSocialLogin('google')}
+              >
+                <SiGoogle className="h-4 w-4" />
+                Continue with Google
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full flex items-center gap-2"
+                onClick={() => handleSocialLogin('apple')}
+              >
+                <SiApple className="h-5 w-5" />
+                Continue with Apple
+              </Button>
+            </div>
+
             <div className="mt-6 text-center">
               <button
                 onClick={toggleForm}
@@ -250,7 +399,6 @@ export default function Login() {
                 Continue as guest
               </Link>
             </div>
-            
 
           </CardContent>
         </Card>

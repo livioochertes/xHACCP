@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle, ChevronDown, ChevronUp, ShoppingBag } from "lucide-react";
+import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle, ChevronDown, ChevronUp, ShoppingBag, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -84,6 +85,9 @@ const checkoutSchema = z.object({
   paymentMethod: z.enum(["viva", "cash"]),
   sameAsBilling: z.boolean().default(false),
   notes: z.string().optional(),
+  createAccount: z.boolean().default(false),
+  accountPassword: z.string().default(""),
+  confirmAccountPassword: z.string().default(""),
 }).superRefine((data, ctx) => {
   if (!data.sameAsBilling) {
     const result = billingAddressSchemaFull.safeParse(data.billingAddress);
@@ -96,13 +100,29 @@ const checkoutSchema = z.object({
       });
     }
   }
+  if (data.createAccount) {
+    if (!data.accountPassword || data.accountPassword.length < 6) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Password must be at least 6 characters",
+        path: ["accountPassword"],
+      });
+    }
+    if (data.accountPassword !== data.confirmAccountPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Passwords do not match",
+        path: ["confirmAccountPassword"],
+      });
+    }
+  }
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 export default function Checkout() {
   const { t } = useTranslation();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, login } = useAuth();
   const [step, setStep] = useState(isAuthenticated ? 2 : 1);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [, navigate] = useLocation();
@@ -177,6 +197,9 @@ export default function Checkout() {
         paymentMethod: "viva",
         sameAsBilling: !user.deliveryAddress,
         notes: "",
+        createAccount: false,
+        accountPassword: "",
+        confirmAccountPassword: "",
       };
     }
     
@@ -216,6 +239,9 @@ export default function Checkout() {
       paymentMethod: "viva",
       sameAsBilling: false,
       notes: "",
+      createAccount: false,
+      accountPassword: "",
+      confirmAccountPassword: "",
     };
   };
 
@@ -238,6 +264,9 @@ export default function Checkout() {
 
   const sameAsBilling = form.watch("sameAsBilling");
   const clientType = form.watch("billingAddress.clientType");
+  const createAccount = form.watch("createAccount");
+  const [showAccountPassword, setShowAccountPassword] = useState(false);
+  const [showConfirmAccountPassword, setShowConfirmAccountPassword] = useState(false);
 
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
@@ -271,8 +300,40 @@ export default function Checkout() {
         email: data.email,
       });
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       clearCart();
+      
+      const formData = form.getValues();
+      if (formData.createAccount && !isAuthenticated && formData.accountPassword) {
+        try {
+          const registerResponse = await apiRequest("POST", "/api/auth/register", {
+            email: formData.email,
+            password: formData.accountPassword,
+            firstName: formData.shippingAddress.firstName,
+            lastName: formData.shippingAddress.lastName,
+            phone: formData.phone || formData.shippingAddress.phone,
+          });
+          const registerData = await registerResponse.json();
+          if (registerData.token && registerData.user) {
+            await login(registerData.token, registerData.user);
+            toast({
+              title: t('checkout.orderSuccess'),
+              description: t('checkout.accountCreatedDesc'),
+            });
+            navigate("/");
+            return;
+          }
+        } catch (err) {
+          console.error("Account creation after order failed:", err);
+          toast({
+            title: t('checkout.orderSuccess'),
+            description: t('checkout.orderSuccessDesc'),
+          });
+          navigate("/");
+          return;
+        }
+      }
+
       toast({
         title: t('checkout.orderSuccess'),
         description: t('checkout.orderSuccessDesc'),
@@ -383,6 +444,19 @@ export default function Checkout() {
       if (!phoneValue || phoneValue.trim() === "") {
         form.setError("phone", { type: "manual", message: t('checkout.phoneRequired') });
         return;
+      }
+      const wantAccount = form.getValues("createAccount");
+      if (wantAccount) {
+        const pwd = form.getValues("accountPassword");
+        const confirmPwd = form.getValues("confirmAccountPassword");
+        if (!pwd || pwd.length < 6) {
+          form.setError("accountPassword", { type: "manual", message: t('checkout.passwordMinLength') });
+          return;
+        }
+        if (pwd !== confirmPwd) {
+          form.setError("confirmAccountPassword", { type: "manual", message: t('checkout.passwordsNoMatch') });
+          return;
+        }
       }
     } else if ((step === 1 && isAuthenticated) || (step === 2)) {
       // Address validation for authenticated users on step 1 or guest users on step 2
@@ -623,6 +697,88 @@ export default function Checkout() {
                           </FormItem>
                         )}
                       />
+
+                      <Separator className="my-4" />
+
+                      <FormField
+                        control={form.control}
+                        name="createAccount"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">{t('checkout.createAccount')}</FormLabel>
+                              <p className="text-sm text-muted-foreground">{t('checkout.createAccountDesc')}</p>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      {createAccount && (
+                        <div className="space-y-4 pt-2">
+                          <FormField
+                            control={form.control}
+                            name="accountPassword"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('checkout.password')}</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Input
+                                      type={showAccountPassword ? "text" : "password"}
+                                      placeholder={t('checkout.passwordPlaceholder')}
+                                      {...field}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                      onClick={() => setShowAccountPassword(!showAccountPassword)}
+                                    >
+                                      {showAccountPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="confirmAccountPassword"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('checkout.confirmPassword')}</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Input
+                                      type={showConfirmAccountPassword ? "text" : "password"}
+                                      placeholder={t('checkout.confirmPasswordPlaceholder')}
+                                      {...field}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                      onClick={() => setShowConfirmAccountPassword(!showConfirmAccountPassword)}
+                                    >
+                                      {showConfirmAccountPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}

@@ -125,6 +125,15 @@ export interface TranslationKeys {
   'checkout.codAmountReady': string;
   'checkout.codReceipt': string;
   'checkout.codDeliveryTime': string;
+  'checkout.createAccount': string;
+  'checkout.createAccountDesc': string;
+  'checkout.password': string;
+  'checkout.confirmPassword': string;
+  'checkout.passwordPlaceholder': string;
+  'checkout.confirmPasswordPlaceholder': string;
+  'checkout.passwordMinLength': string;
+  'checkout.passwordsNoMatch': string;
+  'checkout.accountCreatedDesc': string;
   
   // Account
   'account.title': string;
@@ -640,6 +649,15 @@ const translations: Record<Language, TranslationKeys> = {
     'checkout.codAmountReady': 'Please have the exact amount ready',
     'checkout.codReceipt': 'Our delivery agent will provide a receipt upon payment',
     'checkout.codDeliveryTime': 'Delivery time: 1-3 business days in Bucharest, 2-5 days nationwide',
+    'checkout.createAccount': 'Create account for future orders',
+    'checkout.createAccountDesc': 'Save your details and track your orders easily',
+    'checkout.password': 'Password',
+    'checkout.confirmPassword': 'Confirm Password',
+    'checkout.passwordPlaceholder': 'Enter password (min. 6 characters)',
+    'checkout.confirmPasswordPlaceholder': 'Confirm your password',
+    'checkout.passwordMinLength': 'Password must be at least 6 characters',
+    'checkout.passwordsNoMatch': 'Passwords do not match',
+    'checkout.accountCreatedDesc': 'Your order was placed and your account has been created successfully!',
     
     // Account
     'account.title': 'My Account',
@@ -1215,6 +1233,15 @@ const translations: Record<Language, TranslationKeys> = {
     'checkout.codAmountReady': 'Por favor, ten el importe exacto preparado',
     'checkout.codReceipt': 'Nuestro repartidor proporcionará un recibo tras el pago',
     'checkout.codDeliveryTime': 'Tiempo de entrega: 1-3 días hábiles en Bucarest, 2-5 días a nivel nacional',
+    'checkout.createAccount': 'Crear cuenta para pedidos futuros',
+    'checkout.createAccountDesc': 'Guarda tus datos y sigue tus pedidos fácilmente',
+    'checkout.password': 'Contraseña',
+    'checkout.confirmPassword': 'Confirmar Contraseña',
+    'checkout.passwordPlaceholder': 'Introduce contraseña (mín. 6 caracteres)',
+    'checkout.confirmPasswordPlaceholder': 'Confirma tu contraseña',
+    'checkout.passwordMinLength': 'La contraseña debe tener al menos 6 caracteres',
+    'checkout.passwordsNoMatch': 'Las contraseñas no coinciden',
+    'checkout.accountCreatedDesc': '¡Tu pedido fue realizado y tu cuenta ha sido creada con éxito!',
     
     // Account
     'account.title': 'Mi Cuenta',
@@ -1564,6 +1591,15 @@ const translations: Record<Language, TranslationKeys> = {
     'checkout.codAmountReady': 'Veuillez préparer le montant exact',
     'checkout.codReceipt': 'Notre livreur vous fournira un reçu après le paiement',
     'checkout.codDeliveryTime': 'Délai de livraison : 1-3 jours ouvrables à Bucarest, 2-5 jours national',
+    'checkout.createAccount': 'Créer un compte pour les commandes futures',
+    'checkout.createAccountDesc': 'Enregistrez vos informations et suivez vos commandes facilement',
+    'checkout.password': 'Mot de passe',
+    'checkout.confirmPassword': 'Confirmer le mot de passe',
+    'checkout.passwordPlaceholder': 'Entrez le mot de passe (min. 6 caractères)',
+    'checkout.confirmPasswordPlaceholder': 'Confirmez votre mot de passe',
+    'checkout.passwordMinLength': 'Le mot de passe doit comporter au moins 6 caractères',
+    'checkout.passwordsNoMatch': 'Les mots de passe ne correspondent pas',
+    'checkout.accountCreatedDesc': 'Votre commande a été passée et votre compte a été créé avec succès !',
     
     // Account
     'account.title': 'Mon Compte',
@@ -1939,6 +1975,15 @@ const translations: Record<Language, TranslationKeys> = {
     'checkout.codAmountReady': 'Bitte halten Sie den genauen Betrag bereit',
     'checkout.codReceipt': 'Unser Lieferant stellt Ihnen eine Quittung bei Zahlung aus',
     'checkout.codDeliveryTime': 'Lieferzeit: 1-3 Werktage in Bukarest, 2-5 Tage landesweit',
+    'checkout.createAccount': 'Konto für zukünftige Bestellungen erstellen',
+    'checkout.createAccountDesc': 'Speichern Sie Ihre Daten und verfolgen Sie Ihre Bestellungen einfach',
+    'checkout.password': 'Passwort',
+    'checkout.confirmPassword': 'Passwort bestätigen',
+    'checkout.passwordPlaceholder': 'Passwort eingeben (mind. 6 Zeichen)',
+    'checkout.confirmPasswordPlaceholder': 'Passwort bestätigen',
+    'checkout.passwordMinLength': 'Das Passwort muss mindestens 6 Zeichen lang sein',
+    'checkout.passwordsNoMatch': 'Passwörter stimmen nicht überein',
+    'checkout.accountCreatedDesc': 'Ihre Bestellung wurde aufgegeben und Ihr Konto wurde erfolgreich erstellt!',
     'account.title': 'Mein Konto',
     'account.profile': 'Profil',
     'account.orders': 'Bestellungen',
@@ -2320,6 +2365,15 @@ const translations: Record<Language, TranslationKeys> = {
     'checkout.codAmountReady': 'Te rugăm să ai suma exactă pregătită',
     'checkout.codReceipt': 'Curierul nostru va oferi o chitanță la plată',
     'checkout.codDeliveryTime': 'Timp de livrare: 1-3 zile lucrătoare în București, 2-5 zile la nivel național',
+    'checkout.createAccount': 'Creează cont pentru comenzi viitoare',
+    'checkout.createAccountDesc': 'Salvează-ți datele și urmărește comenzile cu ușurință',
+    'checkout.password': 'Parolă',
+    'checkout.confirmPassword': 'Confirmă Parola',
+    'checkout.passwordPlaceholder': 'Introdu parola (min. 6 caractere)',
+    'checkout.confirmPasswordPlaceholder': 'Confirmă parola',
+    'checkout.passwordMinLength': 'Parola trebuie să aibă cel puțin 6 caractere',
+    'checkout.passwordsNoMatch': 'Parolele nu se potrivesc',
+    'checkout.accountCreatedDesc': 'Comanda ta a fost plasată și contul tău a fost creat cu succes!',
     
     // Account
     'account.title': 'Contul Meu',
