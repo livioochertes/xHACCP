@@ -982,254 +982,254 @@ export async function registerAdminRoutes(app: Express) {
 
       const updatedOrder = await storage.acceptOrder(orderId);
 
-      let user: any = null;
-      if (order.userId) {
-        user = await storage.getUser(order.userId);
-      }
+      res.json({
+        success: true,
+        message: "Order accepted successfully. Invoice, AWB and emails are being processed in background.",
+        order: updatedOrder,
+      });
 
-      const shippingAddr = order.shippingAddress as any;
-      const billingAddr = order.billingAddress as any;
-
-      if (!user) {
-        const guestEmail = shippingAddr?.email || billingAddr?.email || '';
-        const notesEmailMatch = order.notes?.match(/Guest email:\s*([^\s,]+)/);
-        const resolvedEmail = guestEmail || (notesEmailMatch ? notesEmailMatch[1] : '');
-
-        user = {
-          id: 0,
-          email: resolvedEmail,
-          firstName: shippingAddr?.firstName || billingAddr?.firstName || 'Guest',
-          lastName: shippingAddr?.lastName || billingAddr?.lastName || 'Customer',
-          isAdmin: false,
-        };
-        console.log(`📧 Accept order #${orderId}: guest order, resolved email: ${resolvedEmail}`);
-      }
-
-      let invoiceGenerated = false;
-      let invoiceNumber: string | undefined;
-      let invoiceId: number | undefined;
-      let awbGenerated = false;
-      let awbNumber: string | undefined;
-      let supplierEmailsSent = 0;
-      let customerShipmentEmailSent = false;
-      const isCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod';
-
-      if (isCOD) {
+      (async () => {
         try {
-          const { createInvoiceService } = await import('./invoice-service.js');
-          const invoiceService = await createInvoiceService();
-          const invoice = await invoiceService.generateInvoiceAfterPayment(
-            orderId,
-            {
-              status: 'succeeded',
-              paymentMethod: 'cash_on_delivery',
-              paymentId: `cod_${orderId}`,
-              amount: parseFloat(String(order.totalAmount)),
+          console.log(`🔄 [Background] Processing acceptance flow for order #${orderId}...`);
+
+          let user: any = null;
+          if (order.userId) {
+            user = await storage.getUser(order.userId);
+          }
+
+          const shippingAddr = order.shippingAddress as any;
+          const billingAddr = order.billingAddress as any;
+
+          if (!user) {
+            const guestEmail = shippingAddr?.email || billingAddr?.email || '';
+            const notesEmailMatch = order.notes?.match(/Guest email:\s*([^\s,]+)/);
+            const resolvedEmail = guestEmail || (notesEmailMatch ? notesEmailMatch[1] : '');
+
+            user = {
+              id: 0,
+              email: resolvedEmail,
+              firstName: shippingAddr?.firstName || billingAddr?.firstName || 'Guest',
+              lastName: shippingAddr?.lastName || billingAddr?.lastName || 'Customer',
+              isAdmin: false,
+            };
+            console.log(`📧 [Background] Accept order #${orderId}: guest order, resolved email: ${resolvedEmail}`);
+          }
+
+          const isCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod';
+          let invoiceGenerated = false;
+          let invoiceNumber: string | undefined;
+          let invoiceId: number | undefined;
+          let awbNumber: string | undefined;
+
+          if (isCOD) {
+            try {
+              console.log(`📄 [Background] Generating invoice for COD order #${orderId}...`);
+              const { createInvoiceService } = await import('./invoice-service.js');
+              const invoiceService = await createInvoiceService();
+              const invoice = await invoiceService.generateInvoiceAfterPayment(
+                orderId,
+                {
+                  status: 'succeeded',
+                  paymentMethod: 'cash_on_delivery',
+                  paymentId: `cod_${orderId}`,
+                  amount: parseFloat(String(order.totalAmount)),
+                }
+              );
+              console.log(`✅ [Background] Invoice generated for COD order #${orderId}: ${invoice.invoiceNumber}`);
+              invoiceGenerated = true;
+              invoiceNumber = invoice.invoiceNumber;
+              invoiceId = invoice.id;
+            } catch (invoiceError) {
+              console.error(`❌ [Background] Failed to generate invoice for order #${orderId}:`, invoiceError);
             }
-          );
-          console.log(`✅ Invoice generated for COD order #${orderId}:`, invoice.invoiceNumber);
-          invoiceGenerated = true;
-          invoiceNumber = invoice.invoiceNumber;
-          invoiceId = invoice.id;
-        } catch (invoiceError) {
-          console.error(`Failed to generate invoice for COD order #${orderId}:`, invoiceError);
-        }
-      }
+          }
 
-      try {
-        const { createSamedayAPI } = await import('./sameday-api');
-        const samedayAPI = createSamedayAPI();
-        if (samedayAPI) {
-          const currentOrder = await storage.getOrder(orderId);
-          if (currentOrder && !currentOrder.awbNumber) {
-            const [pickupPoints, services] = await Promise.all([
-              samedayAPI.getPickupPoints(),
-              samedayAPI.getServices()
-            ]);
+          try {
+            console.log(`📦 [Background] Generating AWB for order #${orderId}...`);
+            const { createSamedayAPI } = await import('./sameday-api');
+            const samedayAPI = createSamedayAPI();
+            if (samedayAPI) {
+              const currentOrder = await storage.getOrder(orderId);
+              if (currentOrder && !currentOrder.awbNumber) {
+                console.log(`📦 [Background] Fetching pickup points and services...`);
+                const [pickupPoints, services] = await Promise.all([
+                  samedayAPI.getPickupPoints(),
+                  samedayAPI.getServices()
+                ]);
+                console.log(`📦 [Background] Pickup points: ${pickupPoints.length}, Services: ${services.length}`);
 
-            if (pickupPoints.length > 0 && services.length > 0) {
-              const selectedPickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
-              const parcels: any[] = [];
-              let parcelCounter = 1;
+                if (pickupPoints.length > 0 && services.length > 0) {
+                  const selectedPickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
+                  const parcels: any[] = [];
+                  let parcelCounter = 1;
 
-              if (currentOrder.items && currentOrder.items.length > 0) {
-                for (const item of currentOrder.items) {
-                  const product = await storage.getProduct(item.productId);
-                  if (!product) continue;
-                  const quantity = item.quantity;
-                  const piecesPerPackage = (product as any).piecesPerPackage || 1;
-                  const weight = (product as any).weight || 1;
-                  const numberOfPackages = Math.ceil(quantity / piecesPerPackage);
-                  for (let i = 0; i < numberOfPackages; i++) {
-                    parcels.push({
-                      sequenceNo: parcelCounter++,
-                      weight: weight,
-                      width: 30,
-                      height: 20,
-                      length: 40,
+                  if (currentOrder.items && currentOrder.items.length > 0) {
+                    for (const item of currentOrder.items) {
+                      const product = await storage.getProduct(item.productId);
+                      if (!product) continue;
+                      const piecesPerPackage = (product as any).piecesPerPackage || 1;
+                      const weight = (product as any).weight || 1;
+                      const numberOfPackages = Math.ceil(item.quantity / piecesPerPackage);
+                      for (let i = 0; i < numberOfPackages; i++) {
+                        parcels.push({ sequenceNo: parcelCounter++, weight, width: 30, height: 20, length: 40 });
+                      }
+                    }
+                  }
+                  if (parcels.length === 0) {
+                    parcels.push({ sequenceNo: 1, weight: 1, width: 30, height: 20, length: 40 });
+                  }
+
+                  const totalAmount = parseFloat(String(currentOrder.totalAmount));
+                  const awbData: any = {
+                    pickupPointId: selectedPickupPoint.id,
+                    serviceId: services[0].id,
+                    contactPerson: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || 'Customer',
+                    phoneNumber: shippingAddr?.phone || '',
+                    address: shippingAddr?.streetAddress || shippingAddr?.address || '',
+                    city: shippingAddr?.city || '',
+                    county: shippingAddr?.state || shippingAddr?.county || '',
+                    postalCode: shippingAddr?.zipCode || '',
+                    parcels,
+                    thirdPartyPickup: 0,
+                    packageType: 1,
+                    insuredValue: totalAmount,
+                    observation: `Order #${orderId}`,
+                    clientReference: `order_${orderId}`,
+                  };
+                  if (isCOD) {
+                    awbData.cashOnDelivery = totalAmount;
+                    awbData.cashOnDeliveryType = 1;
+                  }
+
+                  const awbResult = await samedayAPI.createAWB(awbData);
+                  if (awbResult && awbResult.awbNumber) {
+                    await storage.updateOrder(orderId, {
+                      awbNumber: awbResult.awbNumber,
+                      awbCost: String(awbResult.awbCost || 0),
+                      awbCurrency: 'RON',
+                      status: 'processing',
                     });
+                    awbNumber = awbResult.awbNumber;
+                    console.log(`✅ [Background] AWB generated for order #${orderId}: ${awbNumber}`);
+                  }
+                }
+              } else if (currentOrder?.awbNumber) {
+                awbNumber = currentOrder.awbNumber;
+                console.log(`ℹ️ [Background] Order #${orderId} already has AWB: ${awbNumber}`);
+              }
+            }
+          } catch (awbError) {
+            console.error(`❌ [Background] Failed to generate AWB for order #${orderId}:`, awbError);
+          }
+
+          if (awbNumber) {
+            console.log(`📧 [Background] Sending supplier and customer emails for order #${orderId}...`);
+            const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service');
+            const { createSamedayAPI } = await import('./sameday-api');
+
+            let awbPdfBuffer: Buffer | undefined;
+            try {
+              const samedayAPI = createSamedayAPI();
+              if (samedayAPI) {
+                awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
+                console.log(`✅ [Background] AWB PDF retrieved for order #${orderId}`);
+              }
+            } catch (pdfError) {
+              console.error(`❌ [Background] AWB PDF retrieval failed for ${awbNumber}:`, pdfError);
+            }
+
+            const fullOrder = await storage.getOrder(orderId);
+            if (fullOrder) {
+              const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
+
+              for (const item of fullOrder.items) {
+                const product = await storage.getProduct(item.productId);
+                const supplierId = product?.supplierId || null;
+                let supplierInfo = supplierGroups.get(supplierId);
+
+                if (!supplierInfo) {
+                  if (supplierId) {
+                    const supplier = await storage.getSupplier(supplierId);
+                    if (supplier && supplier.email) {
+                      supplierInfo = {
+                        supplierName: supplier.contactPerson || supplier.name,
+                        supplierEmail: supplier.email,
+                        items: [],
+                      };
+                    }
+                  }
+                  if (!supplierInfo) {
+                    const companySettings = await storage.getCompanySettings();
+                    const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
+                    supplierInfo = {
+                      supplierName: companySettings?.name || 'xHACCP',
+                      supplierEmail: fallbackEmail,
+                      items: [],
+                    };
+                  }
+                  supplierGroups.set(supplierId, supplierInfo);
+                }
+
+                supplierInfo.items.push({
+                  productName: item.product.name,
+                  quantity: item.quantity,
+                });
+              }
+
+              for (const [, group] of supplierGroups) {
+                if (group.supplierEmail) {
+                  try {
+                    await sendSupplierOrderEmail(
+                      group.supplierEmail,
+                      group.supplierName,
+                      fullOrder,
+                      group.items,
+                      awbNumber,
+                      awbPdfBuffer
+                    );
+                    console.log(`✅ [Background] Supplier email sent to ${group.supplierEmail} for order #${orderId}`);
+                  } catch (supplierEmailError) {
+                    console.error(`❌ [Background] Failed to send supplier email to ${group.supplierEmail}:`, supplierEmailError);
                   }
                 }
               }
-              if (parcels.length === 0) {
-                parcels.push({ sequenceNo: 1, weight: 1, width: 30, height: 20, length: 40 });
-              }
 
-              const totalAmount = parseFloat(String(currentOrder.totalAmount));
-              const awbData: any = {
-                pickupPointId: selectedPickupPoint.id,
-                serviceId: services[0].id,
-                contactPerson: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || 'Customer',
-                phoneNumber: shippingAddr?.phone || '',
-                address: shippingAddr?.streetAddress || shippingAddr?.address || '',
-                city: shippingAddr?.city || '',
-                county: shippingAddr?.state || shippingAddr?.county || '',
-                postalCode: shippingAddr?.zipCode || '',
-                parcels,
-                thirdPartyPickup: 0,
-                packageType: 1,
-                insuredValue: totalAmount,
-                observation: `Order #${orderId}`,
-                clientReference: `order_${orderId}`,
-              };
-
-              if (isCOD) {
-                awbData.cashOnDelivery = totalAmount;
-                awbData.cashOnDeliveryType = 1;
-              }
-
-              const awbResult = await samedayAPI.createAWB(awbData);
-              if (awbResult && awbResult.awbNumber) {
-                await storage.updateOrder(orderId, {
-                  awbNumber: awbResult.awbNumber,
-                  awbCost: String(awbResult.awbCost || 0),
-                  awbCurrency: 'RON',
-                  status: 'processing',
-                });
-                awbNumber = awbResult.awbNumber;
-                awbGenerated = true;
-                console.log(`✅ AWB generated for order #${orderId}: ${awbNumber}`);
-              }
-            }
-          } else if (currentOrder?.awbNumber) {
-            awbNumber = currentOrder.awbNumber;
-            awbGenerated = true;
-          }
-        }
-      } catch (awbError) {
-        console.error(`Failed to generate AWB for order #${orderId}:`, awbError);
-      }
-
-      if (awbNumber) {
-        const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service');
-        const { createSamedayAPI } = await import('./sameday-api');
-
-        let awbPdfBuffer: Buffer | undefined;
-        try {
-          const samedayAPI = createSamedayAPI();
-          if (samedayAPI) {
-            awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
-          }
-        } catch (pdfError) {
-          console.error(`AWB PDF retrieval failed for ${awbNumber}:`, pdfError);
-        }
-
-        const fullOrder = await storage.getOrder(orderId);
-        if (fullOrder) {
-          const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
-
-          for (const item of fullOrder.items) {
-            const product = await storage.getProduct(item.productId);
-            const supplierId = product?.supplierId || null;
-            let supplierInfo = supplierGroups.get(supplierId);
-
-            if (!supplierInfo) {
-              if (supplierId) {
-                const supplier = await storage.getSupplier(supplierId);
-                if (supplier && supplier.email) {
-                  supplierInfo = {
-                    supplierName: supplier.contactPerson || supplier.name,
-                    supplierEmail: supplier.email,
-                    items: [],
-                  };
+              let invoicePdfBuffer: Buffer | null = null;
+              if (invoiceGenerated && invoiceId) {
+                try {
+                  const { createInvoiceService } = await import('./invoice-service.js');
+                  const invoiceService = await createInvoiceService();
+                  invoicePdfBuffer = await invoiceService.getInvoicePdf(invoiceId);
+                  console.log(`✅ [Background] Invoice PDF retrieved for order #${orderId}`);
+                } catch (pdfError) {
+                  console.error(`❌ [Background] Failed to retrieve invoice PDF for order #${orderId}:`, pdfError);
                 }
               }
-              if (!supplierInfo) {
-                const companySettings = await storage.getCompanySettings();
-                const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
-                supplierInfo = {
-                  supplierName: companySettings?.name || 'xHACCP',
-                  supplierEmail: fallbackEmail,
-                  items: [],
-                };
-              }
-              supplierGroups.set(supplierId, supplierInfo);
-            }
 
-            supplierInfo.items.push({
-              productName: item.product.name,
-              quantity: item.quantity,
-            });
-          }
-
-          for (const [, group] of supplierGroups) {
-            if (group.supplierEmail) {
-              try {
-                await sendSupplierOrderEmail(
-                  group.supplierEmail,
-                  group.supplierName,
-                  fullOrder,
-                  group.items,
-                  awbNumber,
-                  awbPdfBuffer
-                );
-                supplierEmailsSent++;
-              } catch (supplierEmailError) {
-                console.error(`Failed to send supplier email to ${group.supplierEmail}:`, supplierEmailError);
+              if (user.email) {
+                try {
+                  await sendCustomerShipmentEmail(
+                    user.email,
+                    fullOrder,
+                    awbNumber,
+                    invoicePdfBuffer,
+                    invoiceNumber
+                  );
+                  console.log(`✅ [Background] Customer shipment email sent to ${user.email} for order #${orderId}`);
+                } catch (custEmailError) {
+                  console.error(`❌ [Background] Failed to send customer shipment email for order #${orderId}:`, custEmailError);
+                }
               }
             }
+          } else {
+            console.log(`⚠️ [Background] No AWB generated for order #${orderId}, skipping supplier/customer emails`);
           }
 
-          let invoicePdfBuffer: Buffer | null = null;
-          if (invoiceGenerated && invoiceId) {
-            try {
-              const { createInvoiceService } = await import('./invoice-service.js');
-              const invoiceService = await createInvoiceService();
-              invoicePdfBuffer = await invoiceService.getInvoicePdf(invoiceId);
-            } catch (pdfError) {
-              console.error(`Failed to retrieve invoice PDF for order #${orderId}:`, pdfError);
-            }
-          }
-
-          if (user.email) {
-            try {
-              customerShipmentEmailSent = await sendCustomerShipmentEmail(
-                user.email,
-                fullOrder,
-                awbNumber,
-                invoicePdfBuffer,
-                invoiceNumber
-              );
-            } catch (custEmailError) {
-              console.error(`Failed to send customer shipment email for order #${orderId}:`, custEmailError);
-            }
-          }
+          console.log(`✅ [Background] Acceptance flow completed for order #${orderId}`);
+        } catch (bgError) {
+          console.error(`❌ [Background] Error in acceptance flow for order #${orderId}:`, bgError);
         }
-      }
-
-      res.json({
-        success: true,
-        message: "Order accepted successfully",
-        order: updatedOrder,
-        invoiceGenerated,
-        invoiceNumber: invoiceNumber || null,
-        awbGenerated,
-        awbNumber: awbNumber || null,
-        notifications: {
-          supplierEmailsSent,
-          customerShipmentEmail: customerShipmentEmailSent,
-        },
-      });
+      })();
     } catch (error) {
       console.error("Error accepting order:", error);
       res.status(500).json({ success: false, message: "Failed to accept order" });

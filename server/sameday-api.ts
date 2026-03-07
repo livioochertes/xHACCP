@@ -306,13 +306,15 @@ export class SamedayAPI {
 }
 
 // Factory function to create Sameday API instance
+let samedayInstance: SamedayAPI | null = null;
+
 export function createSamedayAPI(): SamedayAPI | null {
+  if (samedayInstance) {
+    return samedayInstance;
+  }
+
   const username = process.env.SAMEDAY_USERNAME;
   const password = process.env.SAMEDAY_PASSWORD;
-  // According to API documentation v3.0 - 2024:
-  // Sandbox: https://sameday-api.demo.zitec.com (for testing - requires different credentials)
-  // Production: https://api.sameday.ro (live environment - using user's production credentials)
-  // Force production for now since sandbox requires different credentials
   const baseUrl = process.env.SAMEDAY_BASE_URL || 'https://api.sameday.ro';
 
   if (!username || !password) {
@@ -320,9 +322,10 @@ export function createSamedayAPI(): SamedayAPI | null {
     return null;
   }
 
-  return new SamedayAPI({
+  samedayInstance = new SamedayAPI({
     baseUrl,
     username,
     password,
   });
+  return samedayInstance;
 }
