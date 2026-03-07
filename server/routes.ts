@@ -2321,14 +2321,12 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (verificationResponse.ok) {
         const verificationData = await verificationResponse.json() as any;
         const key = verificationData.Key || verificationData;
-        console.log("Viva webhook verification key retrieved");
-        res.set("Content-Type", "text/plain");
-        res.send(key.toString());
+        console.log("Viva webhook verification key retrieved:", key);
+        res.json({ Key: key });
       } else {
         const errorText = await verificationResponse.text();
         console.error("Viva verification error:", verificationResponse.status, errorText);
-        res.set("Content-Type", "text/plain");
-        res.status(500).send("Verification failed");
+        res.status(500).json({ error: "Verification failed" });
       }
     } catch (error) {
       console.error("Error getting Viva webhook verification:", error);
