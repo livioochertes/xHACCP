@@ -61,13 +61,6 @@ export default function Login() {
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { data: socialStatus } = useQuery<{ google: boolean; apple: boolean }>({
-    queryKey: ['/api/auth/social/status'],
-  });
-
-  const googleConfigured = socialStatus?.google ?? false;
-  const appleConfigured = socialStatus?.apple ?? false;
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
@@ -103,10 +96,7 @@ export default function Login() {
   }, []);
 
   const handleSocialLogin = (provider: 'google' | 'apple') => {
-    const isConfigured = provider === 'google' ? googleConfigured : appleConfigured;
-    if (isConfigured) {
-      window.location.href = `/api/auth/${provider}`;
-    }
+    window.location.href = `/api/auth/${provider}`;
   };
 
   const toggleForm = () => {
@@ -295,12 +285,17 @@ export default function Login() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="email" 
-                            placeholder="your@email.com" 
-                            autoComplete="email"
-                            id="register-email"
-                            name="register-email"
+                          <input
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            type="text"
+                            inputMode="email"
+                            placeholder="your@email.com"
+                            autoComplete="none"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck={false}
+                            id="signup-email-input"
+                            name="signup-email-input"
                             value={field.value}
                             onChange={field.onChange}
                             onBlur={field.onBlur}
@@ -390,26 +385,18 @@ export default function Login() {
                 variant="outline"
                 className="w-full relative flex items-center justify-center gap-3 h-11 border-gray-300 hover:bg-gray-50"
                 onClick={() => handleSocialLogin('google')}
-                disabled={!googleConfigured}
               >
                 <GoogleLogo className="h-5 w-5 absolute left-4" />
-                <span>{googleConfigured ? "Sign in with Google" : "Sign in with Google"}</span>
-                {!googleConfigured && (
-                  <span className="absolute right-3 text-[10px] text-gray-400 font-medium uppercase tracking-wide">Soon</span>
-                )}
+                <span>Sign in with Google</span>
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                className="w-full relative flex items-center justify-center gap-3 h-11 border-black bg-black text-white hover:bg-gray-900 hover:text-white disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-200"
+                className="w-full relative flex items-center justify-center gap-3 h-11 border-black bg-black text-white hover:bg-gray-900 hover:text-white"
                 onClick={() => handleSocialLogin('apple')}
-                disabled={!appleConfigured}
               >
                 <AppleLogo className="h-5 w-5 absolute left-4" />
                 <span>Sign in with Apple</span>
-                {!appleConfigured && (
-                  <span className="absolute right-3 text-[10px] text-gray-400 font-medium uppercase tracking-wide">Soon</span>
-                )}
               </Button>
             </div>
 

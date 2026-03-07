@@ -388,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/google", (req, res) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
-      return res.status(503).json({ message: "Google login is not configured yet" });
+      return res.redirect("/login?error=google_not_configured");
     }
     const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
     const scope = encodeURIComponent('openid email profile');
@@ -469,7 +469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/apple", (req, res) => {
     const clientId = process.env.APPLE_CLIENT_ID;
     if (!clientId) {
-      return res.status(503).json({ message: "Apple login is not configured yet" });
+      return res.redirect("/login?error=apple_not_configured");
     }
     const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/apple/callback`;
     const scope = encodeURIComponent('name email');
