@@ -60,6 +60,7 @@ export default function ProductDetails() {
   }, [product]);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     setSelectedImageIndex(0);
   }, [product?.id]);
 
