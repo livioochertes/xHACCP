@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle, ChevronDown, ChevronUp, ShoppingBag, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,36 +28,40 @@ import Header from "@/components/header";
 import VivaPayment from "@/components/viva-payment";
 import { getCountyOptions, getCitiesForCounty, getCountryOptions, romanianCounties } from "@/utils/location-data";
 
-const shippingAddressSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  company: z.string().optional(),
-  address: z.string().min(1, "Address is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  county: z.string().min(1, "County (Județ) is required"), // Always mandatory for shipping
-  zipCode: z.string().min(1, "ZIP code is required"),
-  country: z.string().min(1, "Country is required"),
-  phone: z.string().min(1, "Phone number is required"),
-});
+function createShippingAddressSchema(t: (key: string) => string) {
+  return z.object({
+    firstName: z.string().min(1, t('checkout.firstNameRequired')),
+    lastName: z.string().min(1, t('checkout.lastNameRequired')),
+    company: z.string().optional(),
+    address: z.string().min(1, t('checkout.addressRequired')),
+    city: z.string().min(1, t('checkout.cityRequired')),
+    state: z.string().min(1, t('checkout.stateRequired')),
+    county: z.string().min(1, t('checkout.countyRequired')),
+    zipCode: z.string().min(1, t('checkout.zipRequired')),
+    country: z.string().min(1, t('checkout.countryRequired')),
+    phone: z.string().min(1, t('checkout.phoneRequired')),
+  });
+}
 
-const billingAddressSchemaFull = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  company: z.string().optional(),
-  address: z.string().min(1, "Address is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  county: z.string().min(1, "County (Județ) is required"),
-  zipCode: z.string().min(1, "ZIP code is required"),
-  country: z.string().min(1, "Country is required"),
-  phone: z.string().min(1, "Phone number is required"),
-  clientType: z.enum(["individual", "company"]).default("individual"),
-  identityDocument: z.string().default(""),
-  companyName: z.string().default(""),
-  vatNumber: z.string().default(""),
-  registrationNumber: z.string().default(""),
-});
+function createBillingAddressSchemaFull(t: (key: string) => string) {
+  return z.object({
+    firstName: z.string().min(1, t('checkout.firstNameRequired')),
+    lastName: z.string().min(1, t('checkout.lastNameRequired')),
+    company: z.string().optional(),
+    address: z.string().min(1, t('checkout.addressRequired')),
+    city: z.string().min(1, t('checkout.cityRequired')),
+    state: z.string().min(1, t('checkout.stateRequired')),
+    county: z.string().min(1, t('checkout.countyRequired')),
+    zipCode: z.string().min(1, t('checkout.zipRequired')),
+    country: z.string().min(1, t('checkout.countryRequired')),
+    phone: z.string().min(1, t('checkout.phoneRequired')),
+    clientType: z.enum(["individual", "company"]).default("individual"),
+    identityDocument: z.string().default(""),
+    companyName: z.string().default(""),
+    vatNumber: z.string().default(""),
+    registrationNumber: z.string().default(""),
+  });
+}
 
 const billingAddressSchemaRelaxed = z.object({
   firstName: z.string().default(""),
@@ -77,51 +81,55 @@ const billingAddressSchemaRelaxed = z.object({
   registrationNumber: z.string().default(""),
 });
 
-const checkoutSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  phone: z.string().default(""),
-  shippingAddress: shippingAddressSchema,
-  billingAddress: billingAddressSchemaRelaxed,
-  paymentMethod: z.enum(["viva", "cash"]),
-  sameAsBilling: z.boolean().default(false),
-  notes: z.string().optional(),
-  createAccount: z.boolean().default(false),
-  accountPassword: z.string().default(""),
-  confirmAccountPassword: z.string().default(""),
-}).superRefine((data, ctx) => {
-  if (!data.sameAsBilling) {
-    const result = billingAddressSchemaFull.safeParse(data.billingAddress);
-    if (!result.success) {
-      result.error.issues.forEach((issue) => {
-        ctx.addIssue({
-          ...issue,
-          path: ["billingAddress", ...issue.path],
+function createCheckoutSchema(t: (key: string) => string) {
+  const billingFull = createBillingAddressSchemaFull(t);
+  return z.object({
+    email: z.string().email(t('checkout.invalidEmail')),
+    phone: z.string().default(""),
+    shippingAddress: createShippingAddressSchema(t),
+    billingAddress: billingAddressSchemaRelaxed,
+    paymentMethod: z.enum(["viva", "cash"]),
+    sameAsBilling: z.boolean().default(false),
+    notes: z.string().optional(),
+    createAccount: z.boolean().default(false),
+    accountPassword: z.string().default(""),
+    confirmAccountPassword: z.string().default(""),
+  }).superRefine((data, ctx) => {
+    if (!data.sameAsBilling) {
+      const result = billingFull.safeParse(data.billingAddress);
+      if (!result.success) {
+        result.error.issues.forEach((issue) => {
+          ctx.addIssue({
+            ...issue,
+            path: ["billingAddress", ...issue.path],
+          });
         });
-      });
+      }
     }
-  }
-  if (data.createAccount) {
-    if (!data.accountPassword || data.accountPassword.length < 6) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Password must be at least 6 characters",
-        path: ["accountPassword"],
-      });
+    if (data.createAccount) {
+      if (!data.accountPassword || data.accountPassword.length < 6) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t('checkout.passwordMinLength'),
+          path: ["accountPassword"],
+        });
+      }
+      if (data.accountPassword !== data.confirmAccountPassword) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t('checkout.passwordsNoMatch'),
+          path: ["confirmAccountPassword"],
+        });
+      }
     }
-    if (data.accountPassword !== data.confirmAccountPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Passwords do not match",
-        path: ["confirmAccountPassword"],
-      });
-    }
-  }
-});
+  });
+}
 
-type CheckoutFormData = z.infer<typeof checkoutSchema>;
+type CheckoutFormData = z.infer<ReturnType<typeof createCheckoutSchema>>;
 
 export default function Checkout() {
   const { t } = useTranslation();
+  const checkoutSchema = useMemo(() => createCheckoutSchema(t), [t]);
   const { user, isAuthenticated, login } = useAuth();
   const [step, setStep] = useState(isAuthenticated ? 2 : 1);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
@@ -678,7 +686,7 @@ export default function Checkout() {
                           <FormItem>
                             <FormLabel>{t('checkout.emailAddress')}</FormLabel>
                             <FormControl>
-                              <Input placeholder="your@email.com" {...field} />
+                              <Input placeholder={t('checkout.emailPlaceholder')} {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -691,7 +699,7 @@ export default function Checkout() {
                           <FormItem>
                             <FormLabel>{t('checkout.phoneNumber')}</FormLabel>
                             <FormControl>
-                              <Input placeholder="+40 7XX XXX XXX" {...field} />
+                              <Input placeholder={t('checkout.phonePlaceholder')} {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -901,7 +909,7 @@ export default function Checkout() {
                               <FormItem>
                                 <FormLabel>{t('checkout.county')} *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="e.g. Bucharest, Cluj, Ilfov" {...field} />
+                                  <Input placeholder={t('checkout.countyPlaceholder')} {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1065,7 +1073,7 @@ export default function Checkout() {
                                   <FormItem>
                                     <FormLabel>{t('checkout.county')} *</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="e.g. Bucharest, Cluj, Ilfov" {...field} />
+                                      <Input placeholder={t('checkout.countyPlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -1156,7 +1164,7 @@ export default function Checkout() {
                                 <FormItem>
                                   <FormLabel>{t('checkout.identityDoc')}</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="e.g. CJ1234567" {...field} />
+                                    <Input placeholder={t('checkout.idDocPlaceholder')} {...field} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -1173,7 +1181,7 @@ export default function Checkout() {
                                   <FormItem>
                                     <FormLabel>{t('checkout.companyName')} *</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="e.g. SC Exemplu SRL" {...field} />
+                                      <Input placeholder={t('checkout.companyPlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -1187,7 +1195,7 @@ export default function Checkout() {
                                     <FormItem>
                                       <FormLabel>{t('checkout.vatNumber')} *</FormLabel>
                                       <FormControl>
-                                        <Input placeholder="e.g. RO12345678" {...field} />
+                                        <Input placeholder={t('checkout.vatPlaceholder')} {...field} />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
@@ -1200,7 +1208,7 @@ export default function Checkout() {
                                     <FormItem>
                                       <FormLabel>{t('checkout.regNumber')}</FormLabel>
                                       <FormControl>
-                                        <Input placeholder="e.g. J40/1234/2024" {...field} />
+                                        <Input placeholder={t('checkout.regComPlaceholder')} {...field} />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
@@ -1259,7 +1267,7 @@ export default function Checkout() {
                               </div>
                               {appliedVoucher && (
                                 <div className="flex justify-between text-xs text-green-600">
-                                  <span>Voucher ({appliedVoucher.code}):</span>
+                                  <span>{t('checkout.voucher')} ({appliedVoucher.code}):</span>
                                   <span>-{appliedVoucher.discountAmount} {currencySymbol}</span>
                                 </div>
                               )}
@@ -1293,10 +1301,10 @@ export default function Checkout() {
                                     <Label htmlFor="viva" className="flex-1 cursor-pointer">
                                       <div className="flex items-center gap-3">
                                         <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-9" />
-                                        <Badge variant="secondary" className="text-xs">{t('checkout.recommended') || 'Recommended'}</Badge>
+                                        <Badge variant="secondary" className="text-xs">{t('checkout.recommended')}</Badge>
                                       </div>
                                       <div className="flex items-center gap-1.5 mt-2">
-                                        <span className="text-xs text-muted-foreground">powered by</span>
+                                        <span className="text-xs text-muted-foreground">{t('checkout.poweredBy')}</span>
                                         <img src="https://developer.viva.com/images/new-payment-methods-logos/vivawallet.svg" alt="Viva Wallet" className="h-4" />
                                       </div>
                                     </Label>
@@ -1522,7 +1530,7 @@ export default function Checkout() {
                   {appliedVoucher && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span className="flex items-center gap-1">
-                        Voucher ({appliedVoucher.code}):
+                        {t('checkout.voucher')} ({appliedVoucher.code}):
                         <button 
                           onClick={handleRemoveVoucher}
                           className="text-red-500 hover:text-red-700 text-xs ml-1"
