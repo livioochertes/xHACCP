@@ -78,8 +78,8 @@ export async function sendOrderConfirmationEmail(
       <tr>
         <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.product.name}</td>
         <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${item.price}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${item.totalPrice}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.price} lei</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} lei</td>
       </tr>
     `)
     .join('');
@@ -131,7 +131,7 @@ export async function sendOrderConfirmationEmail(
                 Total Amount:
               </td>
               <td style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">
-                $${order.totalAmount}
+                ${order.totalAmount} lei
               </td>
             </tr>
           </tfoot>
@@ -197,7 +197,7 @@ export async function sendOrderConfirmationEmail(
     - Status: Accepted
     - Customer Email: ${user.email}
     - Contact Phone: ${shippingAddress.phone}
-    - Total Amount: $${order.totalAmount}
+    - Total Amount: ${order.totalAmount} lei
     
     Delivery Address:
     ${shippingAddress.firstName} ${shippingAddress.lastName}

@@ -1403,9 +1403,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.userId) {
         const user = await storage.getUser(req.userId);
         if (fullOrder && user) {
-          const { sendNewOrderNotificationEmail } = await import('./email-service.js');
+          const { sendNewOrderNotificationEmail, sendOrderConfirmationEmail } = await import('./email-service.js');
           sendNewOrderNotificationEmail(fullOrder, user).catch(error => {
             console.error('Failed to send new order notification email:', error);
+          });
+          sendOrderConfirmationEmail(fullOrder, user).catch(error => {
+            console.error('Failed to send order confirmation to customer:', error);
           });
         }
         await storage.clearCart(req.userId);
@@ -1417,9 +1420,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: shippingAddress?.lastName || '',
           name: `${shippingAddress?.firstName || 'Guest'} ${shippingAddress?.lastName || ''}`.trim(),
         };
-        const { sendNewOrderNotificationEmail } = await import('./email-service.js');
+        const { sendNewOrderNotificationEmail, sendOrderConfirmationEmail } = await import('./email-service.js');
         sendNewOrderNotificationEmail(fullOrder, guestUser as any).catch(error => {
           console.error('Failed to send guest order notification email:', error);
+        });
+        sendOrderConfirmationEmail(fullOrder, guestUser as any).catch(error => {
+          console.error('Failed to send guest order confirmation email:', error);
         });
       }
       
@@ -1436,6 +1442,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderId = parseInt(req.params.id);
       const { status } = req.body;
       const order = await storage.updateOrderStatus(orderId, status);
+      
+      if (status === 'processing') {
+        const fullOrder = await storage.getOrder(orderId);
+        if (fullOrder) {
+          const shippingAddr = fullOrder.shippingAddress as any;
+          const customerEmail = shippingAddr?.email || fullOrder.notes?.match(/Guest email: ([^\s,]+)/)?.[1];
+          
+          if (fullOrder.userId) {
+            const user = await storage.getUser(fullOrder.userId);
+            if (user) {
+              const { sendOrderConfirmationEmail } = await import('./email-service.js');
+              sendOrderConfirmationEmail(fullOrder, user).catch(error => {
+                console.error('Failed to send processing confirmation to customer:', error);
+              });
+            }
+          } else if (customerEmail) {
+            const guestUser = {
+              id: 0,
+              email: customerEmail,
+              firstName: shippingAddr?.firstName || 'Customer',
+              lastName: shippingAddr?.lastName || '',
+              name: `${shippingAddr?.firstName || 'Customer'} ${shippingAddr?.lastName || ''}`.trim(),
+            };
+            const { sendOrderConfirmationEmail } = await import('./email-service.js');
+            sendOrderConfirmationEmail(fullOrder, guestUser as any).catch(error => {
+              console.error('Failed to send processing confirmation to guest:', error);
+            });
+          }
+        }
+      }
+      
       res.json(order);
     } catch (error) {
       console.error("Update order status error:", error);
