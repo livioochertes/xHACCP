@@ -9,7 +9,6 @@ import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./sample-data";
 import { loadAllDataIntoMemory } from "./routes";
 import { logR2Status } from "./r2-storage";
-import { migrateUsersFromSeed } from "./migrate-users";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -120,7 +119,6 @@ app.use((req, res, next) => {
   // Seed database with sample data
   try {
     await seedDatabase();
-    await migrateUsersFromSeed();
     // Refresh cache after seeding to ensure latest data is loaded
     await loadAllDataIntoMemory();
   } catch (error) {
