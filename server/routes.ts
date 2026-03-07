@@ -2355,67 +2355,73 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     try {
       const { s: transactionId, t: vivaOrderCode, lang } = req.query;
       
-      console.log(`Viva callback received - transactionId: ${transactionId}, orderCode: ${vivaOrderCode}`);
+      console.log(`Viva callback received - transactionId: ${transactionId}, orderCode: ${vivaOrderCode}, lang: ${lang}`);
+      console.log(`Viva callback full query params:`, JSON.stringify(req.query));
 
       if (transactionId) {
-        let verified = false;
-        try {
-          const accessToken = await getVivaAccessToken();
-          
-          const txResponse = await fetch(`https://api.vivapayments.com/checkout/v2/transactions/${transactionId}`, {
-            headers: {
-              "Authorization": `Bearer ${accessToken}`,
-            },
-          });
+        res.redirect("/?payment=success");
 
-          if (txResponse.ok) {
-            const txData = await txResponse.json() as any;
-            const merchantTrns = txData.merchantTrns || '';
-            const orderIdMatch = merchantTrns.match(/order_(\d+)/);
+        (async () => {
+          try {
+            const accessToken = await getVivaAccessToken();
             
-            if (orderIdMatch) {
-              const orderId = parseInt(orderIdMatch[1]);
+            const txResponse = await fetch(`https://api.vivapayments.com/checkout/v2/transactions/${transactionId}`, {
+              headers: {
+                "Authorization": `Bearer ${accessToken}`,
+              },
+            });
+
+            if (txResponse.ok) {
+              const txData = await txResponse.json() as any;
+              console.log(`Viva transaction data:`, JSON.stringify(txData));
+              const merchantTrns = txData.merchantTrns || '';
+              const orderIdMatch = merchantTrns.match(/order_(\d+)/);
               
-              await storage.updateOrder(orderId, {
-                paymentStatus: 'paid',
-                status: 'processing',
-              });
-
-              verified = true;
-              console.log(`Viva payment verified and order ${orderId} updated to paid`);
-
-              try {
-                if (!invoiceService) {
-                  invoiceService = await createInvoiceService();
-                }
+              if (orderIdMatch) {
+                const orderId = parseInt(orderIdMatch[1]);
                 
-                const invoice = await invoiceService.generateInvoiceAfterPayment(
-                  orderId,
-                  {
-                    status: 'succeeded',
-                    paymentMethod: 'viva',
-                    paymentId: transactionId as string,
-                    amount: txData.amount / 100,
+                await storage.updateOrder(orderId, {
+                  paymentStatus: 'paid',
+                  status: 'processing',
+                });
+
+                console.log(`Viva payment verified and order ${orderId} updated to paid`);
+
+                try {
+                  if (!invoiceService) {
+                    invoiceService = await createInvoiceService();
                   }
-                );
-                console.log(`Invoice generated for Viva order ${orderId}:`, invoice.invoiceNumber);
-              } catch (invoiceError) {
-                console.error(`Failed to generate invoice for order ${orderId}:`, invoiceError);
+                  
+                  const invoice = await invoiceService.generateInvoiceAfterPayment(
+                    orderId,
+                    {
+                      status: 'succeeded',
+                      paymentMethod: 'viva',
+                      paymentId: transactionId as string,
+                      amount: txData.amount / 100,
+                    }
+                  );
+                  console.log(`Invoice generated for Viva order ${orderId}:`, invoice.invoiceNumber);
+                } catch (invoiceError) {
+                  console.error(`Failed to generate invoice for order ${orderId}:`, invoiceError);
+                }
+
+                generateAWBForOrder(orderId).catch(awbError => {
+                  console.error(`AWB auto-generation failed for order ${orderId}:`, awbError);
+                });
+              } else {
+                console.error(`Viva callback: Could not extract orderId from merchantTrns: "${merchantTrns}"`);
               }
-
-              generateAWBForOrder(orderId).catch(awbError => {
-                console.error(`AWB auto-generation failed for order ${orderId}:`, awbError);
-              });
+            } else {
+              const errorText = await txResponse.text();
+              console.error(`Viva transaction verification failed: ${txResponse.status}`, errorText);
             }
-          } else {
-            console.error("Viva transaction verification failed:", txResponse.status);
+          } catch (verifyError) {
+            console.error("Error in background Viva verification:", verifyError);
           }
-        } catch (verifyError) {
-          console.error("Error verifying Viva transaction:", verifyError);
-        }
-
-        res.redirect(verified ? "/?payment=success" : "/?payment=error");
+        })();
       } else {
+        console.log("Viva callback without transactionId - payment likely failed/cancelled");
         res.redirect("/?payment=failed");
       }
     } catch (error) {
