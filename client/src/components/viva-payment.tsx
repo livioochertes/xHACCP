@@ -60,25 +60,24 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <CreditCard className="w-4 h-4 text-white" />
-          </div>
+          <CreditCard className="w-5 h-5 text-blue-600" />
           Secure Payment
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-sm text-gray-600 mb-4">
-          Pay with card, Apple Pay, Google Pay or other methods
-          <div className="text-xs text-green-600 mt-1">
-            ✅ Secure payment powered by Viva
-          </div>
-        </div>
         <div className="space-y-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-7" />
+          </div>
           <div className="p-4 border rounded-lg bg-gray-50 text-sm text-gray-600">
             <p className="flex items-center gap-2">
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-4 h-4 flex-shrink-0" />
               You will be redirected to a secure payment page to complete your payment.
             </p>
+          </div>
+          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <span>Secured by</span>
+            <img src="https://developer.viva.com/images/new-payment-methods-logos/vivawallet.svg" alt="Viva Wallet" className="h-4" />
           </div>
           <Button
             type="button"
