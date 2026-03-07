@@ -1047,16 +1047,13 @@ export default function Checkout() {
                                   <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'viva' ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
                                     <RadioGroupItem value="viva" id="viva" />
                                     <Label htmlFor="viva" className="flex-1 cursor-pointer">
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                          <span className="font-medium">Card / Apple Pay / Google Pay</span>
-                                          <Badge variant="secondary" className="text-xs">{t('checkout.recommended') || 'Recommended'}</Badge>
-                                        </div>
+                                      <div className="flex items-center gap-3">
+                                        <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-9" />
+                                        <Badge variant="secondary" className="text-xs">{t('checkout.recommended') || 'Recommended'}</Badge>
                                       </div>
-                                      <div className="flex items-center gap-2 mt-2">
-                                        <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-6" />
-                                        <span className="text-xs text-muted-foreground mx-1">powered by</span>
-                                        <img src="https://developer.viva.com/images/new-payment-methods-logos/vivawallet.svg" alt="Viva Wallet" className="h-5" />
+                                      <div className="flex items-center gap-1.5 mt-2">
+                                        <span className="text-xs text-muted-foreground">powered by</span>
+                                        <img src="https://developer.viva.com/images/new-payment-methods-logos/vivawallet.svg" alt="Viva Wallet" className="h-4" />
                                       </div>
                                     </Label>
                                   </div>

@@ -67,7 +67,7 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
       <CardContent>
         <div className="space-y-4">
           <div className="flex items-center gap-3 flex-wrap">
-            <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-7" />
+            <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-9" />
           </div>
           <div className="p-4 border rounded-lg bg-gray-50 text-sm text-gray-600">
             <p className="flex items-center gap-2">
