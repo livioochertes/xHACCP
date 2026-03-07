@@ -249,13 +249,13 @@ export default function Checkout() {
         totalPrice: (parseFloat(item.product.price) * item.quantity).toString(),
       }));
 
-      const shippingAddr = { ...data.shippingAddress };
+      const shippingAddr = { ...data.shippingAddress, email: data.email };
       if (!shippingAddr.phone && data.phone) {
         shippingAddr.phone = data.phone;
       }
       const billingAddr = sameAsBilling 
         ? { ...shippingAddr, clientType: data.billingAddress.clientType, identityDocument: data.billingAddress.identityDocument, companyName: data.billingAddress.companyName, vatNumber: data.billingAddress.vatNumber, registrationNumber: data.billingAddress.registrationNumber }
-        : { ...data.billingAddress };
+        : { ...data.billingAddress, email: data.email };
       if (!billingAddr.phone && data.phone) {
         billingAddr.phone = data.phone;
       }
@@ -268,6 +268,7 @@ export default function Checkout() {
         notes: data.notes,
         voucherCode: appliedVoucher?.code || null,
         contactPhone: data.phone,
+        email: data.email,
       });
     },
     onSuccess: (data) => {

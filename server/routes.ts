@@ -1292,7 +1292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/orders", optionalAuth, async (req: AuthRequest, res) => {
     try {
-      const { shippingAddress, billingAddress, paymentMethod, items, notes, voucherCode, contactPhone } = req.body;
+      const { shippingAddress, billingAddress, paymentMethod, items, notes, voucherCode, contactPhone, email: bodyEmail } = req.body;
       
       // Validate items array
       if (!items || !Array.isArray(items) || items.length === 0) {
@@ -1375,7 +1375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderNotes = `Voucher: ${validatedVoucher.code} (-${discountAmount.toFixed(2)})${orderNotes ? '\n' + orderNotes : ''}`;
       }
       
-      const guestEmail = shippingAddress?.email || billingAddress?.email || '';
+      const guestEmail = bodyEmail || shippingAddress?.email || billingAddress?.email || '';
       
       if (!req.userId && guestEmail) {
         orderNotes = `Guest email: ${guestEmail}${contactPhone ? ', Phone: ' + contactPhone : ''}${orderNotes ? '\n' + orderNotes : ''}`;
