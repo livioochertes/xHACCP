@@ -6,12 +6,48 @@ import { eq } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { Request, Response, NextFunction } from "express";
 import OpenAI from "openai";
 import QRCode from "qrcode";
 import path from "path";
 import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
+
+const appleOAuthStates = new Map<string, number>();
+setInterval(() => {
+  const tenMinutesAgo = Date.now() - 600000;
+  for (const [key, timestamp] of appleOAuthStates) {
+    if (timestamp < tenMinutesAgo) appleOAuthStates.delete(key);
+  }
+}, 60000);
+
+function generateAppleClientSecret(): string {
+  const teamId = process.env.APPLE_TEAM_ID;
+  const keyId = process.env.APPLE_KEY_ID;
+  const clientId = process.env.APPLE_CLIENT_ID;
+  const privateKey = process.env.APPLE_PRIVATE_KEY;
+
+  if (!teamId || !keyId || !clientId || !privateKey) {
+    throw new Error('Missing Apple OAuth configuration');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const formattedKey = privateKey.includes('\\n') ? privateKey.replace(/\\n/g, '\n') : privateKey;
+
+  return jwt.sign({}, formattedKey, {
+    algorithm: 'ES256',
+    expiresIn: '180d',
+    audience: 'https://appleid.apple.com',
+    issuer: teamId,
+    subject: clientId,
+    keyid: keyId,
+    header: {
+      alg: 'ES256',
+      kid: keyId,
+    },
+  });
+}
 
 // Authentication interfaces
 interface AuthRequest extends Request {
@@ -445,7 +481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let user = await storage.getUserByEmail(email);
       if (!user) {
-        const randomPassword = require('crypto').randomBytes(32).toString('hex');
+        const randomPassword = crypto.randomBytes(32).toString('hex');
         const hashedPassword = await bcrypt.hash(randomPassword, 10);
         user = await storage.createUser({
           email,
@@ -470,28 +506,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/apple", (req, res) => {
     const clientId = process.env.APPLE_CLIENT_ID;
-    console.log(`[Apple Auth] APPLE_CLIENT_ID: ${clientId ? 'SET (' + clientId.length + ' chars)' : 'NOT SET'}`);
-    if (!clientId) {
-      console.error('[Apple Auth] APPLE_CLIENT_ID is not set - redirecting with error');
+    const teamId = process.env.APPLE_TEAM_ID;
+    const keyId = process.env.APPLE_KEY_ID;
+    const privateKey = process.env.APPLE_PRIVATE_KEY;
+    if (!clientId || !teamId || !keyId || !privateKey) {
+      console.error('[Apple Auth] Missing Apple config - clientId:', !!clientId, 'teamId:', !!teamId, 'keyId:', !!keyId, 'privateKey:', !!privateKey);
       return res.redirect("/login?error=apple_not_configured");
     }
     const proto = req.headers['x-forwarded-proto'] || req.protocol;
     const redirectUri = `${proto}://${req.get('host')}/api/auth/apple/callback`;
     const scope = encodeURIComponent('name email');
-    const url = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&response_mode=form_post`;
+    const state = crypto.randomBytes(16).toString('hex');
+    appleOAuthStates.set(state, Date.now());
+    const url = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&response_mode=form_post&state=${state}`;
     res.redirect(url);
   });
 
   app.post("/api/auth/apple/callback", async (req, res) => {
     try {
-      const { code, id_token } = req.body;
+      const { code, state } = req.body;
+      
+      if (!state || !appleOAuthStates.has(state)) {
+        console.error('Apple callback: state mismatch or missing (CSRF check failed)');
+        return res.redirect("/login?error=apple_failed");
+      }
+      appleOAuthStates.delete(state);
+
       if (!code) {
         console.error('Apple callback: no code received, body:', JSON.stringify(req.body));
         return res.redirect("/login?error=apple_failed");
       }
       const clientId = process.env.APPLE_CLIENT_ID;
-      const clientSecret = process.env.APPLE_CLIENT_SECRET;
-      if (!clientId || !clientSecret) {
+      if (!clientId) {
+        return res.redirect("/login?error=apple_not_configured");
+      }
+
+      let clientSecret: string;
+      try {
+        clientSecret = generateAppleClientSecret();
+      } catch (e) {
+        console.error('Apple client secret generation failed:', e);
         return res.redirect("/login?error=apple_not_configured");
       }
 
@@ -516,13 +570,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const tokenData = await tokenResponse.json() as any;
-      const appleIdToken = tokenData.id_token || id_token;
+      const appleIdToken = tokenData.id_token;
       
       if (!appleIdToken) {
+        console.error('Apple callback: no id_token in token response');
         return res.redirect("/login?error=apple_failed");
       }
 
       const payload = JSON.parse(Buffer.from(appleIdToken.split('.')[1], 'base64').toString());
+      
+      if (payload.iss !== 'https://appleid.apple.com' || payload.aud !== clientId) {
+        console.error('Apple id_token validation failed: iss or aud mismatch');
+        return res.redirect("/login?error=apple_failed");
+      }
+
       const email = payload.email || payload.sub;
 
       const userBody = req.body.user ? JSON.parse(req.body.user) : null;
@@ -531,7 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let user = await storage.getUserByEmail(email);
       if (!user) {
-        const randomPassword = require('crypto').randomBytes(32).toString('hex');
+        const randomPassword = crypto.randomBytes(32).toString('hex');
         const hashedPassword = await bcrypt.hash(randomPassword, 10);
         user = await storage.createUser({
           email,
@@ -557,21 +618,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/social/status", (req, res) => {
     const googleId = process.env.GOOGLE_CLIENT_ID;
     const appleId = process.env.APPLE_CLIENT_ID;
-    const appleSecret = process.env.APPLE_CLIENT_SECRET;
-    console.log(`[Social Status] GOOGLE_CLIENT_ID: ${googleId ? 'SET (' + googleId.length + ' chars)' : 'NOT SET'}`);
-    console.log(`[Social Status] APPLE_CLIENT_ID: ${appleId ? 'SET (' + appleId.length + ' chars)' : 'NOT SET'}`);
-    console.log(`[Social Status] APPLE_CLIENT_SECRET: ${appleSecret ? 'SET (' + appleSecret.length + ' chars)' : 'NOT SET'}`);
+    const appleTeamId = process.env.APPLE_TEAM_ID;
+    const appleKeyId = process.env.APPLE_KEY_ID;
+    const applePrivateKey = process.env.APPLE_PRIVATE_KEY;
+    const appleConfigured = !!(appleId && appleTeamId && appleKeyId && applePrivateKey);
     res.json({
       google: !!googleId,
-      apple: !!appleId,
-      debug: {
-        googleClientIdSet: !!googleId,
-        googleClientIdLength: googleId?.length || 0,
-        appleClientIdSet: !!appleId,
-        appleClientIdLength: appleId?.length || 0,
-        appleClientSecretSet: !!appleSecret,
-        appleClientSecretLength: appleSecret?.length || 0,
-      }
+      apple: appleConfigured,
     });
   });
 

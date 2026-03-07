@@ -37,7 +37,7 @@ The platform features a modern React frontend with Radix UI components styled wi
 
 - **Database**: Neon serverless PostgreSQL
 - **ORM**: Drizzle ORM
-- **Authentication**: `jsonwebtoken`, `bcrypt`
+- **Authentication**: `jsonwebtoken`, `bcrypt`, Google OAuth 2.0, Apple Sign-In (JWT client_secret generation with ES256)
 - **Email Service**: SendGrid
 - **Payment Gateways**:
     - Viva Payments (Smart Checkout - hosted payment page with card, Apple Pay, Google Pay support)
