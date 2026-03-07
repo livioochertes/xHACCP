@@ -32,8 +32,15 @@ function generateAppleClientSecret(): string {
     throw new Error('Missing Apple OAuth configuration');
   }
 
-  const now = Math.floor(Date.now() / 1000);
-  const formattedKey = privateKey.includes('\\n') ? privateKey.replace(/\\n/g, '\n') : privateKey;
+  let formattedKey = privateKey;
+  formattedKey = formattedKey.replace(/\\n/g, '\n');
+  if (!formattedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+    formattedKey = `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
+  }
+  formattedKey = formattedKey.replace(/-----BEGIN PRIVATE KEY-----\s*/, '-----BEGIN PRIVATE KEY-----\n');
+  formattedKey = formattedKey.replace(/\s*-----END PRIVATE KEY-----/, '\n-----END PRIVATE KEY-----');
+
+  console.log('[Apple JWT] Key format check - starts with BEGIN:', formattedKey.startsWith('-----BEGIN'), 'length:', formattedKey.length);
 
   return jwt.sign({}, formattedKey, {
     algorithm: 'ES256',
