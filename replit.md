@@ -40,8 +40,8 @@ The platform features a modern React frontend with Radix UI components styled wi
 - **Authentication**: `jsonwebtoken`, `bcrypt`
 - **Email Service**: SendGrid
 - **Payment Gateways**:
-    - Revolut (with Apple Pay and Google Pay support)
-    - Stripe
+    - Viva Payments (Smart Checkout - hosted payment page with card, Apple Pay, Google Pay support)
+    - Cash on Delivery
 - **Invoicing API**: Smartbill API
 - **Shipping API**: Sameday Courier API
 - **AI/NLP**: OpenAI ChatGPT API (GPT-4o model)

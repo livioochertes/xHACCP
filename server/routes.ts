@@ -7,7 +7,6 @@ import { db } from "./db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import Stripe from "stripe";
 import OpenAI from "openai";
 import QRCode from "qrcode";
 import path from "path";
@@ -1958,24 +1957,47 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     }
   });
 
-  // Stripe Payment Routes
-  app.post("/api/payments/stripe/create-payment-intent", async (req, res) => {
-    try {
-      const { currency, orderId, cartItems, voucherCode } = req.body;
+  // ============ VIVA PAYMENTS INTEGRATION ============
 
-      if (!currency) {
-        return res.status(400).json({ message: "Currency is required" });
-      }
-      
-      // SECURITY: Cart items are required - no fallback to client amount
+  // Helper: Get Viva OAuth2 access token
+  async function getVivaAccessToken(): Promise<string> {
+    const clientId = process.env.VIVA_CLIENT_ID;
+    const clientSecret = process.env.VIVA_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      throw new Error("Viva credentials not configured");
+    }
+
+    const response = await fetch("https://accounts.vivapayments.com/connect/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64"),
+      },
+      body: "grant_type=client_credentials",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Viva OAuth error:", response.status, errorText);
+      throw new Error(`Viva authentication failed: ${response.status}`);
+    }
+
+    const data = await response.json() as any;
+    return data.access_token;
+  }
+
+  // Create Viva payment order and return checkout URL
+  app.post("/api/payments/viva/create-order", async (req, res) => {
+    try {
+      const { currency, cartItems, voucherCode, orderData } = req.body;
+
       if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart items are required" });
       }
-      
-      // SECURITY: Look up product prices from database - NEVER trust client-provided prices or quantities
+
       let subtotal = 0;
       for (const item of cartItems) {
-        // Validate quantity - must be positive integer
         const quantity = parseInt(item.quantity);
         if (!Number.isInteger(quantity) || quantity < 1 || quantity > 9999) {
           return res.status(400).json({ message: `Invalid quantity for product ${item.productId}: must be between 1 and 9999` });
@@ -1986,23 +2008,18 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           return res.status(400).json({ message: `Product not found: ${item.productId}` });
         }
         
-        // Check if product is active
         if (!product.isActive) {
           return res.status(400).json({ message: `Product is not available: ${product.name}` });
         }
         
         subtotal += parseFloat(product.price) * quantity;
       }
-      
-      // Get shipping settings
+
       const companySettings = await storage.getCompanySettings();
       const freeShippingThreshold = companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : 500;
       const standardShippingCost = companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : 25;
-      
-      // Calculate shipping
       const shippingCost = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
-      
-      // Validate voucher if provided
+
       let discountAmount = 0;
       if (voucherCode) {
         const voucher = await storage.getVoucherByCode(voucherCode);
@@ -2024,232 +2041,295 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           }
         }
       }
-      
-      // Calculate final total (prices already include VAT)
+
       const discountedSubtotal = Math.max(0, subtotal - discountAmount);
-      const finalAmount = (discountedSubtotal + shippingCost) * 100; // Convert to cents
-      
-      // SECURITY: Ensure final amount is positive
-      if (finalAmount < 50) { // Stripe minimum is 50 cents
+      const finalAmountCents = Math.round((discountedSubtotal + shippingCost) * 100);
+
+      if (finalAmountCents < 30) {
         return res.status(400).json({ message: "Order total is too low" });
       }
 
-      // Create payment intent with Stripe
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: '2020-08-27' as any,
-      });
-      
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(finalAmount),
-        currency: currency.toLowerCase(),
-        metadata: {
-          source: 'xhaccp',
-          orderId: orderId?.toString() || '',
-          voucherCode: voucherCode || ''
-        }
+      if (!orderData) {
+        return res.status(400).json({ message: "Order data is required" });
+      }
+
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      let userId: number | null = null;
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as any;
+          userId = decoded.userId || decoded.id;
+        } catch (e) { }
+      }
+
+      const orderItems = orderData.items || cartItems.map((item: any) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price || "0",
+        totalPrice: (parseFloat(item.price || "0") * item.quantity).toString(),
+      }));
+
+      let dbOrderId: number;
+      try {
+        const newOrder = await storage.createOrder({
+          userId: userId,
+          status: 'pending',
+          paymentStatus: 'pending',
+          paymentMethod: 'viva',
+          shippingAddress: orderData.shippingAddress || {},
+          billingAddress: orderData.billingAddress || {},
+          items: orderItems,
+          subtotal: subtotal.toString(),
+          shippingCost: shippingCost.toString(),
+          total: (discountedSubtotal + shippingCost).toString(),
+          notes: orderData.notes || '',
+          contactPhone: orderData.contactPhone || '',
+          voucherCode: voucherCode || null,
+          discountAmount: discountAmount > 0 ? discountAmount.toString() : null,
+        } as any);
+
+        dbOrderId = newOrder.id;
+        console.log(`Created order ${dbOrderId} for Viva payment`);
+      } catch (orderError) {
+        console.error("Error creating order for Viva payment:", orderError);
+        return res.status(500).json({ message: "Failed to create order" });
+      }
+
+      const accessToken = await getVivaAccessToken();
+      const sourceCode = process.env.VIVA_SOURCE_CODE;
+      const merchantId = process.env.VIVA_MERCHANT_ID;
+
+      if (!sourceCode || !merchantId) {
+        return res.status(500).json({ message: "Viva payment source not configured" });
+      }
+
+      const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5000';
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const baseUrl = `${protocol}://${host}`;
+
+      const vivaOrderPayload: any = {
+        amount: finalAmountCents,
+        customerTrns: `xHACCP Order${dbOrderId ? ` #${dbOrderId}` : ''}`,
+        merchantTrns: dbOrderId ? `order_${dbOrderId}` : `order_${Date.now()}`,
+        sourceCode: sourceCode,
+        allowRecurring: false,
+        maxInstallments: 0,
+        forceMaxInstallments: false,
+        paymentNotification: true,
+        disableExactAmount: false,
+        disableCash: true,
+        disableWallet: false,
+      };
+
+      if (orderData?.shippingAddress?.email) {
+        vivaOrderPayload.customer = {
+          email: orderData.shippingAddress.email,
+          fullName: `${orderData.shippingAddress.firstName || ''} ${orderData.shippingAddress.lastName || ''}`.trim(),
+          phone: orderData.contactPhone || orderData.shippingAddress.phone || '',
+          countryCode: orderData.shippingAddress.country || 'RO',
+          requestLang: 'ro-RO',
+        };
+      }
+
+      // Create payment order via Viva API
+      const vivaResponse = await fetch("https://api.vivapayments.com/checkout/v2/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(vivaOrderPayload),
       });
 
-      res.json({ 
-        clientSecret: paymentIntent.client_secret,
-        serverCalculatedAmount: Math.round(finalAmount) / 100 // Return for verification
+      if (!vivaResponse.ok) {
+        const errorText = await vivaResponse.text();
+        console.error("Viva create order error:", vivaResponse.status, errorText);
+        throw new Error(`Viva API error: ${vivaResponse.status} - ${errorText}`);
+      }
+
+      const vivaOrder = await vivaResponse.json() as any;
+      const orderCode = vivaOrder.orderCode;
+
+      console.log(`Viva payment order created: ${orderCode} for DB order ${dbOrderId}`);
+
+      const checkoutUrl = `https://www.vivapayments.com/web/checkout?ref=${orderCode}&color=0000ff`;
+
+      res.json({
+        orderCode,
+        checkoutUrl,
+        dbOrderId,
+        serverCalculatedAmount: finalAmountCents / 100,
       });
     } catch (error) {
-      console.error("Error creating Stripe payment intent:", error);
-      res.status(500).json({ message: "Failed to create payment intent" });
+      console.error("Error creating Viva payment order:", error);
+      res.status(500).json({ message: "Failed to create payment order" });
     }
   });
 
-  // Stripe webhook for payment completion
-  app.post("/api/payments/stripe/webhook", async (req, res) => {
+  // Viva payment success/failure callback
+  app.get("/api/payments/viva/callback", async (req, res) => {
     try {
-      const event = req.body;
+      const { s: transactionId, t: vivaOrderCode, lang } = req.query;
+      
+      console.log(`Viva callback received - transactionId: ${transactionId}, orderCode: ${vivaOrderCode}`);
 
-      console.log("Stripe webhook received:", event.type);
-
-      // Handle different webhook events
-      if (event.type === 'payment_intent.succeeded') {
-        const paymentIntent = event.data.object;
-        const orderId = paymentIntent.metadata.orderId;
-
-        if (orderId) {
-          console.log(`Payment succeeded for order ${orderId}`);
+      if (transactionId) {
+        let verified = false;
+        try {
+          const accessToken = await getVivaAccessToken();
           
-          // Update order status
-          await storage.updateOrder(parseInt(orderId), {
-            paymentStatus: 'paid',
-            status: 'processing'
+          const txResponse = await fetch(`https://api.vivapayments.com/checkout/v2/transactions/${transactionId}`, {
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+            },
           });
 
-          // Generate invoice automatically via Smartbill API
+          if (txResponse.ok) {
+            const txData = await txResponse.json() as any;
+            const merchantTrns = txData.merchantTrns || '';
+            const orderIdMatch = merchantTrns.match(/order_(\d+)/);
+            
+            if (orderIdMatch) {
+              const orderId = parseInt(orderIdMatch[1]);
+              
+              await storage.updateOrder(orderId, {
+                paymentStatus: 'paid',
+                status: 'processing',
+              });
+
+              verified = true;
+              console.log(`Viva payment verified and order ${orderId} updated to paid`);
+
+              try {
+                if (!invoiceService) {
+                  invoiceService = await createInvoiceService();
+                }
+                
+                const invoice = await invoiceService.generateInvoiceAfterPayment(
+                  orderId,
+                  {
+                    status: 'succeeded',
+                    paymentMethod: 'viva',
+                    paymentId: transactionId as string,
+                    amount: txData.amount / 100,
+                  }
+                );
+                console.log(`Invoice generated for Viva order ${orderId}:`, invoice.invoiceNumber);
+              } catch (invoiceError) {
+                console.error(`Failed to generate invoice for order ${orderId}:`, invoiceError);
+              }
+            }
+          } else {
+            console.error("Viva transaction verification failed:", txResponse.status);
+          }
+        } catch (verifyError) {
+          console.error("Error verifying Viva transaction:", verifyError);
+        }
+
+        res.redirect(verified ? "/?payment=success" : "/?payment=error");
+      } else {
+        res.redirect("/?payment=failed");
+      }
+    } catch (error) {
+      console.error("Error processing Viva callback:", error);
+      res.redirect("/?payment=error");
+    }
+  });
+
+  // Viva webhook for payment notifications
+  app.post("/api/payments/viva/webhook", async (req, res) => {
+    try {
+      const event = req.body;
+      console.log("Viva webhook received:", JSON.stringify(event).slice(0, 500));
+
+      const eventTypeId = event.EventTypeId;
+      const eventData = event.EventData;
+
+      if (eventTypeId === 1796) {
+        // Transaction Payment Created - payment successful
+        const transactionId = eventData?.TransactionId;
+        const merchantTrns = eventData?.MerchantTrns || '';
+        const orderIdMatch = merchantTrns.match(/order_(\d+)/);
+
+        if (orderIdMatch) {
+          const orderId = parseInt(orderIdMatch[1]);
+          console.log(`Viva webhook: Payment succeeded for order ${orderId}, transaction ${transactionId}`);
+
+          await storage.updateOrder(orderId, {
+            paymentStatus: 'paid',
+            status: 'processing',
+          });
+
           try {
-            // Initialize invoice service if needed
             if (!invoiceService) {
               invoiceService = await createInvoiceService();
             }
-            
+
             const invoice = await invoiceService.generateInvoiceAfterPayment(
-              parseInt(orderId),
+              orderId,
               {
                 status: 'succeeded',
-                paymentMethod: 'card',
-                paymentId: paymentIntent.id,
-                amount: paymentIntent.amount / 100 // Convert from cents
+                paymentMethod: 'viva',
+                paymentId: transactionId,
+                amount: (eventData?.Amount || 0) / 100,
               }
             );
-
-            console.log(`Invoice generated automatically for order ${orderId}:`, invoice.invoiceNumber);
+            console.log(`Invoice generated via webhook for order ${orderId}:`, invoice.invoiceNumber);
           } catch (invoiceError) {
             console.error(`Failed to generate invoice for order ${orderId}:`, invoiceError);
-            // Don't fail the webhook - invoice can be generated manually later
           }
         }
-      } else if (event.type === 'payment_intent.payment_failed') {
-        const paymentIntent = event.data.object;
-        const orderId = paymentIntent.metadata.orderId;
-
-        if (orderId) {
-          console.log(`Payment failed for order ${orderId}`);
+      } else if (eventTypeId === 1798) {
+        // Transaction Failed
+        const merchantTrns = eventData?.MerchantTrns || '';
+        const orderIdMatch = merchantTrns.match(/order_(\d+)/);
+        
+        if (orderIdMatch) {
+          const orderId = parseInt(orderIdMatch[1]);
+          console.log(`Viva webhook: Payment failed for order ${orderId}`);
           
-          await storage.updateOrder(parseInt(orderId), {
+          await storage.updateOrder(orderId, {
             paymentStatus: 'failed',
-            status: 'cancelled'
+            status: 'cancelled',
           });
         }
       }
 
       res.status(200).json({ received: true });
     } catch (error) {
-      console.error("Error processing Stripe webhook:", error);
+      console.error("Error processing Viva webhook:", error);
       res.status(500).json({ message: "Webhook processing failed" });
     }
   });
 
-  // Revolut Payment Routes
-  app.post("/api/payments/revolut/create-order", async (req, res) => {
+  // Viva webhook verification endpoint (GET - Viva sends verification key check)
+  app.get("/api/payments/viva/webhook", async (req, res) => {
     try {
-      const { amount, currency } = req.body;
+      const merchantId = process.env.VIVA_MERCHANT_ID;
+      const apiKey = process.env.VIVA_API_KEY;
 
-      if (!amount || !currency) {
-        return res.status(400).json({ message: "Amount and currency are required" });
+      if (!merchantId || !apiKey) {
+        return res.status(500).json({ message: "Viva credentials not configured" });
       }
 
-      // Create order with Revolut
-      const orderData = {
-        amount: Math.round(amount), // Amount in cents
-        currency: currency.toUpperCase(),
-        description: "KitchenPro Supply Order",
-        capture_mode: "automatic",
-        merchant_order_ext_ref: `order_${Date.now()}`,
-        settlement_currency: "USD",
-      };
-
-      // Create real Revolut order using the API
-      const revolutApiUrl = "https://merchant.revolut.com/api/1.0/orders";
-      
-      const revolutResponse = await fetch(revolutApiUrl, {
-        method: "POST",
+      const verificationResponse = await fetch("https://www.vivapayments.com/api/messages/config/token", {
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.REVOLUT_API_KEY}`,
-          "Revolut-Api-Version": "2024-12-01",
+          "Authorization": "Basic " + Buffer.from(`${merchantId}:${apiKey}`).toString("base64"),
         },
-        body: JSON.stringify(orderData),
       });
 
-      if (!revolutResponse.ok) {
-        const errorText = await revolutResponse.text();
-        console.error("Revolut API Error:", revolutResponse.status, errorText);
-        throw new Error(`Revolut API error: ${revolutResponse.status}`);
+      if (verificationResponse.ok) {
+        const verificationData = await verificationResponse.json() as any;
+        console.log("Viva webhook verification key retrieved");
+        res.send(verificationData.Key || verificationData);
+      } else {
+        const errorText = await verificationResponse.text();
+        console.error("Viva verification error:", verificationResponse.status, errorText);
+        res.status(500).send("Verification failed");
       }
-
-      const revolutOrder = await revolutResponse.json();
-      console.log("Revolut order created:", revolutOrder);
-      
-      res.json(revolutOrder);
     } catch (error) {
-      console.error("Error creating Revolut order:", error);
-      res.status(500).json({ message: "Failed to create payment order" });
-    }
-  });
-
-  app.post("/api/payments/revolut/webhook", async (req, res) => {
-    try {
-      const { event, data } = req.body;
-
-      console.log("Revolut webhook received:", event, data);
-
-      // Handle different webhook events
-      switch (event) {
-        case "ORDER_PAYMENT_COMPLETED":
-          console.log("Payment completed for order:", data.merchant_order_ext_ref);
-          
-          // Extract order ID from merchant reference
-          const orderIdMatch = data.merchant_order_ext_ref?.match(/order_(\d+)/);
-          if (orderIdMatch) {
-            const orderId = parseInt(orderIdMatch[1]);
-            
-            // Update order status
-            await storage.updateOrder(orderId, {
-              paymentStatus: 'paid',
-              status: 'processing'
-            });
-
-            // Generate invoice automatically via Smartbill API
-            try {
-              // Initialize invoice service if needed
-              if (!invoiceService) {
-                invoiceService = await createInvoiceService();
-              }
-              
-              const invoice = await invoiceService.generateInvoiceAfterPayment(
-                orderId,
-                {
-                  status: 'completed',
-                  paymentMethod: 'revolut_pay',
-                  paymentId: data.id,
-                  amount: data.order_amount?.value / 100 || 0
-                }
-              );
-
-              console.log(`Invoice generated automatically for order ${orderId}:`, invoice.invoiceNumber);
-            } catch (invoiceError) {
-              console.error(`Failed to generate invoice for order ${orderId}:`, invoiceError);
-            }
-          }
-          break;
-          
-        case "ORDER_PAYMENT_FAILED":
-          console.log("Payment failed for order:", data.merchant_order_ext_ref);
-          
-          const failedOrderIdMatch = data.merchant_order_ext_ref?.match(/order_(\d+)/);
-          if (failedOrderIdMatch) {
-            await storage.updateOrder(parseInt(failedOrderIdMatch[1]), {
-              paymentStatus: 'failed',
-              status: 'cancelled'
-            });
-          }
-          break;
-          
-        case "ORDER_PAYMENT_CANCELLED":
-          console.log("Payment cancelled for order:", data.merchant_order_ext_ref);
-          
-          const cancelledOrderIdMatch = data.merchant_order_ext_ref?.match(/order_(\d+)/);
-          if (cancelledOrderIdMatch) {
-            await storage.updateOrder(parseInt(cancelledOrderIdMatch[1]), {
-              paymentStatus: 'cancelled',
-              status: 'cancelled'
-            });
-          }
-          break;
-          
-        default:
-          console.log("Unknown webhook event:", event);
-      }
-
-      res.status(200).json({ message: "Webhook processed" });
-    } catch (error) {
-      console.error("Error processing webhook:", error);
-      res.status(500).json({ message: "Webhook processing failed" });
+      console.error("Error getting Viva webhook verification:", error);
+      res.status(500).send("Verification error");
     }
   });
 

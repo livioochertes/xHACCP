@@ -9,6 +9,9 @@ import { useTranslation } from "@/hooks/useTranslation";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { useCallback, useEffect, useState, useRef } from "react";
+import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/hooks/use-cart";
 
 import ProductCard from "@/components/product-card";
 import ContactModal from "@/components/contact-modal";
@@ -29,6 +32,9 @@ import personalizedSupportImg from "@assets/generated_images/support_representat
 
 export default function Home() {
   const { t } = useTranslation();
+  const { toast } = useToast();
+  const { clearCart } = useCart();
+  const [, setLocation] = useLocation();
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
   });
@@ -40,6 +46,33 @@ export default function Home() {
   const { data: shippingSettings } = useQuery<ShippingSettings>({
     queryKey: ["/api/shipping-settings"],
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    if (paymentStatus === 'success') {
+      clearCart();
+      toast({
+        title: t('checkout.orderSuccess'),
+        description: t('checkout.orderSuccessDesc'),
+      });
+      window.history.replaceState({}, '', '/');
+    } else if (paymentStatus === 'failed') {
+      toast({
+        title: t('checkout.paymentFailed'),
+        description: t('checkout.orderFailedDesc'),
+        variant: "destructive",
+      });
+      window.history.replaceState({}, '', '/');
+    } else if (paymentStatus === 'error') {
+      toast({
+        title: t('checkout.paymentFailed'),
+        description: t('checkout.orderFailedDesc'),
+        variant: "destructive",
+      });
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   const getCurrencySymbol = (curr: string) => {
     switch (curr) {

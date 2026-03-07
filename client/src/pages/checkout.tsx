@@ -24,7 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/hooks/useTranslation";
 import Header from "@/components/header";
 
-import StripePayment from "@/components/stripe-payment";
+import VivaPayment from "@/components/viva-payment";
 import { getCountyOptions, getCitiesForCounty, getCountryOptions, romanianCounties } from "@/utils/location-data";
 
 const shippingAddressSchema = z.object({
@@ -63,7 +63,7 @@ const checkoutSchema = z.object({
   phone: z.string().default(""),
   shippingAddress: shippingAddressSchema,
   billingAddress: billingAddressSchema,
-  paymentMethod: z.enum(["stripe", "cash"]),
+  paymentMethod: z.enum(["viva", "cash"]),
   sameAsBilling: z.boolean().default(false),
   notes: z.string().optional(),
 }).refine((data) => {
@@ -151,7 +151,7 @@ export default function Checkout() {
           vatNumber: user.vatNumber || "",
           registrationNumber: user.registrationNumber || "",
         },
-        paymentMethod: "stripe",
+        paymentMethod: "viva",
         sameAsBilling: !user.deliveryAddress,
         notes: "",
       };
@@ -190,7 +190,7 @@ export default function Checkout() {
         vatNumber: "",
         registrationNumber: "",
       },
-      paymentMethod: "stripe",
+      paymentMethod: "viva",
       sameAsBilling: false,
       notes: "",
     };
@@ -1045,8 +1045,8 @@ export default function Checkout() {
                                   className="space-y-3"
                                 >
                                   <div className="flex items-center space-x-2 p-3 border rounded-lg">
-                                    <RadioGroupItem value="stripe" id="stripe" />
-                                    <Label htmlFor="stripe" className="flex items-center space-x-2 cursor-pointer">
+                                    <RadioGroupItem value="viva" id="viva" />
+                                    <Label htmlFor="viva" className="flex items-center space-x-2 cursor-pointer">
                                       <span>Card / Apple Pay / Google Pay</span>
                                       <Badge variant="secondary">Recommended</Badge>
                                     </Label>
@@ -1067,9 +1067,8 @@ export default function Checkout() {
                       </CardContent>
                     </Card>
 
-                    {/* Stripe Payment Component */}
-                    {form.watch("paymentMethod") === "stripe" && (
-                      <StripePayment
+                    {form.watch("paymentMethod") === "viva" && (
+                      <VivaPayment
                         amount={finalTotal}
                         currency={cartCurrency}
                         cartItems={cart.map(item => ({
@@ -1078,13 +1077,30 @@ export default function Checkout() {
                           price: item.product.price,
                         }))}
                         voucherCode={appliedVoucher?.code}
-                        onSuccess={(paymentId) => {
-                          console.log("Stripe payment successful in checkout:", paymentId);
-                          // Create order after successful payment
-                          createOrderMutation.mutate(form.getValues());
-                        }}
+                        orderData={(() => {
+                          const values = form.getValues();
+                          const shippingAddr = { ...values.shippingAddress };
+                          if (!shippingAddr.phone && values.phone) {
+                            shippingAddr.phone = values.phone;
+                          }
+                          const billingAddr = sameAsBilling
+                            ? { ...shippingAddr, clientType: values.billingAddress.clientType, companyName: values.billingAddress.companyName, vatNumber: values.billingAddress.vatNumber, registrationNumber: values.billingAddress.registrationNumber }
+                            : { ...values.billingAddress };
+                          return {
+                            shippingAddress: { ...shippingAddr, email: values.email },
+                            billingAddress: billingAddr,
+                            items: cart.map(item => ({
+                              productId: item.product.id,
+                              quantity: item.quantity,
+                              price: item.product.price,
+                              totalPrice: (parseFloat(item.product.price) * item.quantity).toString(),
+                            })),
+                            notes: values.notes,
+                            contactPhone: values.phone,
+                          };
+                        })()}
                         onError={(error) => {
-                          console.error("Stripe payment failed in checkout:", error);
+                          console.error("Viva payment failed in checkout:", error);
                           toast({
                             title: t('checkout.paymentFailed'),
                             description: error,
@@ -1174,7 +1190,7 @@ export default function Checkout() {
                       </Button>
                     ) : (
                       /* Payment step - show different UI based on payment method */
-                      form.watch("paymentMethod") === "stripe" ? (
+                      form.watch("paymentMethod") === "viva" ? (
                         <div className="text-sm text-gray-600">
                           {t('checkout.usePaymentForm')}
                         </div>
