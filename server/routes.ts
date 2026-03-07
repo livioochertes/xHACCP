@@ -518,7 +518,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const scope = encodeURIComponent('name email');
     const state = crypto.randomBytes(16).toString('hex');
     appleOAuthStates.set(state, Date.now());
-    const url = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&response_mode=form_post&state=${state}`;
+    const url = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&response_mode=form_post&state=${state}`;
+    console.log('[Apple Auth] Redirecting to Apple with:', {
+      clientId,
+      redirectUri,
+      urlLength: url.length,
+    });
     res.redirect(url);
   });
 
