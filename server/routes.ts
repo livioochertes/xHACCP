@@ -1535,33 +1535,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     }
 
                     const totalAmount = parseFloat(String(currentOrder.totalAmount));
+                    const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
                     const awbData: any = {
-                      pickupPointId: selectedPickupPoint.id,
-                      serviceId: services[0].id,
-                      contactPerson: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || 'Customer',
-                      phoneNumber: shippingAddr?.phone || '',
-                      address: shippingAddr?.streetAddress || shippingAddr?.address || '',
-                      city: shippingAddr?.city || '',
-                      county: shippingAddr?.state || shippingAddr?.county || '',
-                      postalCode: shippingAddr?.zipCode || '',
+                      pickupPoint: selectedPickupPoint.id,
+                      contactPerson: defaultContact?.id,
+                      service: services[0].id,
+                      packageType: 0,
+                      packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
+                      awbPayment: 1,
+                      awbRecipient: {
+                        name: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || 'Customer',
+                        phoneNumber: shippingAddr?.phone || '',
+                        personType: 0,
+                        address: shippingAddr?.streetAddress || shippingAddr?.address || '',
+                        countyString: shippingAddr?.state || shippingAddr?.county || '',
+                        cityString: shippingAddr?.city || '',
+                        postalCode: shippingAddr?.zipCode || '',
+                      },
                       parcels,
                       thirdPartyPickup: 0,
-                      packageType: 1,
                       insuredValue: totalAmount,
+                      cashOnDelivery: isCOD ? totalAmount : 0,
                       observation: `Order #${orderId}`,
-                      clientReference: `order_${orderId}`,
+                      clientInternalReference: `order_${orderId}`,
                     };
-                    if (isCOD) {
-                      awbData.cashOnDelivery = totalAmount;
-                      awbData.cashOnDeliveryType = 1;
-                    }
 
                     const awbResult = await samedayAPI.createAWB(awbData);
                     if (awbResult && awbResult.awbNumber) {
                       await storage.updateOrder(orderId, {
                         awbNumber: awbResult.awbNumber,
-                        awbCost: String(awbResult.awbCost || 0),
-                        awbCurrency: 'RON',
+                        awbCost: String(awbResult.cost || 0),
+                        awbCurrency: awbResult.currency || 'RON',
                         status: 'processing',
                       });
                       awbNumber = awbResult.awbNumber;
@@ -1814,30 +1818,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use your exact working AWB format with pickup point 447249
       const awbData = {
-        pickupPointId: 447249,
-        serviceId: 7, // Use service ID 7 from your working example  
-        packageType: "PARCEL",
-        awbPayment: "SENDER",
-        recipient: {
+        pickupPoint: 447249,
+        service: 7,
+        packageType: 0,
+        packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
+        awbPayment: 1,
+        awbRecipient: {
           name: `${shippingAddr.firstName} ${shippingAddr.lastName}`,
           phoneNumber: shippingAddr.phone || '+40700000000',
-          personType: "individual",
-          companyName: shippingAddr.companyName || `${shippingAddr.firstName} ${shippingAddr.lastName}`,
+          personType: 0,
           address: shippingAddr.address,
-          countyId: county?.id || 14, // Use found county ID or Cluj fallback
-          cityId: city?.id || 7, // Use found city ID or fallback
+          countyString: shippingAddr.county || shippingAddr.state || '',
+          cityString: shippingAddr.city || '',
+          postalCode: shippingAddr.zipCode || '',
         },
         parcels: parcels,
-        codAmount: 0,
+        cashOnDelivery: 0,
         insuredValue: parseFloat(order.totalAmount.toString()),
         observation: `Order #${order.id} - xHACCP E-commerce`,
-        reference: `ORDER_${order.id}`,
+        clientInternalReference: `ORDER_${order.id}`,
       };
 
-      // Create AWB with Sameday
       const awbResponse = await samedayAPI.createAWB(awbData);
 
-      // Update order with AWB information
       const updatedOrder = await storage.updateOrder(orderId, {
         status: 'shipped',
         awbNumber: awbResponse.awbNumber,
@@ -2557,24 +2560,25 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       ) || cities[0];
 
       const awbData = {
-        pickupPointId: 447249,
-        serviceId: 7,
-        packageType: "PARCEL",
-        awbPayment: "SENDER",
-        recipient: {
+        pickupPoint: 447249,
+        service: 7,
+        packageType: 0,
+        packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
+        awbPayment: 1,
+        awbRecipient: {
           name: `${shippingAddr.firstName} ${shippingAddr.lastName}`,
           phoneNumber: shippingAddr.phone || '+40700000000',
-          personType: "individual",
-          companyName: shippingAddr.companyName || `${shippingAddr.firstName} ${shippingAddr.lastName}`,
+          personType: 0,
           address: shippingAddr.address,
-          countyId: county?.id || 14,
-          cityId: city?.id || 7,
+          countyString: shippingAddr.county || shippingAddr.state || '',
+          cityString: shippingAddr.city || '',
+          postalCode: shippingAddr.zipCode || '',
         },
         parcels,
-        codAmount: 0,
+        cashOnDelivery: 0,
         insuredValue: parseFloat(order.totalAmount.toString()),
         observation: `Order #${order.id} - xHACCP E-commerce`,
-        reference: `ORDER_${order.id}`,
+        clientInternalReference: `ORDER_${order.id}`,
       };
 
       const awbResponse = await samedayAPI.createAWB(awbData);

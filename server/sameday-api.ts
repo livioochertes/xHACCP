@@ -1,14 +1,14 @@
 import fetch from 'node-fetch';
 
 export interface SamedayConfig {
-  baseUrl: string; // https://sameday-api.demo.zitec.com for sandbox, production URL to be confirmed
+  baseUrl: string;
   username: string;
   password: string;
 }
 
 export interface SamedayAuthResponse {
   token: string;
-  expire_at: string; // Format: "2018-05-25 23:07"
+  expire_at: string;
 }
 
 export interface SamedayPickupPoint {
@@ -54,34 +54,32 @@ export interface AWBParcel {
   width?: number;
   length?: number;
   height?: number;
-  awbParcelNumber?: string;
-}
-
-export interface AWBRecipient {
-  name: string;
-  phoneNumber: string;
-  personType: number; // Numeric: 1=individual, 2=company
-  companyName?: string;
-  address: string;
-  countyId?: number;
-  cityId?: number;
-  county?: string;    // Alternative: county name as string
-  city?: string;      // Alternative: city name as string
-  postalCode?: string;
 }
 
 export interface CreateAWBRequest {
-  pickupPoint: number;              // Correct field name
-  contactPerson?: number;           // Contact person ID
-  service: number;                  // Correct field name
-  packageType: number;              // Numeric: 0=PARCEL, 1=ENVELOPE, 2=LARGE
-  packageWeight: number;            // Total weight in kg
-  awbPayment: number;               // Numeric: 1=SENDER, 2=RECIPIENT, 3=THIRD_PARTY
-  awbRecipient: AWBRecipient;       // Correct field name
+  pickupPoint: number;
+  contactPerson?: number;
+  service: number;
+  packageType: number;
+  packageWeight: number;
+  awbPayment: number;
+  awbRecipient: {
+    name: string;
+    phoneNumber: string;
+    personType: number;
+    companyName?: string;
+    address: string;
+    county?: number;
+    city?: number;
+    countyString?: string;
+    cityString?: string;
+    postalCode?: string;
+  };
   parcels: AWBParcel[];
   cashOnDelivery?: number;
   insuredValue?: number;
   thirdPartyPickup?: number;
+  observation?: string;
   clientInternalReference?: string;
 }
 
@@ -123,86 +121,45 @@ export class SamedayAPI {
 
   private async _doAuthenticate(): Promise<string> {
     console.log('🔄 Authenticating with Sameday API...');
+
+    const url = `${this.config.baseUrl}/api/authenticate?remember_me=1`;
     
-    // According to the latest API documentation v3.0 - 2024
-    // Endpoint: POST /api/authenticate (not /api/authentication)
-    const possibleBaseUrls = [
-      this.config.baseUrl, // User-configured base URL first
-      'https://api.sameday.ro', // Production URL - confirmed working with user credentials
-      'https://sameday-api.ro', // Alternative production URL pattern
-      'https://api-sameday.ro' // Another possible production URL pattern
-    ];
-
-    const authAttempts = [];
-    
-    // Try each base URL with different authentication approaches
-    for (const baseUrl of possibleBaseUrls) {
-      authAttempts.push(
-        {
-          name: `${baseUrl} - remember_me=1`,
-          url: `${baseUrl}/api/authenticate?remember_me=1`,
-          method: 'POST',
-          headers: {
-            'X-AUTH-USERNAME': this.config.username,
-            'X-AUTH-PASSWORD': this.config.password,
-          }
-        },
-        {
-          name: `${baseUrl} - basic auth`,
-          url: `${baseUrl}/api/authenticate`,
-          method: 'POST',
-          headers: {
-            'X-AUTH-USERNAME': this.config.username,
-            'X-AUTH-PASSWORD': this.config.password,
-          }
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-AUTH-USERNAME': this.config.username,
+          'X-AUTH-PASSWORD': this.config.password,
         }
-      );
-    }
+      });
 
-    for (const attempt of authAttempts) {
-      try {
-        console.log(`🔍 Trying ${attempt.name}: ${attempt.url}`);
-        
-        const response = await fetch(attempt.url, {
-          method: attempt.method as string,
-          headers: attempt.headers
-        });
+      console.log(`📡 Auth response: ${response.status}`);
 
-        console.log(`📡 Response: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
-
-        if (response.ok) {
-          const contentType = response.headers.get('content-type');
-          if (contentType?.includes('application/json')) {
-            const authData = await response.json() as SamedayAuthResponse;
-            this.token = authData.token;
-            // Parse the date format from Sameday: "2018-05-25 23:07"
-            this.tokenExpiry = new Date(authData.expire_at.replace(' ', 'T') + ':00');
-            
-            console.log('✅ Sameday authentication successful, token expires:', authData.expire_at);
-            return this.token;
-          }
-        }
-        
+      if (!response.ok) {
         const errorText = await response.text();
-        console.warn(`❌ ${attempt.name} failed: ${response.status} - ${errorText.substring(0, 200)}`);
-        
-      } catch (error: any) {
-        console.warn(`❌ ${attempt.name} network error:`, error.message);
+        console.error(`❌ Sameday auth failed: ${response.status} - ${errorText.substring(0, 200)}`);
+        throw new Error(`Sameday authentication failed: ${response.status}`);
       }
-    }
 
-    throw new Error('All Sameday API authentication attempts failed. Please verify credentials and API endpoints.');
+      const authData = await response.json() as SamedayAuthResponse;
+      this.token = authData.token;
+      this.tokenExpiry = new Date(authData.expire_at.replace(' ', 'T') + ':00');
+      
+      console.log('✅ Sameday authenticated, token expires:', authData.expire_at);
+      return this.token;
+    } catch (error: any) {
+      console.error(`❌ Sameday auth error:`, error.message);
+      throw error;
+    }
   }
 
   private async apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = await this.authenticate();
     
-    console.log(`🔗 Making Sameday API request: ${endpoint}`);
-    console.log(`🔑 Using token: ${token.substring(0, 20)}...`);
+    console.log(`🔗 Sameday API: ${options.method || 'GET'} ${endpoint}`);
     
-    // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     
     try {
       const response = await fetch(`${this.config.baseUrl}${endpoint}`, {
@@ -211,31 +168,24 @@ export class SamedayAPI {
         headers: {
           'X-AUTH-TOKEN': token,
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
           ...(options.headers as Record<string, string>),
         },
       });
 
       clearTimeout(timeoutId);
-      console.log(`📡 API response status: ${response.status} for ${endpoint}`);
+      console.log(`📡 Sameday response: ${response.status} for ${endpoint}`);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ Sameday API error details:`, {
-          endpoint,
-          status: response.status,
-          statusText: response.statusText,
-          errorText: errorText.substring(0, 500),
-          token: token.substring(0, 20) + '...'
-        });
-        throw new Error(`Sameday API error: ${response.statusText} - ${errorText}`);
+        console.error(`❌ Sameday API error: ${response.status} - ${errorText.substring(0, 500)}`);
+        throw new Error(`Sameday API error: ${response.status} - ${errorText}`);
       }
 
       return response.json() as Promise<T>;
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error('Sameday API request timeout - server not responding');
+        throw new Error(`Sameday API timeout for ${endpoint}`);
       }
       throw error;
     }
@@ -243,17 +193,17 @@ export class SamedayAPI {
 
   async getPickupPoints(): Promise<SamedayPickupPoint[]> {
     const response = await this.apiRequest<{ data: SamedayPickupPoint[] }>('/api/client/pickup-points');
-    return response.data;
+    return response.data || [];
   }
 
   async getServices(): Promise<SamedayService[]> {
     const response = await this.apiRequest<{ data: SamedayService[] }>('/api/client/services');
-    return response.data;
+    return response.data || [];
   }
 
   async getCounties(): Promise<SamedayCounty[]> {
     const response = await this.apiRequest<{ data: SamedayCounty[] }>('/api/geolocation/county');
-    return response.data;
+    return response.data || [];
   }
 
   async getCities(countyFilter?: string): Promise<SamedayCity[]> {
@@ -262,22 +212,77 @@ export class SamedayAPI {
       endpoint += `&county=${encodeURIComponent(countyFilter)}`;
     }
     const response = await this.apiRequest<{ data: SamedayCity[] }>(endpoint);
-    return response.data;
+    return response.data || [];
   }
 
   async createAWB(awbData: CreateAWBRequest): Promise<CreateAWBResponse> {
-    console.log('🚚 Creating AWB with Sameday:', JSON.stringify(awbData, null, 2));
+    const formBody = new URLSearchParams();
     
-    // Force fresh authentication before AWB creation to prevent token expiry
-    console.log('🔄 Ensuring fresh token for AWB creation...');
-    this.token = null; // Clear cached token
+    formBody.append('pickupPoint', String(awbData.pickupPoint));
+    if (awbData.contactPerson) {
+      formBody.append('contactPerson', String(awbData.contactPerson));
+    }
+    formBody.append('service', String(awbData.service));
+    formBody.append('packageType', String(awbData.packageType));
+    formBody.append('packageNumber', String(awbData.parcels.length));
+    
+    let totalWeight = 0;
+    awbData.parcels.forEach((parcel, i) => {
+      formBody.append(`parcels[${i}][weight]`, String(parcel.weight));
+      if (parcel.width) formBody.append(`parcels[${i}][width]`, String(parcel.width));
+      if (parcel.length) formBody.append(`parcels[${i}][length]`, String(parcel.length));
+      if (parcel.height) formBody.append(`parcels[${i}][height]`, String(parcel.height));
+      totalWeight += parcel.weight;
+    });
+    formBody.append('packageWeight', String(awbData.packageWeight || totalWeight));
+    
+    formBody.append('awbPayment', String(awbData.awbPayment));
+    formBody.append('cashOnDelivery', String(awbData.cashOnDelivery || 0));
+    formBody.append('insuredValue', String(awbData.insuredValue || 0));
+    formBody.append('thirdPartyPickup', String(awbData.thirdPartyPickup || 0));
+    
+    formBody.append('awbRecipient[name]', awbData.awbRecipient.name);
+    formBody.append('awbRecipient[phoneNumber]', awbData.awbRecipient.phoneNumber);
+    formBody.append('awbRecipient[personType]', String(awbData.awbRecipient.personType));
+    formBody.append('awbRecipient[address]', awbData.awbRecipient.address);
+    
+    if (awbData.awbRecipient.companyName) {
+      formBody.append('awbRecipient[companyName]', awbData.awbRecipient.companyName);
+    }
+    if (awbData.awbRecipient.postalCode) {
+      formBody.append('awbRecipient[postalCode]', awbData.awbRecipient.postalCode);
+    }
+    
+    if (awbData.awbRecipient.county) {
+      formBody.append('awbRecipient[county]', String(awbData.awbRecipient.county));
+    } else if (awbData.awbRecipient.countyString) {
+      formBody.append('awbRecipient[countyString]', awbData.awbRecipient.countyString);
+    }
+    
+    if (awbData.awbRecipient.city) {
+      formBody.append('awbRecipient[city]', String(awbData.awbRecipient.city));
+    } else if (awbData.awbRecipient.cityString) {
+      formBody.append('awbRecipient[cityString]', awbData.awbRecipient.cityString);
+    }
+    
+    if (awbData.observation) {
+      formBody.append('observation', awbData.observation);
+    }
+    if (awbData.clientInternalReference) {
+      formBody.append('clientInternalReference', awbData.clientInternalReference);
+    }
+
+    console.log('🚚 Creating AWB with form data:', formBody.toString().substring(0, 500));
     
     const response = await this.apiRequest<CreateAWBResponse>('/api/awb', {
       method: 'POST',
-      body: JSON.stringify(awbData),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formBody.toString(),
     });
 
-    console.log('✅ AWB created successfully:', response.awbNumber);
+    console.log('✅ AWB created:', response.awbNumber);
     return response;
   }
 
@@ -302,7 +307,6 @@ export class SamedayAPI {
   }
 }
 
-// Factory function to create Sameday API instance
 let samedayInstance: SamedayAPI | null = null;
 
 export function createSamedayAPI(): SamedayAPI | null {

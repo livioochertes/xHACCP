@@ -1080,33 +1080,37 @@ export async function registerAdminRoutes(app: Express) {
                   }
 
                   const totalAmount = parseFloat(String(currentOrder.totalAmount));
+                  const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
                   const awbData: any = {
-                    pickupPointId: selectedPickupPoint.id,
-                    serviceId: services[0].id,
-                    contactPerson: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || 'Customer',
-                    phoneNumber: shippingAddr?.phone || '',
-                    address: shippingAddr?.streetAddress || shippingAddr?.address || '',
-                    city: shippingAddr?.city || '',
-                    county: shippingAddr?.state || shippingAddr?.county || '',
-                    postalCode: shippingAddr?.zipCode || '',
+                    pickupPoint: selectedPickupPoint.id,
+                    contactPerson: defaultContact?.id,
+                    service: services[0].id,
+                    packageType: 0,
+                    packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
+                    awbPayment: 1,
+                    awbRecipient: {
+                      name: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || 'Customer',
+                      phoneNumber: shippingAddr?.phone || '',
+                      personType: 0,
+                      address: shippingAddr?.streetAddress || shippingAddr?.address || '',
+                      countyString: shippingAddr?.state || shippingAddr?.county || '',
+                      cityString: shippingAddr?.city || '',
+                      postalCode: shippingAddr?.zipCode || '',
+                    },
                     parcels,
                     thirdPartyPickup: 0,
-                    packageType: 1,
                     insuredValue: totalAmount,
+                    cashOnDelivery: isCOD ? totalAmount : 0,
                     observation: `Order #${orderId}`,
-                    clientReference: `order_${orderId}`,
+                    clientInternalReference: `order_${orderId}`,
                   };
-                  if (isCOD) {
-                    awbData.cashOnDelivery = totalAmount;
-                    awbData.cashOnDeliveryType = 1;
-                  }
 
                   const awbResult = await samedayAPI.createAWB(awbData);
                   if (awbResult && awbResult.awbNumber) {
                     await storage.updateOrder(orderId, {
                       awbNumber: awbResult.awbNumber,
-                      awbCost: String(awbResult.awbCost || 0),
-                      awbCurrency: 'RON',
+                      awbCost: String(awbResult.cost || 0),
+                      awbCurrency: awbResult.currency || 'RON',
                       status: 'processing',
                     });
                     awbNumber = awbResult.awbNumber;
@@ -2963,22 +2967,21 @@ export async function registerAdminRoutes(app: Express) {
         // Create AWB request with EXACT Sameday API v3.0 format and required fields
         const awbRequest = {
           pickupPoint: pickupPoint.id,
-          contactPerson: pickupPoint.contactPersons?.[0]?.id || pickupPoint.contactPersons?.[0] || null,
+          contactPerson: pickupPoint.contactPersons?.[0]?.id || null,
           service: service.id,
-          packageType: 0,                                 // 0=PARCEL, 1=ENVELOPE, 2=LARGE
+          packageType: 0,
           packageWeight: 1,
-          awbPayment: 1,                                  // 1=SENDER, 2=RECIPIENT, 3=THIRD_PARTY
+          awbPayment: 1,
           cashOnDelivery: 0,
           insuredValue: 0,
           thirdPartyPickup: 0,
           awbRecipient: {
             name: shippingAddress.name || order.customerName || 'Customer',
             phoneNumber: shippingAddress.phone || "+40745009000",
-            personType: 1,                                // 1=individual, 2=company
+            personType: 0,
             address: shippingAddress.address || shippingAddress.street || "Address not provided",
-            // Always use countyId and cityId when available, mandatory for validation
-            countyId: countyId || 14,                     // Default to Cluj county ID if not found
-            cityId: cityId || 2420,                       // Default to Cluj-Napoca city ID if not found
+            countyString: shippingAddress.county || shippingAddress.state || 'Cluj',
+            cityString: shippingAddress.city || 'Cluj-Napoca',
             postalCode: shippingAddress.zipCode || shippingAddress.postalCode || "400000"
           },
           parcels: [{
@@ -2992,21 +2995,17 @@ export async function registerAdminRoutes(app: Express) {
 
         console.log('📦 Creating AWB with Sameday API:', JSON.stringify(awbRequest, null, 2));
         
-        // Add extra logging for AWB creation timing
         const awbStartTime = Date.now();
-        console.log('⏱️ Starting AWB API call at:', new Date().toISOString());
-        
         const awbResponse = await samedayAPI.createAWB(awbRequest);
         const awbEndTime = Date.now();
         console.log('✅ AWB created successfully in', awbEndTime - awbStartTime, 'ms:', awbResponse);
 
-        // Update order with real AWB data from Sameday
         const orderUpdate = await storage.updateOrder(parseInt(orderId), {
           awbNumber: awbResponse.awbNumber || `KTO${String(orderId).padStart(5, '0')}-API`,
           awbCourier: 'Sameday',
           awbCost: awbResponse.cost || 0,
           awbCurrency: awbResponse.currency || 'RON',
-          awbPdfUrl: awbResponse.pdfUrl || null,
+          awbPdfUrl: awbResponse.pdfLink || null,
           status: 'shipped',
           awbCreatedAt: new Date(),
         });
