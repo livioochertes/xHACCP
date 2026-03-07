@@ -2195,6 +2195,161 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     }
   });
 
+  const awbGenerationInProgress = new Set<number>();
+
+  async function generateAWBForOrder(orderId: number): Promise<{ awbNumber: string; cost: number; currency: string } | null> {
+    if (awbGenerationInProgress.has(orderId)) {
+      console.log(`AWB: Generation already in progress for order ${orderId}, skipping`);
+      return null;
+    }
+    awbGenerationInProgress.add(orderId);
+
+    try {
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        console.error(`AWB: Order ${orderId} not found`);
+        return null;
+      }
+
+      if (order.awbNumber) {
+        console.log(`AWB: Order ${orderId} already has AWB ${order.awbNumber}, skipping`);
+        return { awbNumber: order.awbNumber, cost: parseFloat(order.awbCost || '0'), currency: order.awbCurrency || 'RON' };
+      }
+
+      const { createSamedayAPI } = await import('./sameday-api');
+      const samedayAPI = createSamedayAPI();
+      if (!samedayAPI) {
+        console.error('AWB: Sameday API not configured');
+        return null;
+      }
+
+      const [pickupPoints, services] = await Promise.all([
+        samedayAPI.getPickupPoints(),
+        samedayAPI.getServices()
+      ]);
+
+      if (pickupPoints.length === 0 || services.length === 0) {
+        console.error('AWB: No pickup points or services available');
+        return null;
+      }
+
+      const shippingAddr = order.shippingAddress as any;
+      const selectedPickupPoint = pickupPoints.find(p => p.id === 447249) || pickupPoints[0];
+
+      const parcels: any[] = [];
+      let parcelCounter = 1;
+
+      if (order.items && order.items.length > 0) {
+        for (const item of order.items) {
+          const product = await storage.getProduct(item.productId);
+          if (!product) continue;
+
+          const quantity = item.quantity;
+          const piecesPerPackage = product.piecesPerPackage || 1;
+          const weight = product.weight || 1;
+          const length = product.length || 10;
+          const width = product.width || 10;
+          const height = product.height || 10;
+          const packagesNeeded = Math.ceil(quantity / piecesPerPackage);
+
+          for (let packageNum = 1; packageNum <= packagesNeeded; packageNum++) {
+            const remainingQuantity = quantity - ((packageNum - 1) * piecesPerPackage);
+            const itemsInThisPackage = Math.min(remainingQuantity, piecesPerPackage);
+            const packageWeight = Math.max(1, Math.round(weight * (itemsInThisPackage / piecesPerPackage)));
+
+            parcels.push({
+              weight: packageWeight,
+              length, width, height,
+              awbParcelNumber: `KTO${order.id.toString().padStart(5, '0')}-P${parcelCounter}`,
+            });
+            parcelCounter++;
+          }
+        }
+      }
+
+      if (parcels.length === 0) {
+        parcels.push({
+          weight: 1,
+          awbParcelNumber: `KTO${order.id.toString().padStart(5, '0')}-P1`,
+        });
+      }
+
+      const [counties, cities] = await Promise.all([
+        samedayAPI.getCounties(),
+        samedayAPI.getCities()
+      ]);
+
+      const targetCounty = (shippingAddr.county || shippingAddr.state || 'Cluj').toLowerCase();
+      const targetCity = (shippingAddr.city || 'Feleacu').toLowerCase();
+
+      const county = counties.find(c =>
+        c.name.toLowerCase().includes(targetCounty) || targetCounty.includes(c.name.toLowerCase())
+      ) || counties[0];
+
+      const city = cities.find(c =>
+        c.name.toLowerCase().includes(targetCity) || targetCity.includes(c.name.toLowerCase())
+      ) || cities[0];
+
+      const awbData = {
+        pickupPointId: 447249,
+        serviceId: 7,
+        packageType: "PARCEL",
+        awbPayment: "SENDER",
+        recipient: {
+          name: `${shippingAddr.firstName} ${shippingAddr.lastName}`,
+          phoneNumber: shippingAddr.phone || '+40700000000',
+          personType: "individual",
+          companyName: shippingAddr.companyName || `${shippingAddr.firstName} ${shippingAddr.lastName}`,
+          address: shippingAddr.address,
+          countyId: county?.id || 14,
+          cityId: city?.id || 7,
+        },
+        parcels,
+        codAmount: 0,
+        insuredValue: parseFloat(order.totalAmount.toString()),
+        observation: `Order #${order.id} - xHACCP E-commerce`,
+        reference: `ORDER_${order.id}`,
+      };
+
+      const awbResponse = await samedayAPI.createAWB(awbData);
+
+      await storage.updateOrder(orderId, {
+        status: 'shipped',
+        awbNumber: awbResponse.awbNumber,
+        awbCourier: 'sameday',
+        awbCost: awbResponse.cost.toString(),
+        awbCurrency: awbResponse.currency,
+        awbCreatedAt: new Date(),
+      });
+
+      console.log(`✅ AWB auto-generated for order ${orderId}: ${awbResponse.awbNumber}`);
+
+      try {
+        const updatedOrder = await storage.getOrder(orderId);
+        if (updatedOrder) {
+          let awbPdfBuffer: Buffer | undefined;
+          try {
+            awbPdfBuffer = await samedayAPI.getAWBPDF(awbResponse.awbNumber);
+          } catch (pdfError) {
+            console.error(`AWB PDF retrieval failed for ${awbResponse.awbNumber}:`, pdfError);
+          }
+
+          const { sendLogisticsAWBEmail } = await import('./email-service.js');
+          await sendLogisticsAWBEmail(updatedOrder, awbResponse.awbNumber, awbPdfBuffer);
+        }
+      } catch (emailError) {
+        console.error(`Failed to send logistics email for order ${orderId}:`, emailError);
+      }
+
+      return { awbNumber: awbResponse.awbNumber, cost: awbResponse.cost, currency: awbResponse.currency };
+    } catch (error) {
+      console.error(`AWB auto-generation failed for order ${orderId}:`, error);
+      return null;
+    } finally {
+      awbGenerationInProgress.delete(orderId);
+    }
+  }
+
   // Viva payment success/failure callback
   app.get("/api/payments/viva/callback", async (req, res) => {
     try {
@@ -2247,6 +2402,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
               } catch (invoiceError) {
                 console.error(`Failed to generate invoice for order ${orderId}:`, invoiceError);
               }
+
+              generateAWBForOrder(orderId).catch(awbError => {
+                console.error(`AWB auto-generation failed for order ${orderId}:`, awbError);
+              });
             }
           } else {
             console.error("Viva transaction verification failed:", txResponse.status);
@@ -2307,6 +2466,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           } catch (invoiceError) {
             console.error(`Failed to generate invoice for order ${orderId}:`, invoiceError);
           }
+
+          generateAWBForOrder(orderId).catch(awbError => {
+            console.error(`AWB auto-generation via webhook failed for order ${orderId}:`, awbError);
+          });
         }
       } else if (eventTypeId === 1798) {
         // Transaction Failed
