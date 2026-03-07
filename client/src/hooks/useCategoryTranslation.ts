@@ -9,8 +9,10 @@ interface TranslatedCategory {
 export function useCategoryTranslations(categoryIds: number[]) {
   const { language } = useLanguage();
 
+  const sortedIds = [...categoryIds].sort().join(',');
+
   const { data: translations = {} } = useQuery<Record<number, TranslatedCategory>>({
-    queryKey: ["/api/category-translations", language, categoryIds.join(',')],
+    queryKey: ["/api/category-translations", language, sortedIds],
     queryFn: async () => {
       if (categoryIds.length === 0 || language === 'en') {
         return {};
@@ -22,8 +24,8 @@ export function useCategoryTranslations(categoryIds: number[]) {
       return response.json();
     },
     enabled: categoryIds.length > 0 && language !== 'en',
-    staleTime: Infinity,
-    gcTime: Infinity,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const getCategoryName = (categoryId: number, originalName: string): string => {
