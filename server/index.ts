@@ -6,7 +6,7 @@ import { registerRoutes } from "./routes";
 import { registerAdminRoutes } from "./admin-routes";
 import { subdomainMiddleware, adminSubdomainHandler } from "./subdomain-middleware";
 import { setupVite, serveStatic, log } from "./vite";
-import { seedDatabase } from "./sample-data";
+import { seedDatabase, seedCategoryTranslations } from "./sample-data";
 import { loadAllDataIntoMemory } from "./routes";
 import { logR2Status } from "./r2-storage";
 
@@ -119,7 +119,7 @@ app.use((req, res, next) => {
   // Seed database with sample data
   try {
     await seedDatabase();
-    // Refresh cache after seeding to ensure latest data is loaded
+    await seedCategoryTranslations();
     await loadAllDataIntoMemory();
   } catch (error) {
     console.error('Database seeding failed:', error);

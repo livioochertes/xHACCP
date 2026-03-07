@@ -43,6 +43,7 @@ export interface TranslationKeys {
   // Cart
   'cart.title': string;
   'cart.empty': string;
+  'cart.emptyDesc': string;
   'cart.quantity': string;
   'cart.remove': string;
   'cart.update': string;
@@ -51,6 +52,17 @@ export interface TranslationKeys {
   'cart.checkout': string;
   'cart.continueShopping': string;
   'cart.clear': string;
+  'cart.orderSummary': string;
+  'cart.shipping': string;
+  'cart.free': string;
+  'cart.each': string;
+  'cart.items': string;
+  'cart.addMoreForFree': string;
+  'cart.removedFromCart': string;
+  'cart.removedDesc': string;
+  'cart.cartCleared': string;
+  'cart.cartClearedDesc': string;
+  'cart.loading': string;
   
   // Checkout
   'checkout.title': string;
@@ -584,7 +596,8 @@ const translations: Record<Language, TranslationKeys> = {
     
     // Cart
     'cart.title': 'Shopping Cart',
-    'cart.empty': 'Your cart is empty.',
+    'cart.empty': 'Your cart is empty',
+    'cart.emptyDesc': 'Add some products to your cart to get started',
     'cart.quantity': 'Quantity',
     'cart.remove': 'Remove',
     'cart.update': 'Update',
@@ -594,6 +607,17 @@ const translations: Record<Language, TranslationKeys> = {
     'cart.continueShopping': 'Continue Shopping',
     'cart.clear': 'Clear Cart',
     'cart.clearCart': 'Clear Cart',
+    'cart.orderSummary': 'Order Summary',
+    'cart.shipping': 'Shipping',
+    'cart.free': 'Free',
+    'cart.each': 'each',
+    'cart.items': 'items',
+    'cart.addMoreForFree': 'Add {amount} more for free shipping',
+    'cart.removedFromCart': 'Removed from cart',
+    'cart.removedDesc': '{name} has been removed from your cart.',
+    'cart.cartCleared': 'Cart cleared',
+    'cart.cartClearedDesc': 'All items have been removed from your cart.',
+    'cart.loading': 'Loading cart...',
     
     // Checkout
     'checkout.title': 'Checkout',
@@ -1189,6 +1213,7 @@ const translations: Record<Language, TranslationKeys> = {
     // Cart
     'cart.title': 'Carrito de Compras',
     'cart.empty': 'Tu carrito está vacío.',
+    'cart.emptyDesc': 'Agrega productos a tu carrito para comenzar',
     'cart.quantity': 'Cantidad',
     'cart.remove': 'Eliminar',
     'cart.update': 'Actualizar',
@@ -1197,6 +1222,17 @@ const translations: Record<Language, TranslationKeys> = {
     'cart.checkout': 'Finalizar Compra',
     'cart.continueShopping': 'Continuar Comprando',
     'cart.clear': 'Vaciar Carrito',
+    'cart.orderSummary': 'Resumen del Pedido',
+    'cart.shipping': 'Envío',
+    'cart.free': 'Gratis',
+    'cart.each': 'cada uno',
+    'cart.items': 'artículos',
+    'cart.addMoreForFree': 'Agrega {amount} más para envío gratis',
+    'cart.removedFromCart': 'Eliminado del carrito',
+    'cart.removedDesc': '{name} ha sido eliminado de tu carrito.',
+    'cart.cartCleared': 'Carrito vaciado',
+    'cart.cartClearedDesc': 'Todos los artículos han sido eliminados de tu carrito.',
+    'cart.loading': 'Cargando carrito...',
     
     // Checkout
     'checkout.title': 'Finalizar Compra',
@@ -1566,6 +1602,7 @@ const translations: Record<Language, TranslationKeys> = {
     // Cart
     'cart.title': 'Panier',
     'cart.empty': 'Votre panier est vide.',
+    'cart.emptyDesc': 'Ajoutez des produits à votre panier pour commencer',
     'cart.quantity': 'Quantité',
     'cart.remove': 'Supprimer',
     'cart.update': 'Mettre à jour',
@@ -1574,6 +1611,17 @@ const translations: Record<Language, TranslationKeys> = {
     'cart.checkout': 'Passer Commande',
     'cart.continueShopping': 'Continuer les Achats',
     'cart.clear': 'Vider le Panier',
+    'cart.orderSummary': 'Résumé de la Commande',
+    'cart.shipping': 'Livraison',
+    'cart.free': 'Gratuit',
+    'cart.each': 'chacun',
+    'cart.items': 'articles',
+    'cart.addMoreForFree': 'Ajoutez {amount} de plus pour la livraison gratuite',
+    'cart.removedFromCart': 'Retiré du panier',
+    'cart.removedDesc': '{name} a été retiré de votre panier.',
+    'cart.cartCleared': 'Panier vidé',
+    'cart.cartClearedDesc': 'Tous les articles ont été retirés de votre panier.',
+    'cart.loading': 'Chargement du panier...',
     
     // Checkout
     'checkout.title': 'Commande',
@@ -1971,6 +2019,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': 'Höchste Bewertung',
     'cart.title': 'Warenkorb',
     'cart.empty': 'Ihr Warenkorb ist leer.',
+    'cart.emptyDesc': 'Fügen Sie Produkte zu Ihrem Warenkorb hinzu, um loszulegen',
     'cart.quantity': 'Menge',
     'cart.remove': 'Entfernen',
     'cart.update': 'Aktualisieren',
@@ -1979,6 +2028,17 @@ const translations: Record<Language, TranslationKeys> = {
     'cart.checkout': 'Zur Kasse',
     'cart.continueShopping': 'Weiter einkaufen',
     'cart.clear': 'Warenkorb leeren',
+    'cart.orderSummary': 'Bestellübersicht',
+    'cart.shipping': 'Versand',
+    'cart.free': 'Kostenlos',
+    'cart.each': 'je',
+    'cart.items': 'Artikel',
+    'cart.addMoreForFree': 'Fügen Sie {amount} mehr hinzu für kostenlosen Versand',
+    'cart.removedFromCart': 'Aus dem Warenkorb entfernt',
+    'cart.removedDesc': '{name} wurde aus Ihrem Warenkorb entfernt.',
+    'cart.cartCleared': 'Warenkorb geleert',
+    'cart.cartClearedDesc': 'Alle Artikel wurden aus Ihrem Warenkorb entfernt.',
+    'cart.loading': 'Warenkorb wird geladen...',
     'checkout.title': 'Bestellung',
     'checkout.shippingAddress': 'Lieferadresse',
     'checkout.paymentMethod': 'Zahlungsart',
@@ -2378,6 +2438,7 @@ const translations: Record<Language, TranslationKeys> = {
     // Cart
     'cart.title': 'Coș de Cumpărături',
     'cart.empty': 'Coșul dvs. este gol.',
+    'cart.emptyDesc': 'Adaugă produse în coș pentru a începe',
     'cart.quantity': 'Cantitate',
     'cart.remove': 'Șterge',
     'cart.update': 'Actualizează',
@@ -2386,6 +2447,17 @@ const translations: Record<Language, TranslationKeys> = {
     'cart.checkout': 'Finalizează Comanda',
     'cart.continueShopping': 'Continuă Cumpărăturile',
     'cart.clear': 'Golește Coșul',
+    'cart.orderSummary': 'Sumar Comandă',
+    'cart.shipping': 'Livrare',
+    'cart.free': 'Gratis',
+    'cart.each': 'bucata',
+    'cart.items': 'produse',
+    'cart.addMoreForFree': 'Adaugă încă {amount} pentru livrare gratuită',
+    'cart.removedFromCart': 'Eliminat din coș',
+    'cart.removedDesc': '{name} a fost eliminat din coșul tău.',
+    'cart.cartCleared': 'Coș golit',
+    'cart.cartClearedDesc': 'Toate produsele au fost eliminate din coșul tău.',
+    'cart.loading': 'Se încarcă coșul...',
     
     // Checkout
     'checkout.title': 'Finalizare Comandă',
@@ -2809,6 +2881,30 @@ const translations: Record<Language, TranslationKeys> = {
     'categories.cleaning-sanitizing.description': 'Prodotti professionali per pulizia e sanificazione per servizi alimentari',
     'categories.storage-solutions.description': 'Contenitori per conservazione alimentari e sistemi di organizzazione',
     
+    // Cart
+    'cart.title': 'Carrello',
+    'cart.empty': 'Il tuo carrello è vuoto.',
+    'cart.emptyDesc': 'Aggiungi prodotti al carrello per iniziare',
+    'cart.quantity': 'Quantità',
+    'cart.remove': 'Rimuovi',
+    'cart.update': 'Aggiorna',
+    'cart.subtotal': 'Subtotale',
+    'cart.total': 'Totale',
+    'cart.checkout': 'Vai alla Cassa',
+    'cart.continueShopping': 'Continua gli Acquisti',
+    'cart.clear': 'Svuota Carrello',
+    'cart.orderSummary': 'Riepilogo Ordine',
+    'cart.shipping': 'Spedizione',
+    'cart.free': 'Gratuito',
+    'cart.each': 'ciascuno',
+    'cart.items': 'articoli',
+    'cart.addMoreForFree': 'Aggiungi {amount} in più per la spedizione gratuita',
+    'cart.removedFromCart': 'Rimosso dal carrello',
+    'cart.removedDesc': '{name} è stato rimosso dal tuo carrello.',
+    'cart.cartCleared': 'Carrello svuotato',
+    'cart.cartClearedDesc': 'Tutti gli articoli sono stati rimossi dal tuo carrello.',
+    'cart.loading': 'Caricamento carrello...',
+
     // Business Solutions section
     'home.business.title': 'Soluzioni Business',
     'home.business.description': 'Ottieni prezzi all\'ingrosso e supporto dedicato per il tuo ristorante, caffetteria o attività di servizi alimentari. Offriamo sconti sui volumi, soluzioni personalizzate e spedizione prioritaria.',
@@ -3019,6 +3115,30 @@ const translations: Record<Language, TranslationKeys> = {
     'categories.cleaning-sanitizing.description': 'Produtos profissionais de limpeza e higienização para serviços alimentares',
     'categories.storage-solutions.description': 'Recipientes para armazenamento de alimentos e sistemas de organização',
     
+    // Cart
+    'cart.title': 'Carrinho',
+    'cart.empty': 'O seu carrinho está vazio.',
+    'cart.emptyDesc': 'Adicione produtos ao carrinho para começar',
+    'cart.quantity': 'Quantidade',
+    'cart.remove': 'Remover',
+    'cart.update': 'Atualizar',
+    'cart.subtotal': 'Subtotal',
+    'cart.total': 'Total',
+    'cart.checkout': 'Finalizar Compra',
+    'cart.continueShopping': 'Continuar Comprando',
+    'cart.clear': 'Limpar Carrinho',
+    'cart.orderSummary': 'Resumo do Pedido',
+    'cart.shipping': 'Envio',
+    'cart.free': 'Grátis',
+    'cart.each': 'cada',
+    'cart.items': 'itens',
+    'cart.addMoreForFree': 'Adicione mais {amount} para frete grátis',
+    'cart.removedFromCart': 'Removido do carrinho',
+    'cart.removedDesc': '{name} foi removido do seu carrinho.',
+    'cart.cartCleared': 'Carrinho limpo',
+    'cart.cartClearedDesc': 'Todos os itens foram removidos do seu carrinho.',
+    'cart.loading': 'Carregando carrinho...',
+
     // Business Solutions section
     'home.business.title': 'Soluções Empresariais',
     'home.business.description': 'Obtenha preços no atacado e suporte dedicado para seu restaurante, café ou negócio de serviços alimentares. Oferecemos descontos em volume, soluções personalizadas e entrega prioritária.',
@@ -3229,6 +3349,30 @@ const translations: Record<Language, TranslationKeys> = {
     'categories.cleaning-sanitizing.description': '食品服务专业清洁和消毒产品',
     'categories.storage-solutions.description': '食品储存容器和组织系统',
     
+    // Cart
+    'cart.title': '购物车',
+    'cart.empty': '您的购物车是空的。',
+    'cart.emptyDesc': '添加产品到购物车开始购物',
+    'cart.quantity': '数量',
+    'cart.remove': '移除',
+    'cart.update': '更新',
+    'cart.subtotal': '小计',
+    'cart.total': '合计',
+    'cart.checkout': '结算',
+    'cart.continueShopping': '继续购物',
+    'cart.clear': '清空购物车',
+    'cart.orderSummary': '订单摘要',
+    'cart.shipping': '运费',
+    'cart.free': '免费',
+    'cart.each': '每个',
+    'cart.items': '件商品',
+    'cart.addMoreForFree': '再添加 {amount} 即可享受免费配送',
+    'cart.removedFromCart': '已从购物车移除',
+    'cart.removedDesc': '{name} 已从您的购物车中移除。',
+    'cart.cartCleared': '购物车已清空',
+    'cart.cartClearedDesc': '所有商品已从您的购物车中移除。',
+    'cart.loading': '加载购物车中...',
+
     // Business Solutions section
     'home.business.title': '企业解决方案',
     'home.business.description': '为您的餐厅、咖啡馆或食品服务业务获得批发价格和专门支持。我们提供批量折扣、定制解决方案和优先配送。',
@@ -3439,6 +3583,30 @@ const translations: Record<Language, TranslationKeys> = {
     'categories.cleaning-sanitizing.description': 'フードサービス向けの専門的な清掃・消毒製品',
     'categories.storage-solutions.description': '食品保存容器と整理システム',
     
+    // Cart
+    'cart.title': 'ショッピングカート',
+    'cart.empty': 'カートは空です。',
+    'cart.emptyDesc': '商品をカートに追加して始めましょう',
+    'cart.quantity': '数量',
+    'cart.remove': '削除',
+    'cart.update': '更新',
+    'cart.subtotal': '小計',
+    'cart.total': '合計',
+    'cart.checkout': 'レジに進む',
+    'cart.continueShopping': '買い物を続ける',
+    'cart.clear': 'カートを空にする',
+    'cart.orderSummary': '注文概要',
+    'cart.shipping': '送料',
+    'cart.free': '無料',
+    'cart.each': '個あたり',
+    'cart.items': '点',
+    'cart.addMoreForFree': 'あと {amount} 追加で送料無料',
+    'cart.removedFromCart': 'カートから削除されました',
+    'cart.removedDesc': '{name} がカートから削除されました。',
+    'cart.cartCleared': 'カートが空になりました',
+    'cart.cartClearedDesc': 'すべての商品がカートから削除されました。',
+    'cart.loading': 'カートを読み込み中...',
+
     // Business Solutions section
     'home.business.title': 'ビジネスソリューション',
     'home.business.description': 'レストラン、カフェ、フードサービス事業向けの卸売価格と専門サポートを提供。ボリューム割引、カスタムソリューション、優先配送をご提供します。',
@@ -3649,6 +3817,30 @@ const translations: Record<Language, TranslationKeys> = {
     'categories.cleaning-sanitizing.description': '식품 서비스를 위한 전문 청소 및 위생 제품',
     'categories.storage-solutions.description': '식품 보관 용기 및 정리 시스템',
     
+    // Cart
+    'cart.title': '장바구니',
+    'cart.empty': '장바구니가 비어 있습니다.',
+    'cart.emptyDesc': '장바구니에 상품을 추가하여 시작하세요',
+    'cart.quantity': '수량',
+    'cart.remove': '삭제',
+    'cart.update': '업데이트',
+    'cart.subtotal': '소계',
+    'cart.total': '합계',
+    'cart.checkout': '결제하기',
+    'cart.continueShopping': '쇼핑 계속하기',
+    'cart.clear': '장바구니 비우기',
+    'cart.orderSummary': '주문 요약',
+    'cart.shipping': '배송비',
+    'cart.free': '무료',
+    'cart.each': '개당',
+    'cart.items': '개 상품',
+    'cart.addMoreForFree': '{amount} 더 추가하면 무료 배송',
+    'cart.removedFromCart': '장바구니에서 삭제됨',
+    'cart.removedDesc': '{name}이(가) 장바구니에서 삭제되었습니다.',
+    'cart.cartCleared': '장바구니 비움',
+    'cart.cartClearedDesc': '모든 상품이 장바구니에서 삭제되었습니다.',
+    'cart.loading': '장바구니 로딩 중...',
+
     // Business Solutions section
     'home.business.title': '비즈니스 솔루션',
     'home.business.description': '레스토랑, 카페 또는 식품 서비스 비즈니스를 위한 도매 가격과 전담 지원을 받으세요. 대량 할인, 맞춤형 솔루션, 우선 배송을 제공합니다.',
@@ -3861,6 +4053,30 @@ const translations: Record<Language, TranslationKeys> = {
     'categories.cleaning-sanitizing.description': 'منتجات التنظيف والتطهير المهنية لخدمات الطعام',
     'categories.storage-solutions.description': 'حاويات تخزين الطعام وأنظمة التنظيم',
     
+    // Cart
+    'cart.title': 'سلة التسوق',
+    'cart.empty': 'سلة التسوق فارغة.',
+    'cart.emptyDesc': 'أضف منتجات إلى سلتك للبدء',
+    'cart.quantity': 'الكمية',
+    'cart.remove': 'إزالة',
+    'cart.update': 'تحديث',
+    'cart.subtotal': 'المجموع الفرعي',
+    'cart.total': 'المجموع',
+    'cart.checkout': 'إتمام الشراء',
+    'cart.continueShopping': 'متابعة التسوق',
+    'cart.clear': 'إفراغ السلة',
+    'cart.orderSummary': 'ملخص الطلب',
+    'cart.shipping': 'الشحن',
+    'cart.free': 'مجاني',
+    'cart.each': 'لكل واحد',
+    'cart.items': 'منتجات',
+    'cart.addMoreForFree': 'أضف {amount} أكثر للشحن المجاني',
+    'cart.removedFromCart': 'تمت الإزالة من السلة',
+    'cart.removedDesc': 'تمت إزالة {name} من سلتك.',
+    'cart.cartCleared': 'تم إفراغ السلة',
+    'cart.cartClearedDesc': 'تمت إزالة جميع المنتجات من سلتك.',
+    'cart.loading': 'جاري تحميل السلة...',
+
     // Business Solutions section
     'home.business.title': 'الحلول التجارية',
     'home.business.description': 'احصل على أسعار الجملة والدعم المخصص لمطعمك أو مقهاك أو أعمال الخدمات الغذائية. نوفر خصومات الكمية والحلول المخصصة والشحن ذو الأولوية.',

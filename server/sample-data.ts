@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { categories, products, users, orders, orderItems, invoices, invoiceItems } from "../shared/schema";
+import { categories, categoryTranslations, products, users, orders, orderItems, invoices, invoiceItems } from "../shared/schema";
 import bcrypt from "bcrypt";
 
 export async function seedDatabase() {
@@ -780,5 +780,95 @@ export async function seedDatabase() {
     console.log("Database seeded successfully!");
   } catch (error) {
     console.error("Error seeding database:", error);
+  }
+}
+
+export async function seedCategoryTranslations() {
+  try {
+    const existing = await db.select().from(categoryTranslations);
+    if (existing.length > 0) {
+      return;
+    }
+
+    const allCategories = await db.select().from(categories);
+    if (allCategories.length === 0) return;
+
+    const categoryMap: Record<string, number> = {};
+    for (const cat of allCategories) {
+      categoryMap[cat.slug] = cat.id;
+    }
+
+    const translationData: { slug: string; language: string; name: string; description: string }[] = [
+      { slug: 'food-labels', language: 'ro', name: 'Etichete Alimentare', description: 'Soluții profesionale de etichetare alimentară pentru restaurante și servicii alimentare' },
+      { slug: 'food-labels', language: 'de', name: 'Lebensmitteletiketten', description: 'Professionelle Lebensmitteletikettierungslösungen für Restaurants und Gastronomie' },
+      { slug: 'food-labels', language: 'fr', name: 'Étiquettes Alimentaires', description: 'Solutions professionnelles d\'étiquetage alimentaire pour restaurants et services alimentaires' },
+      { slug: 'food-labels', language: 'es', name: 'Etiquetas de Alimentos', description: 'Soluciones profesionales de etiquetado de alimentos para restaurantes y servicios alimentarios' },
+      { slug: 'food-labels', language: 'it', name: 'Etichette Alimentari', description: 'Soluzioni professionali per l\'etichettatura alimentare per ristoranti e servizi alimentari' },
+      { slug: 'food-labels', language: 'pt', name: 'Etiquetas de Alimentos', description: 'Soluções profissionais de etiquetagem de alimentos para restaurantes e serviços alimentares' },
+      { slug: 'food-labels', language: 'nl', name: 'Voedseletiketten', description: 'Professionele voedseletiketteringsoplossingen voor restaurants en foodservices' },
+      { slug: 'food-labels', language: 'pl', name: 'Etykiety Żywnościowe', description: 'Profesjonalne rozwiązania do etykietowania żywności dla restauracji i usług gastronomicznych' },
+      { slug: 'food-labels', language: 'hu', name: 'Élelmiszercímkék', description: 'Professzionális élelmiszer-címkézési megoldások éttermek és vendéglátóhelyek számára' },
+      { slug: 'food-labels', language: 'ar', name: 'ملصقات الطعام', description: 'حلول احترافية لتصنيف الأغذية للمطاعم وخدمات الطعام' },
+
+      { slug: 'equipment-software', language: 'ro', name: 'Echipamente & Software', description: 'Echipamente HACCP și soluții software pentru bucătăria profesională' },
+      { slug: 'equipment-software', language: 'de', name: 'Ausrüstung & Software', description: 'HACCP-Ausrüstung und Softwarelösungen für die professionelle Küche' },
+      { slug: 'equipment-software', language: 'fr', name: 'Équipement & Logiciel', description: 'Équipements HACCP et solutions logicielles pour la cuisine professionnelle' },
+      { slug: 'equipment-software', language: 'es', name: 'Equipos & Software', description: 'Equipos HACCP y soluciones de software para cocinas profesionales' },
+      { slug: 'equipment-software', language: 'it', name: 'Attrezzature & Software', description: 'Attrezzature HACCP e soluzioni software per la cucina professionale' },
+      { slug: 'equipment-software', language: 'pt', name: 'Equipamentos & Software', description: 'Equipamentos HACCP e soluções de software para cozinhas profissionais' },
+      { slug: 'equipment-software', language: 'nl', name: 'Apparatuur & Software', description: 'HACCP-apparatuur en softwareoplossingen voor de professionele keuken' },
+      { slug: 'equipment-software', language: 'pl', name: 'Sprzęt & Oprogramowanie', description: 'Sprzęt HACCP i rozwiązania programowe dla profesjonalnej kuchni' },
+      { slug: 'equipment-software', language: 'hu', name: 'Berendezések & Szoftver', description: 'HACCP berendezések és szoftvermegoldások professzionális konyhákhoz' },
+      { slug: 'equipment-software', language: 'ar', name: 'معدات وبرمجيات', description: 'معدات HACCP وحلول البرمجيات للمطابخ المهنية' },
+
+      { slug: 'kitchen-supplies', language: 'ro', name: 'Articole de Bucătărie', description: 'Articole esențiale pentru bucătăria profesională' },
+      { slug: 'kitchen-supplies', language: 'de', name: 'Küchenbedarf', description: 'Unverzichtbare Küchenutensilien für die professionelle Küche' },
+      { slug: 'kitchen-supplies', language: 'fr', name: 'Fournitures de Cuisine', description: 'Fournitures essentielles pour la cuisine professionnelle' },
+      { slug: 'kitchen-supplies', language: 'es', name: 'Suministros de Cocina', description: 'Suministros esenciales para la cocina profesional' },
+      { slug: 'kitchen-supplies', language: 'it', name: 'Forniture da Cucina', description: 'Forniture essenziali per la cucina professionale' },
+      { slug: 'kitchen-supplies', language: 'pt', name: 'Materiais de Cozinha', description: 'Materiais essenciais para a cozinha profissional' },
+      { slug: 'kitchen-supplies', language: 'nl', name: 'Keukenbenodigdheden', description: 'Essentiële keukenbenodigdheden voor de professionele keuken' },
+      { slug: 'kitchen-supplies', language: 'pl', name: 'Artykuły Kuchenne', description: 'Niezbędne artykuły kuchenne dla profesjonalnej kuchni' },
+      { slug: 'kitchen-supplies', language: 'hu', name: 'Konyhai Kellékek', description: 'Nélkülözhetetlen konyhai kellékek professzionális konyhákhoz' },
+      { slug: 'kitchen-supplies', language: 'ar', name: 'مستلزمات المطبخ', description: 'مستلزمات أساسية للمطبخ المهني' },
+
+      { slug: 'cleaning-sanitizing', language: 'ro', name: 'Curățenie & Igienizare', description: 'Produse profesionale de curățenie și igienizare pentru industria HORECA' },
+      { slug: 'cleaning-sanitizing', language: 'de', name: 'Reinigung & Desinfektion', description: 'Professionelle Reinigungs- und Desinfektionsprodukte für die HORECA-Branche' },
+      { slug: 'cleaning-sanitizing', language: 'fr', name: 'Nettoyage & Désinfection', description: 'Produits professionnels de nettoyage et de désinfection pour l\'industrie HORECA' },
+      { slug: 'cleaning-sanitizing', language: 'es', name: 'Limpieza & Desinfección', description: 'Productos profesionales de limpieza y desinfección para la industria HORECA' },
+      { slug: 'cleaning-sanitizing', language: 'it', name: 'Pulizia & Igienizzazione', description: 'Prodotti professionali di pulizia e igienizzazione per il settore HORECA' },
+      { slug: 'cleaning-sanitizing', language: 'pt', name: 'Limpeza & Higienização', description: 'Produtos profissionais de limpeza e higienização para a indústria HORECA' },
+      { slug: 'cleaning-sanitizing', language: 'nl', name: 'Reiniging & Desinfectie', description: 'Professionele reinigings- en desinfectieproducten voor de HORECA-sector' },
+      { slug: 'cleaning-sanitizing', language: 'pl', name: 'Czyszczenie & Dezynfekcja', description: 'Profesjonalne produkty do czyszczenia i dezynfekcji dla branży HORECA' },
+      { slug: 'cleaning-sanitizing', language: 'hu', name: 'Tisztítás & Fertőtlenítés', description: 'Professzionális tisztító- és fertőtlenítőszerek a HORECA ipar számára' },
+      { slug: 'cleaning-sanitizing', language: 'ar', name: 'تنظيف وتعقيم', description: 'منتجات تنظيف وتعقيم مهنية لقطاع الضيافة' },
+
+      { slug: 'storage-solutions', language: 'ro', name: 'Soluții de Depozitare', description: 'Soluții profesionale de depozitare pentru bucătăria comercială' },
+      { slug: 'storage-solutions', language: 'de', name: 'Aufbewahrungslösungen', description: 'Professionelle Aufbewahrungslösungen für die Großküche' },
+      { slug: 'storage-solutions', language: 'fr', name: 'Solutions de Stockage', description: 'Solutions professionnelles de stockage pour la cuisine commerciale' },
+      { slug: 'storage-solutions', language: 'es', name: 'Soluciones de Almacenamiento', description: 'Soluciones profesionales de almacenamiento para la cocina comercial' },
+      { slug: 'storage-solutions', language: 'it', name: 'Soluzioni di Stoccaggio', description: 'Soluzioni professionali di stoccaggio per la cucina commerciale' },
+      { slug: 'storage-solutions', language: 'pt', name: 'Soluções de Armazenamento', description: 'Soluções profissionais de armazenamento para cozinhas comerciais' },
+      { slug: 'storage-solutions', language: 'nl', name: 'Opslagoplossingen', description: 'Professionele opslagoplossingen voor de commerciële keuken' },
+      { slug: 'storage-solutions', language: 'pl', name: 'Rozwiązania Magazynowe', description: 'Profesjonalne rozwiązania magazynowe dla kuchni komercyjnych' },
+      { slug: 'storage-solutions', language: 'hu', name: 'Tárolási Megoldások', description: 'Professzionális tárolási megoldások kereskedelmi konyhákhoz' },
+      { slug: 'storage-solutions', language: 'ar', name: 'حلول التخزين', description: 'حلول تخزين مهنية للمطابخ التجارية' },
+    ];
+
+    const toInsert = translationData
+      .filter(t => categoryMap[t.slug])
+      .map(t => ({
+        categoryId: categoryMap[t.slug],
+        language: t.language,
+        name: t.name,
+        description: t.description,
+      }));
+
+    if (toInsert.length > 0) {
+      await db.insert(categoryTranslations).values(toInsert);
+      console.log(`✅ Seeded ${toInsert.length} category translations`);
+    }
+  } catch (error) {
+    console.error("Error seeding category translations:", error);
   }
 }

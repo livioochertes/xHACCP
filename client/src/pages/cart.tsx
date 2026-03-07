@@ -15,7 +15,6 @@ export default function Cart() {
   const { toast } = useToast();
   const { t } = useTranslation();
 
-  // Fetch shipping settings
   const { data: shippingSettings } = useQuery({
     queryKey: ['/api/shipping-settings'],
     queryFn: async () => {
@@ -25,7 +24,6 @@ export default function Cart() {
     },
   });
 
-  // Filter out items without product data
   const validCart = cart.filter(item => item.product && item.product.price);
 
   const subtotal = validCart.reduce((sum, item) => {
@@ -39,13 +37,11 @@ export default function Cart() {
   const shipping = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
   const total = subtotal + shipping;
 
-  // Currency symbol helper
   const getCurrencySymbol = (curr: string) => {
     const symbols: { [key: string]: string } = { 'EUR': '€', 'RON': 'lei', 'USD': '$', 'GBP': '£' };
     return symbols[curr] || curr;
   };
   
-  // Determine currency from cart items (use first product's currency or fallback to company default)
   const cartCurrency = validCart.length > 0 && validCart[0].product?.currency ? validCart[0].product.currency : currency;
   const currencySymbol = cartCurrency === 'RON' ? 'lei' : getCurrencySymbol(cartCurrency);
 
@@ -60,16 +56,16 @@ export default function Cart() {
   const handleRemoveItem = (itemId: number, productName: string) => {
     removeFromCart(itemId);
     toast({
-      title: "Removed from cart",
-      description: `${productName} has been removed from your cart.`,
+      title: t('cart.removedFromCart'),
+      description: t('cart.removedDesc').replace('{name}', productName),
     });
   };
 
   const handleClearCart = () => {
     clearCart();
     toast({
-      title: "Cart cleared",
-      description: "All items have been removed from your cart.",
+      title: t('cart.cartCleared'),
+      description: t('cart.cartClearedDesc'),
     });
   };
 
@@ -79,7 +75,7 @@ export default function Cart() {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
             <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading cart...</p>
+            <p className="text-muted-foreground">{t('cart.loading')}</p>
           </div>
         </div>
       </div>
@@ -90,10 +86,10 @@ export default function Cart() {
     <div className="min-h-screen bg-slate-50">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-primary">Shopping Cart</h1>
+          <h1 className="text-3xl font-bold text-primary">{t('cart.title')}</h1>
           {validCart.length > 0 && (
             <Button variant="outline" onClick={handleClearCart}>
-{t('cart.clear')}
+              {t('cart.clear')}
             </Button>
           )}
         </div>
@@ -102,9 +98,9 @@ export default function Cart() {
           <Card className="text-center py-16">
             <CardContent>
               <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
+              <h2 className="text-2xl font-semibold mb-2">{t('cart.empty')}</h2>
               <p className="text-muted-foreground mb-6">
-                Add some products to your cart to get started
+                {t('cart.emptyDesc')}
               </p>
               <Link href="/products">
                 <Button size="lg" className="kitchen-pro-secondary">
@@ -115,7 +111,6 @@ export default function Cart() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {validCart.map((item) => (
                 <Card key={item.id}>
@@ -142,7 +137,7 @@ export default function Cart() {
                           </Button>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
-                          {item.product?.price ? parseFloat(item.product.price).toFixed(2) : "0.00"} {item.product?.currency === 'RON' ? 'lei' : item.product?.currency || 'RON'} each
+                          {item.product?.price ? parseFloat(item.product.price).toFixed(2) : "0.00"} {item.product?.currency === 'RON' ? 'lei' : item.product?.currency || 'RON'} {t('cart.each')}
                         </p>
                         
                         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -185,23 +180,22 @@ export default function Cart() {
               ))}
             </div>
 
-            {/* Order Summary */}
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
+                  <CardTitle>{t('cart.orderSummary')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between">
-                    <span>Subtotal ({cart.length} items):</span>
+                    <span>{t('cart.subtotal')} ({cart.length} {t('cart.items')}):</span>
                     <span>{subtotal.toFixed(2)} {currencySymbol}</span>
                   </div>
                   
                   <div className="flex justify-between">
-                    <span>Shipping:</span>
+                    <span>{t('cart.shipping')}:</span>
                     <span>
                       {shipping === 0 ? (
-                        <Badge variant="secondary">Free</Badge>
+                        <Badge variant="secondary">{t('cart.free')}</Badge>
                       ) : (
                         `${shipping.toFixed(2)} ${currencySymbol}`
                       )}
@@ -210,14 +204,14 @@ export default function Cart() {
                   
                   {subtotal < freeShippingThreshold && (
                     <div className="text-sm text-muted-foreground">
-                      Add {(freeShippingThreshold - subtotal).toFixed(2)} {currencySymbol} more for free shipping
+                      {t('cart.addMoreForFree').replace('{amount}', `${(freeShippingThreshold - subtotal).toFixed(2)} ${currencySymbol}`)}
                     </div>
                   )}
                   
                   <Separator />
                   
                   <div className="flex justify-between font-semibold text-lg">
-                    <span>Total:</span>
+                    <span>{t('cart.total')}:</span>
                     <span>{total.toFixed(2)} {currencySymbol}</span>
                   </div>
                   
@@ -230,7 +224,7 @@ export default function Cart() {
                   
                   <Link href="/products">
                     <Button variant="outline" className="w-full">
-                      Continue Shopping
+                      {t('cart.continueShopping')}
                     </Button>
                   </Link>
                 </CardContent>
