@@ -25,6 +25,24 @@ interface AuthRequest extends Request {
 }
 
 // JWT authentication middleware
+const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as any;
+        req.userId = decoded.id;
+      } catch (err) {
+        // Token invalid — continue as guest
+      }
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+};
+
 const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
@@ -1272,9 +1290,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/orders", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/orders", optionalAuth, async (req: AuthRequest, res) => {
     try {
-      const { shippingAddress, billingAddress, paymentMethod, items, notes, voucherCode } = req.body;
+      const { shippingAddress, billingAddress, paymentMethod, items, notes, voucherCode, contactPhone } = req.body;
       
       // Validate items array
       if (!items || !Array.isArray(items) || items.length === 0) {
@@ -1357,11 +1375,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderNotes = `Voucher: ${validatedVoucher.code} (-${discountAmount.toFixed(2)})${orderNotes ? '\n' + orderNotes : ''}`;
       }
       
+      const guestEmail = shippingAddress?.email || billingAddress?.email || '';
+      
+      if (!req.userId && guestEmail) {
+        orderNotes = `Guest email: ${guestEmail}${contactPhone ? ', Phone: ' + contactPhone : ''}${orderNotes ? '\n' + orderNotes : ''}`;
+      }
+
       const orderData = {
-        userId: req.userId!,
+        userId: req.userId || null,
         status: "pending",
         totalAmount: totalAmount.toFixed(2),
-        shippingAddress,
+        shippingAddress: { ...shippingAddress, email: guestEmail || shippingAddress?.email },
         billingAddress,
         paymentMethod,
         paymentStatus: "pending",
@@ -1370,27 +1394,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const order = await storage.createOrder(orderData, validatedItems);
       
-      // Increment voucher usage AFTER order creation succeeds
       if (validatedVoucher && discountAmount > 0) {
         await storage.incrementVoucherUsage(validatedVoucher.id);
       }
       
-      // Get full order with items for email notification
       const fullOrder = await storage.getOrder(order.id);
       
-      // Get user details for email notification
-      const user = await storage.getUser(req.userId!);
-      
-      if (fullOrder && user) {
-        // Import and send new order notification email immediately
+      if (req.userId) {
+        const user = await storage.getUser(req.userId);
+        if (fullOrder && user) {
+          const { sendNewOrderNotificationEmail } = await import('./email-service.js');
+          sendNewOrderNotificationEmail(fullOrder, user).catch(error => {
+            console.error('Failed to send new order notification email:', error);
+          });
+        }
+        await storage.clearCart(req.userId);
+      } else if (fullOrder) {
+        const guestUser = {
+          id: 0,
+          email: guestEmail,
+          firstName: shippingAddress?.firstName || 'Guest',
+          lastName: shippingAddress?.lastName || '',
+          name: `${shippingAddress?.firstName || 'Guest'} ${shippingAddress?.lastName || ''}`.trim(),
+        };
         const { sendNewOrderNotificationEmail } = await import('./email-service.js');
-        sendNewOrderNotificationEmail(fullOrder, user).catch(error => {
-          console.error('Failed to send new order notification email:', error);
+        sendNewOrderNotificationEmail(fullOrder, guestUser as any).catch(error => {
+          console.error('Failed to send guest order notification email:', error);
         });
       }
-      
-      // Clear cart after successful order
-      await storage.clearCart(req.userId!);
       
       res.json(order);
     } catch (error) {
