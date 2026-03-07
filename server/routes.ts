@@ -40,8 +40,6 @@ function generateAppleClientSecret(): string {
   formattedKey = formattedKey.replace(/-----BEGIN PRIVATE KEY-----\s*/, '-----BEGIN PRIVATE KEY-----\n');
   formattedKey = formattedKey.replace(/\s*-----END PRIVATE KEY-----/, '\n-----END PRIVATE KEY-----');
 
-  console.log('[Apple JWT] Key format check - starts with BEGIN:', formattedKey.startsWith('-----BEGIN'), 'length:', formattedKey.length);
-
   return jwt.sign({}, formattedKey, {
     algorithm: 'ES256',
     expiresIn: '180d',
@@ -517,7 +515,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const keyId = process.env.APPLE_KEY_ID;
     const privateKey = process.env.APPLE_PRIVATE_KEY;
     if (!clientId || !teamId || !keyId || !privateKey) {
-      console.error('[Apple Auth] Missing Apple config - clientId:', !!clientId, 'teamId:', !!teamId, 'keyId:', !!keyId, 'privateKey:', !!privateKey);
       return res.redirect("/login?error=apple_not_configured");
     }
     const proto = req.headers['x-forwarded-proto'] || req.protocol;
@@ -526,11 +523,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const state = crypto.randomBytes(16).toString('hex');
     appleOAuthStates.set(state, Date.now());
     const url = `https://appleid.apple.com/auth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&response_mode=form_post&state=${state}`;
-    console.log('[Apple Auth] Redirecting to Apple with:', {
-      clientId,
-      redirectUri,
-      urlLength: url.length,
-    });
     res.redirect(url);
   });
 
