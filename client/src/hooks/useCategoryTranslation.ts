@@ -1,45 +1,27 @@
-import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "../contexts/language-context";
 
-interface TranslatedCategory {
+interface CategoryWithTranslations {
+  id: number;
   name: string;
   description: string | null;
+  translations?: Record<string, { name: string; description: string | null }>;
 }
 
-export function useCategoryTranslations(categoryIds: number[]) {
+export function useCategoryTranslations(categoryIds: number[], categories?: CategoryWithTranslations[]) {
   const { language } = useLanguage();
 
-  const sortedIds = [...categoryIds].sort().join(',');
-
-  const { data: translations = {} } = useQuery<Record<number, TranslatedCategory>>({
-    queryKey: ["/api/category-translations", language, sortedIds],
-    queryFn: async () => {
-      if (categoryIds.length === 0 || language === 'en') {
-        return {};
-      }
-      const response = await fetch(`/api/category-translations/${language}?ids=${categoryIds.join(',')}`);
-      if (!response.ok) {
-        return {};
-      }
-      return response.json();
-    },
-    enabled: categoryIds.length > 0 && language !== 'en',
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-
   const getCategoryName = (categoryId: number, originalName: string): string => {
-    if (language === 'en' || !translations[categoryId]) {
-      return originalName;
-    }
-    return translations[categoryId].name || originalName;
+    if (language === 'en') return originalName;
+    const category = categories?.find(c => c.id === categoryId);
+    const translation = category?.translations?.[language];
+    return translation?.name || originalName;
   };
 
   const getCategoryDescription = (categoryId: number, originalDescription: string | null): string | null => {
-    if (language === 'en' || !translations[categoryId]) {
-      return originalDescription;
-    }
-    return translations[categoryId].description || originalDescription;
+    if (language === 'en') return originalDescription;
+    const category = categories?.find(c => c.id === categoryId);
+    const translation = category?.translations?.[language];
+    return translation?.description || originalDescription;
   };
 
   return { getCategoryName, getCategoryDescription };

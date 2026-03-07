@@ -89,6 +89,7 @@ export interface IStorage {
   getCategoryTranslation(categoryId: number, language: string): Promise<CategoryTranslation | undefined>;
   getCategoryTranslations(categoryId: number): Promise<CategoryTranslation[]>;
   getCategoryTranslationsBatch(categoryIds: number[], language: string): Promise<CategoryTranslation[]>;
+  getAllCategoryTranslations(): Promise<CategoryTranslation[]>;
   createCategoryTranslation(translation: InsertCategoryTranslation): Promise<CategoryTranslation>;
   updateCategoryTranslation(id: number, translation: Partial<InsertCategoryTranslation>): Promise<CategoryTranslation>;
   deleteCategoryTranslation(id: number): Promise<void>;
@@ -525,6 +526,10 @@ export class DatabaseStorage implements IStorage {
         inArray(categoryTranslations.categoryId, categoryIds),
         eq(categoryTranslations.language, language)
       ));
+  }
+
+  async getAllCategoryTranslations(): Promise<CategoryTranslation[]> {
+    return await db.select().from(categoryTranslations);
   }
 
   async createCategoryTranslation(translation: InsertCategoryTranslation): Promise<CategoryTranslation> {

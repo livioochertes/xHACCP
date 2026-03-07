@@ -53,7 +53,8 @@ export default function Header() {
   }, [companySettings, t]);
 
   const categoryIds = Array.isArray(categories) ? categories.map((c: any) => c.id) : [];
-  const { getCategoryName: getTranslatedCategoryName } = useCategoryTranslations(categoryIds);
+  const categoriesArray = Array.isArray(categories) ? categories : [];
+  const { getCategoryName: getTranslatedCategoryName } = useCategoryTranslations(categoryIds, categoriesArray as any);
 
   const getCategoryName = (category: any) => {
     return getTranslatedCategoryName(category.id, category.name);

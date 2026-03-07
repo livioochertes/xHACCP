@@ -21,7 +21,8 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const { t } = useTranslation();
   const { name: translatedName } = useProductTranslation(product.id, product.name, product.description);
   const { getCategoryName } = useCategoryTranslations(
-    product.category ? [product.category.id] : []
+    product.category ? [product.category.id] : [],
+    product.category ? [product.category as any] : []
   );
 
   const handleAddToCart = (e: React.MouseEvent) => {

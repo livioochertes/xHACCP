@@ -38,7 +38,8 @@ export default function ProductDetails() {
   );
 
   const { getCategoryName } = useCategoryTranslations(
-    product?.category ? [product.category.id] : []
+    product?.category ? [product.category.id] : [],
+    product?.category ? [product.category as any] : []
   );
 
   const allImages = useMemo(() => {

@@ -142,9 +142,25 @@ export async function loadAllDataIntoMemory() {
       (category as any).productCount = activeProducts.length;
     }
     
+    // Load all category translations and attach to categories
+    const allCategoryTranslations = await storage.getAllCategoryTranslations();
+    const translationsByCategory = new Map<number, Record<string, { name: string; description: string | null }>>();
+    for (const t of allCategoryTranslations) {
+      if (!translationsByCategory.has(t.categoryId)) {
+        translationsByCategory.set(t.categoryId, {});
+      }
+      translationsByCategory.get(t.categoryId)![t.language] = {
+        name: t.name,
+        description: t.description,
+      };
+    }
+    for (const category of rawCategories) {
+      (category as any).translations = translationsByCategory.get(category.id) || {};
+    }
+
     categoriesData = rawCategories;
     
-    // Refresh stringified categories data (now includes productCount)
+    // Refresh stringified categories data (now includes productCount and translations)
     stringifiedCategoriesData = JSON.stringify(categoriesData);
     
     // Load all products (no filter, no limit)
@@ -157,6 +173,21 @@ export async function loadAllDataIntoMemory() {
       const priorityB = b.priority || 999;
       return priorityA - priorityB;
     });
+    
+    // Attach category translations to products
+    for (const product of allProductsData) {
+      if (product.category) {
+        (product.category as any).translations = translationsByCategory.get(product.category.id) || {};
+      }
+    }
+    // Also attach to products by category
+    for (const [slug, products] of productsByCategory) {
+      for (const product of products) {
+        if (product.category) {
+          (product.category as any).translations = translationsByCategory.get(product.category.id) || {};
+        }
+      }
+    }
     
     // Pre-compile data structures for ultra-fast access
     for (const product of allProductsData) {

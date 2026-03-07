@@ -91,7 +91,8 @@ export default function Products() {
   });
 
   const { getCategoryName: getTranslatedCategoryName } = useCategoryTranslations(
-    categories.map(c => c.id)
+    categories.map(c => c.id),
+    categories as any
   );
 
   const getCategoryName = (category: Category | null | undefined) => {

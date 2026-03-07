@@ -105,7 +105,8 @@ export default function Home() {
   }, [emblaApi, onSelect]);
 
   const { getCategoryName: getTranslatedCategoryName, getCategoryDescription: getTranslatedCategoryDescription } = useCategoryTranslations(
-    categories.map(c => c.id)
+    categories.map(c => c.id),
+    categories as any
   );
 
   const getCategoryName = (category: Category) => {
