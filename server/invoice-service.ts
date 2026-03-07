@@ -51,10 +51,22 @@ export class InvoiceService {
         throw new Error(`Order ${orderId} not found`);
       }
 
-      // Get user details
-      const user = order.userId ? await storage.getUser(order.userId) : null;
+      let user = order.userId ? await storage.getUser(order.userId) : null;
       if (!user) {
-        throw new Error(`User ${order.userId} not found`);
+        const billing = order.billingAddress as any || {};
+        const shipping = order.shippingAddress as any || {};
+        const guestEmail = billing.email || shipping.email || order.notes?.match(/Guest email:\s*([^\s,]+)/)?.[1] || 'guest@xhaccp.com';
+        user = {
+          id: 0,
+          email: guestEmail,
+          firstName: billing.firstName || shipping.firstName || 'Guest',
+          lastName: billing.lastName || shipping.lastName || 'Customer',
+          companyName: billing.companyName || '',
+          vatNumber: billing.vatNumber || '',
+          registrationNumber: billing.registrationNumber || '',
+          companyCounty: billing.county || shipping.county || '',
+        } as any;
+        console.log(`📋 Guest order #${orderId}: using billing/shipping data for invoice, email: ${guestEmail}`);
       }
 
       // Update order status to 'paid' if payment successful
@@ -181,7 +193,7 @@ export class InvoiceService {
       const invoiceData = {
         invoiceNumber: `${smartbillResult.series} ${smartbillResult.number}`,
         orderId: order.id,
-        userId: order.userId,
+        userId: order.userId || null,
         issueDate: new Date(),
         supplyDate: new Date(),
         subtotal: order.totalAmount,
