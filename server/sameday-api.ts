@@ -100,31 +100,28 @@ export class SamedayAPI {
   private config: SamedayConfig;
   private token: string | null = null;
   private tokenExpiry: Date | null = null;
-  private lastAuthAttempt: Date | null = null;
-  private authCooldownMs = 300000; // 5 minutes between auth attempts to avoid IP blocking
+  private authPromise: Promise<string> | null = null;
 
   constructor(config: SamedayConfig) {
     this.config = config;
   }
 
   private async authenticate(): Promise<string> {
-    // Return cached token if still valid
     if (this.token && this.tokenExpiry && new Date() < this.tokenExpiry) {
-      console.log('🔑 Using cached Sameday token (expires:', this.tokenExpiry.toISOString(), ')');
       return this.token;
     }
 
-    // Check if we're in cooldown period to prevent rate limiting
-    if (this.lastAuthAttempt) {
-      const timeSinceLastAttempt = Date.now() - this.lastAuthAttempt.getTime();
-      if (timeSinceLastAttempt < this.authCooldownMs) {
-        const waitTime = this.authCooldownMs - timeSinceLastAttempt;
-        console.log(`⏳ Rate limiting protection: waiting ${waitTime}ms before next auth attempt`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      }
+    if (this.authPromise) {
+      return this.authPromise;
     }
 
-    this.lastAuthAttempt = new Date();
+    this.authPromise = this._doAuthenticate().finally(() => {
+      this.authPromise = null;
+    });
+    return this.authPromise;
+  }
+
+  private async _doAuthenticate(): Promise<string> {
     console.log('🔄 Authenticating with Sameday API...');
     
     // According to the latest API documentation v3.0 - 2024
