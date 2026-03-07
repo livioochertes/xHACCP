@@ -31,7 +31,6 @@ export interface TranslationKeys {
   'products.description': string;
   'products.reviews': string;
   'products.writeReview': string;
-  'products.loadMore': string;
   'products.noProducts': string;
   'products.clearFilters': string;
   'products.sortNewest': string;
@@ -39,6 +38,8 @@ export interface TranslationKeys {
   'products.sortPriceDesc': string;
   'products.sortName': string;
   'products.sortRating': string;
+  'products.loadMore': string;
+  'products.loadingMore': string;
   
   // Cart
   'cart.title': string;
@@ -585,7 +586,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': 'Description',
     'products.reviews': 'Reviews',
     'products.writeReview': 'Write a Review',
-    'products.loadMore': 'Load More',
     'products.noProducts': 'No products found.',
     'products.clearFilters': 'Clear Filters',
     'products.sortNewest': 'Newest First',
@@ -593,6 +593,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': 'Price: High to Low',
     'products.sortName': 'Name A-Z',
     'products.sortRating': 'Highest Rated',
+    'products.loadMore': 'Load More Products',
+    'products.loadingMore': 'Loading more...',
     
     // Cart
     'cart.title': 'Shopping Cart',
@@ -1201,7 +1203,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': 'Descripción',
     'products.reviews': 'Reseñas',
     'products.writeReview': 'Escribir una Reseña',
-    'products.loadMore': 'Cargar Más',
     'products.noProducts': 'No se encontraron productos.',
     'products.clearFilters': 'Limpiar Filtros',
     'products.sortNewest': 'Más Recientes',
@@ -1209,6 +1210,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': 'Precio: Mayor a Menor',
     'products.sortName': 'Nombre A-Z',
     'products.sortRating': 'Mejor Calificados',
+    'products.loadMore': 'Cargar Más Productos',
+    'products.loadingMore': 'Cargando más...',
     
     // Cart
     'cart.title': 'Carrito de Compras',
@@ -1590,7 +1593,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': 'Description',
     'products.reviews': 'Avis',
     'products.writeReview': 'Écrire un Avis',
-    'products.loadMore': 'Charger Plus',
     'products.noProducts': 'Aucun produit trouvé.',
     'products.clearFilters': 'Effacer les Filtres',
     'products.sortNewest': 'Plus Récents',
@@ -1598,6 +1600,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': 'Prix: Décroissant',
     'products.sortName': 'Nom A-Z',
     'products.sortRating': 'Mieux Notés',
+    'products.loadMore': 'Charger Plus de Produits',
+    'products.loadingMore': 'Chargement...',
     
     // Cart
     'cart.title': 'Panier',
@@ -2009,7 +2013,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': 'Beschreibung',
     'products.reviews': 'Bewertungen',
     'products.writeReview': 'Bewertung schreiben',
-    'products.loadMore': 'Mehr laden',
     'products.noProducts': 'Keine Produkte gefunden.',
     'products.clearFilters': 'Filter löschen',
     'products.sortNewest': 'Neueste zuerst',
@@ -2017,6 +2020,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': 'Preis: Hoch zu Niedrig',
     'products.sortName': 'Name A-Z',
     'products.sortRating': 'Höchste Bewertung',
+    'products.loadMore': 'Mehr Produkte laden',
+    'products.loadingMore': 'Laden...',
     'cart.title': 'Warenkorb',
     'cart.empty': 'Ihr Warenkorb ist leer.',
     'cart.emptyDesc': 'Fügen Sie Produkte zu Ihrem Warenkorb hinzu, um loszulegen',
@@ -2426,7 +2431,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': 'Descriere',
     'products.reviews': 'Recenzii',
     'products.writeReview': 'Scrie o Recenzie',
-    'products.loadMore': 'Încarcă Mai Mult',
     'products.noProducts': 'Nu au fost găsite produse.',
     'products.clearFilters': 'Șterge Filtrele',
     'products.sortNewest': 'Cel Mai Noi',
@@ -2434,6 +2438,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': 'Preț: Mare la Mic',
     'products.sortName': 'Nume A-Z',
     'products.sortRating': 'Cel Mai Bine Cotate',
+    'products.loadMore': 'Încarcă Mai Multe Produse',
+    'products.loadingMore': 'Se încarcă...',
     
     // Cart
     'cart.title': 'Coș de Cumpărături',
@@ -2860,7 +2866,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': 'Descrizione',
     'products.reviews': 'Recensioni',
     'products.writeReview': 'Scrivi una Recensione',
-    'products.loadMore': 'Carica Altri',
     'products.noProducts': 'Nessun prodotto trovato.',
     'products.clearFilters': 'Cancella Filtri',
     'products.sortNewest': 'Più Recenti',
@@ -2868,6 +2873,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': 'Prezzo: Decrescente',
     'products.sortName': 'Nome A-Z',
     'products.sortRating': 'Valutazione Migliore',
+    'products.loadMore': 'Carica Altri Prodotti',
+    'products.loadingMore': 'Caricamento...',
     'common.filters': 'Filtri',
     'common.sortBy': 'Ordina Per',
     'categories.food-labels': 'Etichette Alimentari',
@@ -3094,7 +3101,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': 'Descrição',
     'products.reviews': 'Avaliações',
     'products.writeReview': 'Escrever uma Avaliação',
-    'products.loadMore': 'Carregar Mais',
     'products.noProducts': 'Nenhum produto encontrado.',
     'products.clearFilters': 'Limpar Filtros',
     'products.sortNewest': 'Mais Recentes',
@@ -3102,6 +3108,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': 'Preço: Maior para Menor',
     'products.sortName': 'Nome A-Z',
     'products.sortRating': 'Melhor Avaliação',
+    'products.loadMore': 'Carregar Mais Produtos',
+    'products.loadingMore': 'Carregando...',
     'common.filters': 'Filtros',
     'common.sortBy': 'Ordenar Por',
     'categories.food-labels': 'Rótulos de Alimentos',
@@ -3328,7 +3336,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': '描述',
     'products.reviews': '评价',
     'products.writeReview': '写评价',
-    'products.loadMore': '加载更多',
     'products.noProducts': '未找到产品。',
     'products.clearFilters': '清除筛选',
     'products.sortNewest': '最新优先',
@@ -3336,6 +3343,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': '价格：从高到低',
     'products.sortName': '名称 A-Z',
     'products.sortRating': '评分最高',
+    'products.loadMore': '加载更多产品',
+    'products.loadingMore': '加载中...',
     'common.filters': '筛选',
     'common.sortBy': '排序方式',
     'categories.food-labels': '食品标签',
@@ -3562,7 +3571,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': '説明',
     'products.reviews': 'レビュー',
     'products.writeReview': 'レビューを書く',
-    'products.loadMore': 'さらに読み込む',
     'products.noProducts': '製品が見つかりません。',
     'products.clearFilters': 'フィルターをクリア',
     'products.sortNewest': '新着順',
@@ -3570,6 +3578,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': '価格：高い順',
     'products.sortName': '名前 A-Z',
     'products.sortRating': '評価の高い順',
+    'products.loadMore': 'もっと商品を読み込む',
+    'products.loadingMore': '読み込み中...',
     'common.filters': 'フィルター',
     'common.sortBy': '並び順',
     'categories.food-labels': 'フードラベル',
@@ -3796,7 +3806,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': '설명',
     'products.reviews': '리뷰',
     'products.writeReview': '리뷰 작성',
-    'products.loadMore': '더 보기',
     'products.noProducts': '제품을 찾을 수 없습니다.',
     'products.clearFilters': '필터 지우기',
     'products.sortNewest': '최신순',
@@ -3804,6 +3813,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': '가격: 높은 순',
     'products.sortName': '이름 A-Z',
     'products.sortRating': '평점 높은 순',
+    'products.loadMore': '더 많은 제품 로드',
+    'products.loadingMore': '로딩 중...',
     'common.filters': '필터',
     'common.sortBy': '정렬 기준',
     'categories.food-labels': '식품 라벨',
@@ -4032,7 +4043,6 @@ const translations: Record<Language, TranslationKeys> = {
     'products.description': 'الوصف',
     'products.reviews': 'المراجعات',
     'products.writeReview': 'اكتب مراجعة',
-    'products.loadMore': 'تحميل المزيد',
     'products.noProducts': 'لم يتم العثور على منتجات.',
     'products.clearFilters': 'مسح الفلاتر',
     'products.sortNewest': 'الأحدث أولاً',
@@ -4040,6 +4050,8 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortPriceDesc': 'السعر: من الأعلى إلى الأقل',
     'products.sortName': 'الاسم أ-ي',
     'products.sortRating': 'الأعلى تقييماً',
+    'products.loadMore': 'تحميل المزيد من المنتجات',
+    'products.loadingMore': 'جاري التحميل...',
     'common.filters': 'الفلاتر',
     'common.sortBy': 'ترتيب حسب',
     'categories.food-labels': 'ملصقات الطعام',

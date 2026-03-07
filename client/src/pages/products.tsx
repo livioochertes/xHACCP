@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -158,9 +158,23 @@ export default function Products() {
     console.log("⏱️ Search navigation initiated:", performance.now() - startTime, "ms");
   };
 
-  // Removed client-side sorting for better performance - server should handle this
-
-
+  const sortedProducts = useMemo(() => {
+    if (!products.length) return products;
+    const sorted = [...products];
+    switch (sortBy) {
+      case "price-asc":
+        return sorted.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+      case "price-desc":
+        return sorted.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+      case "name":
+        return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      case "rating":
+        return sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      case "newest":
+      default:
+        return sorted;
+    }
+  }, [products, sortBy]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -330,14 +344,14 @@ export default function Products() {
             )}
 
             {/* Products Grid */}
-            {products.length > 0 && (
+            {sortedProducts.length > 0 && (
               <>
                 <div className={`grid gap-6 ${
                   viewMode === "grid" 
                     ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" 
                     : "grid-cols-1"
                 }`}>
-                  {products.map((product) => (
+                  {sortedProducts.map((product) => (
                     <ProductCard key={`${product.id}-${selectedCategory}-${searchQuery}`} product={product} />
                   ))}
                 </div>
@@ -354,10 +368,10 @@ export default function Products() {
                       {isFetching ? (
                         <>
                           <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-white"></div>
-                          Loading more...
+                          {t('products.loadingMore')}
                         </>
                       ) : (
-                        <>Load More Products</>
+                        <>{t('products.loadMore')}</>
                       )}
                     </Button>
                   </div>
