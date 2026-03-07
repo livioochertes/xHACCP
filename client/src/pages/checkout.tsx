@@ -542,12 +542,26 @@ export default function Checkout() {
               <form 
                 onSubmit={(e) => {
                   console.log("Form submit event triggered, current step:", step);
+                  console.log("Form errors:", JSON.stringify(form.formState.errors));
                   if (step !== 3) {
                     console.log("Preventing form submission - not on payment step");
                     e.preventDefault();
                     return false;
                   }
-                  form.handleSubmit(handleSubmit)(e);
+                  form.handleSubmit(handleSubmit, (errors) => {
+                    console.log("Form validation errors on submit:", JSON.stringify(errors));
+                    const firstError = Object.entries(errors).find(([_, v]) => v);
+                    if (firstError) {
+                      const errorMsg = typeof firstError[1]?.message === 'string' 
+                        ? firstError[1].message 
+                        : `Validation error in: ${firstError[0]}`;
+                      toast({
+                        title: t('checkout.orderFailed') || "Error",
+                        description: errorMsg,
+                        variant: "destructive",
+                      });
+                    }
+                  })(e);
                 }} 
                 className="space-y-6"
               >
