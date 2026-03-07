@@ -390,7 +390,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!clientId) {
       return res.redirect("/login?error=google_not_configured");
     }
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const redirectUri = `${proto}://${req.get('host')}/api/auth/google/callback`;
     const scope = encodeURIComponent('openid email profile');
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&prompt=select_account`;
     res.redirect(url);
@@ -407,7 +408,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!clientId || !clientSecret) {
         return res.redirect("/login?error=google_not_configured");
       }
-      const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+      const proto = req.headers['x-forwarded-proto'] || req.protocol;
+      const redirectUri = `${proto}://${req.get('host')}/api/auth/google/callback`;
 
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -471,7 +473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!clientId) {
       return res.redirect("/login?error=apple_not_configured");
     }
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/apple/callback`;
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const redirectUri = `${proto}://${req.get('host')}/api/auth/apple/callback`;
     const scope = encodeURIComponent('name email');
     const url = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&response_mode=form_post`;
     res.redirect(url);
@@ -481,6 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { code, id_token } = req.body;
       if (!code) {
+        console.error('Apple callback: no code received, body:', JSON.stringify(req.body));
         return res.redirect("/login?error=apple_failed");
       }
       const clientId = process.env.APPLE_CLIENT_ID;
@@ -489,6 +493,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.redirect("/login?error=apple_not_configured");
       }
 
+      const proto = req.headers['x-forwarded-proto'] || req.protocol;
+      const redirectUri = `${proto}://${req.get('host')}/api/auth/apple/callback`;
+
       const tokenResponse = await fetch('https://appleid.apple.com/auth/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -496,6 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           code: code as string,
           client_id: clientId,
           client_secret: clientSecret,
+          redirect_uri: redirectUri,
           grant_type: 'authorization_code',
         }),
       });
