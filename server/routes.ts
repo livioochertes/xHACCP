@@ -1478,26 +1478,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let invoiceId: number | undefined;
             let awbNumber: string | undefined;
 
-            if (isCOD) {
-              try {
-                const { createInvoiceService } = await import('./invoice-service.js');
-                const invoiceSvc = await createInvoiceService();
-                const invoice = await invoiceSvc.generateInvoiceAfterPayment(
-                  orderId,
-                  {
-                    status: 'succeeded',
-                    paymentMethod: 'cash_on_delivery',
-                    paymentId: `cod_${orderId}`,
-                    amount: parseFloat(String(fullOrder.totalAmount)),
-                  }
-                );
-                console.log(`✅ Invoice generated for COD order #${orderId}:`, invoice.invoiceNumber);
-                invoiceGenerated = true;
-                invoiceNumber = invoice.invoiceNumber;
-                invoiceId = invoice.id;
-              } catch (invoiceError) {
-                console.error(`❌ Failed to generate invoice for order #${orderId}:`, invoiceError);
-              }
+            try {
+              console.log(`📄 Generating SmartBill invoice for order #${orderId} (${isCOD ? 'COD' : fullOrder.paymentMethod})...`);
+              const { createInvoiceService } = await import('./invoice-service.js');
+              const invoiceSvc = await createInvoiceService();
+              const invoice = await invoiceSvc.generateInvoiceAfterPayment(
+                orderId,
+                {
+                  status: 'succeeded',
+                  paymentMethod: isCOD ? 'cash_on_delivery' : (fullOrder.paymentMethod || 'card'),
+                  paymentId: isCOD ? `cod_${orderId}` : `accept_${orderId}`,
+                  amount: parseFloat(String(fullOrder.totalAmount)),
+                }
+              );
+              console.log(`✅ Invoice generated for order #${orderId}:`, invoice.invoiceNumber);
+              invoiceGenerated = true;
+              invoiceNumber = invoice.invoiceNumber;
+              invoiceId = invoice.id;
+            } catch (invoiceError) {
+              console.error(`❌ Failed to generate invoice for order #${orderId}:`, invoiceError);
             }
 
             try {

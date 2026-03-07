@@ -867,7 +867,7 @@ export async function sendLogisticsAWBEmail(
   }
 
   const shippingAddress = order.shippingAddress as any;
-  const trackingUrl = `https://sameday.ro/track/${awbNumber}`;
+  const trackingUrl = `https://sameday.ro/status-colet/?awb=${awbNumber}`;
 
   const orderItemsHtml = order.items
     .map(item => `
@@ -1009,7 +1009,7 @@ export async function sendSupplierOrderEmail(
   `).join('');
 
   const itemsText = supplierItems.map(item => `- ${item.productName} x ${item.quantity}`).join('\n');
-  const trackingUrl = `https://sameday.ro/track/${awbNumber}`;
+  const trackingUrl = `https://sameday.ro/status-colet/?awb=${awbNumber}`;
 
   const html = `
     <!DOCTYPE html>
@@ -1122,7 +1122,7 @@ export async function sendCustomerShipmentEmail(
   }
 
   const shippingAddress = order.shippingAddress as any;
-  const trackingUrl = `https://sameday.ro/track/${awbNumber}`;
+  const trackingUrl = `https://sameday.ro/status-colet/?awb=${awbNumber}`;
   const customerName = `${shippingAddress?.firstName || 'Customer'} ${shippingAddress?.lastName || ''}`.trim();
 
   const orderItemsHtml = order.items.map(item => `

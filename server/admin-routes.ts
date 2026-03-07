@@ -1021,27 +1021,25 @@ export async function registerAdminRoutes(app: Express) {
           let invoiceId: number | undefined;
           let awbNumber: string | undefined;
 
-          if (isCOD) {
-            try {
-              console.log(`📄 [Background] Generating invoice for COD order #${orderId}...`);
-              const { createInvoiceService } = await import('./invoice-service.js');
-              const invoiceService = await createInvoiceService();
-              const invoice = await invoiceService.generateInvoiceAfterPayment(
-                orderId,
-                {
-                  status: 'succeeded',
-                  paymentMethod: 'cash_on_delivery',
-                  paymentId: `cod_${orderId}`,
-                  amount: parseFloat(String(order.totalAmount)),
-                }
-              );
-              console.log(`✅ [Background] Invoice generated for COD order #${orderId}: ${invoice.invoiceNumber}`);
-              invoiceGenerated = true;
-              invoiceNumber = invoice.invoiceNumber;
-              invoiceId = invoice.id;
-            } catch (invoiceError) {
-              console.error(`❌ [Background] Failed to generate invoice for order #${orderId}:`, invoiceError);
-            }
+          try {
+            console.log(`📄 [Background] Generating SmartBill invoice for order #${orderId} (${isCOD ? 'COD' : order.paymentMethod})...`);
+            const { createInvoiceService } = await import('./invoice-service.js');
+            const invoiceService = await createInvoiceService();
+            const invoice = await invoiceService.generateInvoiceAfterPayment(
+              orderId,
+              {
+                status: 'succeeded',
+                paymentMethod: isCOD ? 'cash_on_delivery' : (order.paymentMethod || 'card'),
+                paymentId: isCOD ? `cod_${orderId}` : `accept_${orderId}`,
+                amount: parseFloat(String(order.totalAmount)),
+              }
+            );
+            console.log(`✅ [Background] Invoice generated for order #${orderId}: ${invoice.invoiceNumber}`);
+            invoiceGenerated = true;
+            invoiceNumber = invoice.invoiceNumber;
+            invoiceId = invoice.id;
+          } catch (invoiceError) {
+            console.error(`❌ [Background] Failed to generate invoice for order #${orderId}:`, invoiceError);
           }
 
           try {
