@@ -2008,7 +2008,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           return res.status(400).json({ message: `Product not found: ${item.productId}` });
         }
         
-        if (!product.isActive) {
+        if (product.status?.toLowerCase() !== 'active') {
           return res.status(400).json({ message: `Product is not available: ${product.name}` });
         }
         
