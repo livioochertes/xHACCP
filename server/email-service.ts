@@ -68,7 +68,8 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
 
 export async function sendOrderConfirmationEmail(
   order: OrderWithItems,
-  user: User
+  user: User,
+  paymentMethod?: string
 ): Promise<boolean> {
   const shippingAddress = order.shippingAddress as any;
   const billingAddress = order.billingAddress as any;
@@ -107,7 +108,8 @@ export async function sendOrderConfirmationEmail(
           Order Date: ${new Date(order.createdAt!).toLocaleDateString()}<br>
           Status: <span style="color: #27ae60; font-weight: bold;">Accepted</span><br>
           Customer Email: ${user.email}<br>
-          Contact Phone: ${shippingAddress.phone}
+          Contact Phone: ${shippingAddress.phone}<br>
+          Payment: <span style="font-weight: bold; color: ${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod') ? '#e67e22' : '#27ae60'};">${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}</span>
         </div>
       </div>
 
@@ -197,6 +199,7 @@ export async function sendOrderConfirmationEmail(
     - Status: Accepted
     - Customer Email: ${user.email}
     - Contact Phone: ${shippingAddress.phone}
+    - Payment: ${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}
     - Total Amount: ${order.totalAmount} lei
     
     Delivery Address:
