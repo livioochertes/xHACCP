@@ -40,17 +40,35 @@ const shippingAddressSchema = z.object({
   phone: z.string().min(1, "Phone number is required"),
 });
 
-const billingAddressSchema = z.object({
+const billingAddressSchemaFull = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   company: z.string().optional(),
   address: z.string().min(1, "Address is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
-  county: z.string().optional(),
+  county: z.string().min(1, "County (Județ) is required"),
   zipCode: z.string().min(1, "ZIP code is required"),
   country: z.string().min(1, "Country is required"),
   phone: z.string().min(1, "Phone number is required"),
+  clientType: z.enum(["individual", "company"]).default("individual"),
+  identityDocument: z.string().default(""),
+  companyName: z.string().default(""),
+  vatNumber: z.string().default(""),
+  registrationNumber: z.string().default(""),
+});
+
+const billingAddressSchemaRelaxed = z.object({
+  firstName: z.string().default(""),
+  lastName: z.string().default(""),
+  company: z.string().optional(),
+  address: z.string().default(""),
+  city: z.string().default(""),
+  state: z.string().default(""),
+  county: z.string().default(""),
+  zipCode: z.string().default(""),
+  country: z.string().default("Romania"),
+  phone: z.string().default(""),
   clientType: z.enum(["individual", "company"]).default("individual"),
   identityDocument: z.string().default(""),
   companyName: z.string().default(""),
@@ -62,18 +80,22 @@ const checkoutSchema = z.object({
   email: z.string().email("Invalid email address"),
   phone: z.string().default(""),
   shippingAddress: shippingAddressSchema,
-  billingAddress: billingAddressSchema,
+  billingAddress: billingAddressSchemaRelaxed,
   paymentMethod: z.enum(["viva", "cash"]),
   sameAsBilling: z.boolean().default(false),
   notes: z.string().optional(),
-}).refine((data) => {
-  if (!data.sameAsBilling && !data.billingAddress.county) {
-    return false;
+}).superRefine((data, ctx) => {
+  if (!data.sameAsBilling) {
+    const result = billingAddressSchemaFull.safeParse(data.billingAddress);
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        ctx.addIssue({
+          ...issue,
+          path: ["billingAddress", ...issue.path],
+        });
+      });
+    }
   }
-  return true;
-}, {
-  message: "County (Județ) is required for Romanian invoices when using different billing address",
-  path: ["billingAddress", "county"]
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
