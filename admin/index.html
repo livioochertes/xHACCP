@@ -697,6 +697,8 @@
       const [productCategoryFilter, setProductCategoryFilter] = useState('all');
       const [productStatusFilter, setProductStatusFilter] = useState('all');
       const [filteredProducts, setFilteredProducts] = useState([]);
+      const [productPage, setProductPage] = useState(1);
+      const productsPerPage = 20;
       const [showProductAnalytics, setShowProductAnalytics] = useState(false);
       const [analyticsData, setAnalyticsData] = useState(null);
       const [editingSupplier, setEditingSupplier] = useState(null);
@@ -885,6 +887,7 @@
         }
         
         setFilteredProducts(filtered);
+        setProductPage(1);
         console.log('Products filtered:', {
           searchTerm: productSearchTerm,
           categoryFilter: productCategoryFilter,
@@ -3011,7 +3014,7 @@
                           if (priorityA !== priorityB) return priorityA - priorityB;
                           // Then by ID descending to show newest products first
                           return b.id - a.id;
-                        }).slice(0, 20).map((product, index) => (
+                        }).slice((productPage - 1) * productsPerPage, productPage * productsPerPage).map((product, index) => (
                           <tr key={index} style={{borderBottom: '1px solid #eee'}}>
                             <td style={{padding: '12px', textAlign: 'center'}}>
                               <input 
@@ -3187,6 +3190,47 @@
                       </tbody>
                     </table>
                   </div>
+                  {(() => {
+                    const allProds = showProductSearchFilter ? filteredProducts : products;
+                    const totalPages = Math.ceil(allProds.length / productsPerPage);
+                    if (totalPages <= 1) return null;
+                    return (
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderTop: '1px solid #eee', marginTop: '10px'}}>
+                        <span style={{color: '#666', fontSize: '14px'}}>
+                          Showing {((productPage - 1) * productsPerPage) + 1}-{Math.min(productPage * productsPerPage, allProds.length)} of {allProds.length} products
+                        </span>
+                        <div style={{display: 'flex', gap: '5px', alignItems: 'center'}}>
+                          <button
+                            onClick={() => setProductPage(1)}
+                            disabled={productPage === 1}
+                            style={{padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', background: productPage === 1 ? '#f5f5f5' : 'white', cursor: productPage === 1 ? 'not-allowed' : 'pointer', color: productPage === 1 ? '#ccc' : '#333'}}
+                          >«</button>
+                          <button
+                            onClick={() => setProductPage(Math.max(1, productPage - 1))}
+                            disabled={productPage === 1}
+                            style={{padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', background: productPage === 1 ? '#f5f5f5' : 'white', cursor: productPage === 1 ? 'not-allowed' : 'pointer', color: productPage === 1 ? '#ccc' : '#333'}}
+                          >‹ Prev</button>
+                          {Array.from({length: totalPages}, (_, i) => i + 1).map(p => (
+                            <button
+                              key={p}
+                              onClick={() => setProductPage(p)}
+                              style={{padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', background: p === productPage ? '#007bff' : 'white', color: p === productPage ? 'white' : '#333', cursor: 'pointer', fontWeight: p === productPage ? 'bold' : 'normal'}}
+                            >{p}</button>
+                          ))}
+                          <button
+                            onClick={() => setProductPage(Math.min(totalPages, productPage + 1))}
+                            disabled={productPage === totalPages}
+                            style={{padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', background: productPage === totalPages ? '#f5f5f5' : 'white', cursor: productPage === totalPages ? 'not-allowed' : 'pointer', color: productPage === totalPages ? '#ccc' : '#333'}}
+                          >Next ›</button>
+                          <button
+                            onClick={() => setProductPage(totalPages)}
+                            disabled={productPage === totalPages}
+                            style={{padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', background: productPage === totalPages ? '#f5f5f5' : 'white', cursor: productPage === totalPages ? 'not-allowed' : 'pointer', color: productPage === totalPages ? '#ccc' : '#333'}}
+                          >»</button>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 ) : (
                   <div style={{padding: '40px', textAlign: 'center', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
                     <p style={{color: '#666', fontSize: '18px', marginBottom: '15px'}}>No products found</p>
