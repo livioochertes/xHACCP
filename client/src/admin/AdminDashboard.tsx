@@ -1000,7 +1000,7 @@ function AWBActions({ order, onAWBGenerated }: AWBActionsProps) {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => window.open(`https://sameday.ro/track/${order.awbNumber}`, '_blank')}
+          onClick={() => window.open(`https://sameday.ro/status-colet/?awb=${order.awbNumber}`, '_blank')}
           title="Track Package"
         >
           <ExternalLink className="h-4 w-4" />

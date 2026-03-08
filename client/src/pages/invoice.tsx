@@ -205,9 +205,9 @@ export default function Invoice() {
                           {item.productCode || '-'}
                         </td>
                         <td className="text-center py-3 px-4">{item.quantity}</td>
-                        <td className="text-right py-3 px-4">€{parseFloat(item.unitPrice).toFixed(2)}</td>
+                        <td className="text-right py-3 px-4">{parseFloat(item.unitPrice).toFixed(2)} lei</td>
                         <td className="text-center py-3 px-4">{parseFloat(item.vatRate).toFixed(0)}%</td>
-                        <td className="text-right py-3 px-4 font-medium">€{parseFloat(item.lineTotal).toFixed(2)}</td>
+                        <td className="text-right py-3 px-4 font-medium">{parseFloat(item.lineTotal).toFixed(2)} lei</td>
                       </tr>
                     ))}
                   </tbody>
@@ -220,16 +220,16 @@ export default function Invoice() {
               <div className="w-full max-w-sm space-y-2">
                 <div className="flex justify-between py-2">
                   <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-medium">€{parseFloat(invoice.subtotal).toFixed(2)}</span>
+                  <span className="font-medium">{parseFloat(invoice.subtotal).toFixed(2)} lei</span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="text-gray-600">VAT ({parseFloat(invoice.vatAmount) === 0 ? '0' : '20'}%):</span>
-                  <span className="font-medium">€{parseFloat(invoice.vatAmount).toFixed(2)}</span>
+                  <span className="text-gray-600">TVA ({parseFloat(invoice.vatAmount) === 0 ? '0' : '21'}%):</span>
+                  <span className="font-medium">{parseFloat(invoice.vatAmount).toFixed(2)} lei</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between py-2 text-lg font-bold">
-                  <span>Total Amount:</span>
-                  <span>€{parseFloat(invoice.totalAmount).toFixed(2)}</span>
+                  <span>Total:</span>
+                  <span>{parseFloat(invoice.totalAmount).toFixed(2)} lei</span>
                 </div>
               </div>
             </div>

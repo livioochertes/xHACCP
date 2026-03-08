@@ -1003,7 +1003,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create invoice from order
+  app.get("/api/invoices/:invoiceId/pdf", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const invoiceId = parseInt(req.params.invoiceId);
+      const invoice = await storage.getInvoice(invoiceId);
+      
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      if (invoice.userId !== req.userId && !req.isAdmin) {
+        return res.status(403).json({ message: "Not authorized to access this invoice" });
+      }
+
+      if (!invoice.smartbillSeries || !invoice.smartbillNumber) {
+        return res.status(404).json({ message: "SmartBill PDF not available for this invoice" });
+      }
+
+      const { SmartbillAPI } = await import('./smartbill-api.js');
+      const smartbillApi = new SmartbillAPI({
+        username: process.env.SMARTBILL_USERNAME || '',
+        token: process.env.SMARTBILL_TOKEN || '',
+        companyVat: process.env.SMARTBILL_COMPANY_VAT || '',
+      });
+
+      const pdfBuffer = await smartbillApi.getInvoicePdf(
+        process.env.SMARTBILL_COMPANY_VAT || '',
+        invoice.smartbillSeries,
+        invoice.smartbillNumber
+      );
+
+      const filename = `Factura_${invoice.smartbillSeries}_${invoice.smartbillNumber}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error downloading invoice PDF:", error);
+      res.status(500).json({ message: "Failed to download invoice PDF" });
+    }
+  });
+
   // Create invoice from order - both endpoints for compatibility
   app.post("/api/orders/:orderId/create-invoice", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -2129,7 +2168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         awbCost: awbResponse.cost,
         currency: awbResponse.currency,
         order: updatedOrder,
-        trackingUrl: `https://sameday.ro/track/${awbResponse.awbNumber}`,
+        trackingUrl: `https://sameday.ro/status-colet/?awb=${awbResponse.awbNumber}`,
       });
 
     } catch (error) {
@@ -2200,7 +2239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         awbNumber: order.awbNumber,
-        trackingUrl: `https://sameday.ro/track/${order.awbNumber}`,
+        trackingUrl: `https://sameday.ro/status-colet/?awb=${order.awbNumber}`,
         trackingInfo,
       });
 

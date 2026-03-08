@@ -407,17 +407,32 @@ export default function Account() {
     setDownloadingInvoice(orderId);
     
     try {
-      // Find if there's an existing invoice for this order
       const existingInvoice = invoices.find(inv => inv.orderId === orderId);
       
       if (existingInvoice) {
-        // Navigate to the existing invoice
+        const pdfResponse = await fetch(`/api/invoices/${existingInvoice.id}/pdf`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        if (pdfResponse.ok) {
+          const blob = await pdfResponse.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Factura_${existingInvoice.invoiceNumber.replace(/\s+/g, '_')}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          setDownloadingInvoice(null);
+          return;
+        }
+        
         navigate(`/invoice/${existingInvoice.invoiceNumber}`);
         setDownloadingInvoice(null);
         return;
       }
 
-      // Try to create an invoice from the order
       const response = await fetch(`/api/orders/${orderId}/create-invoice`, {
         method: 'POST',
         headers: {
@@ -428,19 +443,31 @@ export default function Account() {
       
       if (response.ok) {
         const invoiceData = await response.json();
-        console.log('Invoice created:', invoiceData);
         
         if (invoiceData && invoiceData.invoiceNumber) {
-          // Navigate to the new invoice
-          navigate(`/invoice/${invoiceData.invoiceNumber}`);
+          const pdfResponse = await fetch(`/api/invoices/${invoiceData.id}/pdf`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
           
-          // Show success message
+          if (pdfResponse.ok) {
+            const blob = await pdfResponse.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Factura_${invoiceData.invoiceNumber.replace(/\s+/g, '_')}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          } else {
+            navigate(`/invoice/${invoiceData.invoiceNumber}`);
+          }
+          
           toast({
             title: t('account.invoiceCreated'),
             description: t('account.invoiceCreatedDesc'),
           });
           
-          // Refresh invoices list after a short delay
           setTimeout(() => {
             window.location.reload();
           }, 1500);
@@ -449,7 +476,6 @@ export default function Account() {
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Create invoice error:', errorData);
         throw new Error(errorData.message || `Server returned error: ${response.status}`);
       }
     } catch (error: any) {
@@ -909,7 +935,7 @@ export default function Account() {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => window.open(`https://sameday.ro/track/${order.awbNumber}`, '_blank')}
+                                onClick={() => window.open(`https://sameday.ro/status-colet/?awb=${order.awbNumber}`, '_blank')}
                               >
                                 <ExternalLink className="h-4 w-4 mr-2" />
                                 Track Package

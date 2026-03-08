@@ -3015,7 +3015,7 @@ export async function registerAdminRoutes(app: Express) {
           currency: awbResponse.currency || 'RON',
           courier: 'Sameday',
           order: orderUpdate,
-          trackingUrl: `https://sameday.ro/track/${awbResponse.awbNumber || `KTO${String(orderId).padStart(5, '0')}-API`}`,
+          trackingUrl: `https://sameday.ro/status-colet/?awb=${awbResponse.awbNumber || `KTO${String(orderId).padStart(5, '0')}-API`}`,
           message: `Real AWB created via Sameday API: ${awbResponse.awbNumber || `KTO${String(orderId).padStart(5, '0')}-API`}`
         });
       };
@@ -3069,7 +3069,7 @@ export async function registerAdminRoutes(app: Express) {
           currency: 'RON',
           courier: 'Sameday (Manual)',
           order: updatedOrder,
-          trackingUrl: `https://sameday.ro/track/${manualAwbNumber}`,
+          trackingUrl: `https://sameday.ro/status-colet/?awb=${manualAwbNumber}`,
           manual: true,
           message: `Sameday API ${errorType} detected. Manual AWB generated. Please create the actual AWB in Sameday portal using reference: ${manualAwbNumber}`,
           apiError: error.message.substring(0, 200)
