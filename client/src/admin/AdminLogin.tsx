@@ -89,8 +89,8 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Login failed');
       toast({
-        title: "Login Failed",
-        description: error instanceof Error ? error.message : 'Please check your credentials.',
+        title: "Oops! Something went wrong",
+        description: error instanceof Error ? error.message : 'Please check your credentials and try again.',
         variant: "destructive",
       });
     } finally {

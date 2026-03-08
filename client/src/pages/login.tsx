@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Eye, EyeOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useTranslation } from "@/hooks/useTranslation";
 
 function GoogleLogo({ className }: { className?: string }) {
   return (
@@ -57,6 +58,7 @@ export default function Login() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { login } = useAuth();
+  const { t } = useTranslation();
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -76,7 +78,7 @@ export default function Login() {
           if (response.ok) {
             const user = await response.json();
             await login(token, user);
-            toast({ title: "Welcome!", description: "You have been logged in successfully." });
+            toast({ title: t('auth.welcomeBack'), description: t('auth.loginSuccess') });
             navigate("/");
           }
         } catch (err) {
@@ -86,10 +88,10 @@ export default function Login() {
       window.history.replaceState({}, '', '/login');
     } else if (error) {
       toast({
-        title: "Login failed",
+        title: t('auth.loginErrorTitle'),
         description: error === 'google_not_configured' || error === 'apple_not_configured'
-          ? "Social login is not configured yet."
-          : "Social login failed. Please try again.",
+          ? t('auth.socialNotConfigured')
+          : t('auth.socialLoginError'),
         variant: "destructive",
       });
       window.history.replaceState({}, '', '/login');
@@ -134,15 +136,15 @@ export default function Login() {
     onSuccess: async (data) => {
       await login(data.token, data.user);
       toast({
-        title: "Welcome back!",
-        description: "You have been successfully logged in.",
+        title: t('auth.welcomeBack'),
+        description: t('auth.loginSuccess'),
       });
       navigate("/");
     },
     onError: (error) => {
       toast({
-        title: "Login failed",
-        description: error.message || "Please check your credentials and try again.",
+        title: t('auth.loginErrorTitle'),
+        description: error.message || t('auth.loginErrorDesc'),
         variant: "destructive",
       });
     },
@@ -156,15 +158,15 @@ export default function Login() {
     onSuccess: async (data) => {
       await login(data.token, data.user);
       toast({
-        title: "Account created!",
-        description: "Your account has been created successfully.",
+        title: t('auth.accountCreated'),
+        description: t('auth.accountCreatedDesc'),
       });
       navigate("/");
     },
     onError: (error) => {
       toast({
-        title: "Registration failed",
-        description: error.message || "Please try again.",
+        title: t('auth.registerErrorTitle'),
+        description: error.message || t('auth.registerErrorDesc'),
         variant: "destructive",
       });
     },
