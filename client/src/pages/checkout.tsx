@@ -434,6 +434,16 @@ export default function Checkout() {
       }
       const wantAccount = form.getValues("createAccount");
       if (wantAccount) {
+        const firstName = form.getValues("shippingAddress.firstName");
+        const lastName = form.getValues("shippingAddress.lastName");
+        if (!firstName || firstName.trim() === "") {
+          form.setError("shippingAddress.firstName", { type: "manual", message: t('checkout.firstNameRequired') });
+          return;
+        }
+        if (!lastName || lastName.trim() === "") {
+          form.setError("shippingAddress.lastName", { type: "manual", message: t('checkout.lastNameRequired') });
+          return;
+        }
         const pwd = form.getValues("accountPassword");
         const confirmPwd = form.getValues("confirmAccountPassword");
         if (!pwd || pwd.length < 6) {
@@ -500,6 +510,14 @@ export default function Checkout() {
         if (contactPhone && !form.getValues("billingAddress.phone")) {
           form.setValue("billingAddress.phone", contactPhone);
         }
+        const fn = form.getValues("shippingAddress.firstName");
+        const ln = form.getValues("shippingAddress.lastName");
+        if (fn && !form.getValues("billingAddress.firstName")) {
+          form.setValue("billingAddress.firstName", fn);
+        }
+        if (ln && !form.getValues("billingAddress.lastName")) {
+          form.setValue("billingAddress.lastName", ln);
+        }
 
         const wantAccount = form.getValues("createAccount");
         if (wantAccount) {
@@ -510,6 +528,8 @@ export default function Checkout() {
             const registerResponse = await apiRequest("POST", "/api/auth/register", {
               email,
               password: pwd,
+              firstName: form.getValues("shippingAddress.firstName"),
+              lastName: form.getValues("shippingAddress.lastName"),
             });
             const registerData = await registerResponse.json();
             if (registerData.token && registerData.user) {
@@ -786,6 +806,34 @@ export default function Checkout() {
 
                       {createAccount && (
                         <div className="space-y-4 pt-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="shippingAddress.firstName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t('checkout.firstName')}</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder={t('checkout.firstName')} {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="shippingAddress.lastName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t('checkout.lastName')}</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder={t('checkout.lastName')} {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                           <FormField
                             control={form.control}
                             name="accountPassword"
