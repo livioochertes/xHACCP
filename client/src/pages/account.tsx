@@ -897,7 +897,7 @@ export default function Account() {
                               </Badge>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium">${order.totalAmount}</p>
+                              <p className="font-medium">{order.totalAmount} lei</p>
                               <p className="text-sm text-gray-600">
                                 {order.items?.length || 0} {t('account.items')}
                               </p>
@@ -989,7 +989,7 @@ export default function Account() {
                               Order #{invoice.orderId} • {format(new Date(invoice.issueDate), "PPP")}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {invoice.items?.length || 0} items • €{invoice.totalAmount}
+                              {invoice.items?.length || 0} items • {invoice.totalAmount} lei
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1044,7 +1044,7 @@ export default function Account() {
                               <div>
                                 <h4 className="font-medium">Order #{order.id}</h4>
                                 <p className="text-sm text-gray-600">
-                                  {format(new Date(order.createdAt), "PPP")} • €{order.totalAmount}
+                                  {format(new Date(order.createdAt), "PPP")} • {order.totalAmount} lei
                                 </p>
                               </div>
                               <Button 
@@ -1692,7 +1692,7 @@ export default function Account() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm font-medium">Total Amount:</span>
-                  <span className="text-sm font-medium">${selectedOrder.totalAmount}</span>
+                  <span className="text-sm font-medium">{selectedOrder.totalAmount} lei</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm font-medium">Items:</span>
@@ -1762,7 +1762,7 @@ export default function Account() {
                         </p>
                         <div className="flex items-center gap-4 text-sm text-gray-600">
                           <span>Qty: {item.quantity}</span>
-                          <span>Unit Price: ${parseFloat(item.price).toFixed(2)}</span>
+                          <span>Unit Price: {parseFloat(item.price).toFixed(2)} lei</span>
                           {item.product?.slug && (
                             <button 
                               onClick={() => navigate(`/product/${item.product.slug}`)}
@@ -1776,7 +1776,7 @@ export default function Account() {
                       
                       {/* Price */}
                       <div className="text-right flex-shrink-0">
-                        <p className="font-medium">${parseFloat(item.totalPrice || (parseFloat(item.price) * item.quantity)).toFixed(2)}</p>
+                        <p className="font-medium">{parseFloat(item.totalPrice || (parseFloat(item.price) * item.quantity)).toFixed(2)} lei</p>
                         <p className="text-sm text-gray-600">Total</p>
                       </div>
                     </div>
@@ -1785,7 +1785,7 @@ export default function Account() {
                   {/* Order Total */}
                   <div className="bg-gray-50 p-3 flex justify-between items-center font-medium">
                     <span>Order Total:</span>
-                    <span>${parseFloat(selectedOrder.totalAmount).toFixed(2)}</span>
+                    <span>{parseFloat(selectedOrder.totalAmount).toFixed(2)} lei</span>
                   </div>
                 </div>
               </div>
