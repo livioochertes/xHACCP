@@ -22,6 +22,7 @@ interface CompanySettings {
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [, navigate] = useLocation();
   const { cart } = useCart();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -167,7 +168,7 @@ export default function Header() {
             </Link>
 
             {/* Mobile Menu */}
-            <Sheet>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="md:hidden">
                   <Menu className="h-4 w-4" />
@@ -191,16 +192,9 @@ export default function Header() {
                     variant="ghost" 
                     className="w-full justify-start"
                     onClick={() => {
-                      console.log("🚀 Mobile All Products button clicked");
-                      const startTime = performance.now();
-                      const targetUrl = `/products`;
-                      console.log("🎯 Navigating to:", targetUrl);
-                      navigate(targetUrl);
-                      console.log("⏱️ Navigation initiated:", performance.now() - startTime, "ms");
-                      console.log("🔗 Current URL after navigation:", window.location.href);
-                      
-                      // Force a re-render by dispatching a custom event
-                      window.dispatchEvent(new CustomEvent('urlchange'));
+                      setMobileMenuOpen(false);
+                      navigate(`/products`);
+                      window.dispatchEvent(new CustomEvent('urlchange', { detail: { scrollToProducts: true } }));
                     }}
                   >
                     {t('nav.products')}
@@ -211,16 +205,9 @@ export default function Header() {
                       variant="ghost" 
                       className="w-full justify-start"
                       onClick={() => {
-                        console.log("🚀 Mobile category button clicked:", category.name);
-                        const startTime = performance.now();
-                        const targetUrl = `/products?category=${category.slug}`;
-                        console.log("🎯 Navigating to:", targetUrl);
-                        navigate(targetUrl);
-                        console.log("⏱️ Navigation initiated:", performance.now() - startTime, "ms");
-                        console.log("🔗 Current URL after navigation:", window.location.href);
-                        
-                        // Force a re-render by dispatching a custom event
-                        window.dispatchEvent(new CustomEvent('urlchange'));
+                        setMobileMenuOpen(false);
+                        navigate(`/products?category=${category.slug}`);
+                        window.dispatchEvent(new CustomEvent('urlchange', { detail: { scrollToProducts: true } }));
                       }}
                     >
                       {getCategoryName(category)}

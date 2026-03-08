@@ -45,27 +45,35 @@ export default function Products() {
 
   // Also listen for URL changes via popstate (back/forward buttons) and custom events
   useEffect(() => {
-    const handleUrlChange = () => {
+    const handleUrlChange = (e?: Event) => {
       const urlParams = new URLSearchParams(window.location.search);
       const newSearchQuery = urlParams.get("search") || "";
       const newSelectedCategory = urlParams.get("category") || "";
       
-      console.log("🔄 URL event - URL changed:", window.location.href);
-      
       setSearchQuery(newSearchQuery);
       setSelectedCategory(newSelectedCategory);
-      setCurrentLimit(20); // Reset limit when URL changes
+      setCurrentLimit(20);
       setUrlChangeCounter(prev => prev + 1);
       
       queryClient.clear();
+
+      const detail = (e as CustomEvent)?.detail;
+      if (detail?.scrollToProducts) {
+        setTimeout(() => {
+          const el = document.getElementById('products-grid');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
+      }
     };
 
     window.addEventListener('popstate', handleUrlChange);
-    window.addEventListener('urlchange', handleUrlChange);
+    window.addEventListener('urlchange', handleUrlChange as EventListener);
     
     return () => {
       window.removeEventListener('popstate', handleUrlChange);
-      window.removeEventListener('urlchange', handleUrlChange);
+      window.removeEventListener('urlchange', handleUrlChange as EventListener);
     };
   }, []);
   
@@ -346,7 +354,7 @@ export default function Products() {
             {/* Products Grid */}
             {sortedProducts.length > 0 && (
               <>
-                <div className={`grid gap-6 ${
+                <div id="products-grid" className={`grid gap-6 ${
                   viewMode === "grid" 
                     ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" 
                     : "grid-cols-1"
