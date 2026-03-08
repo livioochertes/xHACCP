@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle, ChevronDown, ChevronUp, ShoppingBag, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -132,6 +132,7 @@ export default function Checkout() {
   const checkoutSchema = useMemo(() => createCheckoutSchema(t), [t]);
   const { user, isAuthenticated, login } = useAuth();
   const [step, setStep] = useState(isAuthenticated ? 2 : 1);
+  const checkoutTopRef = useRef<HTMLDivElement>(null);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [, navigate] = useLocation();
   const { cart, clearCart } = useCart();
@@ -269,6 +270,12 @@ export default function Checkout() {
       }
     }
   }, [isAuthenticated, user, form]);
+
+  useEffect(() => {
+    if (checkoutTopRef.current) {
+      checkoutTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [step]);
 
   const sameAsBilling = form.watch("sameAsBilling");
   const clientType = form.watch("billingAddress.clientType");
@@ -575,7 +582,7 @@ export default function Checkout() {
         </div>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-6 sm:mb-8">
+        <div ref={checkoutTopRef} className="flex items-center justify-center mb-6 sm:mb-8">
           <div className="flex items-center space-x-2 sm:space-x-4">
             {isAuthenticated ? (
               <>
