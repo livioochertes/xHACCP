@@ -109,7 +109,7 @@ export async function sendOrderConfirmationEmail(
           Status: <span style="color: #27ae60; font-weight: bold;">Accepted</span><br>
           Customer Email: ${user.email}<br>
           Contact Phone: ${shippingAddress.phone}<br>
-          Payment: <span style="font-weight: bold; color: ${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod') ? '#e67e22' : '#27ae60'};">${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}</span>
+          Payment: <span style="font-weight: bold; color: ${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? '#e67e22' : '#27ae60'};">${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}</span>
         </div>
       </div>
 
@@ -209,7 +209,7 @@ export async function sendOrderConfirmationEmail(
     - Status: Accepted
     - Customer Email: ${user.email}
     - Contact Phone: ${shippingAddress.phone}
-    - Payment: ${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}
+    - Payment: ${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}
     - Total Amount: ${order.totalAmount} lei
     
     Delivery Address:

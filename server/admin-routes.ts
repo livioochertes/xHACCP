@@ -1015,7 +1015,7 @@ export async function registerAdminRoutes(app: Express) {
             console.log(`📧 [Background] Accept order #${orderId}: guest order, resolved email: ${resolvedEmail}`);
           }
 
-          const isCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod';
+          const isCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod' || order.paymentMethod === 'cash';
           let invoiceGenerated = false;
           let invoiceNumber: string | undefined;
           let invoiceId: number | undefined;
@@ -2963,6 +2963,8 @@ export async function registerAdminRoutes(app: Express) {
         }
 
         // Create AWB request with EXACT Sameday API v3.0 format and required fields
+        const manualIsCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod' || order.paymentMethod === 'cash';
+        const manualTotalAmount = parseFloat(String(order.totalAmount));
         const awbRequest = {
           pickupPoint: pickupPoint.id,
           contactPerson: pickupPoint.contactPersons?.[0]?.id || null,
@@ -2970,8 +2972,8 @@ export async function registerAdminRoutes(app: Express) {
           packageType: 0,
           packageWeight: 1,
           awbPayment: 1,
-          cashOnDelivery: 0,
-          insuredValue: 0,
+          cashOnDelivery: manualIsCOD ? manualTotalAmount : 0,
+          insuredValue: manualTotalAmount,
           thirdPartyPickup: 0,
           awbRecipient: {
             name: shippingAddress.name || order.customerName || 'Customer',
