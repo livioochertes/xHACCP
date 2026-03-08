@@ -1783,7 +1783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               customerEmail = shippingAddr?.email || billingAddr?.email || fullOrder.notes?.match(/Guest email:\s*([^\s,]+)/)?.[1] || '';
             }
 
-            const isCOD = fullOrder.paymentMethod === 'cash_on_delivery' || fullOrder.paymentMethod === 'cod';
+            const isCOD = fullOrder.paymentMethod === 'cash_on_delivery' || fullOrder.paymentMethod === 'cod' || fullOrder.paymentMethod === 'cash';
             let invoiceGenerated = false;
             let invoiceNumber: string | undefined;
             let invoiceId: number | undefined;
@@ -2126,7 +2126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🎯 Found county:', county ? { id: county.id, name: county.name } : 'None');
       console.log('🎯 Found city:', city ? { id: city.id, name: city.name } : 'None');
 
-      const adminIsCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod';
+      const adminIsCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod' || order.paymentMethod === 'cash';
       const adminTotalAmount = parseFloat(order.totalAmount.toString());
 
       const awbData = {
@@ -2874,7 +2874,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         c.name.toLowerCase().includes(targetCity) || targetCity.includes(c.name.toLowerCase())
       ) || cities[0];
 
-      const isCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod';
+      const isCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod' || order.paymentMethod === 'cash';
       const totalAmount = parseFloat(order.totalAmount.toString());
 
       const awbData = {
