@@ -9,12 +9,19 @@ export interface SmartbillConfig {
 export interface SmartbillProduct {
   name: string;
   code?: string;
-  um: string; // unit of measure
+  um?: string;
+  measuringUnitName?: string;
   quantity: number;
   price: number;
   vatPercentage?: number;
   vatAmount?: number;
   currency?: string;
+  isDiscount?: boolean;
+  isTaxIncluded?: boolean;
+  taxName?: string;
+  taxPercentage?: number;
+  saveToDb?: boolean;
+  isService?: boolean;
 }
 
 export interface SmartbillClient {
@@ -678,6 +685,24 @@ export function orderToSmartbillInvoice(
       isService: false
     };
   });
+
+  const orderShippingCost = parseFloat(order.shippingCost || '0');
+  if (orderShippingCost > 0) {
+    console.log(`🚚 Adding shipping service line: ${orderShippingCost} lei, VAT=19%`);
+    products.push({
+      name: 'Transport curier Sameday',
+      code: 'TRANSPORT',
+      isDiscount: false,
+      measuringUnitName: 'buc',
+      quantity: 1,
+      price: orderShippingCost,
+      isTaxIncluded: true,
+      taxName: 'Normala',
+      taxPercentage: 19,
+      saveToDb: true,
+      isService: true
+    });
+  }
 
   console.log('📋 Smartbill client data:', client);
   console.log('📦 Smartbill products data:', products);

@@ -128,14 +128,24 @@ export async function sendOrderConfirmationEmail(
             ${orderItemsHtml}
           </tbody>
           <tfoot>
-            <tr>
-              <td colspan="3" style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">
-                Total Amount:
-              </td>
-              <td style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">
-                ${order.totalAmount} lei
-              </td>
-            </tr>
+            ${(() => {
+              const shippingCost = parseFloat(order.shippingCost || '0');
+              const subtotal = (parseFloat(order.totalAmount) - shippingCost).toFixed(2);
+              return `
+                <tr>
+                  <td colspan="3" style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">Subtotal:</td>
+                  <td style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">${subtotal} lei</td>
+                </tr>
+                <tr>
+                  <td colspan="3" style="padding: 8px; text-align: right;">Transport:</td>
+                  <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' lei' : 'Gratuit'}</td>
+                </tr>
+                <tr>
+                  <td colspan="3" style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">Total:</td>
+                  <td style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">${order.totalAmount} lei</td>
+                </tr>
+              `;
+            })()}
           </tfoot>
         </table>
       </div>
@@ -1179,6 +1189,20 @@ export async function sendCustomerShipmentEmail(
           </thead>
           <tbody>
             ${orderItemsHtml}
+            ${(() => {
+              const shippingCost = parseFloat(order.shippingCost || '0');
+              const subtotal = (parseFloat(order.totalAmount) - shippingCost).toFixed(2);
+              return `
+                <tr>
+                  <td style="padding: 8px; border-top: 1px solid #ddd;" colspan="2">Subtotal</td>
+                  <td style="padding: 8px; border-top: 1px solid #ddd; text-align: right;">${subtotal} lei</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px;" colspan="2">Transport</td>
+                  <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' lei' : 'Gratuit'}</td>
+                </tr>
+              `;
+            })()}
             <tr style="font-weight: bold; background-color: #f0f0f0;">
               <td style="padding: 10px 8px;" colspan="2">Total</td>
               <td style="padding: 10px 8px; text-align: right;">${order.totalAmount} lei</td>
