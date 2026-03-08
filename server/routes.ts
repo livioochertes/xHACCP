@@ -386,6 +386,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { expiresIn: "24h" }
       );
 
+      const linkedCount = await storage.linkGuestOrdersToUser(userData.email, user.id);
+
+      const { orderId } = req.body;
+      if (orderId && typeof orderId === 'number') {
+        const order = await storage.getOrder(orderId);
+        const orderEmail = (order?.shippingAddress as any)?.email;
+        if (order && !order.userId && orderEmail === userData.email) {
+          await storage.updateOrder(orderId, { userId: user.id });
+          console.log(`🔗 Explicitly linked order ${orderId} to new user ${user.id}`);
+        }
+      }
+
       res.json({
         user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, isAdmin: user.isAdmin },
         token,
@@ -415,6 +427,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         process.env.JWT_SECRET || "your-secret-key",
         { expiresIn: "24h" }
       );
+
+      storage.linkGuestOrdersToUser(email, user.id).catch(err => {
+        console.error('Error linking guest orders on login:', err);
+      });
 
       res.json({
         user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, isAdmin: user.isAdmin },
@@ -501,6 +517,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         process.env.JWT_SECRET || "your-secret-key",
         { expiresIn: "24h" }
       );
+
+      storage.linkGuestOrdersToUser(email, user.id).catch(err => {
+        console.error('Error linking guest orders on Google login:', err);
+      });
 
       res.redirect(`/login?token=${token}&userId=${user.id}`);
     } catch (error) {
@@ -611,6 +631,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         process.env.JWT_SECRET || "your-secret-key",
         { expiresIn: "24h" }
       );
+
+      storage.linkGuestOrdersToUser(email, user.id).catch(err => {
+        console.error('Error linking guest orders on Apple login:', err);
+      });
 
       res.redirect(`/login?token=${token}&userId=${user.id}`);
     } catch (error) {

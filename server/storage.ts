@@ -101,6 +101,7 @@ export interface IStorage {
   updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order>;
   acceptOrder(id: number): Promise<Order>;
+  linkGuestOrdersToUser(email: string, userId: number): Promise<number>;
 
   // Cart operations
   getCartItems(userId: number): Promise<CartItemWithProduct[]>;
@@ -702,6 +703,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orders.id, id))
       .returning();
     return updatedOrder;
+  }
+
+  async linkGuestOrdersToUser(email: string, userId: number): Promise<number> {
+    const { pool } = await import('./db.js');
+    try {
+      const result = await pool.query(
+        `UPDATE orders SET user_id = $1, updated_at = NOW()
+         WHERE user_id IS NULL 
+         AND shipping_address->>'email' = $2
+         RETURNING id`,
+        [userId, email]
+      );
+      const linkedOrderIds = result.rows.map((r: any) => r.id);
+      if (linkedOrderIds.length > 0) {
+        await pool.query(
+          `UPDATE invoices SET user_id = $1
+           WHERE order_id = ANY($2) AND (user_id IS NULL OR user_id = 0)`,
+          [userId, linkedOrderIds]
+        );
+        console.log(`🔗 Linked ${linkedOrderIds.length} guest order(s) to user ${userId} (${email}): order IDs ${linkedOrderIds.join(', ')}`);
+      }
+      return linkedOrderIds.length;
+    } catch (error) {
+      console.error('Error linking guest orders to user:', error);
+      return 0;
+    }
   }
 
   // Cart operations

@@ -311,6 +311,7 @@ export default function Checkout() {
     onSuccess: async (data) => {
       clearCart();
       
+      const responseData = await data.json().catch(() => ({}));
       const formData = form.getValues();
       if (formData.createAccount && !isAuthenticated && formData.accountPassword) {
         try {
@@ -320,6 +321,7 @@ export default function Checkout() {
             firstName: formData.shippingAddress.firstName,
             lastName: formData.shippingAddress.lastName,
             phone: formData.phone || formData.shippingAddress.phone,
+            orderId: responseData.orderId || responseData.id,
           });
           const registerData = await registerResponse.json();
           if (registerData.token && registerData.user) {
