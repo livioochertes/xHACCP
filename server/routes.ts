@@ -2126,7 +2126,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🎯 Found county:', county ? { id: county.id, name: county.name } : 'None');
       console.log('🎯 Found city:', city ? { id: city.id, name: city.name } : 'None');
 
-      // Use your exact working AWB format with pickup point 447249
+      const adminIsCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod';
+      const adminTotalAmount = parseFloat(order.totalAmount.toString());
+
       const awbData = {
         pickupPoint: 447249,
         service: 7,
@@ -2143,11 +2145,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           postalCode: shippingAddr.zipCode || '',
         },
         parcels: parcels,
-        cashOnDelivery: 0,
-        insuredValue: parseFloat(order.totalAmount.toString()),
+        cashOnDelivery: adminIsCOD ? adminTotalAmount : 0,
+        insuredValue: adminTotalAmount,
         observation: `Order #${order.id} - xHACCP E-commerce`,
         clientInternalReference: `ORDER_${order.id}`,
       };
+
+      console.log(`🚚 Admin AWB for order #${order.id}: paymentMethod=${order.paymentMethod}, isCOD=${adminIsCOD}, cashOnDelivery=${adminIsCOD ? adminTotalAmount : 0}`);
 
       const awbResponse = await samedayAPI.createAWB(awbData);
 
@@ -2155,8 +2159,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'shipped',
         awbNumber: awbResponse.awbNumber,
         awbCourier: 'sameday',
-        awbCost: awbResponse.cost.toString(),
-        awbCurrency: awbResponse.currency,
+        awbCost: (awbResponse.cost ?? 0).toString(),
+        awbCurrency: awbResponse.currency || 'RON',
         awbCreatedAt: new Date(),
       });
 
@@ -2870,6 +2874,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         c.name.toLowerCase().includes(targetCity) || targetCity.includes(c.name.toLowerCase())
       ) || cities[0];
 
+      const isCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod';
+      const totalAmount = parseFloat(order.totalAmount.toString());
+
       const awbData = {
         pickupPoint: 447249,
         service: 7,
@@ -2886,11 +2893,13 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           postalCode: shippingAddr.zipCode || '',
         },
         parcels,
-        cashOnDelivery: 0,
-        insuredValue: parseFloat(order.totalAmount.toString()),
+        cashOnDelivery: isCOD ? totalAmount : 0,
+        insuredValue: totalAmount,
         observation: `Order #${order.id} - xHACCP E-commerce`,
         clientInternalReference: `ORDER_${order.id}`,
       };
+
+      console.log(`🚚 AWB for order #${order.id}: paymentMethod=${order.paymentMethod}, isCOD=${isCOD}, cashOnDelivery=${isCOD ? totalAmount : 0}`);
 
       const awbResponse = await samedayAPI.createAWB(awbData);
 
