@@ -31,7 +31,7 @@ const productSchema = z.object({
   compareAtPrice: z.string().optional(),
   categoryId: z.number().min(1, "Category is required"),
   supplierId: z.number().optional(),
-  imageUrl: z.string().url("Must be a valid URL").optional(),
+  imageUrl: z.string().refine((val) => !val || val.startsWith("/") || val.startsWith("http"), "Must be a valid URL or path").optional(),
   inStock: z.boolean().default(true),
   stockQuantity: z.number().min(0, "Stock quantity must be positive"),
   featured: z.boolean().default(false),
@@ -42,7 +42,7 @@ const categorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
   slug: z.string().min(1, "Slug is required"),
   description: z.string().optional(),
-  imageUrl: z.string().url("Must be a valid URL").optional(),
+  imageUrl: z.string().refine((val) => !val || val.startsWith("/") || val.startsWith("http"), "Must be a valid URL or path").optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
