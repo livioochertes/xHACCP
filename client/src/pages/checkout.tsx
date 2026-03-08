@@ -316,10 +316,9 @@ export default function Checkout() {
       });
     },
     onSuccess: async (data) => {
-      clearCart();
-      
       const responseData = await data.json().catch(() => ({}));
       const formData = form.getValues();
+
       if (formData.createAccount && !isAuthenticated && formData.accountPassword) {
         try {
           const registerResponse = await apiRequest("POST", "/api/auth/register", {
@@ -333,6 +332,7 @@ export default function Checkout() {
           const registerData = await registerResponse.json();
           if (registerData.token && registerData.user) {
             await login(registerData.token, registerData.user);
+            clearCart();
             toast({
               title: t('checkout.orderSuccess'),
               description: t('checkout.accountCreatedDesc'),
@@ -342,15 +342,10 @@ export default function Checkout() {
           }
         } catch (err) {
           console.error("Account creation after order failed:", err);
-          toast({
-            title: t('checkout.orderSuccess'),
-            description: t('checkout.orderSuccessDesc'),
-          });
-          navigate("/");
-          return;
         }
       }
 
+      clearCart();
       toast({
         title: t('checkout.orderSuccess'),
         description: t('checkout.orderSuccessDesc'),
