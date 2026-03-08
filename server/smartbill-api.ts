@@ -618,7 +618,8 @@ export function orderToSmartbillInvoice(
   order: any,
   user: any,
   config: SmartbillConfig,
-  seriesName: string = 'FACT'
+  seriesName: string = 'FACT',
+  defaultVatPercentage: number = 19
 ): SmartbillInvoiceData {
   console.log('🔧 Converting order to Smartbill format:', {
     orderId: order.id,
@@ -688,7 +689,7 @@ export function orderToSmartbillInvoice(
 
   const orderShippingCost = parseFloat(order.shippingCost || '0');
   if (orderShippingCost > 0) {
-    console.log(`🚚 Adding shipping service line: ${orderShippingCost} lei, VAT=19%`);
+    console.log(`🚚 Adding shipping service line: ${orderShippingCost} lei, VAT=${defaultVatPercentage}%`);
     products.push({
       name: 'Transport curier Sameday',
       code: 'TRANSPORT',
@@ -698,7 +699,7 @@ export function orderToSmartbillInvoice(
       price: orderShippingCost,
       isTaxIncluded: true,
       taxName: 'Normala',
-      taxPercentage: 19,
+      taxPercentage: defaultVatPercentage,
       saveToDb: true,
       isService: true
     });

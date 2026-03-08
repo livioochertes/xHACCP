@@ -176,11 +176,13 @@ export class InvoiceService {
       console.log(`   User: ${user.email}, Series: ${this.config.defaultSeries}`);
       
       // Convert order to Smartbill format
+      const defaultVatPercentage = parseFloat(this.config.companyInfo?.defaultVatPercentage || '19');
       const smartbillInvoiceData = orderToSmartbillInvoice(
         order,
         user,
         this.config.smartbill,
-        this.config.defaultSeries
+        this.config.defaultSeries,
+        defaultVatPercentage
       );
       
       console.log(`📋 Smartbill invoice data prepared:`, JSON.stringify(smartbillInvoiceData, null, 2));
@@ -454,7 +456,7 @@ async function getCompanySettings() {
         name, email, logistics_email as "logisticsEmail", phone, address, city, state, zip_code as "zipCode", 
         country, contact_person as "contactPerson", website, 
         vat_number as "vatNumber", registration_number as "registrationNumber", 
-        description
+        description, default_vat_percentage as "defaultVatPercentage"
       FROM company_settings 
       ORDER BY created_at DESC 
       LIMIT 1
