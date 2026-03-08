@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { Link } from "wouter";
@@ -19,6 +20,7 @@ export default function ProductDetails() {
   const [, params] = useRoute("/products/:slug");
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const { data: product, isLoading } = useQuery<ProductWithCategory>({
@@ -69,8 +71,8 @@ export default function ProductDetails() {
     
     addToCart(product.id, 1);
     toast({
-      title: "Added to cart",
-      description: `${translatedName} has been added to your cart.`,
+      title: t('messages.addedToCart'),
+      description: t('messages.addedToCartDesc').replace('{name}', translatedName),
     });
   };
 
@@ -215,12 +217,12 @@ export default function ProductDetails() {
                 {product.inStock ? (
                   <div className="flex items-center text-green-600">
                     <div className="w-2 h-2 bg-green-600 rounded-full mr-2"></div>
-                    <span>In Stock ({product.stockQuantity || 0} available)</span>
+                    <span>{t('products.inStock')} ({t('products.available').replace('{count}', String(product.stockQuantity || 0))})</span>
                   </div>
                 ) : (
                   <div className="flex items-center text-red-600">
                     <div className="w-2 h-2 bg-red-600 rounded-full mr-2"></div>
-                    <span>Out of Stock</span>
+                    <span>{t('products.outOfStock')}</span>
                   </div>
                 )}
               </div>
@@ -233,18 +235,18 @@ export default function ProductDetails() {
                 disabled={!product.inStock}
               >
                 <ShoppingCart className="h-5 w-5 mr-2" />
-                Add to Cart
+                {t('products.addToCart')}
               </Button>
 
               {/* Trust Badges */}
               <div className="flex items-center space-x-6 text-sm text-muted-foreground">
                 <div className="flex items-center">
                   <Truck className="h-4 w-4 mr-1" />
-                  <span>Free shipping over $500</span>
+                  <span>{t('products.freeShippingOver').replace('{amount}', '500 lei')}</span>
                 </div>
                 <div className="flex items-center">
                   <Shield className="h-4 w-4 mr-1" />
-                  <span>FDA compliant</span>
+                  <span>{t('products.fdaCompliant')}</span>
                 </div>
               </div>
             </div>
@@ -255,9 +257,9 @@ export default function ProductDetails() {
         <div className="mt-16">
           <Tabs defaultValue="description" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="description">Description</TabsTrigger>
-              <TabsTrigger value="specifications">Specifications</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
+              <TabsTrigger value="description">{t('products.description')}</TabsTrigger>
+              <TabsTrigger value="specifications">{t('products.specifications')}</TabsTrigger>
+              <TabsTrigger value="reviews">{t('products.reviews')} ({reviews.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="description" className="mt-8">
@@ -265,7 +267,7 @@ export default function ProductDetails() {
                 <CardContent className="p-8">
                   <div className="prose max-w-none">
                     <p className="text-muted-foreground leading-relaxed">
-                      {translatedDescription || "No description available for this product."}
+                      {translatedDescription || t('products.noDescription')}
                     </p>
                   </div>
                 </CardContent>
@@ -277,36 +279,36 @@ export default function ProductDetails() {
                 <CardContent className="p-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <h4 className="font-semibold mb-2">Product Details</h4>
+                      <h4 className="font-semibold mb-2">{t('products.details')}</h4>
                       <dl className="space-y-2">
                         <div className="flex justify-between">
-                          <dt className="text-muted-foreground">SKU:</dt>
+                          <dt className="text-muted-foreground">{t('products.sku')}:</dt>
                           <dd className="font-medium">KP-{product.id}</dd>
                         </div>
                         <div className="flex justify-between">
-                          <dt className="text-muted-foreground">Category:</dt>
+                          <dt className="text-muted-foreground">{t('products.category')}:</dt>
                           <dd className="font-medium">{product.category?.name || "N/A"}</dd>
                         </div>
                         <div className="flex justify-between">
-                          <dt className="text-muted-foreground">Stock:</dt>
-                          <dd className="font-medium">{product.stockQuantity || 0} units</dd>
+                          <dt className="text-muted-foreground">{t('products.stock')}:</dt>
+                          <dd className="font-medium">{product.stockQuantity || 0} {t('products.units')}</dd>
                         </div>
                       </dl>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-2">Compliance</h4>
+                      <h4 className="font-semibold mb-2">{t('products.compliance')}</h4>
                       <dl className="space-y-2">
                         <div className="flex justify-between">
-                          <dt className="text-muted-foreground">FDA Approved:</dt>
-                          <dd className="font-medium text-green-600">Yes</dd>
+                          <dt className="text-muted-foreground">{t('products.fdaApproved')}:</dt>
+                          <dd className="font-medium text-green-600">{t('products.yes')}</dd>
                         </div>
                         <div className="flex justify-between">
-                          <dt className="text-muted-foreground">HACCP Compatible:</dt>
-                          <dd className="font-medium text-green-600">Yes</dd>
+                          <dt className="text-muted-foreground">{t('products.haccpCompatible')}:</dt>
+                          <dd className="font-medium text-green-600">{t('products.yes')}</dd>
                         </div>
                         <div className="flex justify-between">
-                          <dt className="text-muted-foreground">Food Safe:</dt>
-                          <dd className="font-medium text-green-600">Yes</dd>
+                          <dt className="text-muted-foreground">{t('products.foodSafe')}:</dt>
+                          <dd className="font-medium text-green-600">{t('products.yes')}</dd>
                         </div>
                       </dl>
                     </div>
@@ -337,7 +339,7 @@ export default function ProductDetails() {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-muted-foreground">No reviews yet. Be the first to review this product!</p>
+                      <p className="text-muted-foreground">{t('products.noReviews')}</p>
                     </div>
                   )}
                 </CardContent>

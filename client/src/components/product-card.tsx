@@ -31,8 +31,8 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
     
     addToCart(product.id, 1);
     toast({
-      title: "Added to cart",
-      description: `${translatedName} has been added to your cart.`,
+      title: t('messages.addedToCart'),
+      description: t('messages.addedToCartDesc').replace('{name}', translatedName),
     });
   };
 
