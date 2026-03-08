@@ -94,6 +94,7 @@ function createCheckoutSchema(t: (key: string) => string) {
     createAccount: z.boolean().default(false),
     accountPassword: z.string().default(""),
     confirmAccountPassword: z.string().default(""),
+    saveDetailsToAccount: z.boolean().default(true),
   }).superRefine((data, ctx) => {
     if (!data.sameAsBilling) {
       const result = billingFull.safeParse(data.billingAddress);
@@ -209,6 +210,7 @@ export default function Checkout() {
         createAccount: false,
         accountPassword: "",
         confirmAccountPassword: "",
+        saveDetailsToAccount: true,
       };
     }
     
@@ -251,6 +253,7 @@ export default function Checkout() {
       createAccount: false,
       accountPassword: "",
       confirmAccountPassword: "",
+      saveDetailsToAccount: true,
     };
   };
 
@@ -259,12 +262,10 @@ export default function Checkout() {
     defaultValues: getDefaultFormValues(),
   });
 
-  // Update form values when user data becomes available
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && !justCreatedAccountRef.current) {
       const defaultValues = getDefaultFormValues();
       form.reset(defaultValues);
-      // Skip to address step for authenticated users
       if (step === 1) {
         setStep(2);
       }
@@ -280,8 +281,11 @@ export default function Checkout() {
   const sameAsBilling = form.watch("sameAsBilling");
   const clientType = form.watch("billingAddress.clientType");
   const createAccount = form.watch("createAccount");
+  const saveDetailsToAccount = form.watch("saveDetailsToAccount");
   const [showAccountPassword, setShowAccountPassword] = useState(false);
   const [showConfirmAccountPassword, setShowConfirmAccountPassword] = useState(false);
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const justCreatedAccountRef = useRef(false);
 
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
@@ -315,36 +319,7 @@ export default function Checkout() {
         email: data.email,
       });
     },
-    onSuccess: async (data) => {
-      const responseData = await data.json().catch(() => ({}));
-      const formData = form.getValues();
-
-      if (formData.createAccount && !isAuthenticated && formData.accountPassword) {
-        try {
-          const registerResponse = await apiRequest("POST", "/api/auth/register", {
-            email: formData.email,
-            password: formData.accountPassword,
-            firstName: formData.shippingAddress.firstName,
-            lastName: formData.shippingAddress.lastName,
-            phone: formData.phone || formData.shippingAddress.phone,
-            orderId: responseData.orderId || responseData.id,
-          });
-          const registerData = await registerResponse.json();
-          if (registerData.token && registerData.user) {
-            await login(registerData.token, registerData.user);
-            clearCart();
-            toast({
-              title: t('checkout.orderSuccess'),
-              description: t('checkout.accountCreatedDesc'),
-            });
-            navigate("/");
-            return;
-          }
-        } catch (err) {
-          console.error("Account creation after order failed:", err);
-        }
-      }
-
+    onSuccess: async () => {
       clearCart();
       toast({
         title: t('checkout.orderSuccess'),
@@ -525,7 +500,85 @@ export default function Checkout() {
         if (contactPhone && !form.getValues("billingAddress.phone")) {
           form.setValue("billingAddress.phone", contactPhone);
         }
+
+        const wantAccount = form.getValues("createAccount");
+        if (wantAccount) {
+          const email = form.getValues("email");
+          const pwd = form.getValues("accountPassword");
+          setIsCreatingAccount(true);
+          try {
+            const registerResponse = await apiRequest("POST", "/api/auth/register", {
+              email,
+              password: pwd,
+            });
+            const registerData = await registerResponse.json();
+            if (registerData.token && registerData.user) {
+              justCreatedAccountRef.current = true;
+              await login(registerData.token, registerData.user);
+              toast({
+                title: t('checkout.accountCreatedTitle'),
+                description: t('checkout.accountCreatedDesc'),
+              });
+            }
+          } catch (err: any) {
+            console.error("Account creation failed:", err);
+            const errorMsg = err?.message?.includes("400") 
+              ? t('checkout.emailAlreadyExists')
+              : t('checkout.accountCreationFailed');
+            toast({
+              title: t('checkout.accountCreationFailedTitle'),
+              description: errorMsg,
+              variant: "destructive",
+            });
+            setIsCreatingAccount(false);
+            return;
+          }
+          setIsCreatingAccount(false);
+        }
       }
+
+      if (step === 2 && isAuthenticated && form.getValues("saveDetailsToAccount")) {
+        try {
+          const shipping = form.getValues("shippingAddress");
+          const billing = form.getValues("billingAddress");
+          const isSameBilling = form.getValues("sameAsBilling");
+
+          await apiRequest("PUT", "/api/auth/profile", {
+            firstName: shipping.firstName,
+            lastName: shipping.lastName,
+          });
+
+          const invoiceData: Record<string, string> = {
+            deliveryAddress: shipping.address,
+            deliveryCity: shipping.city,
+            deliveryState: shipping.state,
+            deliveryCounty: shipping.county,
+            deliveryZip: shipping.zipCode,
+            deliveryCountry: shipping.country,
+          };
+
+          if (!isSameBilling) {
+            invoiceData.billingPhone = billing.phone || "";
+          }
+
+          if (billing.clientType === "company") {
+            invoiceData.companyName = billing.companyName || "";
+            invoiceData.vatNumber = billing.vatNumber || "";
+            invoiceData.registrationNumber = billing.registrationNumber || "";
+            invoiceData.companyAddress = billing.address || "";
+            invoiceData.companyCity = billing.city || "";
+            invoiceData.companyState = billing.state || "";
+            invoiceData.companyCounty = billing.county || "";
+            invoiceData.companyZip = billing.zipCode || "";
+            invoiceData.companyCountry = billing.country || "Romania";
+          }
+
+          await apiRequest("PUT", "/api/auth/invoice", invoiceData);
+        } catch (err) {
+          console.error("Failed to save details to account:", err);
+        }
+      }
+
       setStep(step + 1);
     }
   };
@@ -1224,6 +1277,31 @@ export default function Checkout() {
                         </div>
                       </CardContent>
                     </Card>
+
+                    {isAuthenticated && (
+                      <Card className="border-green-200 bg-green-50/30">
+                        <CardContent className="p-4">
+                          <FormField
+                            control={form.control}
+                            name="saveDetailsToAccount"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="text-base">{t('checkout.saveDetailsToAccount')}</FormLabel>
+                                  <p className="text-sm text-muted-foreground">{t('checkout.saveDetailsToAccountDesc')}</p>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 )}
 
@@ -1449,8 +1527,9 @@ export default function Checkout() {
                           handleNext(e);
                         }} 
                         className="kitchen-pro-secondary"
+                        disabled={isCreatingAccount}
                       >
-                        {t('checkout.next')}
+                        {isCreatingAccount ? t('checkout.processing') : t('checkout.next')}
                       </Button>
                     ) : (
                       /* Payment step - show different UI based on payment method */
