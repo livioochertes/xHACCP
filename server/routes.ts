@@ -2898,8 +2898,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         status: 'shipped',
         awbNumber: awbResponse.awbNumber,
         awbCourier: 'sameday',
-        awbCost: awbResponse.cost.toString(),
-        awbCurrency: awbResponse.currency,
+        awbCost: (awbResponse.cost ?? 0).toString(),
+        awbCurrency: awbResponse.currency || 'RON',
         awbCreatedAt: new Date(),
       });
 
@@ -3008,13 +3008,13 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                   console.error(`AWB auto-generation failed for order ${orderId}:`, awbError);
                 }
 
-                if (awbNumber) {
-                  try {
-                    const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service.js');
-                    const { createSamedayAPI } = await import('./sameday-api');
+                try {
+                  const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service.js');
 
-                    let awbPdfBuffer: Buffer | undefined;
+                  let awbPdfBuffer: Buffer | undefined;
+                  if (awbNumber) {
                     try {
+                      const { createSamedayAPI } = await import('./sameday-api');
                       const samedayAPI = createSamedayAPI();
                       if (samedayAPI) {
                         awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
@@ -3023,93 +3023,93 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                     } catch (pdfError) {
                       console.error(`❌ AWB PDF retrieval failed for Viva order #${orderId}:`, pdfError);
                     }
+                  } else {
+                    console.log(`⚠️ No AWB generated for Viva order #${orderId}, emails will be sent without AWB`);
+                  }
 
-                    const latestOrder = await storage.getOrder(orderId);
-                    if (latestOrder) {
-                      const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
+                  const latestOrder = await storage.getOrder(orderId);
+                  if (latestOrder) {
+                    const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
 
-                      for (const item of latestOrder.items) {
-                        const product = await storage.getProduct(item.productId);
-                        const supplierId = product?.supplierId || null;
-                        let supplierInfo = supplierGroups.get(supplierId);
+                    for (const item of latestOrder.items) {
+                      const product = await storage.getProduct(item.productId);
+                      const supplierId = product?.supplierId || null;
+                      let supplierInfo = supplierGroups.get(supplierId);
 
-                        if (!supplierInfo) {
-                          if (supplierId) {
-                            const supplier = await storage.getSupplier(supplierId);
-                            if (supplier && supplier.email) {
-                              supplierInfo = {
-                                supplierName: supplier.contactPerson || supplier.name,
-                                supplierEmail: supplier.email,
-                                items: [],
-                              };
-                            }
-                          }
-                          if (!supplierInfo) {
-                            const companySettings = await storage.getCompanySettings();
-                            const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
+                      if (!supplierInfo) {
+                        if (supplierId) {
+                          const supplier = await storage.getSupplier(supplierId);
+                          if (supplier && supplier.email) {
                             supplierInfo = {
-                              supplierName: companySettings?.name || 'xHACCP',
-                              supplierEmail: fallbackEmail,
+                              supplierName: supplier.contactPerson || supplier.name,
+                              supplierEmail: supplier.email,
                               items: [],
                             };
                           }
-                          supplierGroups.set(supplierId, supplierInfo);
                         }
-
-                        supplierInfo.items.push({
-                          productName: item.product.name,
-                          quantity: item.quantity,
-                        });
+                        if (!supplierInfo) {
+                          const companySettings = await storage.getCompanySettings();
+                          const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
+                          supplierInfo = {
+                            supplierName: companySettings?.name || 'xHACCP',
+                            supplierEmail: fallbackEmail,
+                            items: [],
+                          };
+                        }
+                        supplierGroups.set(supplierId, supplierInfo);
                       }
 
-                      for (const [, group] of supplierGroups) {
-                        if (group.supplierEmail) {
-                          try {
-                            await sendSupplierOrderEmail(group.supplierEmail, group.supplierName, latestOrder, group.items, awbNumber, awbPdfBuffer);
-                            console.log(`✅ Supplier email sent to ${group.supplierEmail} for Viva order #${orderId}`);
-                          } catch (err) {
-                            console.error(`❌ Failed to send supplier email for Viva order #${orderId}:`, err);
-                          }
-                        }
-                      }
+                      supplierInfo.items.push({
+                        productName: item.product.name,
+                        quantity: item.quantity,
+                      });
+                    }
 
-                      let invoicePdfBuffer: Buffer | null = null;
-                      if (invoiceGenerated && invoiceId) {
+                    for (const [, group] of supplierGroups) {
+                      if (group.supplierEmail) {
                         try {
-                          const { createInvoiceService } = await import('./invoice-service.js');
-                          const invoiceSvc = await createInvoiceService();
-                          invoicePdfBuffer = await invoiceSvc.getInvoicePdf(invoiceId);
-                          console.log(`📄 Invoice PDF retrieved for Viva order #${orderId}`);
-                        } catch (pdfError) {
-                          console.error(`❌ Failed to retrieve invoice PDF for Viva order #${orderId}:`, pdfError);
-                        }
-                      }
-
-                      const shippingAddr = latestOrder.shippingAddress as any;
-                      const billingAddr = latestOrder.billingAddress as any;
-                      let customerEmail = '';
-                      if (latestOrder.userId) {
-                        const user = await storage.getUser(latestOrder.userId);
-                        if (user) customerEmail = user.email;
-                      }
-                      if (!customerEmail) {
-                        customerEmail = shippingAddr?.email || billingAddr?.email || '';
-                      }
-
-                      if (customerEmail) {
-                        try {
-                          await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber, invoicePdfBuffer, invoiceNumber);
-                          console.log(`✅ Customer shipment email sent to ${customerEmail} for Viva order #${orderId}`);
+                          await sendSupplierOrderEmail(group.supplierEmail, group.supplierName, latestOrder, group.items, awbNumber || '', awbPdfBuffer);
+                          console.log(`✅ Supplier email sent to ${group.supplierEmail} for Viva order #${orderId}`);
                         } catch (err) {
-                          console.error(`❌ Failed to send customer shipment email for Viva order #${orderId}:`, err);
+                          console.error(`❌ Failed to send supplier email for Viva order #${orderId}:`, err);
                         }
                       }
                     }
-                  } catch (emailError) {
-                    console.error(`❌ Failed to send supplier/customer emails for Viva order #${orderId}:`, emailError);
+
+                    let invoicePdfBuffer: Buffer | null = null;
+                    if (invoiceGenerated && invoiceId) {
+                      try {
+                        const { createInvoiceService } = await import('./invoice-service.js');
+                        const invoiceSvc = await createInvoiceService();
+                        invoicePdfBuffer = await invoiceSvc.getInvoicePdf(invoiceId);
+                        console.log(`📄 Invoice PDF retrieved for Viva order #${orderId}`);
+                      } catch (pdfError) {
+                        console.error(`❌ Failed to retrieve invoice PDF for Viva order #${orderId}:`, pdfError);
+                      }
+                    }
+
+                    const shippingAddr = latestOrder.shippingAddress as any;
+                    const billingAddr = latestOrder.billingAddress as any;
+                    let customerEmail = '';
+                    if (latestOrder.userId) {
+                      const user = await storage.getUser(latestOrder.userId);
+                      if (user) customerEmail = user.email;
+                    }
+                    if (!customerEmail) {
+                      customerEmail = shippingAddr?.email || billingAddr?.email || '';
+                    }
+
+                    if (customerEmail) {
+                      try {
+                        await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber || '', invoicePdfBuffer, invoiceNumber);
+                        console.log(`✅ Customer shipment email sent to ${customerEmail} for Viva order #${orderId}`);
+                      } catch (err) {
+                        console.error(`❌ Failed to send customer shipment email for Viva order #${orderId}:`, err);
+                      }
+                    }
                   }
-                } else {
-                  console.log(`⚠️ No AWB generated for Viva order #${orderId}, skipping supplier/customer emails`);
+                } catch (emailError) {
+                  console.error(`❌ Failed to send supplier/customer emails for Viva order #${orderId}:`, emailError);
                 }
                 }
               } else {
@@ -3199,13 +3199,13 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                   console.error(`AWB auto-generation via webhook failed for order ${orderId}:`, awbError);
                 }
 
-                if (awbNumber) {
-                  try {
-                    const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service.js');
-                    const { createSamedayAPI } = await import('./sameday-api');
+                try {
+                  const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service.js');
 
-                    let awbPdfBuffer: Buffer | undefined;
+                  let awbPdfBuffer: Buffer | undefined;
+                  if (awbNumber) {
                     try {
+                      const { createSamedayAPI } = await import('./sameday-api');
                       const samedayAPI = createSamedayAPI();
                       if (samedayAPI) {
                         awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
@@ -3213,90 +3213,92 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                     } catch (pdfError) {
                       console.error(`❌ AWB PDF retrieval failed for webhook order #${orderId}:`, pdfError);
                     }
+                  } else {
+                    console.log(`⚠️ No AWB generated via webhook for order #${orderId}, emails will be sent without AWB`);
+                  }
 
-                    const latestOrder = await storage.getOrder(orderId);
-                    if (latestOrder) {
-                      const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
+                  const latestOrder = await storage.getOrder(orderId);
+                  if (latestOrder) {
+                    const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
 
-                      for (const item of latestOrder.items) {
-                        const product = await storage.getProduct(item.productId);
-                        const supplierId = product?.supplierId || null;
-                        let supplierInfo = supplierGroups.get(supplierId);
+                    for (const item of latestOrder.items) {
+                      const product = await storage.getProduct(item.productId);
+                      const supplierId = product?.supplierId || null;
+                      let supplierInfo = supplierGroups.get(supplierId);
 
-                        if (!supplierInfo) {
-                          if (supplierId) {
-                            const supplier = await storage.getSupplier(supplierId);
-                            if (supplier && supplier.email) {
-                              supplierInfo = {
-                                supplierName: supplier.contactPerson || supplier.name,
-                                supplierEmail: supplier.email,
-                                items: [],
-                              };
-                            }
-                          }
-                          if (!supplierInfo) {
-                            const companySettings = await storage.getCompanySettings();
-                            const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
+                      if (!supplierInfo) {
+                        if (supplierId) {
+                          const supplier = await storage.getSupplier(supplierId);
+                          if (supplier && supplier.email) {
                             supplierInfo = {
-                              supplierName: companySettings?.name || 'xHACCP',
-                              supplierEmail: fallbackEmail,
+                              supplierName: supplier.contactPerson || supplier.name,
+                              supplierEmail: supplier.email,
                               items: [],
                             };
                           }
-                          supplierGroups.set(supplierId, supplierInfo);
                         }
-
-                        supplierInfo.items.push({
-                          productName: item.product.name,
-                          quantity: item.quantity,
-                        });
+                        if (!supplierInfo) {
+                          const companySettings = await storage.getCompanySettings();
+                          const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
+                          supplierInfo = {
+                            supplierName: companySettings?.name || 'xHACCP',
+                            supplierEmail: fallbackEmail,
+                            items: [],
+                          };
+                        }
+                        supplierGroups.set(supplierId, supplierInfo);
                       }
 
-                      for (const [, group] of supplierGroups) {
-                        if (group.supplierEmail) {
-                          try {
-                            await sendSupplierOrderEmail(group.supplierEmail, group.supplierName, latestOrder, group.items, awbNumber, awbPdfBuffer);
-                            console.log(`✅ Supplier email sent via webhook for order #${orderId}`);
-                          } catch (err) {
-                            console.error(`❌ Failed to send supplier email via webhook for order #${orderId}:`, err);
-                          }
-                        }
-                      }
+                      supplierInfo.items.push({
+                        productName: item.product.name,
+                        quantity: item.quantity,
+                      });
+                    }
 
-                      let invoicePdfBuffer: Buffer | null = null;
-                      if (invoiceGenerated && invoiceId) {
+                    for (const [, group] of supplierGroups) {
+                      if (group.supplierEmail) {
                         try {
-                          const { createInvoiceService } = await import('./invoice-service.js');
-                          const invoiceSvc = await createInvoiceService();
-                          invoicePdfBuffer = await invoiceSvc.getInvoicePdf(invoiceId);
-                        } catch (pdfError) {
-                          console.error(`❌ Failed to retrieve invoice PDF via webhook for order #${orderId}:`, pdfError);
-                        }
-                      }
-
-                      const shippingAddr = latestOrder.shippingAddress as any;
-                      const billingAddr = latestOrder.billingAddress as any;
-                      let customerEmail = '';
-                      if (latestOrder.userId) {
-                        const user = await storage.getUser(latestOrder.userId);
-                        if (user) customerEmail = user.email;
-                      }
-                      if (!customerEmail) {
-                        customerEmail = shippingAddr?.email || billingAddr?.email || '';
-                      }
-
-                      if (customerEmail) {
-                        try {
-                          await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber, invoicePdfBuffer, invoiceNumber);
-                          console.log(`✅ Customer shipment email sent via webhook for order #${orderId}`);
+                          await sendSupplierOrderEmail(group.supplierEmail, group.supplierName, latestOrder, group.items, awbNumber || '', awbPdfBuffer);
+                          console.log(`✅ Supplier email sent via webhook for order #${orderId}`);
                         } catch (err) {
-                          console.error(`❌ Failed to send customer shipment email via webhook for order #${orderId}:`, err);
+                          console.error(`❌ Failed to send supplier email via webhook for order #${orderId}:`, err);
                         }
                       }
                     }
-                  } catch (emailError) {
-                    console.error(`❌ Failed to send emails via webhook for order #${orderId}:`, emailError);
+
+                    let invoicePdfBuffer: Buffer | null = null;
+                    if (invoiceGenerated && invoiceId) {
+                      try {
+                        const { createInvoiceService } = await import('./invoice-service.js');
+                        const invoiceSvc = await createInvoiceService();
+                        invoicePdfBuffer = await invoiceSvc.getInvoicePdf(invoiceId);
+                      } catch (pdfError) {
+                        console.error(`❌ Failed to retrieve invoice PDF via webhook for order #${orderId}:`, pdfError);
+                      }
+                    }
+
+                    const shippingAddr = latestOrder.shippingAddress as any;
+                    const billingAddr = latestOrder.billingAddress as any;
+                    let customerEmail = '';
+                    if (latestOrder.userId) {
+                      const user = await storage.getUser(latestOrder.userId);
+                      if (user) customerEmail = user.email;
+                    }
+                    if (!customerEmail) {
+                      customerEmail = shippingAddr?.email || billingAddr?.email || '';
+                    }
+
+                    if (customerEmail) {
+                      try {
+                        await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber || '', invoicePdfBuffer, invoiceNumber);
+                        console.log(`✅ Customer shipment email sent via webhook for order #${orderId}`);
+                      } catch (err) {
+                        console.error(`❌ Failed to send customer shipment email via webhook for order #${orderId}:`, err);
+                      }
+                    }
                   }
+                } catch (emailError) {
+                  console.error(`❌ Failed to send emails via webhook for order #${orderId}:`, emailError);
                 }
               } catch (error) {
                 console.error(`❌ Webhook background processing failed for order #${orderId}:`, error);
