@@ -116,14 +116,15 @@ app.use((req, res, next) => {
   
   const server = await registerRoutes(app);
   
-  // Seed database with sample data
   try {
-    await seedDatabase();
-    await seedCategoryTranslations();
+    if (app.get("env") === "development") {
+      await seedDatabase();
+      await seedCategoryTranslations();
+    }
     await loadAllDataIntoMemory();
   } catch (error) {
-    console.error('Database seeding failed:', error);
-    log('Database seeding failed, continuing without seeding');
+    console.error('Data loading failed:', error);
+    log('Data loading failed, continuing without it');
   }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
