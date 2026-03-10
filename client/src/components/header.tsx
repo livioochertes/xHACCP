@@ -225,6 +225,7 @@ export default function Header() {
                     onClick={() => {
                       setMobileMenuOpen(false);
                       navigate("/ai-assistant");
+                      window.scrollTo(0, 0);
                     }}
                   >
                     <Bot className="h-4 w-4 mr-2" />
@@ -237,6 +238,7 @@ export default function Header() {
                       onClick={() => {
                         setMobileMenuOpen(false);
                         navigate("/account");
+                        window.scrollTo(0, 0);
                       }}
                     >
                       <User className="h-4 w-4 mr-2" />
@@ -249,6 +251,7 @@ export default function Header() {
                       onClick={() => {
                         setMobileMenuOpen(false);
                         navigate("/login");
+                        window.scrollTo(0, 0);
                       }}
                     >
                       <User className="h-4 w-4 mr-2" />
