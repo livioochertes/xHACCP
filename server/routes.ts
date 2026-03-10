@@ -1088,7 +1088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invoiceData = {
         invoiceNumber,
         orderId,
-        userId: order.userId!,
+        userId: order.userId || undefined,
         issueDate: new Date(),
         supplyDate: new Date(),
         subtotal: subtotalWithoutVat.toFixed(2),

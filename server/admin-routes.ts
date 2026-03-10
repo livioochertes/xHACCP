@@ -1005,14 +1005,26 @@ export async function registerAdminRoutes(app: Express) {
             const notesEmailMatch = order.notes?.match(/Guest email:\s*([^\s,]+)/);
             const resolvedEmail = guestEmail || (notesEmailMatch ? notesEmailMatch[1] : '');
 
-            user = {
-              id: 0,
-              email: resolvedEmail,
-              firstName: shippingAddr?.firstName || billingAddr?.firstName || 'Guest',
-              lastName: shippingAddr?.lastName || billingAddr?.lastName || 'Customer',
-              isAdmin: false,
-            };
-            console.log(`📧 [Background] Accept order #${orderId}: guest order, resolved email: ${resolvedEmail}`);
+            if (resolvedEmail) {
+              const existingUser = await storage.getUserByEmail(resolvedEmail);
+              if (existingUser) {
+                user = existingUser;
+                await storage.updateOrder(orderId, { userId: existingUser.id });
+                (order as any).userId = existingUser.id;
+                console.log(`🔗 [Background] Linked order #${orderId} to registered user ${existingUser.id} (${resolvedEmail})`);
+              }
+            }
+
+            if (!user) {
+              user = {
+                id: 0,
+                email: resolvedEmail,
+                firstName: shippingAddr?.firstName || billingAddr?.firstName || 'Guest',
+                lastName: shippingAddr?.lastName || billingAddr?.lastName || 'Customer',
+                isAdmin: false,
+              };
+              console.log(`📧 [Background] Accept order #${orderId}: guest order, no registered user for ${resolvedEmail}`);
+            }
           }
 
           const isCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod' || order.paymentMethod === 'cash';

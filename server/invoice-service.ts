@@ -56,17 +56,30 @@ export class InvoiceService {
         const billing = order.billingAddress as any || {};
         const shipping = order.shippingAddress as any || {};
         const guestEmail = billing.email || shipping.email || order.notes?.match(/Guest email:\s*([^\s,]+)/)?.[1] || 'guest@xhaccp.com';
-        user = {
-          id: 0,
-          email: guestEmail,
-          firstName: billing.firstName || shipping.firstName || 'Guest',
-          lastName: billing.lastName || shipping.lastName || 'Customer',
-          companyName: billing.companyName || '',
-          vatNumber: billing.vatNumber || '',
-          registrationNumber: billing.registrationNumber || '',
-          companyCounty: billing.county || shipping.county || '',
-        } as any;
-        console.log(`📋 Guest order #${orderId}: using billing/shipping data for invoice, email: ${guestEmail}`);
+
+        if (guestEmail && guestEmail !== 'guest@xhaccp.com') {
+          const existingUser = await storage.getUserByEmail(guestEmail);
+          if (existingUser) {
+            user = existingUser;
+            await storage.updateOrder(orderId, { userId: existingUser.id });
+            (order as any).userId = existingUser.id;
+            console.log(`🔗 Linked guest order #${orderId} to existing user ${existingUser.id} (${guestEmail}) before invoice generation`);
+          }
+        }
+
+        if (!user) {
+          user = {
+            id: 0,
+            email: guestEmail,
+            firstName: billing.firstName || shipping.firstName || 'Guest',
+            lastName: billing.lastName || shipping.lastName || 'Customer',
+            companyName: billing.companyName || '',
+            vatNumber: billing.vatNumber || '',
+            registrationNumber: billing.registrationNumber || '',
+            companyCounty: billing.county || shipping.county || '',
+          } as any;
+          console.log(`📋 Guest order #${orderId}: no registered user found for ${guestEmail}, saving invoice without userId`);
+        }
       }
 
       // Update order status to 'paid' if payment successful
@@ -102,9 +115,27 @@ export class InvoiceService {
           if (!order) {
             throw new Error(`Order ${orderId} not found`);
           }
-          const user = order.userId ? await storage.getUser(order.userId) : null;
+          let user = order.userId ? await storage.getUser(order.userId) : null;
           if (!user) {
-            throw new Error(`User ${order.userId} not found`);
+            const billing = order.billingAddress as any || {};
+            const shipping = order.shippingAddress as any || {};
+            const guestEmail = billing.email || shipping.email || '';
+            if (guestEmail) {
+              const existingUser = await storage.getUserByEmail(guestEmail);
+              if (existingUser) {
+                user = existingUser;
+                await storage.updateOrder(orderId, { userId: existingUser.id });
+                (order as any).userId = existingUser.id;
+              }
+            }
+            if (!user) {
+              user = {
+                id: 0,
+                email: guestEmail || 'guest@xhaccp.com',
+                firstName: billing.firstName || shipping.firstName || 'Guest',
+                lastName: billing.lastName || shipping.lastName || 'Customer',
+              } as any;
+            }
           }
           return await this.generateLocalInvoice(order, user, paymentData);
         } catch (fallbackError) {
@@ -195,7 +226,7 @@ export class InvoiceService {
       const invoiceData = {
         invoiceNumber: `${smartbillResult.series} ${smartbillResult.number}`,
         orderId: order.id,
-        userId: order.userId || null,
+        userId: order.userId || undefined,
         issueDate: new Date(),
         supplyDate: new Date(),
         subtotal: order.totalAmount,
@@ -288,7 +319,7 @@ export class InvoiceService {
       const invoiceData = {
         invoiceNumber,
         orderId: order.id,
-        userId: order.userId,
+        userId: order.userId || undefined,
         issueDate: new Date(),
         supplyDate: new Date(),
         subtotal: subtotalWithoutVat.toFixed(2),

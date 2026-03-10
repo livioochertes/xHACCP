@@ -178,7 +178,7 @@ export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   invoiceNumber: varchar("invoice_number", { length: 100 }).notNull().unique(),
   orderId: integer("order_id").references(() => orders.id),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id),
   issueDate: timestamp("issue_date").defaultNow().notNull(),
   supplyDate: timestamp("supply_date"),
   dueDate: timestamp("due_date"),

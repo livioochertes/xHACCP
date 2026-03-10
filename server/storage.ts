@@ -50,7 +50,7 @@ import {
   type InsertVoucher,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, like, and, sql, inArray } from "drizzle-orm";
+import { eq, desc, like, and, or, sql, inArray, isNull, ne } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -847,7 +847,37 @@ export class DatabaseStorage implements IStorage {
   // Invoice operations
   async getInvoices(userId?: number): Promise<Invoice[]> {
     if (userId) {
-      return await db.select().from(invoices).where(eq(invoices.userId, userId)).orderBy(desc(invoices.createdAt));
+      const directInvoices = await db.select().from(invoices).where(eq(invoices.userId, userId)).orderBy(desc(invoices.createdAt));
+      
+      const userOrders = await db.select({ id: orders.id }).from(orders).where(eq(orders.userId, userId));
+      if (userOrders.length > 0) {
+        const orderIds = userOrders.map(o => o.id);
+        const orderInvoices = await db.select().from(invoices)
+          .where(
+            and(
+              inArray(invoices.orderId, orderIds),
+              or(isNull(invoices.userId), ne(invoices.userId, userId))
+            )
+          )
+          .orderBy(desc(invoices.createdAt));
+        
+        for (const inv of orderInvoices) {
+          await db.update(invoices).set({ userId }).where(eq(invoices.id, inv.id));
+          inv.userId = userId;
+        }
+        
+        if (orderInvoices.length > 0) {
+          const allInvoices = [...directInvoices, ...orderInvoices];
+          allInvoices.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+          });
+          return allInvoices;
+        }
+      }
+      
+      return directInvoices;
     }
     return await db.select().from(invoices).orderBy(desc(invoices.createdAt));
   }
@@ -856,9 +886,11 @@ export class DatabaseStorage implements IStorage {
     const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
     if (!invoice) return undefined;
 
-    // Get user data
-    const [user] = await db.select().from(users).where(eq(users.id, invoice.userId));
-    if (!user) return undefined;
+    let user = null;
+    if (invoice.userId) {
+      const [foundUser] = await db.select().from(users).where(eq(users.id, invoice.userId));
+      user = foundUser || null;
+    }
 
     // Get invoice items
     const items = await db.select({
@@ -884,9 +916,11 @@ export class DatabaseStorage implements IStorage {
     const [invoice] = await db.select().from(invoices).where(eq(invoices.invoiceNumber, invoiceNumber));
     if (!invoice) return undefined;
 
-    // Get user data
-    const [user] = await db.select().from(users).where(eq(users.id, invoice.userId));
-    if (!user) return undefined;
+    let user = null;
+    if (invoice.userId) {
+      const [foundUser] = await db.select().from(users).where(eq(users.id, invoice.userId));
+      user = foundUser || null;
+    }
 
     // Get invoice items
     const items = await db.select({
