@@ -884,8 +884,8 @@ export default function Account() {
                     <div className="space-y-4">
                       {orders.map((order: any) => (
                         <div key={order.id} className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-4">
+                          <div className="flex flex-wrap items-start justify-between gap-2 mb-4">
+                            <div className="flex flex-wrap items-center gap-2">
                               <div>
                                 <h3 className="font-medium">{t('account.orderNumber')}{order.id}</h3>
                                 <p className="text-sm text-gray-600">
@@ -904,13 +904,13 @@ export default function Account() {
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Button 
                               variant="outline" 
                               size="sm"
                               onClick={() => viewOrderDetails(order)}
                             >
-                              <Eye className="h-4 w-4 mr-2" />
+                              <Eye className="h-4 w-4 mr-1" />
                               {t('account.viewDetails')}
                             </Button>
                             <Button 
@@ -921,12 +921,12 @@ export default function Account() {
                             >
                               {downloadingInvoice === order.id ? (
                                 <>
-                                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                                  <div className="w-4 h-4 mr-1 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
                                   Creating...
                                 </>
                               ) : (
                                 <>
-                                  <Download className="h-4 w-4 mr-2" />
+                                  <Download className="h-4 w-4 mr-1" />
                                   {t('account.invoice')}
                                 </>
                               )}
@@ -937,7 +937,7 @@ export default function Account() {
                                 size="sm"
                                 onClick={() => window.open(`https://sameday.ro/status-colet/?awb=${order.awbNumber}`, '_blank')}
                               >
-                                <ExternalLink className="h-4 w-4 mr-2" />
+                                <ExternalLink className="h-4 w-4 mr-1" />
                                 Track Package
                               </Button>
                             )}
@@ -977,11 +977,11 @@ export default function Account() {
                   ) : (
                     <div className="space-y-4 mb-6">
                       {invoices.map((invoice: any) => (
-                        <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-medium">{invoice.invoiceNumber}</h3>
-                              <Badge variant="outline" className="text-xs">
+                        <div key={invoice.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <h3 className="font-medium truncate">{invoice.invoiceNumber}</h3>
+                              <Badge variant="outline" className="text-xs shrink-0">
                                 {invoice.paymentMethod === 'wire_transfer' ? 'Wire Transfer' : invoice.paymentMethod}
                               </Badge>
                             </div>
@@ -992,13 +992,13 @@ export default function Account() {
                               {invoice.items?.length || 0} items • {invoice.totalAmount} lei
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Button 
                               variant="outline" 
                               size="sm"
                               onClick={() => navigate(`/invoice/${invoice.invoiceNumber}`)}
                             >
-                              <Eye className="h-4 w-4 mr-2" />
+                              <Eye className="h-4 w-4 mr-1" />
                               View
                             </Button>
                             {invoice.paymentLink && (
@@ -1007,7 +1007,7 @@ export default function Account() {
                                 size="sm"
                                 onClick={() => window.open(invoice.paymentLink, '_blank')}
                               >
-                                <ExternalLink className="h-4 w-4 mr-2" />
+                                <ExternalLink className="h-4 w-4 mr-1" />
                                 Pay
                               </Button>
                             )}
@@ -1040,8 +1040,8 @@ export default function Account() {
                             !invoices.some((invoice: any) => invoice.orderId === order.id)
                           )
                           .map((order: any) => (
-                            <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                              <div>
+                            <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
+                              <div className="min-w-0">
                                 <h4 className="font-medium">Order #{order.id}</h4>
                                 <p className="text-sm text-gray-600">
                                   {format(new Date(order.createdAt), "PPP")} • {order.totalAmount} lei
@@ -1049,6 +1049,7 @@ export default function Account() {
                               </div>
                               <Button 
                                 size="sm"
+                                className="shrink-0 self-start sm:self-center"
                                 onClick={() => createInvoiceMutation.mutate(order.id)}
                                 disabled={createInvoiceMutation.isPending}
                               >

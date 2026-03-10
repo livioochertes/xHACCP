@@ -1057,8 +1057,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Order not found" });
       }
 
-      // Check if user owns this order or is admin
-      if (order.userId !== req.userId && !req.isAdmin) {
+      // Check if user owns this order or is admin (also match by email for guest orders)
+      let isOwner = order.userId === req.userId;
+      if (!isOwner && !req.isAdmin && req.userId) {
+        const user = await storage.getUser(req.userId);
+        const orderEmail = (order.shippingAddress as any)?.email || (order.billingAddress as any)?.email;
+        if (user && orderEmail && user.email === orderEmail) {
+          isOwner = true;
+          if (!order.userId) {
+            await storage.updateOrder(orderId, { userId: req.userId });
+          }
+        }
+      }
+      if (!isOwner && !req.isAdmin) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1088,7 +1099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invoiceData = {
         invoiceNumber,
         orderId,
-        userId: order.userId || undefined,
+        userId: req.userId || order.userId || undefined,
         issueDate: new Date(),
         supplyDate: new Date(),
         subtotal: subtotalWithoutVat.toFixed(2),
@@ -1138,13 +1149,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Order not found" });
       }
 
-      // Check if user owns this order or is admin
-      if (order.userId !== req.userId && !req.isAdmin) {
+      // Check if user owns this order or is admin (also match by email for guest orders)
+      let isOwner = order.userId === req.userId;
+      let effectiveUserId = order.userId || req.userId;
+      if (!isOwner && !req.isAdmin && req.userId) {
+        const reqUser = await storage.getUser(req.userId);
+        const orderEmail = (order.shippingAddress as any)?.email || (order.billingAddress as any)?.email;
+        if (reqUser && orderEmail && reqUser.email === orderEmail) {
+          isOwner = true;
+          effectiveUserId = req.userId;
+          if (!order.userId) {
+            await storage.updateOrder(orderId, { userId: req.userId });
+          }
+        }
+      }
+      if (!isOwner && !req.isAdmin) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       // Get user details for Smartbill invoice
-      const user = await storage.getUser(order.userId!);
+      const user = await storage.getUser(effectiveUserId!);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
