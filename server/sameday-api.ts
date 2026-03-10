@@ -228,13 +228,15 @@ export class SamedayAPI {
     
     let totalWeight = 0;
     awbData.parcels.forEach((parcel, i) => {
-      formBody.append(`parcels[${i}][weight]`, String(parcel.weight));
+      const parcelWeight = parseFloat(String(parcel.weight)) || 1;
+      formBody.append(`parcels[${i}][weight]`, parcelWeight.toFixed(2));
       if (parcel.width) formBody.append(`parcels[${i}][width]`, String(parcel.width));
       if (parcel.length) formBody.append(`parcels[${i}][length]`, String(parcel.length));
       if (parcel.height) formBody.append(`parcels[${i}][height]`, String(parcel.height));
-      totalWeight += parcel.weight;
+      totalWeight += parcelWeight;
     });
-    formBody.append('packageWeight', String(awbData.packageWeight || totalWeight));
+    const finalWeight = parseFloat(String(awbData.packageWeight || totalWeight)) || 1;
+    formBody.append('packageWeight', finalWeight.toFixed(2));
     
     formBody.append('awbPayment', String(awbData.awbPayment));
     formBody.append('cashOnDelivery', String(awbData.cashOnDelivery || 0));

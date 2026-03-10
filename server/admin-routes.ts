@@ -1077,8 +1077,8 @@ export async function registerAdminRoutes(app: Express) {
                     for (const item of currentOrder.items) {
                       const product = await storage.getProduct(item.productId);
                       if (!product) continue;
-                      const piecesPerPackage = (product as any).piecesPerPackage || 1;
-                      const weight = (product as any).weight || 1;
+                      const piecesPerPackage = parseInt(String((product as any).piecesPerPackage)) || 1;
+                      const weight = parseFloat(String((product as any).weight)) || 1;
                       const numberOfPackages = Math.ceil(item.quantity / piecesPerPackage);
                       for (let i = 0; i < numberOfPackages; i++) {
                         parcels.push({ sequenceNo: parcelCounter++, weight, width: 30, height: 20, length: 40 });
@@ -3034,8 +3034,9 @@ export async function registerAdminRoutes(app: Express) {
         });
       };
 
-      // Race the AWB generation against timeout
-      await Promise.race([awbGenerationPromise(), timeoutPromise]);
+      const timeoutMs = 45000;
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('AWB generation timeout after 45s')), timeoutMs));
+      await Promise.race([awbGenerationPromise(), timeout]);
 
     } catch (error) {
       console.error("Admin AWB generation error:", error);
