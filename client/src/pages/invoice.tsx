@@ -78,7 +78,7 @@ export default function Invoice() {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Invoice Not Found</h1>
             <p className="text-gray-600 mb-6">The requested invoice could not be found.</p>
-            <Button onClick={() => navigate('/account')} variant="outline">
+            <Button onClick={() => navigate('/account#invoices')} variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Account
             </Button>
@@ -92,7 +92,7 @@ export default function Invoice() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
-          <Button onClick={() => navigate('/account')} variant="outline" className="mb-4">
+          <Button onClick={() => navigate('/account#invoices')} variant="outline" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Account
           </Button>

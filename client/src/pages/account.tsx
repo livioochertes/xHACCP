@@ -75,7 +75,10 @@ type PasswordChangeFormData = z.infer<typeof passwordChangeSchema>;
 type NotificationFormData = z.infer<typeof notificationSchema>;
 
 export default function Account() {
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    return ['profile', 'orders', 'invoices', 'invoice-settings', 'alerts'].includes(hash) ? hash : 'profile';
+  });
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -989,7 +992,7 @@ export default function Account() {
                               Order #{invoice.orderId} • {format(new Date(invoice.issueDate), "PPP")}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {invoice.items?.length || 0} items • {invoice.totalAmount} lei
+                              {invoice.itemCount || invoice.items?.length || 0} items • {invoice.totalAmount} lei
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users } from "@shared/schema";
+import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users, invoiceItems } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcrypt";
@@ -958,8 +958,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/invoices", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.userId!;
-      const invoices = await storage.getInvoices(userId);
-      res.json(invoices);
+      const invoiceList = await storage.getInvoices(userId);
+      const enriched = await Promise.all(invoiceList.map(async (inv) => {
+        const items = await db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, inv.id));
+        return { ...inv, itemCount: items.length };
+      }));
+      res.json(enriched);
     } catch (error) {
       console.error("Error fetching invoices:", error);
       res.status(500).json({ message: "Failed to fetch invoices" });
