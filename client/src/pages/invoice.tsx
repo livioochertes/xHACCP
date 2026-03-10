@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Download, ExternalLink, QrCode } from "lucide-react";
-
+import Header from "@/components/header";
 import QRCode from "qrcode";
 
 export default function Invoice() {
@@ -130,7 +130,7 @@ export default function Invoice() {
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">INVOICE</h1>
                 <p className="text-lg font-medium">{invoice.invoiceNumber}</p>
                 <p className="text-sm text-gray-600">
-                  Date: {format(new Date(invoice.issueDate), "dd/MM/yyyy")}
+                  Date: {invoice.issueDate ? format(new Date(invoice.issueDate), "dd/MM/yyyy") : '-'}
                 </p>
               </div>
             </div>
@@ -165,7 +165,7 @@ export default function Invoice() {
                 <h3 className="font-semibold text-gray-900 mb-3">Invoice Details:</h3>
                 <div className="space-y-1">
                   <p><span className="text-gray-600">Order ID:</span> #{invoice.orderId}</p>
-                  <p><span className="text-gray-600">Supply Date:</span> {format(new Date(invoice.supplyDate || invoice.issueDate), "PPP")}</p>
+                  <p><span className="text-gray-600">Supply Date:</span> {(invoice.supplyDate || invoice.issueDate) ? format(new Date(invoice.supplyDate || invoice.issueDate), "dd/MM/yyyy") : '-'}</p>
                   <p><span className="text-gray-600">Payment Method:</span> 
                     <Badge variant="outline" className="ml-2">
                       {invoice.paymentMethod === 'wire_transfer' ? 'Wire Transfer' : invoice.paymentMethod}
