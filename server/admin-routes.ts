@@ -2884,6 +2884,136 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Helper: send customer & supplier emails after AWB generation
+  async function sendAwbEmails(orderId: number, awbNumber: string) {
+    try {
+      console.log(`📧 [AWB Email] Sending emails for order #${orderId}, AWB: ${awbNumber}...`);
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        console.error(`❌ [AWB Email] Order #${orderId} not found`);
+        return;
+      }
+
+      const shippingAddr = order.shippingAddress as any;
+      const billingAddr = order.billingAddress as any;
+
+      let user: any = null;
+      if (order.userId) {
+        user = await storage.getUser(order.userId);
+      }
+      if (!user) {
+        const guestEmail = shippingAddr?.email || billingAddr?.email || '';
+        if (guestEmail) {
+          const existingUser = await storage.getUserByEmail(guestEmail);
+          if (existingUser) {
+            user = existingUser;
+          } else {
+            user = {
+              id: 0,
+              email: guestEmail,
+              firstName: shippingAddr?.firstName || billingAddr?.firstName || 'Guest',
+              lastName: shippingAddr?.lastName || billingAddr?.lastName || 'Customer',
+            };
+          }
+        }
+      }
+
+      if (!user) {
+        const notesEmailMatch = order.notes?.match(/Guest email:\s*([^\s,]+)/);
+        const notesEmail = notesEmailMatch ? notesEmailMatch[1] : '';
+        if (notesEmail) {
+          const existingUser = await storage.getUserByEmail(notesEmail);
+          if (existingUser) {
+            user = existingUser;
+          } else {
+            user = { id: 0, email: notesEmail, firstName: 'Guest', lastName: 'Customer' };
+          }
+        }
+      }
+
+      if (!user?.email) {
+        console.error(`❌ [AWB Email] No email found for order #${orderId}`);
+        return;
+      }
+
+      const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service');
+      const { createSamedayAPI } = await import('./sameday-api');
+
+      let awbPdfBuffer: Buffer | undefined;
+      if (!awbNumber.includes('MANUAL')) {
+        try {
+          const samedayAPI = createSamedayAPI();
+          if (samedayAPI) {
+            awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
+            console.log(`✅ [AWB Email] AWB PDF retrieved for order #${orderId}`);
+          }
+        } catch (pdfError) {
+          console.error(`❌ [AWB Email] AWB PDF retrieval failed:`, pdfError);
+        }
+      }
+
+      const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
+      for (const item of order.items) {
+        const product = await storage.getProduct(item.productId);
+        const supplierId = product?.supplierId || null;
+        let supplierInfo = supplierGroups.get(supplierId);
+        if (!supplierInfo) {
+          if (supplierId) {
+            const supplier = await storage.getSupplier(supplierId);
+            if (supplier && supplier.email) {
+              supplierInfo = { supplierName: supplier.contactPerson || supplier.name, supplierEmail: supplier.email, items: [] };
+            }
+          }
+          if (!supplierInfo) {
+            const companySettings = await storage.getCompanySettings();
+            const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
+            supplierInfo = { supplierName: companySettings?.name || 'xHACCP', supplierEmail: fallbackEmail, items: [] };
+          }
+          supplierGroups.set(supplierId, supplierInfo);
+        }
+        supplierInfo.items.push({ productName: item.product.name, quantity: item.quantity });
+      }
+
+      for (const [, group] of supplierGroups) {
+        if (group.supplierEmail) {
+          try {
+            await sendSupplierOrderEmail(group.supplierEmail, group.supplierName, order, group.items, awbNumber, awbPdfBuffer);
+            console.log(`✅ [AWB Email] Supplier email sent to ${group.supplierEmail} for order #${orderId}`);
+          } catch (e) {
+            console.error(`❌ [AWB Email] Failed to send supplier email to ${group.supplierEmail}:`, e);
+          }
+        }
+      }
+
+      let invoicePdfBuffer: Buffer | null = null;
+      let invoiceNumber: string | undefined;
+      try {
+        const invoicesList = await storage.getInvoices(order.userId || undefined);
+        const orderInvoice = invoicesList.find(inv => inv.orderId === orderId);
+        if (orderInvoice) {
+          invoiceNumber = orderInvoice.invoiceNumber;
+          const { createInvoiceService } = await import('./invoice-service.js');
+          const invoiceService = await createInvoiceService();
+          invoicePdfBuffer = await invoiceService.getInvoicePdf(orderInvoice.id);
+          console.log(`✅ [AWB Email] Invoice PDF retrieved for order #${orderId}`);
+        }
+      } catch (e) {
+        console.error(`❌ [AWB Email] Failed to retrieve invoice PDF:`, e);
+      }
+
+      try {
+        await sendCustomerShipmentEmail(user.email, order, awbNumber, invoicePdfBuffer, invoiceNumber);
+        console.log(`✅ [AWB Email] Customer email sent to ${user.email} for order #${orderId}`);
+      } catch (e) {
+        console.error(`❌ [AWB Email] Failed to send customer email:`, e);
+      }
+
+      console.log(`✅ [AWB Email] Email flow completed for order #${orderId}`);
+    } catch (error) {
+      console.error(`❌ [AWB Email] Error in email flow for order #${orderId}:`, error);
+    }
+  }
+
   // Manual AWB Generation route for admin interface
   app.post("/admin/api/orders/:id/generate-awb", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
@@ -2902,10 +3032,9 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(500).json({ message: "Sameday API not configured. Please add SAMEDAY_USERNAME and SAMEDAY_PASSWORD environment variables." });
       }
 
-      // Handle rate limiting by providing immediate feedback to user
       console.log('🚚 Starting AWB generation for order:', orderId);
 
-      // Race the AWB generation process against timeout
+      let responded = false;
       const awbGenerationPromise = async () => {
         // Get real pickup points and services from Sameday API
         console.log('📍 Fetching pickup points and services from Sameday API...');
@@ -3022,16 +3151,21 @@ export async function registerAdminRoutes(app: Express) {
           awbCreatedAt: new Date(),
         });
 
-        return res.json({
-          success: true,
-          awbNumber: awbResponse.awbNumber || `KTO${String(orderId).padStart(5, '0')}-API`,
-          awbCost: awbResponse.cost || 0,
-          currency: awbResponse.currency || 'RON',
-          courier: 'Sameday',
-          order: orderUpdate,
-          trackingUrl: `https://sameday.ro/status-colet/?awb=${awbResponse.awbNumber || `KTO${String(orderId).padStart(5, '0')}-API`}`,
-          message: `Real AWB created via Sameday API: ${awbResponse.awbNumber || `KTO${String(orderId).padStart(5, '0')}-API`}`
-        });
+        const finalAwb = awbResponse.awbNumber || `KTO${String(orderId).padStart(5, '0')}-API`;
+        if (!responded) {
+          responded = true;
+          res.json({
+            success: true,
+            awbNumber: finalAwb,
+            awbCost: awbResponse.cost || 0,
+            currency: awbResponse.currency || 'RON',
+            courier: 'Sameday',
+            order: orderUpdate,
+            trackingUrl: `https://sameday.ro/status-colet/?awb=${finalAwb}`,
+            message: `Real AWB created via Sameday API: ${finalAwb}`
+          });
+          sendAwbEmails(parseInt(orderId), finalAwb).catch(e => console.error('❌ [AWB Email] Background email error:', e));
+        }
       };
 
       const timeoutMs = 45000;
@@ -3077,24 +3211,32 @@ export async function registerAdminRoutes(app: Express) {
           errorType = 'rate limiting';
         }
 
-        return res.json({
-          success: true,
-          awbNumber: manualAwbNumber,
-          awbCost: 0,
-          currency: 'RON',
-          courier: 'Sameday (Manual)',
-          order: updatedOrder,
-          trackingUrl: `https://sameday.ro/status-colet/?awb=${manualAwbNumber}`,
-          manual: true,
-          message: `Sameday API ${errorType} detected. Manual AWB generated. Please create the actual AWB in Sameday portal using reference: ${manualAwbNumber}`,
-          apiError: error.message.substring(0, 200)
-        });
+        if (!responded) {
+          responded = true;
+          res.json({
+            success: true,
+            awbNumber: manualAwbNumber,
+            awbCost: 0,
+            currency: 'RON',
+            courier: 'Sameday (Manual)',
+            order: updatedOrder,
+            trackingUrl: `https://sameday.ro/status-colet/?awb=${manualAwbNumber}`,
+            manual: true,
+            message: `Sameday API ${errorType} detected. Manual AWB generated. Please create the actual AWB in Sameday portal using reference: ${manualAwbNumber}`,
+            apiError: error.message.substring(0, 200)
+          });
+          sendAwbEmails(parseInt(req.params.id), manualAwbNumber).catch(e => console.error('❌ [AWB Email] Background email error:', e));
+        }
+        return;
       }
       
-      res.status(500).json({ 
-        message: "Failed to generate AWB", 
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      if (!responded) {
+        responded = true;
+        res.status(500).json({ 
+          message: "Failed to generate AWB", 
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     }
   });
 
