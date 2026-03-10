@@ -223,14 +223,19 @@ export class InvoiceService {
       const smartbillResult = await this.smartbillApi.createInvoice(smartbillInvoiceData);
 
       // Store invoice reference in local database with proper KTO format
+      const subtotalNum = parseFloat(order.totalAmount);
+      const vatRate = 21;
+      const vatAmountCalc = (subtotalNum * vatRate) / (100 + vatRate);
+      const subtotalWithoutVat = subtotalNum - vatAmountCalc;
+
       const invoiceData = {
         invoiceNumber: `${smartbillResult.series} ${smartbillResult.number}`,
         orderId: order.id,
         userId: order.userId || undefined,
         issueDate: new Date(),
         supplyDate: new Date(),
-        subtotal: order.totalAmount,
-        vatAmount: '0.00',
+        subtotal: subtotalWithoutVat.toFixed(2),
+        vatAmount: vatAmountCalc.toFixed(2),
         totalAmount: order.totalAmount,
         currency: 'RON',
         paymentMethod: paymentData.paymentMethod || 'card',

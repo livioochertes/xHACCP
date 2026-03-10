@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Download, ExternalLink, QrCode } from "lucide-react";
-import Header from "@/components/header";
 import QRCode from "qrcode";
 
 export default function Invoice() {
@@ -91,7 +90,6 @@ export default function Invoice() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
           <Button onClick={() => navigate('/account')} variant="outline" className="mb-4">

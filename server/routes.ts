@@ -996,6 +996,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found" });
       }
 
+      const totalNum = parseFloat(String(invoice.totalAmount));
+      const vatNum = parseFloat(String(invoice.vatAmount));
+      if (vatNum === 0 && totalNum > 0) {
+        const vatRate = 21;
+        const calculatedVat = (totalNum * vatRate) / (100 + vatRate);
+        const calculatedSubtotal = totalNum - calculatedVat;
+        invoice.subtotal = calculatedSubtotal.toFixed(2);
+        invoice.vatAmount = calculatedVat.toFixed(2);
+      }
+
       res.json(invoice);
     } catch (error) {
       console.error("Error fetching invoice by number:", error);
