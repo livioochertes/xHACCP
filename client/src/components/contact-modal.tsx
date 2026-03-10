@@ -32,6 +32,8 @@ interface ContactModalProps {
   triggerVariant?: 'default' | 'outline' | 'ghost' | 'link';
   triggerSize?: 'sm' | 'default' | 'lg';
   triggerIcon?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export default function ContactModal({
@@ -39,9 +41,13 @@ export default function ContactModal({
   triggerText = "Contact Us",
   triggerVariant = "default",
   triggerSize = "default",
-  triggerIcon = <MessageSquare className="h-4 w-4" />
+  triggerIcon = <MessageSquare className="h-4 w-4" />,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: ContactModalProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setIsOpen = controlledOnOpenChange || setInternalOpen;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -98,14 +104,16 @@ export default function ContactModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant={triggerVariant} size={triggerSize}>
-            {triggerIcon}
-            {triggerText}
-          </Button>
-        )}
-      </DialogTrigger>
+      {controlledOpen === undefined && (
+        <DialogTrigger asChild>
+          {children || (
+            <Button variant={triggerVariant} size={triggerSize}>
+              {triggerIcon}
+              {triggerText}
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

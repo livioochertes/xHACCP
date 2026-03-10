@@ -23,6 +23,7 @@ interface CompanySettings {
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileContactOpen, setMobileContactOpen] = useState(false);
   const [, navigate] = useLocation();
   const { cart } = useCart();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -213,12 +214,17 @@ export default function Header() {
                       {getCategoryName(category)}
                     </Button>
                   ))}
-                  <ContactModal>
-                    <Button variant="ghost" className="w-full justify-start" onClick={() => setMobileMenuOpen(false)}>
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      {t('contact.title')}
-                    </Button>
-                  </ContactModal>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setTimeout(() => setMobileContactOpen(true), 200);
+                    }}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    {t('contact.title')}
+                  </Button>
                   <Button 
                     variant="ghost" 
                     className="w-full justify-start"
@@ -324,6 +330,7 @@ export default function Header() {
           </div>
         </div>
       </nav>
+      <ContactModal open={mobileContactOpen} onOpenChange={setMobileContactOpen} />
     </header>
   );
 }
