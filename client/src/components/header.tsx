@@ -214,33 +214,46 @@ export default function Header() {
                     </Button>
                   ))}
                   <ContactModal>
-                    <Button variant="ghost" className="w-full justify-start">
+                    <Button variant="ghost" className="w-full justify-start" onClick={() => setMobileMenuOpen(false)}>
                       <MessageSquare className="h-4 w-4 mr-2" />
                       {t('contact.title')}
                     </Button>
                   </ContactModal>
-                  <Link href="/ai-assistant">
-                    <Button variant="ghost" className="w-full justify-start">
-                      <Bot className="h-4 w-4 mr-2" />
-                      {t('nav.aiAssistant')}
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate("/ai-assistant");
+                    }}
+                  >
+                    <Bot className="h-4 w-4 mr-2" />
+                    {t('nav.aiAssistant')}
+                  </Button>
                   {isAuthenticated ? (
                     <Button 
                       variant="ghost" 
                       className="w-full justify-start"
-                      onClick={() => navigate("/account")}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        navigate("/account");
+                      }}
                     >
                       <User className="h-4 w-4 mr-2" />
                       {user?.firstName || t('nav.account')}
                     </Button>
                   ) : !isLoading ? (
-                    <Link href="/login">
-                      <Button variant="ghost" className="w-full justify-start">
-                        <User className="h-4 w-4 mr-2" />
-                        {t('nav.login')}
-                      </Button>
-                    </Link>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        navigate("/login");
+                      }}
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      {t('nav.login')}
+                    </Button>
                   ) : (
                     <Button variant="ghost" className="w-full justify-start" disabled>
                       <User className="h-4 w-4 mr-2" />
