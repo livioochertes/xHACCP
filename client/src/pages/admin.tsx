@@ -49,7 +49,14 @@ type ProductFormData = z.infer<typeof productSchema>;
 type CategoryFormData = z.infer<typeof categorySchema>;
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [highlightOrderId, setHighlightOrderId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    const orderMatch = hash.match(/^orders-(\d+)$/);
+    if (orderMatch) return 'orders';
+    const validTabs = ['dashboard', 'products', 'categories', 'orders'];
+    return validTabs.includes(hash) ? hash : 'dashboard';
+  });
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductWithCategory | null>(null);
@@ -204,6 +211,22 @@ export default function Admin() {
   const { data: orders = [], isLoading: ordersLoading } = useQuery<OrderWithItems[]>({
     queryKey: ["/api/orders"],
   });
+
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    const orderMatch = hash.match(/^orders-(\d+)$/);
+    if (orderMatch && !ordersLoading && orders.length > 0) {
+      const orderId = parseInt(orderMatch[1], 10);
+      setHighlightOrderId(orderId);
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const el = document.getElementById(`order-row-${orderId}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      });
+      setTimeout(() => setHighlightOrderId(null), 6000);
+    }
+  }, [orders, ordersLoading]);
 
   // Forms
   const productForm = useForm<ProductFormData>({
@@ -1286,7 +1309,11 @@ export default function Admin() {
                   </TableHeader>
                   <TableBody>
                     {orders.map((order) => (
-                      <TableRow key={order.id}>
+                      <TableRow 
+                        key={order.id} 
+                        id={`order-row-${order.id}`}
+                        className={highlightOrderId === order.id ? 'bg-yellow-100 dark:bg-yellow-900/30 transition-colors duration-1000' : ''}
+                      >
                         <TableCell>#{order.id}</TableCell>
                         <TableCell>
                           {new Date(order.createdAt || "").toLocaleDateString()}
