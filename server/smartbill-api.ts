@@ -656,10 +656,6 @@ export function orderToSmartbillInvoice(
       client.regCom = regCom;
     }
   } else {
-    const identityDoc = (billing.identityDocument || '').trim();
-    if (identityDoc) {
-      client.vatCode = identityDoc;
-    }
     client.isTaxPayer = false;
   }
 
