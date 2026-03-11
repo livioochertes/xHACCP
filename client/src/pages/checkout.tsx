@@ -174,7 +174,7 @@ export default function Checkout() {
       // Pre-populate with user data for authenticated users
       return {
         email: user.email || "",
-        phone: user.billingPhone || user.phone || "",
+        phone: user.billingPhone || "",
         shippingAddress: {
           firstName: user.firstName || "",
           lastName: user.lastName || "",
