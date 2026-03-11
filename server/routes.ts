@@ -367,8 +367,30 @@ Sitemap: https://xhaccp.ro/sitemap.xml
   for (const [oldPath, newPath] of Object.entries(romanianRedirects)) {
     app.get(oldPath, (_req, res) => res.redirect(301, newPath));
   }
-  // /produse/:slug → /products/:slug
-  app.get('/produse/:slug', (req, res) => res.redirect(301, `/products/${req.params.slug}`));
+  // Convert old filename-style slugs to dash-separated slugs
+  // e.g. "eticheteLUNI.html" → "etichete-luni", "etichete_luni" → "etichete-luni"
+  function fileToSlug(raw: string): string {
+    return raw
+      .replace(/\.html?$/i, '')               // strip .html / .htm
+      .replace(/([a-z])([A-Z])/g, '$1-$2')   // split camelCase: eticheteLUNI → etichete-LUNI
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2') // split consecutive caps
+      .replace(/[_\s]+/g, '-')               // underscores/spaces → dashes
+      .replace(/[^a-zA-Z0-9-]/g, '-')        // remove other special chars
+      .replace(/-+/g, '-')                   // collapse multiple dashes
+      .replace(/^-|-$/g, '')                 // trim leading/trailing dashes
+      .toLowerCase();
+  }
+
+  // /produse/:slug → /products/:slug (handles .html extensions and camelCase)
+  app.get('/produse/:slug', (req, res) => {
+    res.redirect(301, `/products/${fileToSlug(req.params.slug)}`);
+  });
+
+  // Catch-all for any old .html pages at any path
+  app.get('/*.html', (req, res) => {
+    const name = req.path.split('/').pop() || '';
+    res.redirect(301, `/products/${fileToSlug(name)}`);
+  });
 
   app.get("/r2/:prefix/:filename", async (req, res) => {
     try {
