@@ -297,6 +297,63 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction)
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Sitemap.xml - dynamic, includes all products
+  app.get('/sitemap.xml', async (_req, res) => {
+    try {
+      const BASE_URL = 'https://xhaccp.ro';
+      const staticPages = [
+        { url: '/', priority: '1.0', changefreq: 'weekly' },
+        { url: '/products', priority: '0.9', changefreq: 'daily' },
+        { url: '/b2b', priority: '0.8', changefreq: 'monthly' },
+        { url: '/about', priority: '0.7', changefreq: 'monthly' },
+        { url: '/terms', priority: '0.4', changefreq: 'yearly' },
+        { url: '/privacy', priority: '0.4', changefreq: 'yearly' },
+      ];
+      const products = await storage.getProducts({ limit: 10000 });
+      const now = new Date().toISOString().split('T')[0];
+      const urlEntries = [
+        ...staticPages.map(p => `
+  <url>
+    <loc>${BASE_URL}${p.url}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`),
+        ...products.filter(p => p.slug).map(p => `
+  <url>
+    <loc>${BASE_URL}/products/${p.slug}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`),
+      ];
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urlEntries.join('')}
+</urlset>`;
+      res.setHeader('Content-Type', 'application/xml');
+      res.send(xml);
+    } catch (error) {
+      console.error('Sitemap generation error:', error);
+      res.status(500).send('Error generating sitemap');
+    }
+  });
+
+  // robots.txt - points crawlers to sitemap
+  app.get('/robots.txt', (_req, res) => {
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(`User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /cart
+Disallow: /account
+Disallow: /api/
+
+Sitemap: https://xhaccp.ro/sitemap.xml
+`);
+  });
+
   // 301 Redirects for old Romanian URL structure (SEO preservation)
   const romanianRedirects: Record<string, string> = {
     '/produse':           '/products',
