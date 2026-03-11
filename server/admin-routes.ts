@@ -16,6 +16,88 @@ import multer from "multer";
 import ExcelJS from "exceljs";
 import * as cheerio from "cheerio";
 
+async function buildCombinedParcels(items: any[], storageRef: typeof storage): Promise<any[]> {
+  const parcels: any[] = [];
+  let parcelCounter = 1;
+
+  if (!items || items.length === 0) {
+    parcels.push({ sequenceNo: 1, weight: 1, width: 30, height: 20, length: 40 });
+    return parcels;
+  }
+
+  const itemsWithProducts: { item: any; product: any }[] = [];
+  for (const item of items) {
+    const product = await storageRef.getProduct(item.productId);
+    if (product) {
+      itemsWithProducts.push({ item, product });
+    }
+  }
+
+  if (itemsWithProducts.length === 0) {
+    parcels.push({ sequenceNo: 1, weight: 1, width: 30, height: 20, length: 40 });
+    return parcels;
+  }
+
+  const categoryGroups = new Map<number, { item: any; product: any }[]>();
+  for (const entry of itemsWithProducts) {
+    const catId = entry.product.categoryId || 0;
+    if (!categoryGroups.has(catId)) categoryGroups.set(catId, []);
+    categoryGroups.get(catId)!.push(entry);
+  }
+
+  for (const [, group] of categoryGroups) {
+    const allHaveMultiPack = group.every(
+      (e) => (parseInt(String(e.product.piecesPerPackage)) || 1) > 1
+    );
+
+    if (allHaveMultiPack && group.length > 1) {
+      const minPiecesPerPackage = Math.min(
+        ...group.map((e) => parseInt(String(e.product.piecesPerPackage)) || 1)
+      );
+      const totalQuantity = group.reduce((sum, e) => sum + (e.item.quantity || 1), 0);
+      const combinedWeight = group.reduce(
+        (sum, e) => sum + (parseFloat(String(e.product.weight)) || 1) * (e.item.quantity || 1),
+        0
+      );
+      const numberOfPackages = Math.ceil(totalQuantity / minPiecesPerPackage);
+      const weightPerParcel = combinedWeight / numberOfPackages;
+
+      console.log(`📦 Category group (${group.length} products): totalQty=${totalQuantity}, minPiecesPerPkg=${minPiecesPerPackage}, parcels=${numberOfPackages}`);
+
+      for (let i = 0; i < numberOfPackages; i++) {
+        parcels.push({
+          sequenceNo: parcelCounter++,
+          weight: parseFloat(weightPerParcel.toFixed(2)),
+          width: 30,
+          height: 20,
+          length: 40,
+        });
+      }
+    } else {
+      for (const entry of group) {
+        const piecesPerPackage = parseInt(String(entry.product.piecesPerPackage)) || 1;
+        const weight = parseFloat(String(entry.product.weight)) || 1;
+        const numberOfPackages = Math.ceil((entry.item.quantity || 1) / piecesPerPackage);
+        for (let i = 0; i < numberOfPackages; i++) {
+          parcels.push({
+            sequenceNo: parcelCounter++,
+            weight,
+            width: 30,
+            height: 20,
+            length: 40,
+          });
+        }
+      }
+    }
+  }
+
+  if (parcels.length === 0) {
+    parcels.push({ sequenceNo: 1, weight: 1, width: 30, height: 20, length: 40 });
+  }
+
+  return parcels;
+}
+
 // Helper function to extract URL from image object or string
 function extractImageUrl(image: any): string | null {
   if (!image) return null;
@@ -1070,24 +1152,8 @@ export async function registerAdminRoutes(app: Express) {
 
                 if (pickupPoints.length > 0 && services.length > 0) {
                   const selectedPickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
-                  const parcels: any[] = [];
-                  let parcelCounter = 1;
-
-                  if (currentOrder.items && currentOrder.items.length > 0) {
-                    for (const item of currentOrder.items) {
-                      const product = await storage.getProduct(item.productId);
-                      if (!product) continue;
-                      const piecesPerPackage = parseInt(String((product as any).piecesPerPackage)) || 1;
-                      const weight = parseFloat(String((product as any).weight)) || 1;
-                      const numberOfPackages = Math.ceil(item.quantity / piecesPerPackage);
-                      for (let i = 0; i < numberOfPackages; i++) {
-                        parcels.push({ sequenceNo: parcelCounter++, weight, width: 30, height: 20, length: 40 });
-                      }
-                    }
-                  }
-                  if (parcels.length === 0) {
-                    parcels.push({ sequenceNo: 1, weight: 1, width: 30, height: 20, length: 40 });
-                  }
+                  const parcels = await buildCombinedParcels(currentOrder.items || [], storage);
+                  console.log(`📦 [Background] Combined parcels: ${parcels.length} parcel(s) for ${(currentOrder.items || []).length} item(s)`);
 
                   const totalAmount = parseFloat(String(currentOrder.totalAmount));
                   const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
@@ -3125,15 +3191,12 @@ export async function registerAdminRoutes(app: Express) {
             cityString: shippingAddress.city || 'Cluj-Napoca',
             postalCode: shippingAddress.zipCode || shippingAddress.postalCode || "400000"
           },
-          parcels: [{
-            weight: 1,
-            width: 15,
-            length: 20,
-            height: 5
-          }],
+          parcels: await buildCombinedParcels(order.items || [], storage),
           clientInternalReference: `KTO${String(orderId).padStart(5, '0')}`
         };
 
+        awbRequest.packageWeight = awbRequest.parcels.reduce((sum: number, p: any) => sum + (p.weight || 1), 0);
+        console.log(`📦 [Manual] Combined parcels: ${awbRequest.parcels.length} parcel(s) for ${(order.items || []).length} item(s)`);
         console.log('📦 Creating AWB with Sameday API:', JSON.stringify(awbRequest, null, 2));
         
         const awbStartTime = Date.now();
