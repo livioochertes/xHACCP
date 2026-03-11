@@ -298,9 +298,10 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction)
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Sitemap.xml - dynamic, includes all products
-  app.get('/sitemap.xml', async (_req, res) => {
+  app.get('/sitemap.xml', async (req, res) => {
     try {
-      const BASE_URL = 'https://xhaccp.ro';
+      const host = req.get('host') || 'xhaccp.ro';
+      const BASE_URL = `https://${host.replace(/^www\./, '')}`;
       const staticPages = [
         { url: '/', priority: '1.0', changefreq: 'weekly' },
         { url: '/products', priority: '0.9', changefreq: 'daily' },
@@ -339,8 +340,10 @@ ${urlEntries.join('')}
     }
   });
 
-  // robots.txt - points crawlers to sitemap
-  app.get('/robots.txt', (_req, res) => {
+  // robots.txt - points crawlers to sitemap (dynamic per domain)
+  app.get('/robots.txt', (req, res) => {
+    const host = req.get('host') || 'xhaccp.ro';
+    const domain = host.replace(/^www\./, '');
     res.setHeader('Content-Type', 'text/plain');
     res.send(`User-agent: *
 Allow: /
@@ -350,7 +353,7 @@ Disallow: /cart
 Disallow: /account
 Disallow: /api/
 
-Sitemap: https://xhaccp.ro/sitemap.xml
+Sitemap: https://${domain}/sitemap.xml
 `);
   });
 
