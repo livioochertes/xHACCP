@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -22,7 +23,18 @@ import Privacy from "@/pages/privacy";
 import Invoice from "@/pages/invoice";
 import NotFound from "@/pages/not-found";
 
+function useCanonical() {
+  const [location] = useLocation();
+  useEffect(() => {
+    const canonical = document.getElementById('canonical-url') as HTMLLinkElement | null;
+    if (canonical) {
+      canonical.href = `${window.location.origin}${location === '/' ? '' : location}`;
+    }
+  }, [location]);
+}
+
 function Router() {
+  useCanonical();
   return (
     <>
       <Header />
