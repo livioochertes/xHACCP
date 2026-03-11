@@ -66,6 +66,8 @@ export default function AIAssistant() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [capabilities, setCapabilities] = useState<string[]>([]);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [sessionRestored, setSessionRestored] = useState(false);
+  const connectAttemptedRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -144,7 +146,16 @@ export default function AIAssistant() {
         },
       ]);
     }
+    setSessionRestored(true);
   }, []);
+
+  // Auto-connect on page load after session restore check
+  useEffect(() => {
+    if (sessionRestored && !isConnected && !isConnecting && !connectAttemptedRef.current) {
+      connectAttemptedRef.current = true;
+      handleConnect();
+    }
+  }, [sessionRestored]);
 
   // Update welcome message when language changes
   useEffect(() => {
@@ -318,16 +329,15 @@ export default function AIAssistant() {
                       {isConnected ? t('ai.connected') : t('ai.disconnected')}
                     </span>
                   </div>
-                  {!isConnected && (
-                    <Button onClick={handleConnect} className="w-full h-8 text-xs" disabled={isConnecting}>
-                      {isConnecting ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          {t('ai.connecting')}
-                        </>
-                      ) : (
-                        t('ai.connect')
-                      )}
+                  {!isConnected && isConnecting && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      {t('ai.connecting')}
+                    </div>
+                  )}
+                  {!isConnected && !isConnecting && sessionRestored && (
+                    <Button onClick={() => { connectAttemptedRef.current = false; handleConnect(); }} className="w-full h-8 text-xs" variant="outline">
+                      {t('ai.connect')}
                     </Button>
                   )}
                   {isConnected && (
