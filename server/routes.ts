@@ -297,6 +297,22 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction)
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 301 Redirects for old Romanian URL structure (SEO preservation)
+  const romanianRedirects: Record<string, string> = {
+    '/produse':           '/products',
+    '/cos':               '/cart',
+    '/comanda':           '/checkout',
+    '/cont':              '/account',
+    '/despre':            '/about',
+    '/termeni':           '/terms',
+    '/confidentialitate': '/privacy',
+  };
+  for (const [oldPath, newPath] of Object.entries(romanianRedirects)) {
+    app.get(oldPath, (_req, res) => res.redirect(301, newPath));
+  }
+  // /produse/:slug → /products/:slug
+  app.get('/produse/:slug', (req, res) => res.redirect(301, `/products/${req.params.slug}`));
+
   app.get("/r2/:prefix/:filename", async (req, res) => {
     try {
       const { getImageFromR2 } = await import("./r2-storage");
