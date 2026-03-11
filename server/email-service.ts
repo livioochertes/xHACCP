@@ -697,7 +697,7 @@ interface ContactFormData {
 
 // Send contact form emails - to business and confirmation to customer
 export async function sendContactFormEmails(data: ContactFormData): Promise<{ toBusinessSent: boolean; toCustomerSent: boolean }> {
-  const BUSINESS_EMAIL = 'info@xhaccp.com';
+  const BUSINESS_EMAIL = 'info@namarteccl.com';
   const ticketId = `TICKET_${Date.now()}`;
   const timestamp = new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' });
 
