@@ -23,10 +23,17 @@ export default function ProductDetails() {
   const { t } = useTranslation();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  const { data: product, isLoading } = useQuery<ProductWithCategory>({
+  const { data: product, isLoading } = useQuery<ProductWithCategory & { _redirected?: boolean }>({
     queryKey: [`/api/products/slug/${params?.slug}`],
     enabled: !!params?.slug,
   });
+
+  // Auto-redirect when fuzzy match found (old URL → correct product URL)
+  useEffect(() => {
+    if (product && (product as any)._redirected && product.slug) {
+      window.history.replaceState(null, '', `/products/${product.slug}`);
+    }
+  }, [product]);
 
   const { data: reviews = [] } = useQuery<Review[]>({
     queryKey: ["/api/products", product?.id, "reviews"],

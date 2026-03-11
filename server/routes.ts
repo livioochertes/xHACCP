@@ -1427,15 +1427,37 @@ Sitemap: https://xhaccp.ro/sitemap.xml
 
   app.get("/api/products/slug/:slug", async (req, res) => {
     try {
-      const product = await storage.getProductBySlug(req.params.slug);
-      if (!product) {
-        return res.status(404).json({ message: "Product not found" });
+      const requestedSlug = req.params.slug;
+      let product = await storage.getProductBySlug(requestedSlug);
+
+      // Exact match found
+      if (product && product.status?.toLowerCase() === 'active') {
+        return res.json(product);
       }
-      // Hide inactive products from public access (case-insensitive)
-      if (product.status?.toLowerCase() !== 'active') {
-        return res.status(404).json({ message: "Product not found" });
+
+      // Fuzzy fallback: search by words extracted from slug
+      const words = requestedSlug
+        .split('-')
+        .filter(w => w.length > 2 && !['rol', 'set', 'de', 'si', 'cu'].includes(w));
+
+      if (words.length > 0) {
+        const allProducts = await storage.getProducts({ limit: 1000 });
+        const activeProducts = allProducts.filter(p => p.status?.toLowerCase() === 'active');
+
+        // Score each product by how many slug words appear in its slug or name
+        const scored = activeProducts.map(p => {
+          const haystack = `${p.slug || ''} ${p.name || ''}`.toLowerCase();
+          const score = words.filter(w => haystack.includes(w)).length;
+          return { product: p, score };
+        }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+
+        if (scored.length > 0) {
+          // Return best match with a flag so frontend can redirect
+          return res.json({ ...scored[0].product, _redirected: true, _originalSlug: requestedSlug });
+        }
       }
-      res.json(product);
+
+      return res.status(404).json({ message: "Product not found" });
     } catch (error) {
       console.error("Get product by slug error:", error);
       res.status(500).json({ message: "Failed to get product" });
