@@ -16,6 +16,11 @@ import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { Link } from "wouter";
 import type { ProductWithCategory, Review } from "@shared/schema";
 
+interface ShippingSettings {
+  freeShippingThreshold: string;
+  currency: string;
+}
+
 export default function ProductDetails() {
   const [, params] = useRoute("/products/:slug");
   const { addToCart } = useCart();
@@ -27,6 +32,14 @@ export default function ProductDetails() {
     queryKey: [`/api/products/slug/${params?.slug}`],
     enabled: !!params?.slug,
   });
+
+  const { data: shippingSettings } = useQuery<ShippingSettings>({
+    queryKey: ["/api/shipping-settings"],
+  });
+
+  const freeShippingText = shippingSettings
+    ? `${parseFloat(shippingSettings.freeShippingThreshold).toLocaleString('ro-RO', { maximumFractionDigits: 0 })} lei`
+    : '1000 lei';
 
   // Auto-redirect when fuzzy match found (old URL → correct product URL)
   useEffect(() => {
@@ -249,7 +262,7 @@ export default function ProductDetails() {
               <div className="flex items-center space-x-6 text-sm text-muted-foreground">
                 <div className="flex items-center">
                   <Truck className="h-4 w-4 mr-1" />
-                  <span>{t('products.freeShippingOver').replace('{amount}', '500 lei')}</span>
+                  <span>{t('products.freeShippingOver').replace('{amount}', freeShippingText)}</span>
                 </div>
                 <div className="flex items-center">
                   <Shield className="h-4 w-4 mr-1" />
