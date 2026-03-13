@@ -854,7 +854,7 @@
         if (searchTerm) {
           filtered = filtered.filter(order => 
             order.id.toString().includes(searchTerm) ||
-            order.shippingAddress.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            ((order.shippingAddress.firstName || '') + ' ' + (order.shippingAddress.lastName || '')).toLowerCase().includes(searchTerm.toLowerCase()) ||
             order.shippingAddress.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
             order.status.toLowerCase().includes(searchTerm.toLowerCase())
           );
@@ -6409,38 +6409,87 @@
                       <p><strong>Status:</strong> <span style={{
                         padding: '4px 8px', 
                         borderRadius: '4px', 
-                        backgroundColor: selectedOrder.status === 'pending' ? '#fff3cd' : selectedOrder.status === 'processing' ? '#cce5ff' : '#d4edda',
-                        color: selectedOrder.status === 'pending' ? '#856404' : selectedOrder.status === 'processing' ? '#0056b3' : '#155724'
+                        backgroundColor: selectedOrder.status === 'pending' ? '#fff3cd' : selectedOrder.status === 'processing' ? '#cce5ff' : selectedOrder.status === 'shipped' ? '#d1ecf1' : selectedOrder.status === 'delivered' ? '#d4edda' : selectedOrder.status === 'cancelled' ? '#f8d7da' : '#e2e3e5',
+                        color: selectedOrder.status === 'pending' ? '#856404' : selectedOrder.status === 'processing' ? '#0056b3' : selectedOrder.status === 'shipped' ? '#0c5460' : selectedOrder.status === 'delivered' ? '#155724' : selectedOrder.status === 'cancelled' ? '#721c24' : '#383d41'
                       }}>{selectedOrder.status}</span></p>
-                      <p><strong>Total Amount:</strong> ${selectedOrder.totalAmount}</p>
-                      <p><strong>Payment Method:</strong> {selectedOrder.paymentMethod}</p>
-                      <p><strong>Payment Status:</strong> {selectedOrder.paymentStatus}</p>
+                      <p><strong>Payment Method:</strong> {(() => {
+                        const pm = selectedOrder.paymentMethod;
+                        if (pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash') return 'Ramburs (plata la livrare)';
+                        if (pm === 'card' || pm === 'viva') return 'Card online';
+                        return pm;
+                      })()}</p>
+                      <p><strong>Payment Status:</strong> <span style={{
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '13px',
+                        backgroundColor: (() => {
+                          const pm = selectedOrder.paymentMethod;
+                          if (pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash') return '#fff3cd';
+                          return selectedOrder.paymentStatus === 'paid' ? '#d4edda' : '#f8d7da';
+                        })(),
+                        color: (() => {
+                          const pm = selectedOrder.paymentMethod;
+                          if (pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash') return '#856404';
+                          return selectedOrder.paymentStatus === 'paid' ? '#155724' : '#721c24';
+                        })()
+                      }}>{(() => {
+                        const pm = selectedOrder.paymentMethod;
+                        if (pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash') return 'Ramburs / Numerar';
+                        return selectedOrder.paymentStatus === 'paid' ? 'Plătit ✓' : (selectedOrder.paymentStatus || 'Neplătit');
+                      })()}</span></p>
+                      {selectedOrder.shippingCost && parseFloat(selectedOrder.shippingCost) > 0 ? (
+                        <div style={{marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #dee2e6'}}>
+                          <p><strong>Subtotal:</strong> {(parseFloat(selectedOrder.totalAmount) - parseFloat(selectedOrder.shippingCost)).toFixed(2)} lei</p>
+                          <p><strong>Transport:</strong> {parseFloat(selectedOrder.shippingCost).toFixed(2)} lei</p>
+                          <p style={{fontSize: '15px'}}><strong>Total:</strong> {parseFloat(selectedOrder.totalAmount).toFixed(2)} lei</p>
+                        </div>
+                      ) : (
+                        <p><strong>Total:</strong> {parseFloat(selectedOrder.totalAmount).toFixed(2)} lei</p>
+                      )}
                       <p><strong>Created:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                      {selectedOrder.awbNumber && (
+                        <p><strong>AWB:</strong> <span style={{fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '3px'}}>{selectedOrder.awbNumber}</span></p>
+                      )}
+                      {selectedOrder.invoiceNumber && (
+                        <p><strong>Factură:</strong> {selectedOrder.invoiceNumber}</p>
+                      )}
                     </div>
                     
                     <div style={{padding: '15px', background: '#f8f9fa', borderRadius: '6px'}}>
                       <h4 style={{color: '#333', marginBottom: '10px'}}>Customer Information</h4>
-                      <p><strong>Name:</strong> {selectedOrder.shippingAddress.name}</p>
-                      <p><strong>User ID:</strong> #{selectedOrder.userId}</p>
-                      <p><strong>Email:</strong> user_{selectedOrder.userId}@example.com</p>
+                      <p><strong>Name:</strong> {selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
+                      <p><strong>Email:</strong> {selectedOrder.shippingAddress.email || '—'}</p>
+                      <p><strong>Phone:</strong> {selectedOrder.shippingAddress.phone || '—'}</p>
+                      <p><strong>User ID:</strong> #{selectedOrder.userId || 'Guest'}</p>
                     </div>
                   </div>
                   
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px'}}>
                     <div style={{padding: '15px', background: '#f8f9fa', borderRadius: '6px'}}>
                       <h4 style={{color: '#333', marginBottom: '10px'}}>Shipping Address</h4>
-                      <p>{selectedOrder.shippingAddress.name}</p>
-                      <p>{selectedOrder.shippingAddress.street}</p>
-                      <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}</p>
-                      <p>{selectedOrder.shippingAddress.country}</p>
+                      <p><strong>{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</strong></p>
+                      <p>{selectedOrder.shippingAddress.address}</p>
+                      <p>{selectedOrder.shippingAddress.city}{selectedOrder.shippingAddress.county ? `, ${selectedOrder.shippingAddress.county}` : ''}{selectedOrder.shippingAddress.state ? `, ${selectedOrder.shippingAddress.state}` : ''}</p>
+                      <p>{selectedOrder.shippingAddress.zipCode} {selectedOrder.shippingAddress.country}</p>
+                      {selectedOrder.shippingAddress.phone && <p>📞 {selectedOrder.shippingAddress.phone}</p>}
                     </div>
                     
                     <div style={{padding: '15px', background: '#f8f9fa', borderRadius: '6px'}}>
-                      <h4 style={{color: '#333', marginBottom: '10px'}}>Billing Address</h4>
-                      <p>{selectedOrder.billingAddress.name}</p>
-                      <p>{selectedOrder.billingAddress.street}</p>
-                      <p>{selectedOrder.billingAddress.city}, {selectedOrder.billingAddress.state} {selectedOrder.billingAddress.zipCode}</p>
-                      <p>{selectedOrder.billingAddress.country}</p>
+                      <h4 style={{color: '#333', marginBottom: '10px'}}>Billing Address / Facturare</h4>
+                      <p><strong>{selectedOrder.billingAddress.firstName} {selectedOrder.billingAddress.lastName}</strong></p>
+                      {selectedOrder.billingAddress.companyName && (
+                        <p style={{color: '#0056b3'}}>🏢 {selectedOrder.billingAddress.companyName}</p>
+                      )}
+                      {selectedOrder.billingAddress.vatNumber && (
+                        <p><strong>CUI:</strong> {selectedOrder.billingAddress.vatNumber}</p>
+                      )}
+                      {selectedOrder.billingAddress.regCom && (
+                        <p><strong>Reg. Com.:</strong> {selectedOrder.billingAddress.regCom}</p>
+                      )}
+                      <p>{selectedOrder.billingAddress.address}</p>
+                      <p>{selectedOrder.billingAddress.city}{selectedOrder.billingAddress.county ? `, ${selectedOrder.billingAddress.county}` : ''}{selectedOrder.billingAddress.state ? `, ${selectedOrder.billingAddress.state}` : ''}</p>
+                      <p>{selectedOrder.billingAddress.zipCode} {selectedOrder.billingAddress.country}</p>
+                      {selectedOrder.billingAddress.phone && <p>📞 {selectedOrder.billingAddress.phone}</p>}
                     </div>
                   </div>
                   
@@ -6472,8 +6521,8 @@
                                 </div>
                               </td>
                               <td style={{padding: '10px'}}>{item.quantity}</td>
-                              <td style={{padding: '10px'}}>${item.price}</td>
-                              <td style={{padding: '10px', fontWeight: 'bold'}}>${item.totalPrice}</td>
+                              <td style={{padding: '10px'}}>{parseFloat(item.price).toFixed(2)} lei</td>
+                              <td style={{padding: '10px', fontWeight: 'bold'}}>{parseFloat(item.totalPrice).toFixed(2)} lei</td>
                             </tr>
                           ))}
                         </tbody>
@@ -6550,7 +6599,7 @@
                         className="btn"
                         style={{background: '#28a745', padding: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px'}}
                         onClick={() => {
-                          const csvContent = `Order ID,Customer,Status,Amount,Date\n${selectedOrder.id},${selectedOrder.shippingAddress.name},${selectedOrder.status},${selectedOrder.totalAmount},${new Date(selectedOrder.createdAt).toLocaleDateString()}`;
+                          const csvContent = `Order ID,Customer,Status,Amount (lei),Date\n${selectedOrder.id},${selectedOrder.shippingAddress.firstName} ${selectedOrder.shippingAddress.lastName},${selectedOrder.status},${selectedOrder.totalAmount},${new Date(selectedOrder.createdAt).toLocaleDateString()}`;
                           
                           const blob = new Blob([csvContent], { type: 'text/csv' });
                           const url = window.URL.createObjectURL(blob);
@@ -6595,25 +6644,37 @@
                         className="btn"
                         style={{background: '#fd7e14', padding: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px'}}
                         onClick={() => {
+                          const pm = selectedOrder.paymentMethod;
+                          const isCOD = pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash';
                           const invoice = `
 INVOICE - Order #${selectedOrder.id}
 ========================================
-Customer: ${selectedOrder.shippingAddress.name}
+Customer: ${selectedOrder.shippingAddress.firstName} ${selectedOrder.shippingAddress.lastName}
+Email: ${selectedOrder.shippingAddress.email || '—'}
+Phone: ${selectedOrder.shippingAddress.phone || '—'}
 Date: ${new Date(selectedOrder.createdAt).toLocaleDateString()}
 Status: ${selectedOrder.status}
-Payment Method: ${selectedOrder.paymentMethod}
-Payment Status: ${selectedOrder.paymentStatus}
+Payment Method: ${isCOD ? 'Ramburs (plata la livrare)' : (pm === 'card' || pm === 'viva' ? 'Card online' : pm)}
+Payment Status: ${isCOD ? 'Ramburs / Numerar' : (selectedOrder.paymentStatus === 'paid' ? 'Platit' : (selectedOrder.paymentStatus || 'Neplatit'))}
+${selectedOrder.awbNumber ? 'AWB: ' + selectedOrder.awbNumber : ''}${selectedOrder.invoiceNumber ? '\nFactura: ' + selectedOrder.invoiceNumber : ''}
 
 SHIPPING ADDRESS:
-${selectedOrder.shippingAddress.name}
-${selectedOrder.shippingAddress.street}
-${selectedOrder.shippingAddress.city}, ${selectedOrder.shippingAddress.state} ${selectedOrder.shippingAddress.zipCode}
+${selectedOrder.shippingAddress.firstName} ${selectedOrder.shippingAddress.lastName}
+${selectedOrder.shippingAddress.address}
+${selectedOrder.shippingAddress.city}${selectedOrder.shippingAddress.county ? ', ' + selectedOrder.shippingAddress.county : ''} ${selectedOrder.shippingAddress.zipCode}
 ${selectedOrder.shippingAddress.country}
 
-ITEMS:
-${selectedOrder.items ? selectedOrder.items.map(item => `${item.quantity}x ${item.product ? item.product.name : 'Product ID: ' + item.productId} - $${item.price} each = $${item.totalPrice}`).join('\n') : 'No items'}
+BILLING:
+${selectedOrder.billingAddress.firstName} ${selectedOrder.billingAddress.lastName}
+${selectedOrder.billingAddress.companyName ? 'Company: ' + selectedOrder.billingAddress.companyName : ''}${selectedOrder.billingAddress.vatNumber ? '\nCUI: ' + selectedOrder.billingAddress.vatNumber : ''}
+${selectedOrder.billingAddress.address}
+${selectedOrder.billingAddress.city}${selectedOrder.billingAddress.county ? ', ' + selectedOrder.billingAddress.county : ''} ${selectedOrder.billingAddress.zipCode}
+${selectedOrder.billingAddress.country}
 
-TOTAL: $${selectedOrder.totalAmount}
+ITEMS:
+${selectedOrder.items ? selectedOrder.items.map(item => `${item.quantity}x ${item.product ? item.product.name : 'Product ID: ' + item.productId} - ${parseFloat(item.price).toFixed(2)} lei x${item.quantity} = ${parseFloat(item.totalPrice).toFixed(2)} lei`).join('\n') : 'No items'}
+${selectedOrder.shippingCost && parseFloat(selectedOrder.shippingCost) > 0 ? '\nTransport: ' + parseFloat(selectedOrder.shippingCost).toFixed(2) + ' lei' : ''}
+TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
 ========================================
                           `;
                           
