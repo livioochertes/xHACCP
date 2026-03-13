@@ -4,7 +4,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { registerRoutes } from "./routes";
 import { registerAdminRoutes } from "./admin-routes";
-import { subdomainMiddleware, adminSubdomainHandler } from "./subdomain-middleware";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase, seedCategoryTranslations } from "./sample-data";
 import { loadAllDataIntoMemory } from "./routes";
@@ -40,22 +39,6 @@ app.use(compression({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
-// Subdomain detection middleware
-app.use(subdomainMiddleware);
-
-// Admin subdomain handler (must come before main routes)
-app.use(adminSubdomainHandler);
-
-// Catch-all for admin subdomain when subdomain detection fails
-app.use((req, res, next) => {
-  const host = req.get('host');
-  if (host && host.startsWith('admin.')) {
-    // Force admin subdomain handling
-    (req as any).subdomain = 'admin';
-    return adminSubdomainHandler(req, res, next);
-  }
-  next();
-});
 
 app.use((req, res, next) => {
   const start = Date.now();
