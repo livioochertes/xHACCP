@@ -2323,14 +2323,14 @@
                                                 order.status === 'accepted' ? '#d1ecf1' : 
                                                 order.status === 'processing' ? '#cce5ff' : 
                                                 order.status === 'shipped' ? '#d4edda' : 
-                                                order.status === 'in_delivery' ? '#d1ecf1' : 
+                                                order.status === 'in_delivery' ? '#d4f4f4' : 
                                                 order.status === 'delivered' ? '#d4edda' : 
                                                 order.status === 'cancelled' ? '#f8d7da' : '#e2e3e5',
                                 color: order.status === 'pending' ? '#856404' : 
                                        order.status === 'accepted' ? '#0c5460' : 
                                        order.status === 'processing' ? '#0056b3' : 
                                        order.status === 'shipped' ? '#155724' : 
-                                       order.status === 'in_delivery' ? '#0c5460' : 
+                                       order.status === 'in_delivery' ? '#0e7c7b' : 
                                        order.status === 'delivered' ? '#155724' : 
                                        order.status === 'cancelled' ? '#721c24' : '#383d41'
                               }}>
@@ -6395,7 +6395,6 @@
                     }}
                   >
                     <option value="pending">Pending</option>
-                    <option value="accepted">Accepted</option>
                     <option value="processing">Processing</option>
                     <option value="in_delivery">In Delivery (În curs de livrare)</option>
                     <option value="delivered">Delivered (Livrat)</option>
@@ -6467,8 +6466,8 @@
                       <p><strong>Status:</strong> <span style={{
                         padding: '4px 8px', 
                         borderRadius: '4px', 
-                        backgroundColor: selectedOrder.status === 'pending' ? '#fff3cd' : selectedOrder.status === 'accepted' ? '#d1ecf1' : selectedOrder.status === 'processing' ? '#cce5ff' : selectedOrder.status === 'shipped' ? '#d4edda' : selectedOrder.status === 'in_delivery' ? '#d1ecf1' : selectedOrder.status === 'delivered' ? '#d4edda' : selectedOrder.status === 'cancelled' ? '#f8d7da' : '#e2e3e5',
-                        color: selectedOrder.status === 'pending' ? '#856404' : selectedOrder.status === 'accepted' ? '#0c5460' : selectedOrder.status === 'processing' ? '#0056b3' : selectedOrder.status === 'shipped' ? '#155724' : selectedOrder.status === 'in_delivery' ? '#0c5460' : selectedOrder.status === 'delivered' ? '#155724' : selectedOrder.status === 'cancelled' ? '#721c24' : '#383d41'
+                        backgroundColor: selectedOrder.status === 'pending' ? '#fff3cd' : selectedOrder.status === 'accepted' ? '#d1ecf1' : selectedOrder.status === 'processing' ? '#cce5ff' : selectedOrder.status === 'shipped' ? '#d4edda' : selectedOrder.status === 'in_delivery' ? '#d4f4f4' : selectedOrder.status === 'delivered' ? '#d4edda' : selectedOrder.status === 'cancelled' ? '#f8d7da' : '#e2e3e5',
+                        color: selectedOrder.status === 'pending' ? '#856404' : selectedOrder.status === 'accepted' ? '#0c5460' : selectedOrder.status === 'processing' ? '#0056b3' : selectedOrder.status === 'shipped' ? '#155724' : selectedOrder.status === 'in_delivery' ? '#0e7c7b' : selectedOrder.status === 'delivered' ? '#155724' : selectedOrder.status === 'cancelled' ? '#721c24' : '#383d41'
                       }}>{selectedOrder.status === 'in_delivery' ? 'In Delivery' : selectedOrder.status}</span></p>
                       <p><strong>Payment Method:</strong> {(() => {
                         const pm = selectedOrder.paymentMethod;
