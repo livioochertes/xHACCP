@@ -973,7 +973,7 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(400).json({ message: "Order IDs array is required" });
       }
       
-      if (!status || !['pending', 'processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
+      if (!status || !['pending', 'processing', 'shipped', 'in_delivery', 'delivered', 'cancelled'].includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
       
@@ -1031,7 +1031,7 @@ export async function registerAdminRoutes(app: Express) {
       const orderId = parseInt(req.params.id);
       const { status } = req.body;
       
-      const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'accepted'];
+      const validStatuses = ['pending', 'processing', 'shipped', 'in_delivery', 'delivered', 'cancelled', 'accepted'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
@@ -1058,7 +1058,7 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(404).json({ success: false, message: 'Order not found' });
       }
 
-      if (order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered') {
+      if (order.status === 'processing' || order.status === 'shipped' || order.status === 'in_delivery' || order.status === 'delivered') {
         return res.status(400).json({ success: false, message: 'Order has already been processed' });
       }
 
@@ -3210,7 +3210,7 @@ export async function registerAdminRoutes(app: Express) {
           awbCost: awbResponse.cost || 0,
           awbCurrency: awbResponse.currency || 'RON',
           awbPdfUrl: awbResponse.pdfLink || null,
-          status: 'shipped',
+          status: 'in_delivery',
           awbCreatedAt: new Date(),
         });
 
@@ -3262,7 +3262,7 @@ export async function registerAdminRoutes(app: Express) {
           awbCost: 0,
           awbCurrency: 'RON',
           awbPdfUrl: null,
-          status: 'shipped',
+          status: 'in_delivery',
           awbCreatedAt: new Date(),
         });
 

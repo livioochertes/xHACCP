@@ -384,6 +384,8 @@ export default function Account() {
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       case 'shipped': 
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'in_delivery': 
+        return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200';
       case 'delivered': 
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'cancelled': 
@@ -398,6 +400,7 @@ export default function Account() {
       case 'pending': return 'Pending Review';
       case 'processing': return 'Processing';
       case 'shipped': return 'Shipped';
+      case 'in_delivery': return 'In Delivery';
       case 'delivered': return 'Delivered';
       case 'cancelled': return 'Cancelled';
       default: return status;

@@ -690,6 +690,8 @@
       const [filteredOrders, setFilteredOrders] = useState([]);
       const [selectedOrder, setSelectedOrder] = useState(null);
       const [showOrderDetails, setShowOrderDetails] = useState(false);
+      const [statusChangeOrderId, setStatusChangeOrderId] = useState(null);
+      const [statusChangeValue, setStatusChangeValue] = useState('');
       const [showOrderTools, setShowOrderTools] = useState(false);
       const [selectedProducts, setSelectedProducts] = useState([]);
       const [showProductBulkModal, setShowProductBulkModal] = useState(false);
@@ -1698,7 +1700,7 @@
             if (data.manual) {
               alert(`⚠️ Manual AWB Generated (Sameday API Blocked)\\n\\nReference: ${data.awbNumber}\\nCourier: ${data.courier}\\n\\n${data.message}\\n\\nNext Steps:\\n1. Login to Sameday portal\\n2. Create AWB manually using reference: ${data.awbNumber}\\n3. Update tracking when ready`);
             } else {
-              alert(`✅ Real AWB Generated Successfully!\\n\\nAWB Number: ${data.awbNumber}\\nCourier: ${data.courier}\\nCost: ${data.awbCost || data.cost} ${data.currency}\\n\\nOrder status updated to "shipped"\\nTracking: ${data.trackingUrl || 'Available in Sameday portal'}`);
+              alert(`✅ Real AWB Generated Successfully!\\n\\nAWB Number: ${data.awbNumber}\\nCourier: ${data.courier}\\nCost: ${data.awbCost || data.cost} ${data.currency}\\n\\nOrder status updated to "in_delivery"\\nTracking: ${data.trackingUrl || 'Available in Sameday portal'}`);
             }
           } else if (response.status === 503 && data.retryAfter) {
             alert(`⏳ Sameday API Rate Limited\\n\\n${data.message}\\n\\nPlease wait ${data.retryAfter} seconds before trying again.`);
@@ -2244,6 +2246,7 @@
                           <option value="accepted">Accepted</option>
                           <option value="processing">Processing</option>
                           <option value="shipped">Shipped</option>
+                          <option value="in_delivery">In Delivery</option>
                           <option value="delivered">Delivered</option>
                           <option value="cancelled">Cancelled</option>
                         </select>
@@ -2320,16 +2323,18 @@
                                                 order.status === 'accepted' ? '#d1ecf1' : 
                                                 order.status === 'processing' ? '#cce5ff' : 
                                                 order.status === 'shipped' ? '#d4edda' : 
+                                                order.status === 'in_delivery' ? '#d1ecf1' : 
                                                 order.status === 'delivered' ? '#d4edda' : 
                                                 order.status === 'cancelled' ? '#f8d7da' : '#e2e3e5',
                                 color: order.status === 'pending' ? '#856404' : 
                                        order.status === 'accepted' ? '#0c5460' : 
                                        order.status === 'processing' ? '#0056b3' : 
                                        order.status === 'shipped' ? '#155724' : 
+                                       order.status === 'in_delivery' ? '#0c5460' : 
                                        order.status === 'delivered' ? '#155724' : 
                                        order.status === 'cancelled' ? '#721c24' : '#383d41'
                               }}>
-                                {order.status}
+                                {order.status === 'in_delivery' ? 'In Delivery' : order.status === 'cash_on_delivery' ? 'COD' : order.status}
                               </span>
                             </td>
                             <td style={{padding: '12px'}}>{new Date(order.createdAt).toLocaleDateString()}</td>
@@ -2439,18 +2444,9 @@
                                     cursor: 'pointer',
                                     fontSize: '12px'
                                   }}
-                                  onClick={async () => {
-                                    const newStatus = prompt(`Update order status for Order #${order.id}:\n\nCurrent status: ${order.status}\n\nEnter new status (pending, accepted, processing, shipped, delivered, cancelled):`);
-                                    if (newStatus && ['pending', 'accepted', 'processing', 'shipped', 'delivered', 'cancelled'].includes(newStatus.toLowerCase())) {
-                                      const result = await updateOrderStatus(order.id, newStatus.toLowerCase());
-                                      if (result.success) {
-                                        alert('Order status updated successfully');
-                                      } else {
-                                        alert('Error: ' + result.message);
-                                      }
-                                    } else if (newStatus) {
-                                      alert('Invalid status. Please use: pending, accepted, processing, shipped, delivered, or cancelled');
-                                    }
+                                  onClick={() => {
+                                    setStatusChangeOrderId(order.id);
+                                    setStatusChangeValue(order.status);
                                   }}
                                 >
                                   ✏️ Update
@@ -4418,7 +4414,7 @@
                 <option value="">Choose Status...</option>
                 <option value="pending">Pending</option>
                 <option value="processing">Processing</option>
-                <option value="shipped">Shipped</option>
+                <option value="in_delivery">In Delivery</option>
                 <option value="delivered">Delivered</option>
                 <option value="cancelled">Cancelled</option>
               </select>
@@ -6375,6 +6371,68 @@
               </div>
             )}
             
+            {/* Status Change Mini-Modal */}
+            {statusChangeOrderId && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.4)',
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                zIndex: 1100
+              }}>
+                <div style={{
+                  backgroundColor: 'white', padding: '25px', borderRadius: '8px',
+                  width: '350px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+                }}>
+                  <h4 style={{marginBottom: '15px', color: '#333'}}>
+                    🔄 Update Status — Order #{statusChangeOrderId}
+                  </h4>
+                  <select
+                    value={statusChangeValue}
+                    onChange={(e) => setStatusChangeValue(e.target.value)}
+                    style={{
+                      width: '100%', padding: '10px', borderRadius: '6px',
+                      border: '1px solid #ced4da', fontSize: '14px', marginBottom: '15px'
+                    }}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="processing">Processing</option>
+                    <option value="in_delivery">In Delivery (În curs de livrare)</option>
+                    <option value="delivered">Delivered (Livrat)</option>
+                    <option value="cancelled">Cancelled (Anulat)</option>
+                  </select>
+                  <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+                    <button
+                      className="btn"
+                      style={{background: '#6c757d', padding: '8px 16px'}}
+                      onClick={() => { setStatusChangeOrderId(null); setStatusChangeValue(''); }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn"
+                      style={{background: '#28a745', padding: '8px 16px'}}
+                      onClick={async () => {
+                        const result = await updateOrderStatus(statusChangeOrderId, statusChangeValue);
+                        if (result.success) {
+                          alert(`Order #${statusChangeOrderId} status updated to "${statusChangeValue}"`);
+                          if (selectedOrder && selectedOrder.id === statusChangeOrderId) {
+                            setSelectedOrder({...selectedOrder, status: statusChangeValue});
+                          }
+                        } else {
+                          alert('Error: ' + (result.message || 'Unknown error'));
+                        }
+                        setStatusChangeOrderId(null);
+                        setStatusChangeValue('');
+                      }}
+                    >
+                      ✅ Confirm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Order Details Modal */}
             {showOrderDetails && selectedOrder && (
               <div style={{
@@ -6409,9 +6467,9 @@
                       <p><strong>Status:</strong> <span style={{
                         padding: '4px 8px', 
                         borderRadius: '4px', 
-                        backgroundColor: selectedOrder.status === 'pending' ? '#fff3cd' : selectedOrder.status === 'processing' ? '#cce5ff' : selectedOrder.status === 'shipped' ? '#d1ecf1' : selectedOrder.status === 'delivered' ? '#d4edda' : selectedOrder.status === 'cancelled' ? '#f8d7da' : '#e2e3e5',
-                        color: selectedOrder.status === 'pending' ? '#856404' : selectedOrder.status === 'processing' ? '#0056b3' : selectedOrder.status === 'shipped' ? '#0c5460' : selectedOrder.status === 'delivered' ? '#155724' : selectedOrder.status === 'cancelled' ? '#721c24' : '#383d41'
-                      }}>{selectedOrder.status}</span></p>
+                        backgroundColor: selectedOrder.status === 'pending' ? '#fff3cd' : selectedOrder.status === 'accepted' ? '#d1ecf1' : selectedOrder.status === 'processing' ? '#cce5ff' : selectedOrder.status === 'shipped' ? '#d4edda' : selectedOrder.status === 'in_delivery' ? '#d1ecf1' : selectedOrder.status === 'delivered' ? '#d4edda' : selectedOrder.status === 'cancelled' ? '#f8d7da' : '#e2e3e5',
+                        color: selectedOrder.status === 'pending' ? '#856404' : selectedOrder.status === 'accepted' ? '#0c5460' : selectedOrder.status === 'processing' ? '#0056b3' : selectedOrder.status === 'shipped' ? '#155724' : selectedOrder.status === 'in_delivery' ? '#0c5460' : selectedOrder.status === 'delivered' ? '#155724' : selectedOrder.status === 'cancelled' ? '#721c24' : '#383d41'
+                      }}>{selectedOrder.status === 'in_delivery' ? 'In Delivery' : selectedOrder.status}</span></p>
                       <p><strong>Payment Method:</strong> {(() => {
                         const pm = selectedOrder.paymentMethod;
                         if (pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash') return 'Ramburs (plata la livrare)';
@@ -6620,20 +6678,8 @@
                         className="btn"
                         style={{background: '#6f42c1', padding: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px'}}
                         onClick={() => {
-                          const newStatus = prompt(`Update order status for Order #${selectedOrder.id}:\n\nCurrent status: ${selectedOrder.status}\n\nEnter new status (pending, processing, shipped, delivered, cancelled):`);
-                          if (newStatus && ['pending', 'processing', 'shipped', 'delivered', 'cancelled'].includes(newStatus.toLowerCase())) {
-                            updateOrderStatus(selectedOrder.id, newStatus.toLowerCase()).then(result => {
-                              if (result.success) {
-                                alert('Order status updated successfully');
-                                // Update the selected order status in the modal
-                                setSelectedOrder({...selectedOrder, status: newStatus.toLowerCase()});
-                              } else {
-                                alert('Error: ' + result.message);
-                              }
-                            });
-                          } else if (newStatus) {
-                            alert('Invalid status. Please use: pending, processing, shipped, delivered, or cancelled');
-                          }
+                          setStatusChangeOrderId(selectedOrder.id);
+                          setStatusChangeValue(selectedOrder.status);
                         }}
                       >
                         <span>✏️</span>
