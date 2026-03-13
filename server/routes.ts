@@ -1332,6 +1332,35 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
+  // Admin: Update invoice number (for correcting SmartBill sync discrepancies)
+  app.patch("/api/admin/invoices/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const invoiceId = parseInt(req.params.id);
+      const { invoiceNumber, smartbillNumber, smartbillSeries } = req.body;
+
+      if (!invoiceNumber) {
+        return res.status(400).json({ message: "invoiceNumber is required" });
+      }
+
+      const invoice = await storage.getInvoice(invoiceId);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      const updated = await storage.updateInvoice(invoiceId, {
+        invoiceNumber,
+        ...(smartbillNumber && { smartbillNumber }),
+        ...(smartbillSeries && { smartbillSeries }),
+      });
+
+      console.log(`✏️ Admin corrected invoice #${invoiceId}: ${invoice.invoiceNumber} → ${invoiceNumber}`);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating invoice:", error);
+      res.status(500).json({ message: "Failed to update invoice" });
+    }
+  });
+
   // Category routes - instant response from memory
   app.get("/api/categories", (req, res) => {
     // No browser caching to ensure admin changes are visible immediately
