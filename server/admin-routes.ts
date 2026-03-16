@@ -3223,8 +3223,12 @@ export async function registerAdminRoutes(app: Express) {
         const awbEndTime = Date.now();
         console.log('✅ AWB created successfully in', awbEndTime - awbStartTime, 'ms:', awbResponse);
 
+        if (!awbResponse.awbNumber) {
+          throw new Error('Sameday API returned empty AWB number');
+        }
+
         const orderUpdate = await storage.updateOrder(parseInt(orderId), {
-          awbNumber: awbResponse.awbNumber || `KTO${String(orderId).padStart(5, '0')}-API`,
+          awbNumber: awbResponse.awbNumber,
           awbCourier: 'Sameday',
           awbCost: awbResponse.cost || 0,
           awbCurrency: awbResponse.currency || 'RON',
@@ -3233,7 +3237,7 @@ export async function registerAdminRoutes(app: Express) {
           awbCreatedAt: new Date(),
         });
 
-        const finalAwb = awbResponse.awbNumber || `KTO${String(orderId).padStart(5, '0')}-API`;
+        const finalAwb = awbResponse.awbNumber;
         if (!responded) {
           responded = true;
           res.json({
@@ -3259,64 +3263,14 @@ export async function registerAdminRoutes(app: Express) {
       console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
       console.error("Error message:", error instanceof Error ? error.message : 'Unknown error');
       
-      // Handle any Sameday API error with manual AWB fallback
-      if (error instanceof Error && 
-          (error.message.includes('Sameday API') || 
-           error.message.includes('Invalid credentials') || 
-           error.message.includes('Unauthorized') ||
-           error.message.includes('timeout') ||
-           error.message.includes('not responding') ||
-           error.message.includes('All Sameday API authentication attempts failed'))) {
-        
-        console.log('🔄 Sameday API issue detected, generating manual AWB fallback...');
-        console.log('📋 API Error:', error.message);
-        
-        // Generate a manual AWB number as fallback
-        const manualAwbNumber = `KTO${String(req.params.id).padStart(5, '0')}-MANUAL-${Date.now().toString().slice(-6)}`;
-        
-        // Update order with manual AWB information
-        const updatedOrder = await storage.updateOrder(parseInt(req.params.id), {
-          awbNumber: manualAwbNumber,
-          awbCourier: 'Sameday (Manual)',
-          awbCost: 0,
-          awbCurrency: 'RON',
-          awbPdfUrl: null,
-          status: 'in_delivery',
-          awbCreatedAt: new Date(),
-        });
-
-        // Determine error type for better user messaging
-        let errorType = 'API issue';
-        if (error.message.includes('Invalid credentials') || error.message.includes('Unauthorized')) {
-          errorType = 'authentication issue';
-        } else if (error.message.includes('429') || error.message.includes('rate limit')) {
-          errorType = 'rate limiting';
-        }
-
-        if (!responded) {
-          responded = true;
-          res.json({
-            success: true,
-            awbNumber: manualAwbNumber,
-            awbCost: 0,
-            currency: 'RON',
-            courier: 'Sameday (Manual)',
-            order: updatedOrder,
-            trackingUrl: `https://sameday.ro/status-colet/?awb=${manualAwbNumber}`,
-            manual: true,
-            message: `Sameday API ${errorType} detected. Manual AWB generated. Please create the actual AWB in Sameday portal using reference: ${manualAwbNumber}`,
-            apiError: error.message.substring(0, 200)
-          });
-          sendAwbEmails(parseInt(req.params.id), manualAwbNumber).catch(e => console.error('❌ [AWB Email] Background email error:', e));
-        }
-        return;
-      }
-      
       if (!responded) {
         responded = true;
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        console.error('❌ AWB generation failed, NOT saving fake AWB to database:', errorMsg);
         res.status(500).json({ 
-          message: "Failed to generate AWB", 
-          error: error instanceof Error ? error.message : 'Unknown error'
+          success: false,
+          message: "Failed to generate AWB. Please retry or create manually in Sameday portal.", 
+          error: errorMsg.substring(0, 300)
         });
       }
     }

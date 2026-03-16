@@ -1695,18 +1695,13 @@
           console.log('📦 AWB response data:', data);
           
           if (response.ok && data.success) {
-            await fetchOrders(); // Refresh order list to show new AWB
-            
-            if (data.manual) {
-              alert(`⚠️ Manual AWB Generated (Sameday API Blocked)\\n\\nReference: ${data.awbNumber}\\nCourier: ${data.courier}\\n\\n${data.message}\\n\\nNext Steps:\\n1. Login to Sameday portal\\n2. Create AWB manually using reference: ${data.awbNumber}\\n3. Update tracking when ready`);
-            } else {
-              alert(`✅ Real AWB Generated Successfully!\\n\\nAWB Number: ${data.awbNumber}\\nCourier: ${data.courier}\\nCost: ${data.awbCost || data.cost} ${data.currency}\\n\\nOrder status updated to "in_delivery"\\nTracking: ${data.trackingUrl || 'Available in Sameday portal'}`);
-            }
+            await fetchOrders();
+            alert(`✅ AWB generat cu succes!\\n\\nAWB: ${data.awbNumber}\\nCurier: ${data.courier}\\nCost: ${data.awbCost || data.cost} ${data.currency}\\n\\nStatus comandă: in_delivery\\nTracking: ${data.trackingUrl || 'Disponibil în portalul Sameday'}`);
           } else if (response.status === 503 && data.retryAfter) {
             alert(`⏳ Sameday API Rate Limited\\n\\n${data.message}\\n\\nPlease wait ${data.retryAfter} seconds before trying again.`);
           } else {
             console.error('AWB generation failed:', data);
-            alert(`❌ AWB Generation Failed\\n\\nError: ${data.message || 'Unknown error occurred'}\\n\\nCheck console for details.`);
+            alert(`❌ Generare AWB eșuată\\n\\n${data.message || 'Eroare necunoscută'}\\n\\n${data.error ? 'Detalii: ' + data.error.substring(0, 150) : ''}\\n\\nPoți reîncerca sau crea AWB manual în portalul Sameday.`);
           }
         } catch (err) {
           console.error('AWB generation error:', err);
@@ -2388,7 +2383,7 @@
                                     ✅ Accept
                                   </button>
                                 )}
-                                {order.status === 'processing' && !order.awbNumber && (
+                                {!['delivered','cancelled'].includes(order.status) && !order.awbNumber && (
                                   <button 
                                     style={{
                                       padding: '4px 8px', 
@@ -2404,7 +2399,7 @@
                                     🚛 Generate AWB
                                   </button>
                                 )}
-                                {order.awbNumber && (
+                                {order.awbNumber && !order.awbNumber.includes('-API') && !order.awbNumber.includes('-MANUAL-') && (
                                   <button 
                                     style={{
                                       padding: '4px 8px', 
