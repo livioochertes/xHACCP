@@ -2383,7 +2383,7 @@
                                     ✅ Accept
                                   </button>
                                 )}
-                                {!['delivered','cancelled'].includes(order.status) && !order.awbNumber && (
+                                {!['delivered','cancelled'].includes(order.status) && (!order.awbNumber || order.awbNumber.includes('-API') || order.awbNumber.includes('-MANUAL-')) && (
                                   <button 
                                     style={{
                                       padding: '4px 8px', 
