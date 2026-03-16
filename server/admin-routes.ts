@@ -3094,6 +3094,7 @@ export async function registerAdminRoutes(app: Express) {
 
   // Manual AWB Generation route for admin interface
   app.post("/admin/api/orders/:id/generate-awb", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    let responded = false;
     try {
       const orderId = parseInt(req.params.id);
       console.log('🚚 Starting manual AWB generation for order:', orderId);
@@ -3111,8 +3112,6 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       console.log('🚚 Starting AWB generation for order:', orderId);
-
-      let responded = false;
       const awbGenerationPromise = async () => {
         // Get real pickup points and services from Sameday API
         console.log('📍 Fetching pickup points and services from Sameday API...');
