@@ -2302,7 +2302,7 @@ Sitemap: https://${domain}/sitemap.xml
         packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
         awbPayment: 1,
         awbRecipient: {
-          name: `${shippingAddr.firstName} ${shippingAddr.lastName}`,
+          name: `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim() || shippingAddr.companyName || 'Customer',
           phoneNumber: shippingAddr.phone || '+40700000000',
           personType: 0,
           address: shippingAddr.address,
@@ -3050,7 +3050,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
         awbPayment: 1,
         awbRecipient: {
-          name: `${shippingAddr.firstName} ${shippingAddr.lastName}`,
+          name: `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim() || shippingAddr.companyName || 'Customer',
           phoneNumber: shippingAddr.phone || '+40700000000',
           personType: 0,
           address: shippingAddr.address,

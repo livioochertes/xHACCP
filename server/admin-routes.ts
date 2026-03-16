@@ -1177,7 +1177,7 @@ export async function registerAdminRoutes(app: Express) {
                     packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
                     awbPayment: 1,
                     awbRecipient: {
-                      name: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || 'Customer',
+                      name: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || shippingAddr?.companyName || 'Customer',
                       phoneNumber: shippingAddr?.phone || '',
                       personType: 0,
                       address: shippingAddr?.streetAddress || shippingAddr?.address || '',
@@ -3201,7 +3201,7 @@ export async function registerAdminRoutes(app: Express) {
           insuredValue: manualIsCOD ? 0 : manualTotalAmount,
           thirdPartyPickup: 0,
           awbRecipient: {
-            name: shippingAddress.name || order.customerName || 'Customer',
+            name: `${(shippingAddress as any).firstName || ''} ${(shippingAddress as any).lastName || ''}`.trim() || (shippingAddress as any).companyName || order.customerName || 'Customer',
             phoneNumber: shippingAddress.phone || "+40745009000",
             personType: 0,
             address: shippingAddress.address || shippingAddress.street || "Address not provided",
