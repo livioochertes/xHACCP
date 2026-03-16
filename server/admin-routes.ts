@@ -1157,10 +1157,14 @@ export async function registerAdminRoutes(app: Express) {
 
                   const totalAmount = parseFloat(String(currentOrder.totalAmount));
                   const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
-                  const standardService = services.find((s: any) => 
+                  const preferredService = services.find((s: any) => 
                     s.name?.toLowerCase().includes('standard') || 
                     s.name?.toLowerCase().includes('next day')
-                  ) || services[0];
+                  );
+                  if (!preferredService) {
+                    console.warn(`⚠️ [Background] No 'Standard'/'Next Day' service found, falling back to first service: ${services[0].id} (${services[0].name})`);
+                  }
+                  const standardService = preferredService || services[0];
                   console.log(`📦 [Background] Using service: ${standardService.id} (${standardService.name})`);
                   const countyVal = shippingAddr?.state || shippingAddr?.county || '';
                   const cityVal = shippingAddr?.city || countyVal || 'N/A';
@@ -3125,10 +3129,14 @@ export async function registerAdminRoutes(app: Express) {
         }
 
         const pickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
-        const service = services.find((s: any) => 
+        const preferredManualService = services.find((s: any) => 
           s.name?.toLowerCase().includes('standard') || 
           s.name?.toLowerCase().includes('next day')
-        ) || services[0];
+        );
+        if (!preferredManualService) {
+          console.warn(`⚠️ [Manual AWB] No 'Standard'/'Next Day' service found, falling back to first service: ${services[0].id} (${services[0].name})`);
+        }
+        const service = preferredManualService || services[0];
 
         console.log('✅ Using pickup point:', pickupPoint.id, pickupPoint.alias);
         console.log('✅ Using service:', service.id, service.name);
