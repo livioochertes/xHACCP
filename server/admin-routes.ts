@@ -1157,10 +1157,17 @@ export async function registerAdminRoutes(app: Express) {
 
                   const totalAmount = parseFloat(String(currentOrder.totalAmount));
                   const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
+                  const standardService = services.find((s: any) => 
+                    s.name?.toLowerCase().includes('standard') || 
+                    s.name?.toLowerCase().includes('next day')
+                  ) || services[0];
+                  console.log(`📦 [Background] Using service: ${standardService.id} (${standardService.name})`);
+                  const countyVal = shippingAddr?.state || shippingAddr?.county || '';
+                  const cityVal = shippingAddr?.city || countyVal || 'N/A';
                   const awbData: any = {
                     pickupPoint: selectedPickupPoint.id,
                     contactPerson: defaultContact?.id,
-                    service: services[0].id,
+                    service: standardService.id,
                     packageType: 0,
                     packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
                     awbPayment: 1,
@@ -1169,13 +1176,13 @@ export async function registerAdminRoutes(app: Express) {
                       phoneNumber: shippingAddr?.phone || '',
                       personType: 0,
                       address: shippingAddr?.streetAddress || shippingAddr?.address || '',
-                      countyString: shippingAddr?.state || shippingAddr?.county || '',
-                      cityString: shippingAddr?.city || '',
+                      countyString: countyVal,
+                      cityString: cityVal,
                       postalCode: shippingAddr?.zipCode || '',
                     },
                     parcels,
                     thirdPartyPickup: 0,
-                    insuredValue: totalAmount,
+                    insuredValue: isCOD ? 0 : totalAmount,
                     cashOnDelivery: isCOD ? totalAmount : 0,
                     observation: `Order #${orderId}`,
                     clientInternalReference: `order_${orderId}`,
@@ -3117,9 +3124,11 @@ export async function registerAdminRoutes(app: Express) {
           throw new Error("No services configured in Sameday account");
         }
 
-        // Use first available pickup point and service
-        const pickupPoint = pickupPoints[0];
-        const service = services[0];
+        const pickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
+        const service = services.find((s: any) => 
+          s.name?.toLowerCase().includes('standard') || 
+          s.name?.toLowerCase().includes('next day')
+        ) || services[0];
 
         console.log('✅ Using pickup point:', pickupPoint.id, pickupPoint.alias);
         console.log('✅ Using service:', service.id, service.name);
@@ -3180,7 +3189,7 @@ export async function registerAdminRoutes(app: Express) {
           packageWeight: 1,
           awbPayment: 1,
           cashOnDelivery: manualIsCOD ? manualTotalAmount : 0,
-          insuredValue: manualTotalAmount,
+          insuredValue: manualIsCOD ? 0 : manualTotalAmount,
           thirdPartyPickup: 0,
           awbRecipient: {
             name: shippingAddress.name || order.customerName || 'Customer',

@@ -177,7 +177,32 @@ export class SamedayAPI {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ Sameday API error: ${response.status} - ${errorText.substring(0, 500)}`);
+        console.error(`❌ Sameday API error: ${response.status} - ${errorText}`);
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.errors?.children) {
+            const fieldErrors: string[] = [];
+            for (const [field, val] of Object.entries(errorJson.errors.children)) {
+              const v = val as any;
+              if (v?.errors?.length > 0) {
+                fieldErrors.push(`${field}: ${v.errors.join(', ')}`);
+              }
+              if (v?.children) {
+                for (const [subField, subVal] of Object.entries(v.children)) {
+                  const sv = subVal as any;
+                  if (sv?.errors?.length > 0) {
+                    fieldErrors.push(`${field}.${subField}: ${sv.errors.join(', ')}`);
+                  }
+                }
+              }
+            }
+            if (fieldErrors.length > 0) {
+              console.error(`❌ Sameday validation field errors:`, fieldErrors);
+            } else {
+              console.error(`❌ Sameday validation failed with no specific field errors (root-level constraint)`);
+            }
+          }
+        } catch (_) {}
         throw new Error(`Sameday API error: ${response.status} - ${errorText}`);
       }
 
@@ -274,14 +299,15 @@ export class SamedayAPI {
       formBody.append('clientInternalReference', awbData.clientInternalReference);
     }
 
-    console.log('🚚 Creating AWB with form data:', formBody.toString().substring(0, 500));
+    const formString = formBody.toString();
+    console.log('🚚 Creating AWB with form data:', formString);
     
     const response = await this.apiRequest<CreateAWBResponse>('/api/awb', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: formBody.toString(),
+      body: formString,
     });
 
     console.log('✅ AWB created:', response.awbNumber);
