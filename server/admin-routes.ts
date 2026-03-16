@@ -3143,7 +3143,7 @@ export async function registerAdminRoutes(app: Express) {
         console.log('✅ Using service:', service.id, service.name);
 
         // Parse shipping address
-        let shippingAddress = {};
+        let shippingAddress: any = {};
         try {
           if (order.shippingAddress) {
             shippingAddress = typeof order.shippingAddress === 'string' 
@@ -3201,7 +3201,7 @@ export async function registerAdminRoutes(app: Express) {
           insuredValue: manualIsCOD ? 0 : manualTotalAmount,
           thirdPartyPickup: 0,
           awbRecipient: {
-            name: `${(shippingAddress as any).firstName || ''} ${(shippingAddress as any).lastName || ''}`.trim() || (shippingAddress as any).companyName || order.customerName || 'Customer',
+            name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim() || shippingAddress.companyName || order.customerName || 'Customer',
             phoneNumber: shippingAddress.phone || "+40745009000",
             personType: 0,
             address: shippingAddress.address || shippingAddress.street || "Address not provided",
