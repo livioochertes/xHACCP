@@ -6499,7 +6499,7 @@
                         <p><strong>Total:</strong> {parseFloat(selectedOrder.totalAmount).toFixed(2)} lei</p>
                       )}
                       <p><strong>Created:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
-                      {selectedOrder.awbNumber && (
+                      {selectedOrder.awbNumber && !selectedOrder.awbNumber.includes('-API') && !selectedOrder.awbNumber.includes('-MANUAL-') && (
                         <p><strong>AWB:</strong> <span style={{fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '3px'}}>{selectedOrder.awbNumber}</span></p>
                       )}
                       {selectedOrder.invoiceNumber && (
@@ -6696,7 +6696,7 @@ Date: ${new Date(selectedOrder.createdAt).toLocaleDateString()}
 Status: ${selectedOrder.status}
 Payment Method: ${isCOD ? 'Ramburs (plata la livrare)' : (pm === 'card' || pm === 'viva' ? 'Card online' : pm)}
 Payment Status: ${isCOD ? 'Ramburs / Numerar' : (selectedOrder.paymentStatus === 'paid' ? 'Platit' : (selectedOrder.paymentStatus || 'Neplatit'))}
-${selectedOrder.awbNumber ? 'AWB: ' + selectedOrder.awbNumber : ''}${selectedOrder.invoiceNumber ? '\nFactura: ' + selectedOrder.invoiceNumber : ''}
+${selectedOrder.awbNumber && !selectedOrder.awbNumber.includes('-API') && !selectedOrder.awbNumber.includes('-MANUAL-') ? 'AWB: ' + selectedOrder.awbNumber : ''}${selectedOrder.invoiceNumber ? '\nFactura: ' + selectedOrder.invoiceNumber : ''}
 
 SHIPPING ADDRESS:
 ${selectedOrder.shippingAddress.firstName} ${selectedOrder.shippingAddress.lastName}
