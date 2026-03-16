@@ -1157,10 +1157,11 @@ export async function registerAdminRoutes(app: Express) {
 
                   const totalAmount = parseFloat(String(currentOrder.totalAmount));
                   const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
-                  const preferredService = services.find((s: any) => 
-                    s.name?.toLowerCase().includes('standard') || 
-                    s.name?.toLowerCase().includes('next day')
-                  );
+                  const preferredService = services.find((s: any) => {
+                    const name = s.name?.toLowerCase() || '';
+                    if (name.includes('retur') || name.includes('return')) return false;
+                    return name.includes('standard') || name.includes('next day');
+                  });
                   if (!preferredService) {
                     console.warn(`⚠️ [Background] No 'Standard'/'Next Day' service found, falling back to first service: ${services[0].id} (${services[0].name})`);
                   }
@@ -3129,10 +3130,11 @@ export async function registerAdminRoutes(app: Express) {
         }
 
         const pickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
-        const preferredManualService = services.find((s: any) => 
-          s.name?.toLowerCase().includes('standard') || 
-          s.name?.toLowerCase().includes('next day')
-        );
+        const preferredManualService = services.find((s: any) => {
+          const name = s.name?.toLowerCase() || '';
+          if (name.includes('retur') || name.includes('return')) return false;
+          return name.includes('standard') || name.includes('next day');
+        });
         if (!preferredManualService) {
           console.warn(`⚠️ [Manual AWB] No 'Standard'/'Next Day' service found, falling back to first service: ${services[0].id} (${services[0].name})`);
         }
@@ -3171,7 +3173,7 @@ export async function registerAdminRoutes(app: Express) {
             countyId = foundCounty.id;
             
             // Get cities for this county
-            const cities = await samedayAPI.getCities(foundCounty.name);
+            const cities = await samedayAPI.getCities(String(foundCounty.id));
             const cityName = shippingAddress.city || "Cluj-Napoca";
             const foundCity = cities.find(c => 
               c.name.toLowerCase().includes(cityName.toLowerCase()) ||
