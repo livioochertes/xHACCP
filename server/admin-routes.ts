@@ -1138,80 +1138,88 @@ export async function registerAdminRoutes(app: Express) {
 
           try {
             console.log(`📦 [Background] Generating AWB for order #${orderId}...`);
-            const { createSamedayAPI } = await import('./sameday-api');
-            const samedayAPI = createSamedayAPI();
-            if (samedayAPI) {
-              const currentOrder = await storage.getOrder(orderId);
-              if (currentOrder && !currentOrder.awbNumber) {
-                console.log(`📦 [Background] Fetching pickup points and services...`);
-                const [pickupPoints, services] = await Promise.all([
-                  samedayAPI.getPickupPoints(),
-                  samedayAPI.getServices()
-                ]);
-                console.log(`📦 [Background] Pickup points: ${pickupPoints.length}, Services: ${services.length}`);
+            const bgAwbTimeout = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Background AWB generation timeout after 90s')), 90000)
+            );
+            await Promise.race([
+              (async () => {
+                const { createSamedayAPI } = await import('./sameday-api');
+                const samedayAPI = createSamedayAPI();
+                if (samedayAPI) {
+                  const currentOrder = await storage.getOrder(orderId);
+                  if (currentOrder && !currentOrder.awbNumber) {
+                    console.log(`📦 [Background] Fetching pickup points and services...`);
+                    const [pickupPoints, services] = await Promise.all([
+                      samedayAPI.getPickupPoints(),
+                      samedayAPI.getServices()
+                    ]);
+                    console.log(`📦 [Background] Pickup points: ${pickupPoints.length}, Services: ${services.length}`);
 
-                if (pickupPoints.length > 0 && services.length > 0) {
-                  const selectedPickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
-                  const parcels = await buildCombinedParcels(currentOrder.items || [], storage);
-                  console.log(`📦 [Background] Combined parcels: ${parcels.length} parcel(s) for ${(currentOrder.items || []).length} item(s)`);
+                    if (pickupPoints.length > 0 && services.length > 0) {
+                      const selectedPickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
+                      const parcels = await buildCombinedParcels(currentOrder.items || [], storage);
+                      console.log(`📦 [Background] Combined parcels: ${parcels.length} parcel(s) for ${(currentOrder.items || []).length} item(s)`);
 
-                  const totalAmount = parseFloat(String(currentOrder.totalAmount));
-                  const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
-                  const preferredService = services.find((s: any) => {
-                    const name = s.name?.toLowerCase() || '';
-                    if (name.includes('retur') || name.includes('return')) return false;
-                    return name.includes('standard') || name.includes('next day');
-                  });
-                  if (!preferredService) {
-                    console.warn(`⚠️ [Background] No 'Standard'/'Next Day' service found, falling back to first service: ${services[0].id} (${services[0].name})`);
-                  }
-                  const standardService = preferredService || services[0];
-                  console.log(`📦 [Background] Using service: ${standardService.id} (${standardService.name})`);
-                  const countyVal = shippingAddr?.state || shippingAddr?.county || '';
-                  const cityVal = shippingAddr?.city || countyVal || 'N/A';
-                  const isB2BBackground = !!(billingAddr?.companyName);
-                  const awbData: any = {
-                    pickupPoint: selectedPickupPoint.id,
-                    contactPerson: defaultContact?.id,
-                    service: standardService.id,
-                    packageType: 0,
-                    packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
-                    awbPayment: 1,
-                    awbRecipient: {
-                      name: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || shippingAddr?.companyName || 'Customer',
-                      phoneNumber: shippingAddr?.phone || '',
-                      personType: isB2BBackground ? 1 : 0,
-                      ...(isB2BBackground && { companyName: billingAddr.companyName }),
-                      address: shippingAddr?.streetAddress || shippingAddr?.address || '',
-                      countyString: countyVal,
-                      cityString: cityVal,
-                      postalCode: shippingAddr?.zipCode || '',
-                    },
-                    parcels,
-                    thirdPartyPickup: 0,
-                    insuredValue: isCOD ? 0 : totalAmount,
-                    cashOnDelivery: isCOD ? totalAmount : 0,
-                    observation: `Order #${orderId}`,
-                    clientInternalReference: `order_${orderId}`,
-                  };
+                      const totalAmount = parseFloat(String(currentOrder.totalAmount));
+                      const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
+                      const preferredService = services.find((s: any) => {
+                        const name = s.name?.toLowerCase() || '';
+                        if (name.includes('retur') || name.includes('return')) return false;
+                        return name.includes('standard') || name.includes('next day');
+                      });
+                      if (!preferredService) {
+                        console.warn(`⚠️ [Background] No 'Standard'/'Next Day' service found, falling back to first service: ${services[0].id} (${services[0].name})`);
+                      }
+                      const standardService = preferredService || services[0];
+                      console.log(`📦 [Background] Using service: ${standardService.id} (${standardService.name})`);
+                      const countyVal = shippingAddr?.state || shippingAddr?.county || '';
+                      const cityVal = shippingAddr?.city || countyVal || 'N/A';
+                      const isB2BBackground = !!(billingAddr?.companyName);
+                      const awbData: any = {
+                        pickupPoint: selectedPickupPoint.id,
+                        contactPerson: defaultContact?.id,
+                        service: standardService.id,
+                        packageType: 0,
+                        packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
+                        awbPayment: 1,
+                        awbRecipient: {
+                          name: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || shippingAddr?.companyName || 'Customer',
+                          phoneNumber: shippingAddr?.phone || '',
+                          personType: isB2BBackground ? 1 : 0,
+                          ...(isB2BBackground && { companyName: billingAddr.companyName }),
+                          address: shippingAddr?.streetAddress || shippingAddr?.address || '',
+                          countyString: countyVal,
+                          cityString: cityVal,
+                          postalCode: shippingAddr?.zipCode || '',
+                        },
+                        parcels,
+                        thirdPartyPickup: 0,
+                        insuredValue: isCOD ? 0 : totalAmount,
+                        cashOnDelivery: isCOD ? totalAmount : 0,
+                        observation: `Order #${orderId}`,
+                        clientInternalReference: `order_${orderId}`,
+                      };
 
-                  const awbResult = await samedayAPI.createAWB(awbData);
-                  if (awbResult && awbResult.awbNumber) {
-                    await storage.updateOrder(orderId, {
-                      awbNumber: awbResult.awbNumber,
-                      awbCost: String(awbResult.cost || 0),
-                      awbCurrency: awbResult.currency || 'RON',
-                      status: 'processing',
-                    });
-                    awbNumber = awbResult.awbNumber;
-                    console.log(`✅ [Background] AWB generated for order #${orderId}: ${awbNumber}`);
+                      const awbResult = await samedayAPI.createAWB(awbData);
+                      if (awbResult && awbResult.awbNumber) {
+                        await storage.updateOrder(orderId, {
+                          awbNumber: awbResult.awbNumber,
+                          awbCost: String(awbResult.cost || 0),
+                          awbCurrency: awbResult.currency || 'RON',
+                          status: 'processing',
+                        });
+                        awbNumber = awbResult.awbNumber;
+                        console.log(`✅ [Background] AWB generated for order #${orderId}: ${awbNumber}`);
+                      }
+                    }
+                  } else if (currentOrder?.awbNumber) {
+                    awbNumber = currentOrder.awbNumber;
+                    console.log(`ℹ️ [Background] Order #${orderId} already has AWB: ${awbNumber}`);
                   }
                 }
-              } else if (currentOrder?.awbNumber) {
-                awbNumber = currentOrder.awbNumber;
-                console.log(`ℹ️ [Background] Order #${orderId} already has AWB: ${awbNumber}`);
-              }
-            }
+              })(),
+              bgAwbTimeout,
+            ]);
           } catch (awbError) {
             console.error(`❌ [Background] Failed to generate AWB for order #${orderId}:`, awbError);
           }
