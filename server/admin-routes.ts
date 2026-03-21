@@ -1169,6 +1169,7 @@ export async function registerAdminRoutes(app: Express) {
                   console.log(`📦 [Background] Using service: ${standardService.id} (${standardService.name})`);
                   const countyVal = shippingAddr?.state || shippingAddr?.county || '';
                   const cityVal = shippingAddr?.city || countyVal || 'N/A';
+                  const isB2BBackground = !!(billingAddr?.companyName);
                   const awbData: any = {
                     pickupPoint: selectedPickupPoint.id,
                     contactPerson: defaultContact?.id,
@@ -1179,7 +1180,8 @@ export async function registerAdminRoutes(app: Express) {
                     awbRecipient: {
                       name: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || shippingAddr?.companyName || 'Customer',
                       phoneNumber: shippingAddr?.phone || '',
-                      personType: 0,
+                      personType: isB2BBackground ? 1 : 0,
+                      ...(isB2BBackground && { companyName: billingAddr.companyName }),
                       address: shippingAddr?.streetAddress || shippingAddr?.address || '',
                       countyString: countyVal,
                       cityString: cityVal,
@@ -3142,7 +3144,7 @@ export async function registerAdminRoutes(app: Express) {
         console.log('✅ Using pickup point:', pickupPoint.id, pickupPoint.alias);
         console.log('✅ Using service:', service.id, service.name);
 
-        // Parse shipping address
+        // Parse shipping and billing addresses
         let shippingAddress: any = {};
         try {
           if (order.shippingAddress) {
@@ -3154,6 +3156,20 @@ export async function registerAdminRoutes(app: Express) {
           console.error('Failed to parse shipping address:', err);
           shippingAddress = {};
         }
+
+        let manualBillingAddr: any = {};
+        try {
+          if (order.billingAddress) {
+            manualBillingAddr = typeof order.billingAddress === 'string'
+              ? JSON.parse(order.billingAddress as string)
+              : order.billingAddress;
+          }
+        } catch (err) {
+          console.error('Failed to parse billing address:', err);
+          manualBillingAddr = {};
+        }
+
+        const isB2BManual = !!(manualBillingAddr.companyName);
 
         // Look up county and city IDs for production reliability
         let countyId = null;
@@ -3203,7 +3219,8 @@ export async function registerAdminRoutes(app: Express) {
           awbRecipient: {
             name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim() || shippingAddress.companyName || order.customerName || 'Customer',
             phoneNumber: shippingAddress.phone || "+40745009000",
-            personType: 0,
+            personType: isB2BManual ? 1 : 0,
+            ...(isB2BManual && { companyName: manualBillingAddr.companyName }),
             address: shippingAddress.address || shippingAddress.street || "Address not provided",
             countyString: shippingAddress.county || shippingAddress.state || 'Cluj',
             cityString: shippingAddress.city || 'Cluj-Napoca',
@@ -3253,8 +3270,8 @@ export async function registerAdminRoutes(app: Express) {
         }
       };
 
-      const timeoutMs = 45000;
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('AWB generation timeout after 45s')), timeoutMs));
+      const timeoutMs = 120000;
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('AWB generation timeout after 120s')), timeoutMs));
       await Promise.race([awbGenerationPromise(), timeout]);
 
     } catch (error) {

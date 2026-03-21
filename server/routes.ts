@@ -2189,7 +2189,9 @@ Sitemap: https://${domain}/sitemap.xml
       }
 
       const shippingAddr = order.shippingAddress as any;
-      
+      const billingAddr1 = order.billingAddress as any;
+      const isB2B1 = !!(billingAddr1?.companyName);
+
       console.log('📦 Available pickup points:', pickupPoints.length);
       console.log('📦 First 3 pickup points:', pickupPoints.slice(0, 3).map(p => ({ id: p.id, name: p.name, county: p.county })));
       console.log('🚚 Available services:', services.length);
@@ -2304,7 +2306,8 @@ Sitemap: https://${domain}/sitemap.xml
         awbRecipient: {
           name: `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim() || shippingAddr.companyName || order.customerName || 'Customer',
           phoneNumber: shippingAddr.phone || '+40700000000',
-          personType: 0,
+          personType: isB2B1 ? 1 : 0,
+          ...(isB2B1 && { companyName: billingAddr1.companyName }),
           address: shippingAddr.address,
           countyString: shippingAddr.county || shippingAddr.state || '',
           cityString: shippingAddr.city || shippingAddr.county || shippingAddr.state || 'N/A',
@@ -2984,6 +2987,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }
 
       const shippingAddr = order.shippingAddress as any;
+      const billingAddr2 = order.billingAddress as any;
+      const isB2B2 = !!(billingAddr2?.companyName);
       const selectedPickupPoint = pickupPoints.find(p => p.id === 447249) || pickupPoints[0];
 
       const parcels: any[] = [];
@@ -3052,7 +3057,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         awbRecipient: {
           name: `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim() || shippingAddr.companyName || order.customerName || 'Customer',
           phoneNumber: shippingAddr.phone || '+40700000000',
-          personType: 0,
+          personType: isB2B2 ? 1 : 0,
+          ...(isB2B2 && { companyName: billingAddr2.companyName }),
           address: shippingAddr.address,
           countyString: shippingAddr.county || shippingAddr.state || '',
           cityString: shippingAddr.city || shippingAddr.county || shippingAddr.state || 'N/A',
