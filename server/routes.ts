@@ -312,6 +312,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
       const products = await storage.getProducts({ limit: 10000 });
       const now = new Date().toISOString().split('T')[0];
+      const blogUrls = [
+        { loc: 'https://blog.xhaccp.ro/', priority: '0.8', changefreq: 'daily' },
+        { loc: 'https://blog.xhaccp.ro/post/etichete-rotatie-alimente-ghid-complet-pentru-siguranta-si-conformitate-in-2026', priority: '0.7', changefreq: 'weekly' },
+      ];
       const urlEntries = [
         ...staticPages.map(p => `
   <url>
@@ -326,6 +330,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <lastmod>${now}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>`),
+        ...blogUrls.map(b => `
+  <url>
+    <loc>${b.loc}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>${b.changefreq}</changefreq>
+    <priority>${b.priority}</priority>
   </url>`),
       ];
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
