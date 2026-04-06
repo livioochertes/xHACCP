@@ -16,17 +16,31 @@ interface BlogTopicData {
 
 const blogTopics: BlogTopicData[] = [
   {
+    title: "Etichete HACCP: ghid complet pentru restaurante și bucătării profesionale",
+    titleRo: "Etichete HACCP: ghid complet pentru restaurante și bucătării profesionale",
+    category: "Etichetare",
+    keywords: ["etichete HACCP", "etichete rotație alimente", "etichetare HACCP", "bucătărie profesională", "HoReCa", "siguranța alimentelor"],
+    language: "ro",
+  },
+  {
+    title: "Ce etichete HACCP sunt obligatorii în restaurante — ghid actualizat 2025",
+    titleRo: "Ce etichete HACCP sunt obligatorii în restaurante — ghid actualizat 2025",
+    category: "Etichetare",
+    keywords: ["etichete HACCP", "etichete obligatorii", "restaurant", "ANSVSA", "etichetare alimente", "HACCP"],
+    language: "ro",
+  },
+  {
     title: "Principiile HACCP explicate pentru bucătarii din restaurante",
     titleRo: "Principiile HACCP explicate pentru bucătarii din restaurante",
     category: "HACCP",
-    keywords: ["HACCP", "siguranța alimentelor", "restaurant", "bucătărie", "puncte critice de control"],
+    keywords: ["HACCP", "etichete HACCP", "siguranța alimentelor", "restaurant", "bucătărie", "puncte critice de control"],
     language: "ro",
   },
   {
     title: "Etichetarea alimentelor în HoReCa: obligații legale și soluții practice",
     titleRo: "Etichetarea alimentelor în HoReCa: obligații legale și soluții practice",
     category: "Legislație",
-    keywords: ["etichetare alimente", "HoReCa", "legislație", "etichete HACCP", "trasabilitate"],
+    keywords: ["etichetare alimente", "etichete HACCP", "HoReCa", "legislație", "trasabilitate"],
     language: "ro",
   },
   {
@@ -188,7 +202,8 @@ async function generateBlogPostForTopic(topic: BlogTopicData): Promise<number> {
 
   const systemPrompt = `Ești un expert în siguranța alimentară, HACCP și industria HoReCa din România. 
 Scrii articole de blog profesionale și utile pentru bucătari, manageri de restaurante, catering și industria alimentară.
-Compania pentru care scrii se numește xHACCP și vinde soluții de etichetare, software de gestiune HACCP și echipamente pentru siguranța alimentelor.
+Compania pentru care scrii se numește xHACCP și vinde etichete HACCP profesionale, software de gestiune HACCP și echipamente pentru siguranța alimentelor.
+Cuvântul cheie SEO principal pe care trebuie să îl incluzi natural în text de minimum 3-4 ori este "etichete HACCP".
 Scrie întotdeauna în limba română, cu termeni tehnici corecți din domeniu.`;
 
   const userPrompt = `Scrie un articol de blog complet despre: "${topic.title}"
@@ -197,13 +212,14 @@ Cerințe:
 - Lungime: 900-1200 cuvinte
 - Ton: profesional dar accesibil, practic
 - Include: introducere, 3-5 secțiuni cu subtitluri (H2), concluzii
-- Cuvinte cheie de inclus: ${topic.keywords.join(", ")}
-- Menționează subtil produsele xHACCP (etichete, software, imprimante) acolo unde este natural
+- Cuvinte cheie de inclus (obligatoriu, natural în text): ${topic.keywords.join(", ")}
+- Cuvântul "etichete HACCP" trebuie să apară de cel puțin 3-4 ori în articol, în mod natural
+- Menționează produsele xHACCP (etichete HACCP, software, imprimante de etichete) acolo unde este natural
 - Scrie în format Markdown cu titluri ## și ### 
 - Include exemple practice și sfaturi concrete aplicabile în bucătăriile românești
 - Referință legislativă relevantă: Regulamentul CE 852/2004, norme ANSVSA
 - NU include titlul principal (H1) în conținut - el va fi adăugat separat
-- Termină cu un paragraf scurt care menționează că xHACCP oferă soluții complete`;
+- Termină cu un paragraf scurt care menționează că xHACCP oferă etichete HACCP și soluții complete`;
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-5",

@@ -316,10 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
       const products = await storage.getProducts({ limit: 10000 });
       const now = new Date().toISOString().split('T')[0];
-      const blogUrls = [
-        { loc: 'https://blog.xhaccp.ro/', priority: '0.8', changefreq: 'daily' },
-        { loc: 'https://blog.xhaccp.ro/post/etichete-rotatie-alimente-ghid-complet-pentru-siguranta-si-conformitate-in-2026', priority: '0.7', changefreq: 'weekly' },
-      ];
+      const publishedBlogPosts = await storage.getBlogPosts({ published: true });
       const urlEntries = [
         ...staticPages.map(p => `
   <url>
@@ -328,6 +325,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`),
+        `
+  <url>
+    <loc>${BASE_URL}/blog</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>`,
         ...products.filter(p => p.slug).map(p => `
   <url>
     <loc>${BASE_URL}/products/${p.slug}</loc>
@@ -335,12 +339,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>`),
-        ...blogUrls.map(b => `
+        ...publishedBlogPosts.map(b => `
   <url>
-    <loc>${b.loc}</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>${b.changefreq}</changefreq>
-    <priority>${b.priority}</priority>
+    <loc>${BASE_URL}/blog/${b.slug}</loc>
+    <lastmod>${b.publishedAt ? new Date(b.publishedAt).toISOString().split('T')[0] : now}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>`),
       ];
       const xml = `<?xml version="1.0" encoding="UTF-8"?>

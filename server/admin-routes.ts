@@ -13,6 +13,8 @@ import { Request, Response, NextFunction } from "express";
 import { upload, processImages, serveUploads, deleteUploadedFile } from "./upload-middleware";
 import { loadAllDataIntoMemory } from "./routes";
 import multer from "multer";
+import { readScheduleConfig, writeScheduleConfig } from "./blog-schedule-config";
+import { restartBlogScheduler } from "./blog-scheduler";
 import ExcelJS from "exceljs";
 import * as cheerio from "cheerio";
 
@@ -4397,6 +4399,30 @@ export async function registerAdminRoutes(app: Express) {
       res.json({ success: true, message: "Articol săptămânal generat", postId });
     } catch (error) {
       res.status(500).json({ success: false, message: "Eroare: " + (error as Error).message });
+    }
+  });
+
+  app.get("/admin/api/blog/schedule", authenticateAdmin, (_req: AdminAuthRequest, res: Response) => {
+    try {
+      const config = readScheduleConfig();
+      res.json(config);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to read schedule config" });
+    }
+  });
+
+  app.post("/admin/api/blog/schedule", authenticateAdmin, (req: AdminAuthRequest, res: Response) => {
+    try {
+      const { enabled, intervalDays, hour } = req.body;
+      const config = {
+        enabled: Boolean(enabled),
+        intervalDays: Math.max(1, Math.min(30, parseInt(intervalDays) || 7)),
+        hour: Math.max(0, Math.min(23, parseInt(hour) || 8)),
+      };
+      restartBlogScheduler(config);
+      res.json({ success: true, config });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update schedule config" });
     }
   });
 }

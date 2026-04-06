@@ -732,6 +732,8 @@
       const [editingBlogPost, setEditingBlogPost] = useState(null);
       const [previewBlogPost, setPreviewBlogPost] = useState(null);
       const [blogEditForm, setBlogEditForm] = useState({ title: '', excerpt: '', content: '', imageUrl: '', category: '', published: true });
+      const [scheduleConfig, setScheduleConfig] = useState({ enabled: true, intervalDays: 7, hour: 8 });
+      const [scheduleLoaded, setScheduleLoaded] = useState(false);
 
       // Voucher state
       const [vouchers, setVouchers] = useState([]);
@@ -1141,6 +1143,25 @@
         } catch (err) {
           alert('Eroare: ' + err.message);
         }
+      };
+
+      const fetchScheduleConfig = async () => {
+        try {
+          const res = await fetch('/admin/api/blog/schedule', { headers: { 'Authorization': `Bearer ${token}` } });
+          if (res.ok) { setScheduleConfig(await res.json()); setScheduleLoaded(true); }
+        } catch (_) {}
+      };
+
+      const saveScheduleConfig = async () => {
+        try {
+          const res = await fetch('/admin/api/blog/schedule', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(scheduleConfig)
+          });
+          if (res.ok) { alert('Configurație salvată! Scheduler-ul a fost repornit.'); }
+          else { alert('Eroare la salvare!'); }
+        } catch (err) { alert('Eroare: ' + err.message); }
       };
 
       // Create category
@@ -4394,8 +4415,51 @@
                     </button>
                   </div>
                   <p style={{margin: '10px 0 0', fontSize: '12px', color: '#868e96'}}>
-                    ℹ️ Articolele sunt generate automat și în fiecare <strong>luni la 08:00</strong> (Bucharest). Generarea durează ~30-60 secunde.
+                    ℹ️ Generarea durează ~25-40 secunde. "Etichete HACCP" este inclus în toate articolele.
                   </p>
+                </div>
+
+                {/* Schedule Config */}
+                <div style={{background: '#f0f7ff', borderRadius: '8px', padding: '20px', marginBottom: '24px', border: '1px solid #b8d4f5'}}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px'}}>
+                    <h4 style={{margin: 0, color: '#1565c0'}}>⏰ Generare automată</h4>
+                    {!scheduleLoaded && (
+                      <button onClick={fetchScheduleConfig} style={{background:'none', border:'1px solid #1565c0', borderRadius:'6px', padding:'4px 12px', cursor:'pointer', fontSize:'12px', color:'#1565c0'}}>
+                        Încarcă configurație
+                      </button>
+                    )}
+                  </div>
+                  {scheduleLoaded && (
+                    <div style={{display:'grid', gridTemplateColumns:'auto 1fr 1fr auto', gap:'12px', alignItems:'end'}}>
+                      <div style={{display:'flex', alignItems:'center', gap:'8px', paddingBottom:'8px'}}>
+                        <input type="checkbox" id="schedEnabled" checked={scheduleConfig.enabled}
+                          onChange={e => setScheduleConfig(c => ({...c, enabled: e.target.checked}))}
+                          style={{width:'16px', height:'16px', cursor:'pointer'}} />
+                        <label htmlFor="schedEnabled" style={{fontSize:'14px', fontWeight:'600', color:'#333', cursor:'pointer'}}>Activat</label>
+                      </div>
+                      <div>
+                        <label style={{display:'block', marginBottom:'4px', fontSize:'13px', fontWeight:'600', color:'#495057'}}>La fiecare (zile)</label>
+                        <input type="number" min="1" max="30" value={scheduleConfig.intervalDays}
+                          onChange={e => setScheduleConfig(c => ({...c, intervalDays: parseInt(e.target.value)||1}))}
+                          style={{width:'100%', padding:'8px 12px', border:'1px solid #ced4da', borderRadius:'6px', fontSize:'14px', boxSizing:'border-box'}} />
+                      </div>
+                      <div>
+                        <label style={{display:'block', marginBottom:'4px', fontSize:'13px', fontWeight:'600', color:'#495057'}}>Ora (0-23, Bucharest)</label>
+                        <input type="number" min="0" max="23" value={scheduleConfig.hour}
+                          onChange={e => setScheduleConfig(c => ({...c, hour: parseInt(e.target.value)||8}))}
+                          style={{width:'100%', padding:'8px 12px', border:'1px solid #ced4da', borderRadius:'6px', fontSize:'14px', boxSizing:'border-box'}} />
+                      </div>
+                      <button onClick={saveScheduleConfig}
+                        style={{background:'#1565c0', color:'white', border:'none', borderRadius:'6px', padding:'8px 16px', cursor:'pointer', fontSize:'14px', fontWeight:'600'}}>
+                        💾 Salvează
+                      </button>
+                    </div>
+                  )}
+                  {scheduleLoaded && (
+                    <p style={{margin:'10px 0 0', fontSize:'12px', color:'#666'}}>
+                      Curent: {scheduleConfig.enabled ? `la fiecare ${scheduleConfig.intervalDays} zi(le), ora ${scheduleConfig.hour}:00 Bucharest` : 'dezactivat'}
+                    </p>
+                  )}
                 </div>
 
                 {/* Posts List */}

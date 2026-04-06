@@ -1,7 +1,16 @@
 import cron from "node-cron";
 import { generateWeeklyBlogPost } from "./ai-blog-generator";
+import { readScheduleConfig, writeScheduleConfig, type BlogScheduleConfig } from "./blog-schedule-config";
 
 let scheduledTask: cron.ScheduledTask | null = null;
+let currentConfig: BlogScheduleConfig | null = null;
+
+function buildCronExpression(config: BlogScheduleConfig): string {
+  const days = Math.max(1, Math.min(30, config.intervalDays));
+  const hour = Math.max(0, Math.min(23, config.hour));
+  if (days === 1) return `0 ${hour} * * *`;
+  return `0 ${hour} */${days} * *`;
+}
 
 export function startBlogScheduler() {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -9,26 +18,30 @@ export function startBlogScheduler() {
     return;
   }
 
-  // Runs every Monday at 8:00 AM Bucharest time
+  const config = readScheduleConfig();
+  currentConfig = config;
+
+  if (!config.enabled) {
+    console.log("[Blog Scheduler] Dezactivat prin configurație.");
+    return;
+  }
+
+  const cronExpr = buildCronExpression(config);
+  console.log(`[Blog Scheduler] Pornit — cron: "${cronExpr}", interval: la fiecare ${config.intervalDays} zi(le), ora ${config.hour}:00 (Bucharest)`);
+
   scheduledTask = cron.schedule(
-    "0 8 * * MON",
+    cronExpr,
     async () => {
-      console.log("[Blog Scheduler] Se generează articol săptămânal...");
+      console.log("[Blog Scheduler] Se generează articol automat...");
       try {
         const postId = await generateWeeklyBlogPost();
-        console.log(`[Blog Scheduler] Articol generat cu succes! ID: ${postId}`);
+        console.log(`[Blog Scheduler] Articol generat! ID: ${postId}`);
       } catch (error) {
-        console.error("[Blog Scheduler] Eroare la generarea articolului:", error);
+        console.error("[Blog Scheduler] Eroare:", error);
       }
     },
-    {
-      scheduled: false,
-      timezone: "Europe/Bucharest",
-    }
+    { scheduled: true, timezone: "Europe/Bucharest" }
   );
-
-  scheduledTask.start();
-  console.log("[Blog Scheduler] Pornit — articole generate automat în fiecare luni la 08:00 (Bucharest)");
 }
 
 export function stopBlogScheduler() {
@@ -37,4 +50,15 @@ export function stopBlogScheduler() {
     scheduledTask = null;
     console.log("[Blog Scheduler] Oprit.");
   }
+}
+
+export function restartBlogScheduler(newConfig: BlogScheduleConfig) {
+  stopBlogScheduler();
+  writeScheduleConfig(newConfig);
+  currentConfig = newConfig;
+  startBlogScheduler();
+}
+
+export function getSchedulerConfig(): BlogScheduleConfig {
+  return readScheduleConfig();
 }
