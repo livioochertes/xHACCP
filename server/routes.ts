@@ -2885,7 +2885,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const rawCandidate = candidateFromOrigin || candidateFromReferer || hostBase || CANONICAL_FALLBACK;
       try {
         const parsed = new URL(rawCandidate);
-        baseUrl = ALLOWED_DOMAINS.includes(parsed.host) ? rawCandidate : CANONICAL_FALLBACK;
+        baseUrl = ALLOWED_DOMAINS.includes(parsed.hostname) ? rawCandidate : CANONICAL_FALLBACK;
       } catch {
         baseUrl = CANONICAL_FALLBACK;
       }
