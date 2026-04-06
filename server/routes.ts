@@ -381,10 +381,22 @@ Sitemap: https://${domain}/sitemap.xml
     '/despre':            '/about',
     '/termeni':           '/terms',
     '/confidentialitate': '/privacy',
+    '/contact':           '/about',
+    '/utile':             '/',
+    '/en':                '/',
   };
   for (const [oldPath, newPath] of Object.entries(romanianRedirects)) {
     app.get(oldPath, (_req, res) => res.redirect(301, newPath));
+    app.get(oldPath + '/', (_req, res) => res.redirect(301, newPath));
   }
+
+  // Strip tracking/noise query params from homepage (e.g. ?ref=aftership, ?sLang=fr)
+  app.get('/', (req, res, next) => {
+    const noiseParams = ['ref', 'sLang', 'route', 'path', 'sort', 'order'];
+    const hasNoise = noiseParams.some(p => req.query[p] !== undefined);
+    if (hasNoise) return res.redirect(301, '/');
+    next();
+  });
   // Convert old filename-style slugs to dash-separated slugs
   // e.g. "eticheteLUNI.html" → "etichete-luni", "etichete_luni" → "etichete-luni"
   function fileToSlug(raw: string): string {
@@ -407,10 +419,17 @@ Sitemap: https://${domain}/sitemap.xml
     'xhaccp-software-urmarire-si-gestionare-termene-de-expirare-in-bucatarii.html': '/products',
     'honeywell-pc43k.html': '/products',
   };
+  // /produse/pagina/:n → /products (old pagination structure)
+  app.get('/produse/pagina/:page', (_req, res) => res.redirect(301, '/products'));
+
   app.get('/produse/:slug', (req, res) => {
     const slug = req.params.slug;
     if (legacyProduseSlugs[slug]) {
       return res.redirect(301, legacyProduseSlugs[slug]);
+    }
+    // All .html slugs that aren't in the known mapping → /products (avoid soft-404)
+    if (slug.endsWith('.html') || slug.endsWith('.htm')) {
+      return res.redirect(301, '/products');
     }
     res.redirect(301, `/products/${fileToSlug(slug)}`);
   });
