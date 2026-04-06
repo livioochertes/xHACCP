@@ -729,6 +729,9 @@
       const [blogPosts, setBlogPosts] = useState([]);
       const [blogGenerating, setBlogGenerating] = useState(false);
       const [blogGenerateForm, setBlogGenerateForm] = useState({ title: '', category: 'HACCP', language: 'ro' });
+      const [editingBlogPost, setEditingBlogPost] = useState(null);
+      const [previewBlogPost, setPreviewBlogPost] = useState(null);
+      const [blogEditForm, setBlogEditForm] = useState({ title: '', excerpt: '', content: '', imageUrl: '', category: '', published: true });
 
       // Voucher state
       const [vouchers, setVouchers] = useState([]);
@@ -1106,6 +1109,37 @@
           fetchBlogPosts();
         } catch (err) {
           console.error('Error deleting blog post:', err);
+        }
+      };
+
+      const openEditBlogPost = (post) => {
+        setBlogEditForm({
+          title: post.title || '',
+          excerpt: post.excerpt || '',
+          content: post.content || '',
+          imageUrl: post.imageUrl || '',
+          category: post.category || '',
+          published: post.published,
+        });
+        setEditingBlogPost(post);
+      };
+
+      const saveBlogPost = async () => {
+        try {
+          const response = await fetch('/admin/api/blog/posts/' + editingBlogPost.id, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(blogEditForm)
+          });
+          if (response.ok) {
+            setEditingBlogPost(null);
+            fetchBlogPosts();
+            alert('Articol actualizat cu succes!');
+          } else {
+            alert('Eroare la salvare!');
+          }
+        } catch (err) {
+          alert('Eroare: ' + err.message);
         }
       };
 
@@ -4416,8 +4450,22 @@
                             </td>
                             <td style={{padding: '10px 12px', textAlign: 'center', whiteSpace: 'nowrap'}}>
                               <button
+                                onClick={() => setPreviewBlogPost(post)}
+                                style={{background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', marginRight: '4px'}}
+                                title="Previzualizare articol"
+                              >
+                                👁
+                              </button>
+                              <button
+                                onClick={() => openEditBlogPost(post)}
+                                style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', marginRight: '4px'}}
+                                title="Editează articol"
+                              >
+                                ✏️
+                              </button>
+                              <button
                                 onClick={() => toggleBlogPostPublished(post)}
-                                style={{background: post.published ? '#ffc107' : '#28a745', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', marginRight: '6px'}}
+                                style={{background: post.published ? '#ffc107' : '#28a745', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '12px', marginRight: '4px'}}
                               >
                                 {post.published ? 'Ascunde' : 'Publică'}
                               </button>
@@ -9233,6 +9281,96 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
             {renderContent()}
           </div>
           <ModalsComponent key={modalKey} />
+
+          {/* Blog Preview Modal */}
+          {previewBlogPost && (
+            <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',zIndex:9000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'40px 20px',overflowY:'auto'}}
+              onClick={(e) => { if(e.target===e.currentTarget) setPreviewBlogPost(null); }}>
+              <div style={{background:'white',borderRadius:'12px',width:'100%',maxWidth:'760px',padding:'32px',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+                <button onClick={() => setPreviewBlogPost(null)}
+                  style={{position:'absolute',top:'16px',right:'16px',background:'none',border:'none',fontSize:'24px',cursor:'pointer',color:'#666'}}>✕</button>
+                {previewBlogPost.imageUrl && (
+                  <img src={previewBlogPost.imageUrl} alt={previewBlogPost.title}
+                    style={{width:'100%',height:'240px',objectFit:'cover',borderRadius:'8px',marginBottom:'20px'}} />
+                )}
+                <div style={{display:'flex',gap:'8px',marginBottom:'12px',flexWrap:'wrap'}}>
+                  <span style={{background:'#e3f2fd',color:'#1565c0',padding:'3px 12px',borderRadius:'20px',fontSize:'12px',fontWeight:'600'}}>{previewBlogPost.category}</span>
+                  <span style={{background:'#f5f5f5',color:'#666',padding:'3px 12px',borderRadius:'20px',fontSize:'12px'}}>{previewBlogPost.language === 'ro' ? '🇷🇴 Română' : '🇬🇧 English'}</span>
+                  {previewBlogPost.readTimeMinutes && <span style={{background:'#f5f5f5',color:'#666',padding:'3px 12px',borderRadius:'20px',fontSize:'12px'}}>⏱ {previewBlogPost.readTimeMinutes} min</span>}
+                </div>
+                <h2 style={{margin:'0 0 8px',fontSize:'24px',color:'#1a1a1a',lineHeight:'1.3'}}>{previewBlogPost.title}</h2>
+                <p style={{color:'#666',fontSize:'14px',margin:'0 0 20px',fontStyle:'italic'}}>{previewBlogPost.excerpt}</p>
+                <hr style={{border:'none',borderTop:'1px solid #eee',margin:'0 0 20px'}}/>
+                <div style={{fontSize:'15px',lineHeight:'1.7',color:'#333',whiteSpace:'pre-wrap',maxHeight:'60vh',overflowY:'auto'}}>
+                  {previewBlogPost.content}
+                </div>
+                <div style={{marginTop:'20px',textAlign:'right'}}>
+                  <a href={'/blog/' + previewBlogPost.slug} target="_blank" rel="noopener"
+                    style={{display:'inline-block',background:'#0d6efd',color:'white',padding:'8px 20px',borderRadius:'6px',textDecoration:'none',fontSize:'14px'}}>
+                    Deschide pe site →
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Blog Edit Modal */}
+          {editingBlogPost && (
+            <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',zIndex:9000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'40px 20px',overflowY:'auto'}}
+              onClick={(e) => { if(e.target===e.currentTarget) setEditingBlogPost(null); }}>
+              <div style={{background:'white',borderRadius:'12px',width:'100%',maxWidth:'800px',padding:'32px',boxShadow:'0 20px 60px rgba(0,0,0,0.3)',position:'relative'}}>
+                <button onClick={() => setEditingBlogPost(null)}
+                  style={{position:'absolute',top:'16px',right:'16px',background:'none',border:'none',fontSize:'24px',cursor:'pointer',color:'#666'}}>✕</button>
+                <h3 style={{margin:'0 0 24px',fontSize:'20px',color:'#1a1a1a'}}>✏️ Editează articol</h3>
+
+                <div style={{marginBottom:'16px'}}>
+                  <label style={{display:'block',fontWeight:'600',marginBottom:'6px',fontSize:'14px',color:'#495057'}}>Titlu</label>
+                  <input value={blogEditForm.title} onChange={e => setBlogEditForm(f=>({...f,title:e.target.value}))}
+                    style={{width:'100%',padding:'10px 12px',border:'1px solid #ced4da',borderRadius:'6px',fontSize:'14px',boxSizing:'border-box'}} />
+                </div>
+
+                <div style={{marginBottom:'16px'}}>
+                  <label style={{display:'block',fontWeight:'600',marginBottom:'6px',fontSize:'14px',color:'#495057'}}>Categorie</label>
+                  <input value={blogEditForm.category} onChange={e => setBlogEditForm(f=>({...f,category:e.target.value}))}
+                    style={{width:'100%',padding:'10px 12px',border:'1px solid #ced4da',borderRadius:'6px',fontSize:'14px',boxSizing:'border-box'}} />
+                </div>
+
+                <div style={{marginBottom:'16px'}}>
+                  <label style={{display:'block',fontWeight:'600',marginBottom:'6px',fontSize:'14px',color:'#495057'}}>Rezumat (excerpt)</label>
+                  <textarea value={blogEditForm.excerpt} onChange={e => setBlogEditForm(f=>({...f,excerpt:e.target.value}))} rows={3}
+                    style={{width:'100%',padding:'10px 12px',border:'1px solid #ced4da',borderRadius:'6px',fontSize:'14px',resize:'vertical',boxSizing:'border-box'}} />
+                </div>
+
+                <div style={{marginBottom:'16px'}}>
+                  <label style={{display:'block',fontWeight:'600',marginBottom:'6px',fontSize:'14px',color:'#495057'}}>URL Imagine</label>
+                  <input value={blogEditForm.imageUrl} onChange={e => setBlogEditForm(f=>({...f,imageUrl:e.target.value}))}
+                    placeholder="https://images.unsplash.com/..."
+                    style={{width:'100%',padding:'10px 12px',border:'1px solid #ced4da',borderRadius:'6px',fontSize:'14px',boxSizing:'border-box'}} />
+                  {blogEditForm.imageUrl && (
+                    <img src={blogEditForm.imageUrl} alt="preview"
+                      style={{marginTop:'8px',width:'100%',height:'160px',objectFit:'cover',borderRadius:'6px'}} />
+                  )}
+                </div>
+
+                <div style={{marginBottom:'16px'}}>
+                  <label style={{display:'block',fontWeight:'600',marginBottom:'6px',fontSize:'14px',color:'#495057'}}>Conținut (Markdown)</label>
+                  <textarea value={blogEditForm.content} onChange={e => setBlogEditForm(f=>({...f,content:e.target.value}))} rows={18}
+                    style={{width:'100%',padding:'10px 12px',border:'1px solid #ced4da',borderRadius:'6px',fontSize:'13px',fontFamily:'monospace',resize:'vertical',boxSizing:'border-box'}} />
+                </div>
+
+                <div style={{display:'flex',gap:'12px',justifyContent:'flex-end',marginTop:'8px'}}>
+                  <button onClick={() => setEditingBlogPost(null)}
+                    style={{padding:'10px 24px',border:'1px solid #ced4da',borderRadius:'6px',background:'white',cursor:'pointer',fontSize:'14px'}}>
+                    Anulează
+                  </button>
+                  <button onClick={saveBlogPost}
+                    style={{padding:'10px 24px',border:'none',borderRadius:'6px',background:'#198754',color:'white',cursor:'pointer',fontSize:'14px',fontWeight:'600'}}>
+                    💾 Salvează
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
