@@ -3688,6 +3688,99 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     }
   });
 
+  // ─── Blog API ───────────────────────────────────────────────────────────────
+  // Public: list published posts
+  app.get("/api/blog/posts", async (req, res) => {
+    try {
+      const { language, limit, offset } = req.query;
+      const posts = await storage.getBlogPosts({
+        published: true,
+        language: language as string | undefined,
+        limit: limit ? parseInt(limit as string) : undefined,
+        offset: offset ? parseInt(offset as string) : undefined,
+      });
+      res.json(posts);
+    } catch (error) {
+      console.error("Get blog posts error:", error);
+      res.status(500).json({ message: "Failed to fetch blog posts" });
+    }
+  });
+
+  // Public: get single post by slug
+  app.get("/api/blog/posts/:slug", async (req, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post || !post.published) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+      res.json(post);
+    } catch (error) {
+      console.error("Get blog post error:", error);
+      res.status(500).json({ message: "Failed to fetch blog post" });
+    }
+  });
+
+  // Admin: list all posts (including unpublished)
+  app.get("/api/admin/blog/posts", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const posts = await storage.getBlogPosts();
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch blog posts" });
+    }
+  });
+
+  // Admin: update post (toggle published, edit, etc.)
+  app.patch("/api/admin/blog/posts/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateBlogPost(id, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update blog post" });
+    }
+  });
+
+  // Admin: delete post
+  app.delete("/api/admin/blog/posts/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteBlogPost(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete blog post" });
+    }
+  });
+
+  // Admin: generate blog post via Claude AI
+  app.post("/api/admin/blog/generate", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });
+      }
+      const { generateBlogPostManually } = await import("./ai-blog-generator");
+      const { title, category, language } = req.body;
+      const postId = await generateBlogPostManually(title, category, language || "ro");
+      res.json({ success: true, message: "Articol generat cu succes", postId });
+    } catch (error) {
+      console.error("Generate blog post error:", error);
+      res.status(500).json({ success: false, message: "Eroare generare articol: " + (error as Error).message });
+    }
+  });
+
+  // Admin: trigger weekly post manually
+  app.post("/api/admin/blog/generate-weekly", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });
+      }
+      const { generateWeeklyBlogPost } = await import("./ai-blog-generator");
+      const postId = await generateWeeklyBlogPost();
+      res.json({ success: true, message: "Articol săptămânal generat", postId });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Eroare: " + (error as Error).message });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Load all data into memory after server setup

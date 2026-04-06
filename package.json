@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0",
     "@aws-sdk/client-s3": "^3.954.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
@@ -53,6 +54,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/memoizee": "^0.4.12",
     "@types/multer": "^2.0.0",
+    "@types/node-cron": "^3.0.11",
     "@types/node-fetch": "^2.6.12",
     "@types/qrcode": "^1.5.5",
     "@types/sharp": "^0.31.1",
@@ -87,6 +89,7 @@
     "minimatch": "^9.0.7",
     "multer": "^2.1.1",
     "next-themes": "^0.4.6",
+    "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
     "openai": "^5.9.0",
     "openid-client": "^6.6.2",

@@ -8,6 +8,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase, seedCategoryTranslations } from "./sample-data";
 import { loadAllDataIntoMemory } from "./routes";
 import { logR2Status } from "./r2-storage";
+import { startBlogScheduler } from "./blog-scheduler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,6 +99,9 @@ app.use((req, res, next) => {
   await registerAdminRoutes(app);
   
   const server = await registerRoutes(app);
+
+  // Start automated blog post generation (every Monday at 08:00 Bucharest)
+  startBlogScheduler();
   
   try {
     if (app.get("env") === "development") {

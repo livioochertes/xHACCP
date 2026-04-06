@@ -522,6 +522,34 @@ export type InsertShippingSettings = z.infer<typeof insertShippingSettingsSchema
 export type Voucher = typeof vouchers.$inferSelect;
 export type InsertVoucher = z.infer<typeof insertVoucherSchema>;
 
+// Blog posts table
+export const blogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  excerpt: text("excerpt").notNull(),
+  content: text("content").notNull(),
+  author: varchar("author", { length: 100 }).notNull().default("xHACCP Team"),
+  category: varchar("category", { length: 100 }).notNull(),
+  tags: text("tags").array().notNull().default([]),
+  imageUrl: text("image_url"),
+  published: boolean("published").notNull().default(true),
+  language: varchar("language", { length: 5 }).notNull().default("ro"),
+  readTimeMinutes: integer("read_time_minutes"),
+  publishedAt: timestamp("published_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+
 // Additional types for API responses
 export type ProductWithCategory = Product & { category: Category | null; supplier: Supplier | null };
 export type OrderWithItems = Order & { items: (OrderItem & { product: Product })[] };

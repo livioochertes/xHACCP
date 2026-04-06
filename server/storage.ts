@@ -48,6 +48,9 @@ import {
   type InsertShippingSettings,
   type Voucher,
   type InsertVoucher,
+  blogPosts,
+  type BlogPost,
+  type InsertBlogPost,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, like, and, or, sql, inArray, isNull, ne } from "drizzle-orm";
@@ -152,6 +155,14 @@ export interface IStorage {
   updateVoucher(id: number, voucher: Partial<InsertVoucher>): Promise<Voucher>;
   deleteVoucher(id: number): Promise<void>;
   incrementVoucherUsage(id: number): Promise<Voucher>;
+
+  // Blog post operations
+  getBlogPosts(options?: { published?: boolean; language?: string; limit?: number; offset?: number }): Promise<BlogPost[]>;
+  getBlogPost(id: number): Promise<BlogPost | undefined>;
+  getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
+  createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
+  updateBlogPost(id: number, post: Partial<InsertBlogPost>): Promise<BlogPost>;
+  deleteBlogPost(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1171,6 +1182,56 @@ export class DatabaseStorage implements IStorage {
       .where(eq(vouchers.id, id))
       .returning();
     return updated;
+  }
+
+  // Blog post operations
+  async getBlogPosts(options?: { published?: boolean; language?: string; limit?: number; offset?: number }): Promise<BlogPost[]> {
+    let query = db.select().from(blogPosts).$dynamic();
+    const conditions = [];
+    if (options?.published !== undefined) {
+      conditions.push(eq(blogPosts.published, options.published));
+    }
+    if (options?.language) {
+      conditions.push(eq(blogPosts.language, options.language));
+    }
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    query = query.orderBy(desc(blogPosts.publishedAt));
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+    if (options?.offset) {
+      query = query.offset(options.offset);
+    }
+    return query;
+  }
+
+  async getBlogPost(id: number): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
+    return post;
+  }
+
+  async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
+    return post;
+  }
+
+  async createBlogPost(post: InsertBlogPost): Promise<BlogPost> {
+    const [created] = await db.insert(blogPosts).values(post).returning();
+    return created;
+  }
+
+  async updateBlogPost(id: number, post: Partial<InsertBlogPost>): Promise<BlogPost> {
+    const [updated] = await db.update(blogPosts)
+      .set({ ...post, updatedAt: new Date() })
+      .where(eq(blogPosts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteBlogPost(id: number): Promise<void> {
+    await db.delete(blogPosts).where(eq(blogPosts.id, id));
   }
 }
 
