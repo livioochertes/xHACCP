@@ -2867,9 +2867,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }
 
       const ALLOWED_DOMAINS = ['xhaccp.ro', 'www.xhaccp.ro', 'xhaccp.com', 'www.xhaccp.com'];
+      const CANONICAL_FALLBACK = 'https://www.xhaccp.ro';
       const originHeader = req.headers['origin'] as string | undefined;
       const refererHeader = req.headers['referer'] as string | undefined;
-      const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5000';
+      const host = req.headers['x-forwarded-host'] || req.headers.host || '';
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       let baseUrl: string;
       const candidateFromOrigin = originHeader ? originHeader.replace(/\/$/, '') : null;
@@ -2880,13 +2881,13 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           return `${refUrl.protocol}//${refUrl.host}`;
         } catch { return null; }
       })();
-      const defaultBase = `${protocol}://${host}`;
-      const rawCandidate = candidateFromOrigin || candidateFromReferer || defaultBase;
+      const hostBase = host && ALLOWED_DOMAINS.includes(String(host).split(':')[0]) ? `${protocol}://${host}` : null;
+      const rawCandidate = candidateFromOrigin || candidateFromReferer || hostBase || CANONICAL_FALLBACK;
       try {
         const parsed = new URL(rawCandidate);
-        baseUrl = ALLOWED_DOMAINS.includes(parsed.host) ? rawCandidate : defaultBase;
+        baseUrl = ALLOWED_DOMAINS.includes(parsed.host) ? rawCandidate : CANONICAL_FALLBACK;
       } catch {
-        baseUrl = defaultBase;
+        baseUrl = CANONICAL_FALLBACK;
       }
 
       const vivaOrderPayload: any = {
