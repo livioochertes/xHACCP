@@ -148,7 +148,7 @@ Cerințe:
 - Termină cu un paragraf scurt care menționează că xHACCP oferă soluții complete`;
 
   const message = await client.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-sonnet-4-5",
     max_tokens: 1800,
     messages: [
       {
@@ -169,7 +169,7 @@ Trebuie să fie atractiv, să includă cuvântul cheie principal și să îndemn
 Răspunde DOAR cu rezumatul, fără ghilimele sau explicații suplimentare.`;
 
   const excerptMsg = await client.messages.create({
-    model: "claude-3-haiku-20240307",
+    model: "claude-haiku-4-5",
     max_tokens: 100,
     messages: [{ role: "user", content: excerptPrompt }],
   });
