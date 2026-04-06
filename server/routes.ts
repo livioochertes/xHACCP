@@ -13,6 +13,7 @@ import QRCode from "qrcode";
 import path from "path";
 import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
+import { registerSeoRoutes } from './seo-routes.js';
 
 const appleOAuthStates = new Map<string, number>();
 setInterval(() => {
@@ -297,6 +298,9 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction)
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // SEO: server-side meta tag injection for all SPA routes (helps Google index them)
+  registerSeoRoutes(app, storage);
+
   // Sitemap.xml - dynamic, includes all products
   app.get('/sitemap.xml', async (req, res) => {
     try {
