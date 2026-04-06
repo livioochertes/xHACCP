@@ -1050,7 +1050,7 @@
 
       const fetchBlogPosts = async () => {
         try {
-          const response = await fetch('/api/admin/blog/posts', {
+          const response = await fetch('/admin/api/blog/posts', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await response.json();
@@ -1063,7 +1063,7 @@
       const generateBlogPost = async () => {
         setBlogGenerating(true);
         try {
-          const response = await fetch('/api/admin/blog/generate', {
+          const response = await fetch('/admin/api/blog/generate', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(blogGenerateForm)
@@ -1085,7 +1085,7 @@
 
       const toggleBlogPostPublished = async (post) => {
         try {
-          const response = await fetch('/api/admin/blog/posts/' + post.id, {
+          const response = await fetch('/admin/api/blog/posts/' + post.id, {
             method: 'PATCH',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ published: !post.published })
@@ -1099,7 +1099,7 @@
       const deleteBlogPost = async (id) => {
         if (!confirm('Ești sigur că vrei să ștergi acest articol?')) return;
         try {
-          await fetch('/api/admin/blog/posts/' + id, {
+          await fetch('/admin/api/blog/posts/' + id, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
           });

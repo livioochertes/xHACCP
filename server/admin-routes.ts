@@ -4338,4 +4338,60 @@ export async function registerAdminRoutes(app: Express) {
       res.status(500).json({ message: "Failed to delete voucher" });
     }
   });
+
+  // ─── Blog Admin Routes ────────────────────────────────────────────────────
+  app.get("/admin/api/blog/posts", authenticateAdmin, async (_req: AdminAuthRequest, res: Response) => {
+    try {
+      const posts = await storage.getBlogPosts();
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch blog posts" });
+    }
+  });
+
+  app.patch("/admin/api/blog/posts/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const updated = await storage.updateBlogPost(parseInt(req.params.id), req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update blog post" });
+    }
+  });
+
+  app.delete("/admin/api/blog/posts/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      await storage.deleteBlogPost(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete blog post" });
+    }
+  });
+
+  app.post("/admin/api/blog/generate", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });
+      }
+      const { generateBlogPostManually } = await import("./ai-blog-generator");
+      const { title, category, language } = req.body;
+      const postId = await generateBlogPostManually(title, category, language || "ro");
+      res.json({ success: true, message: "Articol generat cu succes", postId });
+    } catch (error) {
+      console.error("Generate blog post error:", error);
+      res.status(500).json({ success: false, message: "Eroare: " + (error as Error).message });
+    }
+  });
+
+  app.post("/admin/api/blog/generate-weekly", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });
+      }
+      const { generateWeeklyBlogPost } = await import("./ai-blog-generator");
+      const postId = await generateWeeklyBlogPost();
+      res.json({ success: true, message: "Articol săptămânal generat", postId });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Eroare: " + (error as Error).message });
+    }
+  });
 }
