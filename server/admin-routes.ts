@@ -1194,7 +1194,7 @@ export async function registerAdminRoutes(app: Express) {
                         },
                         parcels,
                         thirdPartyPickup: 0,
-                        insuredValue: isCOD ? 0 : totalAmount,
+                        insuredValue: 0,
                         cashOnDelivery: isCOD ? totalAmount : 0,
                         observation: `Order #${orderId}`,
                         clientInternalReference: `order_${orderId}`,
@@ -3222,7 +3222,7 @@ export async function registerAdminRoutes(app: Express) {
           packageWeight: 1,
           awbPayment: 1,
           cashOnDelivery: manualIsCOD ? manualTotalAmount : 0,
-          insuredValue: manualIsCOD ? 0 : manualTotalAmount,
+          insuredValue: 0,
           thirdPartyPickup: 0,
           awbRecipient: {
             name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim() || shippingAddress.companyName || order.customerName || 'Customer',

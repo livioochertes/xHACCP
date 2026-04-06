@@ -2041,7 +2041,7 @@ Sitemap: https://${domain}/sitemap.xml
                       },
                       parcels,
                       thirdPartyPickup: 0,
-                      insuredValue: isCOD ? 0 : totalAmount,
+                      insuredValue: 0,
                       cashOnDelivery: isCOD ? totalAmount : 0,
                       observation: `Order #${orderId}`,
                       clientInternalReference: `order_${orderId}`,
@@ -2326,7 +2326,7 @@ Sitemap: https://${domain}/sitemap.xml
         },
         parcels: parcels,
         cashOnDelivery: adminIsCOD ? adminTotalAmount : 0,
-        insuredValue: adminIsCOD ? 0 : adminTotalAmount,
+        insuredValue: 0,
         observation: `Order #${order.id} - xHACCP E-commerce`,
         clientInternalReference: `ORDER_${order.id}`,
       };
@@ -2875,6 +2875,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         customerTrns: `xHACCP Order #${dbOrderId}`,
         merchantTrns: `order_${dbOrderId}`,
         sourceCode: sourceCode,
+        successRedirectUrl: `${baseUrl}/api/payments/viva/callback`,
+        failureRedirectUrl: `${baseUrl}/api/payments/viva/callback`,
       };
 
       if (orderData?.shippingAddress?.email) {
