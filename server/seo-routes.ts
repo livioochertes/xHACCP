@@ -104,6 +104,13 @@ const STATIC_META: Record<string, (base: string) => MetaTags> = {
       "Informații despre modul în care xHACCP colectează, utilizează și protejează datele personale ale utilizatorilor, în conformitate cu GDPR.",
     canonical: base + "/privacy",
   }),
+  "/blog": (base) => ({
+    title: "Blog HACCP & HoReCa – Resurse pentru siguranța alimentară | xHACCP",
+    description:
+      "Articole și ghiduri despre HACCP, siguranța alimentară și industria HoReCa din România. Sfaturi practice pentru restaurante, catering și bucătării profesionale.",
+    canonical: base + "/blog",
+    ogType: "website",
+  }),
 };
 
 export function registerSeoRoutes(app: Express, storage: IStorage) {
@@ -124,6 +131,42 @@ export function registerSeoRoutes(app: Express, storage: IStorage) {
       }
     });
   }
+
+  app.get("/blog/:slug", async (req, res, next) => {
+    if (req.headers.accept && !req.headers.accept.includes("text/html")) {
+      return next();
+    }
+    try {
+      const base = getBaseUrl(req);
+      const { slug } = req.params;
+
+      let meta: MetaTags = {
+        title: "Articol Blog HACCP | xHACCP",
+        description: "Articol despre siguranța alimentară și HACCP pentru industria HoReCa din România.",
+        canonical: `${base}/blog/${slug}`,
+        ogType: "article",
+      };
+
+      try {
+        const post = await storage.getBlogPostBySlug(slug);
+        if (post && post.published) {
+          meta = {
+            title: `${post.title} | Blog xHACCP`,
+            description: post.excerpt ? post.excerpt.slice(0, 160) : meta.description,
+            canonical: `${base}/blog/${slug}`,
+            ogType: "article",
+          };
+        }
+      } catch (_) {}
+
+      const html = injectMeta(getIndexHtml(), meta);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.send(html);
+    } catch (err) {
+      next(err);
+    }
+  });
 
   app.get("/products/:slug", async (req, res, next) => {
     if (req.headers.accept && !req.headers.accept.includes("text/html")) {

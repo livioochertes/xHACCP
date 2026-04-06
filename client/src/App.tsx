@@ -20,6 +20,8 @@ import B2B from "@/pages/b2b";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 import Invoice from "@/pages/invoice";
+import Blog from "@/pages/blog";
+import BlogPostPage from "@/pages/blog-post";
 import NotFound from "@/pages/not-found";
 
 function useCanonical() {
@@ -51,6 +53,8 @@ function Router() {
         <Route path="/terms" component={Terms} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/invoice/:invoiceId" component={Invoice} />
+        <Route path="/blog" component={Blog} />
+        <Route path="/blog/:slug" component={BlogPostPage} />
         <Route component={NotFound} />
       </Switch>
     </>

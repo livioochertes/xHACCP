@@ -1,0 +1,136 @@
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Calendar, Clock, Tag, BookOpen } from "lucide-react";
+import type { BlogPost } from "@shared/schema";
+
+function BlogCard({ post }: { post: BlogPost }) {
+  const dateStr = post.publishedAt
+    ? new Date(post.publishedAt).toLocaleDateString("ro-RO", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+
+  return (
+    <Link href={`/blog/${post.slug}`}>
+      <Card className="h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer group border border-slate-200 dark:border-slate-700">
+        {post.imageUrl && (
+          <div className="aspect-[16/9] overflow-hidden rounded-t-lg">
+            <img
+              src={post.imageUrl}
+              alt={post.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        )}
+        <CardContent className="p-6 flex flex-col gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              <Tag className="w-3 h-3 mr-1" />
+              {post.category}
+            </Badge>
+            {post.language && post.language !== "ro" && (
+              <Badge variant="outline" className="text-xs uppercase">
+                {post.language}
+              </Badge>
+            )}
+          </div>
+
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug line-clamp-2">
+            {post.title}
+          </h2>
+
+          <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 flex-1">
+            {post.excerpt}
+          </p>
+
+          <div className="flex items-center gap-4 text-xs text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-700">
+            {dateStr && (
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {dateStr}
+              </span>
+            )}
+            {post.readTimeMinutes && (
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {post.readTimeMinutes} min
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
+function BlogCardSkeleton() {
+  return (
+    <Card className="h-full border border-slate-200">
+      <CardContent className="p-6 flex flex-col gap-3">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-6 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-3 w-32 mt-2" />
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function Blog() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.title = "Blog HACCP & HoReCa | xHACCP";
+  }, []);
+
+  const { data: posts, isLoading } = useQuery<BlogPost[]>({
+    queryKey: ["/api/blog/posts"],
+  });
+
+  const publishedPosts = posts?.filter((p) => p.published) ?? [];
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-600 py-16 px-4">
+        <div className="max-w-6xl mx-auto text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <BookOpen className="w-8 h-8 text-white/80" />
+            <h1 className="text-4xl font-bold text-white">Blog xHACCP</h1>
+          </div>
+          <p className="text-blue-100 text-lg max-w-2xl mx-auto">
+            Resurse profesionale despre siguranța alimentară, HACCP și industria
+            HoReCa din România
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 py-12">
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <BlogCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : publishedPosts.length === 0 ? (
+          <div className="text-center py-20 text-slate-500">
+            <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
+            <p className="text-lg">Nu există articole publicate încă.</p>
+            <p className="text-sm mt-2">Reveniți în curând!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {publishedPosts.map((post) => (
+              <BlogCard key={post.id} post={post} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
