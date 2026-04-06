@@ -2866,22 +2866,27 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         return res.status(500).json({ message: "Viva payment source not configured" });
       }
 
+      const ALLOWED_DOMAINS = ['xhaccp.ro', 'www.xhaccp.ro', 'xhaccp.com', 'www.xhaccp.com'];
       const originHeader = req.headers['origin'] as string | undefined;
       const refererHeader = req.headers['referer'] as string | undefined;
       const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5000';
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       let baseUrl: string;
-      if (originHeader) {
-        baseUrl = originHeader.replace(/\/$/, '');
-      } else if (refererHeader) {
+      const candidateFromOrigin = originHeader ? originHeader.replace(/\/$/, '') : null;
+      const candidateFromReferer = (() => {
+        if (!refererHeader) return null;
         try {
           const refUrl = new URL(refererHeader);
-          baseUrl = `${refUrl.protocol}//${refUrl.host}`;
-        } catch {
-          baseUrl = `${protocol}://${host}`;
-        }
-      } else {
-        baseUrl = `${protocol}://${host}`;
+          return `${refUrl.protocol}//${refUrl.host}`;
+        } catch { return null; }
+      })();
+      const defaultBase = `${protocol}://${host}`;
+      const rawCandidate = candidateFromOrigin || candidateFromReferer || defaultBase;
+      try {
+        const parsed = new URL(rawCandidate);
+        baseUrl = ALLOWED_DOMAINS.includes(parsed.host) ? rawCandidate : defaultBase;
+      } catch {
+        baseUrl = defaultBase;
       }
 
       const vivaOrderPayload: any = {
