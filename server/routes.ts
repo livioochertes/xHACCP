@@ -2866,9 +2866,23 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         return res.status(500).json({ message: "Viva payment source not configured" });
       }
 
+      const originHeader = req.headers['origin'] as string | undefined;
+      const refererHeader = req.headers['referer'] as string | undefined;
       const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5000';
       const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const baseUrl = `${protocol}://${host}`;
+      let baseUrl: string;
+      if (originHeader) {
+        baseUrl = originHeader.replace(/\/$/, '');
+      } else if (refererHeader) {
+        try {
+          const refUrl = new URL(refererHeader);
+          baseUrl = `${refUrl.protocol}//${refUrl.host}`;
+        } catch {
+          baseUrl = `${protocol}://${host}`;
+        }
+      } else {
+        baseUrl = `${protocol}://${host}`;
+      }
 
       const vivaOrderPayload: any = {
         amount: finalAmountCents,
@@ -3079,7 +3093,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         },
         parcels,
         cashOnDelivery: isCOD ? totalAmount : 0,
-        insuredValue: isCOD ? 0 : totalAmount,
+        insuredValue: 0,
         observation: `Order #${order.id} - xHACCP E-commerce`,
         clientInternalReference: `ORDER_${order.id}`,
       };
