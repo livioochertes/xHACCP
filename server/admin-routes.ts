@@ -4368,6 +4368,9 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   app.post("/admin/api/blog/generate", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    // Extend socket timeout to 110s for Claude AI generation (~40-60s)
+    req.socket.setTimeout(110000);
+    res.setTimeout(110000);
     try {
       if (!process.env.ANTHROPIC_API_KEY) {
         return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });
@@ -4383,6 +4386,8 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   app.post("/admin/api/blog/generate-weekly", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    req.socket.setTimeout(110000);
+    res.setTimeout(110000);
     try {
       if (!process.env.ANTHROPIC_API_KEY) {
         return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });

@@ -139,8 +139,8 @@ app.use((req, res, next) => {
   
   // Ultra-performance server settings
   server.keepAliveTimeout = 5000;
-  server.headersTimeout = 10000;
-  server.timeout = 30000;
+  server.headersTimeout = 125000; // Must be > timeout
+  server.timeout = 120000;        // 2 min — allows Claude AI generation (~40-60s)
   server.maxHeadersCount = 1000;
   
   server.listen({
