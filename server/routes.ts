@@ -400,15 +400,37 @@ Sitemap: https://${domain}/sitemap.xml
   }
 
   // /produse/:slug → /products/:slug (handles .html extensions and camelCase)
+  // For .html slugs that don't match real products, go to /products listing
+  const legacyProduseSlugs: Record<string, string> = {
+    'epson-tm-t20iii.html': '/products',
+    'pos-all-in-one-p1000-colormetrics.html': '/products',
+    'xhaccp-software-urmarire-si-gestionare-termene-de-expirare-in-bucatarii.html': '/products',
+    'honeywell-pc43k.html': '/products',
+  };
   app.get('/produse/:slug', (req, res) => {
-    res.redirect(301, `/products/${fileToSlug(req.params.slug)}`);
+    const slug = req.params.slug;
+    if (legacyProduseSlugs[slug]) {
+      return res.redirect(301, legacyProduseSlugs[slug]);
+    }
+    res.redirect(301, `/products/${fileToSlug(slug)}`);
   });
 
-  // Catch-all for any old .html pages at any path
-  app.get('/*.html', (req, res) => {
-    const name = req.path.split('/').pop() || '';
-    res.redirect(301, `/products/${fileToSlug(name)}`);
-  });
+  // Specific 301 redirects for old .html pages indexed by Google
+  const legacyHtmlRedirects: Record<string, string> = {
+    '/eticheteLUNI.html': '/products/set-de-8-role-de-etichete-kitoff-luni',
+    '/80x60-rola-termica-casa-de-marcat.html': '/products',
+    '/80x80-rola-termica-casa-de-marcat.html': '/products',
+    '/57x25-rola-termica-casa-de-marcat.html': '/products',
+    '/60x40-rola-termica-casa-de-marcat.html': '/products',
+    '/xhaccp-software-urmarire-si-gestionare-termene-de-expirare-in-bucatarii.html': '/products',
+    '/test.html': '/',
+  };
+  for (const [oldPath, newPath] of Object.entries(legacyHtmlRedirects)) {
+    app.get(oldPath, (_req, res) => res.redirect(301, newPath));
+  }
+
+  // Catch-all for any remaining old .html pages → redirect to /products
+  app.get('/*.html', (_req, res) => res.redirect(301, '/products'));
 
   app.get("/r2/:prefix/:filename", async (req, res) => {
     try {
