@@ -9,6 +9,7 @@ import { seedDatabase, seedCategoryTranslations } from "./sample-data";
 import { loadAllDataIntoMemory } from "./routes";
 import { logR2Status } from "./r2-storage";
 import { startBlogScheduler } from "./blog-scheduler";
+import { startDbKeepAlive } from "./db";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -150,5 +151,6 @@ app.use((req, res, next) => {
     backlog: 511, // Increase connection backlog for better performance
   }, () => {
     log(`serving on port ${port}`);
+    startDbKeepAlive();
   });
 })();
