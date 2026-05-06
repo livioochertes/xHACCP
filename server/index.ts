@@ -18,6 +18,15 @@ const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '..');
 const WORKSPACE_ROOT = process.cwd();
 
+// Prevent unhandled errors from crashing the server (e.g. Neon DB disconnects)
+process.on('uncaughtException', (err) => {
+  console.error('[Process] uncaughtException (server rămâne activ):', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process] unhandledRejection (server rămâne activ):', reason);
+});
+
 const app = express();
 
 // Ultra-performance Express settings
