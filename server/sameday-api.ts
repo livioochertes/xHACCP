@@ -276,8 +276,10 @@ export class SamedayAPI {
     if (awbData.awbRecipient.companyName) {
       formBody.append('awbRecipient[companyName]', awbData.awbRecipient.companyName);
     }
-    if (awbData.awbRecipient.postalCode) {
-      formBody.append('awbRecipient[postalCode]', awbData.awbRecipient.postalCode);
+    // Only send postalCode if it's exactly 6 digits — Sameday rejects anything else
+    const rawPostal = (awbData.awbRecipient.postalCode || '').replace(/\D/g, '');
+    if (rawPostal.length === 6) {
+      formBody.append('awbRecipient[postalCode]', rawPostal);
     }
     
     if (awbData.awbRecipient.county) {
