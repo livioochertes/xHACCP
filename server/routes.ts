@@ -1936,10 +1936,16 @@ Sitemap: https://${domain}/sitemap.xml
       // Calculate subtotal from validated items (using server-side prices)
       const subtotal = validatedItems.reduce((sum: number, item: any) => sum + parseFloat(item.price) * item.quantity, 0);
       
-      // Get shipping settings for threshold and cost
+      // Get shipping settings — prefer per-market thresholds/costs, fall back to companySettings
       const companySettings = await storage.getCompanySettings();
-      const freeShippingThreshold = companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : 500;
-      const standardShippingCost = companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : 25;
+      const market = getMarketFromRequest(req);
+      const marketSetting = marketSettingsMap.get(market);
+      const freeShippingThreshold = marketSetting?.freeShippingThreshold
+        ? parseFloat(marketSetting.freeShippingThreshold)
+        : (companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : 500);
+      const standardShippingCost = marketSetting?.standardShippingCost
+        ? parseFloat(marketSetting.standardShippingCost)
+        : (companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : 25);
       
       // Calculate shipping cost
       const shippingCost = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
@@ -2901,8 +2907,14 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }
 
       const companySettings = await storage.getCompanySettings();
-      const freeShippingThreshold = companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : 500;
-      const standardShippingCost = companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : 25;
+      const market2 = getMarketFromRequest(req);
+      const marketSetting2 = marketSettingsMap.get(market2);
+      const freeShippingThreshold = marketSetting2?.freeShippingThreshold
+        ? parseFloat(marketSetting2.freeShippingThreshold)
+        : (companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : 500);
+      const standardShippingCost = marketSetting2?.standardShippingCost
+        ? parseFloat(marketSetting2.standardShippingCost)
+        : (companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : 25);
       const shippingCost = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
 
       let discountAmount = 0;
@@ -3705,7 +3717,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         freeShippingThreshold: settings?.freeShippingThreshold || "500.00",
         standardShippingCost: settings?.standardShippingCost || "25.00",
         currency: settings?.defaultCurrency || "EUR",
-        vatPercentage: settings?.vatPercentage || "19.00",
+        vatPercentage: settings?.defaultVatPercentage || "19.00",
       });
     } catch (error) {
       console.error("Error fetching shipping settings:", error);
