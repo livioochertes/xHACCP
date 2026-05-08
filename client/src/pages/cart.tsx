@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
+import { formatPrice } from "@/lib/utils";
 
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -137,7 +138,7 @@ export default function Cart() {
                           </Button>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
-                          {item.product?.price ? parseFloat(item.product.price).toFixed(2) : "0.00"} {item.product?.currency === 'RON' ? 'lei' : item.product?.currency || 'RON'} {t('cart.each')}
+                          {item.product?.price ? formatPrice(item.product.price, item.product.currency) : "0.00"} {t('cart.each')}
                         </p>
                         
                         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -163,7 +164,7 @@ export default function Cart() {
                           </div>
                           
                           <span className="font-semibold text-sm sm:text-base">
-                            {item.product?.price ? (parseFloat(item.product.price) * item.quantity).toFixed(2) : "0.00"} {item.product?.currency === 'RON' ? 'lei' : item.product?.currency || 'RON'}
+                            {item.product?.price ? formatPrice((parseFloat(item.product.price) * item.quantity).toString(), item.product.currency) : "0.00"}
                           </span>
                         </div>
                       </div>

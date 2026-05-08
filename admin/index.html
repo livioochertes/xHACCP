@@ -884,6 +884,13 @@
         fetchStats();
       }, []);
       
+      // Refetch orders from server when market filter changes (server-side filtering)
+      useEffect(() => {
+        if (activeView === 'orders') {
+          fetchOrders(marketFilter);
+        }
+      }, [marketFilter, activeView]);
+
       // Filter orders based on search, status and market
       useEffect(() => {
         let filtered = orders;
@@ -982,9 +989,11 @@
         }
       };
 
-      const fetchOrders = async () => {
+      const fetchOrders = async (mktFilter) => {
         try {
-          const response = await fetch('/admin/api/orders', {
+          const mkt = mktFilter || marketFilter;
+          const url = (mkt && mkt !== 'all') ? `/admin/api/orders?market=${mkt}` : '/admin/api/orders';
+          const response = await fetch(url, {
             headers: {
               'Authorization': `Bearer ${token}`
             }

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
+import { formatPrice } from "@/lib/utils";
 import type { ProductWithCategory } from "@shared/schema";
 import { memo } from "react";
 
@@ -84,17 +85,17 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
               <div className="flex flex-col space-y-2">
                 <div className="flex items-center space-x-2">
                   <span className="text-2xl font-bold text-emerald-600">
-                    {parseFloat(product.price).toFixed(2)} {product.currency === 'RON' ? 'lei' : product.currency}
+                    {formatPrice(product.price, product.currency)}
                   </span>
                   {product.compareAtPrice && (
                     <span className="text-sm text-gray-500 line-through">
-                      {parseFloat(product.compareAtPrice).toFixed(2)} {product.currency === 'RON' ? 'lei' : product.currency}
+                      {formatPrice(product.compareAtPrice, product.currency)}
                     </span>
                   )}
                 </div>
                 {product.compareAtPrice && (
                   <Badge variant="destructive" className="text-xs w-fit">
-{t('products.save')} {(parseFloat(product.compareAtPrice) - parseFloat(product.price)).toFixed(2)} {product.currency === 'RON' ? 'lei' : product.currency}
+                    {t('products.save')} {formatPrice((parseFloat(product.compareAtPrice) - parseFloat(product.price)).toString(), product.currency)}
                   </Badge>
                 )}
               </div>

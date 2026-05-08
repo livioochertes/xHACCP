@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
+import { formatPrice } from "@/lib/utils";
 import { Link } from "wouter";
 import type { ProductWithCategory, Review } from "@shared/schema";
 
@@ -218,16 +219,16 @@ export default function ProductDetails() {
               {/* Price */}
               <div className="flex items-center space-x-4 mb-6">
                 <span className="text-3xl font-bold text-primary">
-                  {parseFloat(product.price).toFixed(2)} {product.currency === 'RON' ? 'lei' : product.currency}
+                  {formatPrice(product.price, product.currency)}
                 </span>
                 {product.compareAtPrice && (
                   <span className="text-xl text-muted-foreground line-through">
-                    {parseFloat(product.compareAtPrice).toFixed(2)} {product.currency === 'RON' ? 'lei' : product.currency}
+                    {formatPrice(product.compareAtPrice, product.currency)}
                   </span>
                 )}
                 {product.compareAtPrice && (
                   <Badge variant="destructive">
-                    Save {(parseFloat(product.compareAtPrice) - parseFloat(product.price)).toFixed(2)} {product.currency === 'RON' ? 'lei' : product.currency}
+                    Save {formatPrice((parseFloat(product.compareAtPrice) - parseFloat(product.price)).toString(), product.currency)}
                   </Badge>
                 )}
               </div>

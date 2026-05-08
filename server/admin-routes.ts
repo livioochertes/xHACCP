@@ -938,13 +938,18 @@ export async function registerAdminRoutes(app: Express) {
   // Admin Order Management Routes
   app.get("/admin/api/orders", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { status, limit = 50, offset = 0, supplierId } = req.query;
+      const { status, limit = 50, offset = 0, supplierId, market } = req.query;
       
       const orders = await storage.getOrders();
       
       let filteredOrders = orders;
       if (status) {
         filteredOrders = orders.filter(order => order.status === status);
+      }
+      
+      // Filter by market if specified
+      if (market && market !== 'all') {
+        filteredOrders = filteredOrders.filter(order => ((order as any).market || 'ro') === market);
       }
       
       // Filter by supplier if specified
