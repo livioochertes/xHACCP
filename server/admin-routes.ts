@@ -4546,13 +4546,23 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // PUT /admin/api/products/:id/markets — replace all market rows for a product
+  // PUT /admin/api/products/:id/markets — replace ALL market rows for a product
   // body: [{ market, isActive, price, compareAtPrice, currency, inStock, stockQuantity }]
+  // Markets NOT included in the body are deleted (true replace semantics)
   app.put("/admin/api/products/:id/markets", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const productId = parseInt(req.params.id);
       const markets = req.body;
       if (!Array.isArray(markets)) return res.status(400).json({ message: "Array of market entries required" });
+      // Delete existing market rows not present in the new list
+      const existingRows = await storage.getProductMarkets(productId);
+      const incomingMarkets = new Set(markets.map((m: any) => m.market));
+      for (const row of existingRows) {
+        if (!incomingMarkets.has(row.market)) {
+          await storage.deleteProductMarket(productId, row.market);
+        }
+      }
+      // Upsert all provided rows
       const results = [];
       for (const m of markets) {
         const pm = await storage.setProductMarket({

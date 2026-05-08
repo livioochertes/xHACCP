@@ -206,13 +206,15 @@ function applyMarketOverlay(product: any, market: string): any {
   const marketRow = productMarketsMap.get(product.id)?.get(market);
   if (!marketRow) return product; // no market record → serve as-is (globally available)
   if (marketRow.isActive === false) return null; // disabled for this market → hide
-  const hasOverrides = marketRow.price != null || marketRow.compareAtPrice != null ||
-    marketRow.currency != null || marketRow.inStock != null || marketRow.stockQuantity != null;
-  if (!hasOverrides) return product;
   // Currency priority: product_markets.currency → market_settings.currency → product.currency
+  // Applied whenever a market row exists and is active (not only when other overrides are set)
   const effectiveCurrency = marketRow.currency
     ?? marketSettingsMap.get(market)?.currency
     ?? product.currency;
+  const hasOverrides = marketRow.price != null || marketRow.compareAtPrice != null ||
+    marketRow.currency != null || marketRow.inStock != null || marketRow.stockQuantity != null ||
+    effectiveCurrency !== product.currency;
+  if (!hasOverrides) return product;
   return {
     ...product,
     price: marketRow.price ?? product.price,
