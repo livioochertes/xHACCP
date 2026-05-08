@@ -716,7 +716,7 @@ export function orderToSmartbillInvoice(
     seriesName,
     isDraft: false,
     dueDate,
-    currency: 'RON', // ✅ FIXED: Currency at invoice level only
+    currency: (order.market && order.market !== 'ro') ? 'EUR' : 'RON',
     mentions: 'Factura cu TVA 21% conform legislației române',
     observations: '',
     deliveryDate: issueDate,

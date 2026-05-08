@@ -1327,7 +1327,7 @@ Sitemap: https://${domain}/sitemap.xml
         subtotal: subtotalWithoutVat.toFixed(2),
         vatAmount: vatAmount.toFixed(2),
         totalAmount: totalAmount.toFixed(2),
-        currency: 'RON',
+        currency: (order.market && order.market !== 'ro') ? 'EUR' : 'RON',
         paymentMethod,
         paymentLink: paymentLink || null,
         notes: 'Factura cu TVA 21% conform legislației române',
@@ -2625,8 +2625,12 @@ Sitemap: https://${domain}/sitemap.xml
   // Admin routes
   app.get("/api/admin/orders", authenticateToken, requireAdmin, async (req, res) => {
     try {
+      const { market } = req.query;
       const orders = await storage.getOrders();
-      res.json(orders);
+      const filtered = (market && market !== 'all')
+        ? orders.filter(o => (o.market || 'ro') === market)
+        : orders;
+      res.json(filtered);
     } catch (error) {
       console.error("Get admin orders error:", error);
       res.status(500).json({ message: "Failed to get orders" });
