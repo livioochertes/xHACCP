@@ -171,6 +171,27 @@ let stringifiedProductsData: string = '';
 let stringifiedCategoriesData: string = '';
 let dataVersion: number = Date.now();
 
+// Market data in memory: productId → { market → ProductMarket row }
+let productMarketsMap = new Map<number, Map<string, any>>();
+// Market settings in memory: market → MarketSettings row
+let marketSettingsMap = new Map<string, any>();
+
+// Apply market-specific price/availability overlay to a product clone
+function applyMarketOverlay(product: any, market: string): any {
+  const marketRow = productMarketsMap.get(product.id)?.get(market);
+  if (!marketRow) return product; // no market record → serve as-is (product is globally available)
+  if (!marketRow.isActive) return null; // market row exists but disabled → hide product
+  if (marketRow.priceOverride != null || marketRow.compareAtPriceOverride != null) {
+    return {
+      ...product,
+      price: marketRow.priceOverride ?? product.price,
+      compareAtPrice: marketRow.compareAtPriceOverride ?? product.compareAtPrice,
+      _marketOverride: market,
+    };
+  }
+  return product;
+}
+
 // Load ALL data into memory at startup - never hit database again
 export async function loadAllDataIntoMemory() {
   try {
@@ -255,6 +276,28 @@ export async function loadAllDataIntoMemory() {
     
     // Pre-stringify JSON for fastest possible responses
     stringifiedProductsData = JSON.stringify(allProductsData);
+
+    // Load market settings into memory
+    const allMarketSettings = await storage.getMarketSettings();
+    marketSettingsMap.clear();
+    for (const ms of allMarketSettings) {
+      marketSettingsMap.set(ms.market, ms);
+    }
+
+    // Load product markets into memory
+    const allProductMarketsRows: any[] = [];
+    // Fetch all active market rows from DB in one go per market
+    for (const ms of allMarketSettings) {
+      const rows = await storage.getProductMarketsByMarket(ms.market);
+      allProductMarketsRows.push(...rows);
+    }
+    productMarketsMap.clear();
+    for (const pm of allProductMarketsRows) {
+      if (!productMarketsMap.has(pm.productId)) {
+        productMarketsMap.set(pm.productId, new Map());
+      }
+      productMarketsMap.get(pm.productId)!.set(pm.market, pm);
+    }
     
     console.log('✅ All data loaded into permanent memory - database queries eliminated');
     console.log(`📊 Memory data loaded: ${allProductsData.length} total products`);
@@ -1466,6 +1509,7 @@ Sitemap: https://${domain}/sitemap.xml
   // Product routes - ultra-fast response from memory
   app.get("/api/products", (req, res) => {
     const { categorySlug, search, limit = "20", featured } = req.query;
+    const market = getMarketFromRequest(req);
     
     let products: any[] = [];
     
@@ -1474,6 +1518,16 @@ Sitemap: https://${domain}/sitemap.xml
       products = productsByCategory.get(categorySlug as string) || [];
     } else {
       products = allProductsData;
+    }
+    
+    // Apply market overlay: filter out products disabled for this market, apply price overrides
+    if (productMarketsMap.size > 0) {
+      const withOverlay: any[] = [];
+      for (const p of products) {
+        const overlaid = applyMarketOverlay(p, market);
+        if (overlaid !== null) withOverlay.push(overlaid);
+      }
+      products = withOverlay;
     }
     
     // Apply featured filter if requested
@@ -1495,19 +1549,14 @@ Sitemap: https://${domain}/sitemap.xml
       products = products.slice(0, limitNum);
     }
     
-    // Set aggressive caching headers for performance
+    // Set aggressive caching headers for performance (per-market)
     res.set({
       'Cache-Control': 'public, max-age=300, s-maxage=300',
-      'ETag': `products-${categorySlug || 'all'}-${featured || 'all'}-${limitNum}`,
+      'ETag': `products-${market}-${categorySlug || 'all'}-${featured || 'all'}-${limitNum}`,
       'Content-Type': 'application/json'
     });
     
-    // For full product list, use pre-stringified data when possible
-    if (!categorySlug && !search && !featured && limitNum >= allProductsData.length) {
-      res.send(stringifiedProductsData);
-    } else {
-      res.json(products);
-    }
+    res.json(products);
   });
 
   app.get("/api/products/:id", async (req, res) => {
@@ -1524,7 +1573,11 @@ Sitemap: https://${domain}/sitemap.xml
       if (product.status?.toLowerCase() !== 'active') {
         return res.status(404).json({ message: "Product not found" });
       }
-      res.json(product);
+      // Apply market overlay
+      const market = getMarketFromRequest(req);
+      const overlaid = applyMarketOverlay(product, market);
+      if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
+      res.json(overlaid);
     } catch (error) {
       console.error("Get product error:", error);
       res.status(500).json({ message: "Failed to get product" });
@@ -1535,10 +1588,13 @@ Sitemap: https://${domain}/sitemap.xml
     try {
       const requestedSlug = req.params.slug;
       let product = await storage.getProductBySlug(requestedSlug);
+      const market = getMarketFromRequest(req);
 
       // Exact match found
       if (product && product.status?.toLowerCase() === 'active') {
-        return res.json(product);
+        const overlaid = applyMarketOverlay(product, market);
+        if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
+        return res.json(overlaid);
       }
 
       // Fuzzy fallback: search by words extracted from slug

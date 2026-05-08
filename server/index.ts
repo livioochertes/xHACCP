@@ -50,6 +50,22 @@ app.use(compression({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
+// Global market middleware — sets req.market from X-Market header or Host
+app.use((req: any, _res, next) => {
+  const headerMarket = req.headers['x-market'];
+  if (headerMarket && ['ro', 'com', 'fr'].includes(headerMarket)) {
+    req.market = headerMarket;
+    return next();
+  }
+  const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
+  const domain = host.replace(/^www\./, '').split(':')[0];
+  if (domain === 'xhaccp.ro') req.market = 'ro';
+  else if (domain === 'xhaccp.fr') req.market = 'fr';
+  else if (domain === 'xhaccp.com') req.market = 'com';
+  else req.market = 'ro';
+  next();
+});
+
 
 app.use((req, res, next) => {
   const start = Date.now();

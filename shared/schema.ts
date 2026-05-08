@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, index, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, index, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -143,7 +143,9 @@ export const productMarkets = pgTable("product_markets", {
   compareAtPriceOverride: decimal("compare_at_price_override", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  productMarketUnique: uniqueIndex("product_markets_product_id_market_unique").on(table.productId, table.market),
+}));
 
 // Orders table
 export const orders = pgTable("orders", {
