@@ -39,8 +39,8 @@ export default function ProductDetails() {
   });
 
   const freeShippingText = shippingSettings
-    ? `${parseFloat(shippingSettings.freeShippingThreshold).toLocaleString('ro-RO', { maximumFractionDigits: 0 })} lei`
-    : '1000 lei';
+    ? formatPrice(shippingSettings.freeShippingThreshold, shippingSettings.currency)
+    : formatPrice('1000', 'RON');
 
   // Auto-redirect when fuzzy match found (old URL → correct product URL)
   useEffect(() => {

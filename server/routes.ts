@@ -1766,7 +1766,19 @@ Sitemap: https://${domain}/sitemap.xml
   app.get("/api/cart", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const cartItems = await storage.getCartItems(req.userId!);
-      res.json(cartItems);
+      const market = getMarketFromRequest(req);
+      // Apply market overlay to each cart item's product:
+      // - items whose product is inactive for this market are filtered out
+      // - surviving items get market-specific price, compareAtPrice, currency, stock
+      const marketItems = cartItems
+        .map((item) => {
+          if (!item.product) return item;
+          const overlaid = applyMarketOverlay(item.product, market);
+          if (overlaid === null) return null; // product inactive in this market
+          return { ...item, product: overlaid };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null);
+      res.json(marketItems);
     } catch (error) {
       console.error("Get cart error:", error);
       res.status(500).json({ message: "Failed to get cart" });
@@ -3737,15 +3749,19 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     }
   });
 
-  // Public shipping settings endpoint (no auth required)
+  // Public shipping settings endpoint (no auth required) — market-aware
   app.get("/api/shipping-settings", async (req, res) => {
     try {
+      const market = getMarketFromRequest(req);
+      const marketSetting = marketSettingsMap.get(market);
       const settings = await storage.getCompanySettings();
+
+      // Prefer per-market values from market_settings; fall back to company-wide defaults
       res.json({
-        freeShippingThreshold: settings?.freeShippingThreshold || "500.00",
-        standardShippingCost: settings?.standardShippingCost || "25.00",
-        currency: settings?.defaultCurrency || "EUR",
-        vatPercentage: settings?.defaultVatPercentage || "19.00",
+        freeShippingThreshold: marketSetting?.freeShippingThreshold ?? settings?.freeShippingThreshold ?? "500.00",
+        standardShippingCost: marketSetting?.standardShippingCost ?? settings?.standardShippingCost ?? "25.00",
+        currency: marketSetting?.currency ?? settings?.defaultCurrency ?? "EUR",
+        vatPercentage: marketSetting?.vatPercentage ?? settings?.defaultVatPercentage ?? "19.00",
       });
     } catch (error) {
       console.error("Error fetching shipping settings:", error);
