@@ -1908,6 +1908,7 @@ Sitemap: https://${domain}/sitemap.xml
       }
       
       // SECURITY: Look up product prices from database - NEVER trust client-provided prices or quantities
+      const orderMarket = getMarketFromRequest(req);
       const validatedItems = await Promise.all(items.map(async (item: any) => {
         // Validate quantity - must be positive integer
         const quantity = parseInt(item.quantity);
@@ -1924,12 +1925,18 @@ Sitemap: https://${domain}/sitemap.xml
         if (!productActive) {
           throw new Error(`Product is not available: ${product.name}`);
         }
+
+        // Apply market overlay: enforce per-market availability and price
+        const effectiveProduct = applyMarketOverlay(product, orderMarket);
+        if (effectiveProduct === null) {
+          throw new Error(`Product is not available in this market: ${product.name}`);
+        }
         
         return {
           productId: item.productId,
-          quantity: quantity, // Use validated quantity
-          price: product.price, // Use server-side price
-          totalPrice: (parseFloat(product.price) * quantity).toFixed(2),
+          quantity: quantity,
+          price: effectiveProduct.price, // Use effective market price (may differ from base price)
+          totalPrice: (parseFloat(effectiveProduct.price) * quantity).toFixed(2),
         };
       }));
       
@@ -2888,6 +2895,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }
 
       let subtotal = 0;
+      const vivaMarket = getMarketFromRequest(req);
       for (const item of cartItems) {
         const quantity = parseInt(item.quantity);
         if (!Number.isInteger(quantity) || quantity < 1 || quantity > 9999) {
@@ -2902,12 +2910,18 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         if (product.status?.toLowerCase() !== 'active') {
           return res.status(400).json({ message: `Product is not available: ${product.name}` });
         }
+
+        // Apply market overlay: enforce per-market availability and use effective price
+        const effectiveProduct = applyMarketOverlay(product, vivaMarket);
+        if (effectiveProduct === null) {
+          return res.status(400).json({ message: `Product is not available in this market: ${product.name}` });
+        }
         
-        subtotal += parseFloat(product.price) * quantity;
+        subtotal += parseFloat(effectiveProduct.price) * quantity;
       }
 
       const companySettings = await storage.getCompanySettings();
-      const market2 = getMarketFromRequest(req);
+      const market2 = vivaMarket;
       const marketSetting2 = marketSettingsMap.get(market2);
       const freeShippingThreshold = marketSetting2?.freeShippingThreshold
         ? parseFloat(marketSetting2.freeShippingThreshold)
