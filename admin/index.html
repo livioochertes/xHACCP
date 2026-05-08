@@ -3399,7 +3399,7 @@
                             <td style={{padding: '12px', color: '#6c757d', fontSize: '14px', fontFamily: 'monospace'}}>{product.cpvCode || 'N/A'}</td>
                             {['ro', 'fr', 'com'].map(market => {
                               const pm = productMarketsMap[product.id]?.[market];
-                              const isActive = pm ? pm.isActive : false;
+                              const isActive = pm ? pm.isActive : true;
                               return (
                                 <td key={market} style={{padding: '8px', textAlign: 'center'}}>
                                   <button
@@ -5286,7 +5286,7 @@
 
       // Market Prices Section — shown in product edit modal for per-market price overrides
       const MarketPricesSection = ({ editingProduct, editingProductMarkets, token, fetchProductMarkets }) => {
-        const emptyRow = () => ({ isActive: false, price: '', compareAtPrice: '' });
+        const emptyRow = () => ({ isActive: true, price: '', compareAtPrice: '' });
         const [local, setLocal] = useState({ ro: emptyRow(), fr: emptyRow(), com: emptyRow() });
 
         useEffect(() => {
