@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, index, primaryKey } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -119,10 +119,37 @@ export const categoryTranslations = pgTable("category_translations", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Market settings table — one row per market (ro, com, fr)
+export const marketSettings = pgTable("market_settings", {
+  id: serial("id").primaryKey(),
+  market: varchar("market", { length: 10 }).notNull().unique(), // ro, com, fr
+  label: varchar("label", { length: 100 }).notNull(), // e.g. "România", "International", "France"
+  currency: varchar("currency", { length: 3 }).notNull().default("RON"), // RON, EUR
+  defaultVatPercentage: decimal("default_vat_percentage", { precision: 5, scale: 2 }).default("19.00"),
+  freeShippingThreshold: decimal("free_shipping_threshold", { precision: 10, scale: 2 }).default("1000.00"),
+  standardShippingCost: decimal("standard_shipping_cost", { precision: 10, scale: 2 }).default("35.00"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Product markets table — which products are available in which markets + optional price override
+export const productMarkets = pgTable("product_markets", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  market: varchar("market", { length: 10 }).notNull(), // ro, com, fr
+  isActive: boolean("is_active").default(true),
+  priceOverride: decimal("price_override", { precision: 10, scale: 2 }), // null = use product.price
+  compareAtPriceOverride: decimal("compare_at_price_override", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Orders table
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
+  market: varchar("market", { length: 10 }).default("ro"), // which market the order was placed on
   status: varchar("status", { length: 50 }).notNull().default("pending"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   shippingAddress: jsonb("shipping_address").notNull(),
@@ -490,6 +517,18 @@ export const insertVoucherSchema = createInsertSchema(vouchers).omit({
   updatedAt: true,
 });
 
+export const insertMarketSettingsSchema = createInsertSchema(marketSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProductMarketsSchema = createInsertSchema(productMarkets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -521,6 +560,10 @@ export type ShippingSettings = typeof shippingSettings.$inferSelect;
 export type InsertShippingSettings = z.infer<typeof insertShippingSettingsSchema>;
 export type Voucher = typeof vouchers.$inferSelect;
 export type InsertVoucher = z.infer<typeof insertVoucherSchema>;
+export type MarketSettings = typeof marketSettings.$inferSelect;
+export type InsertMarketSettings = z.infer<typeof insertMarketSettingsSchema>;
+export type ProductMarket = typeof productMarkets.$inferSelect;
+export type InsertProductMarket = z.infer<typeof insertProductMarketsSchema>;
 
 // Blog posts table
 export const blogPosts = pgTable("blog_posts", {

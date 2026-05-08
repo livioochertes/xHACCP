@@ -4425,4 +4425,127 @@ export async function registerAdminRoutes(app: Express) {
       res.status(500).json({ message: "Failed to update schedule config" });
     }
   });
+
+  // ─── Market Settings CRUD ─────────────────────────────────────────────────
+
+  // GET /admin/api/markets — list all market settings
+  app.get("/admin/api/markets", authenticateAdmin, async (_req: AdminAuthRequest, res: Response) => {
+    try {
+      const markets = await storage.getMarketSettings();
+      res.json(markets);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch market settings" });
+    }
+  });
+
+  // GET /admin/api/markets/:market — get one market
+  app.get("/admin/api/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const ms = await storage.getMarketSetting(req.params.market);
+      if (!ms) return res.status(404).json({ message: "Market not found" });
+      res.json(ms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch market" });
+    }
+  });
+
+  // PUT /admin/api/markets/:market — upsert market settings
+  app.put("/admin/api/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const market = req.params.market;
+      const ms = await storage.upsertMarketSettings(market, req.body);
+      res.json(ms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update market settings" });
+    }
+  });
+
+  // DELETE /admin/api/markets/:market — delete a market
+  app.delete("/admin/api/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      await storage.deleteMarketSettings(req.params.market);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete market" });
+    }
+  });
+
+  // ─── Product Markets CRUD ─────────────────────────────────────────────────
+
+  // GET /admin/api/products/:id/markets — get markets for a product
+  app.get("/admin/api/products/:id/markets", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const pms = await storage.getProductMarkets(productId);
+      res.json(pms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch product markets" });
+    }
+  });
+
+  // PUT /admin/api/products/:id/markets/:market — upsert product market entry
+  app.put("/admin/api/products/:id/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const market = req.params.market;
+      const { isActive, priceOverride, compareAtPriceOverride } = req.body;
+      const pm = await storage.setProductMarket({
+        productId,
+        market,
+        isActive: isActive ?? true,
+        priceOverride: priceOverride ?? null,
+        compareAtPriceOverride: compareAtPriceOverride ?? null,
+      });
+      res.json(pm);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update product market" });
+    }
+  });
+
+  // DELETE /admin/api/products/:id/markets/:market — remove product from a market
+  app.delete("/admin/api/products/:id/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const market = req.params.market;
+      await storage.deleteProductMarket(productId, market);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to remove product from market" });
+    }
+  });
+
+  // POST /admin/api/products/:id/markets/bulk — set all markets for a product at once
+  app.post("/admin/api/products/:id/markets/bulk", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const productId = parseInt(req.params.id);
+      // body: { markets: [{ market: 'ro', isActive: true, priceOverride: null }, ...] }
+      const { markets } = req.body;
+      if (!Array.isArray(markets)) return res.status(400).json({ message: "markets array required" });
+      const results = [];
+      for (const m of markets) {
+        const pm = await storage.setProductMarket({
+          productId,
+          market: m.market,
+          isActive: m.isActive ?? true,
+          priceOverride: m.priceOverride ?? null,
+          compareAtPriceOverride: m.compareAtPriceOverride ?? null,
+        });
+        results.push(pm);
+      }
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to bulk-update product markets" });
+    }
+  });
+
+  // GET /admin/api/market-products?market=ro — list product market rows for a given market
+  app.get("/admin/api/market-products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const market = (req.query.market as string) || "ro";
+      const pms = await storage.getProductMarketsByMarket(market);
+      res.json(pms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch market products" });
+    }
+  });
 }

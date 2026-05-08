@@ -14,6 +14,8 @@ import {
   companySettings,
   shippingSettings,
   vouchers,
+  marketSettings,
+  productMarkets,
   type User,
   type InsertUser,
   type Category,
@@ -48,6 +50,10 @@ import {
   type InsertShippingSettings,
   type Voucher,
   type InsertVoucher,
+  type MarketSettings,
+  type InsertMarketSettings,
+  type ProductMarket,
+  type InsertProductMarket,
   blogPosts,
   type BlogPost,
   type InsertBlogPost,
@@ -163,6 +169,20 @@ export interface IStorage {
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: number, post: Partial<InsertBlogPost>): Promise<BlogPost>;
   deleteBlogPost(id: number): Promise<void>;
+
+  // Market settings operations
+  getMarketSettings(): Promise<MarketSettings[]>;
+  getMarketSetting(market: string): Promise<MarketSettings | undefined>;
+  upsertMarketSettings(market: string, settings: Partial<InsertMarketSettings>): Promise<MarketSettings>;
+  deleteMarketSettings(market: string): Promise<void>;
+
+  // Product market operations
+  getProductMarkets(productId: number): Promise<ProductMarket[]>;
+  getProductMarketsByMarket(market: string): Promise<ProductMarket[]>;
+  setProductMarket(data: InsertProductMarket): Promise<ProductMarket>;
+  updateProductMarket(productId: number, market: string, data: Partial<InsertProductMarket>): Promise<ProductMarket>;
+  deleteProductMarket(productId: number, market: string): Promise<void>;
+  getProductsForMarket(market: string): Promise<number[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -568,6 +588,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: orders.id,
         userId: orders.userId,
+        market: orders.market,
         status: orders.status,
         totalAmount: orders.totalAmount,
         shippingCost: orders.shippingCost,
@@ -627,6 +648,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: orders.id,
         userId: orders.userId,
+        market: orders.market,
         status: orders.status,
         totalAmount: orders.totalAmount,
         shippingCost: orders.shippingCost,
@@ -1004,6 +1026,7 @@ export class DatabaseStorage implements IStorage {
     const ordersWithItems = await db.select({
       id: orders.id,
       userId: orders.userId,
+      market: orders.market,
       status: orders.status,
       totalAmount: orders.totalAmount,
       shippingCost: orders.shippingCost,
@@ -1232,6 +1255,81 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBlogPost(id: number): Promise<void> {
     await db.delete(blogPosts).where(eq(blogPosts.id, id));
+  }
+
+  // Market settings operations
+  async getMarketSettings(): Promise<MarketSettings[]> {
+    return await db.select().from(marketSettings).orderBy(marketSettings.market);
+  }
+
+  async getMarketSetting(market: string): Promise<MarketSettings | undefined> {
+    const [row] = await db.select().from(marketSettings).where(eq(marketSettings.market, market));
+    return row;
+  }
+
+  async upsertMarketSettings(market: string, settings: Partial<InsertMarketSettings>): Promise<MarketSettings> {
+    const existing = await this.getMarketSetting(market);
+    if (existing) {
+      const [updated] = await db.update(marketSettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(marketSettings.market, market))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(marketSettings)
+        .values({ market, label: settings.label || market, ...settings })
+        .returning();
+      return created;
+    }
+  }
+
+  async deleteMarketSettings(market: string): Promise<void> {
+    await db.delete(marketSettings).where(eq(marketSettings.market, market));
+  }
+
+  // Product market operations
+  async getProductMarkets(productId: number): Promise<ProductMarket[]> {
+    return await db.select().from(productMarkets).where(eq(productMarkets.productId, productId));
+  }
+
+  async getProductMarketsByMarket(market: string): Promise<ProductMarket[]> {
+    return await db.select().from(productMarkets).where(eq(productMarkets.market, market));
+  }
+
+  async setProductMarket(data: InsertProductMarket): Promise<ProductMarket> {
+    // Upsert: if entry exists update it, otherwise insert
+    const [existing] = await db.select().from(productMarkets)
+      .where(and(eq(productMarkets.productId, data.productId!), eq(productMarkets.market, data.market)));
+    if (existing) {
+      const [updated] = await db.update(productMarkets)
+        .set({ ...data, updatedAt: new Date() })
+        .where(and(eq(productMarkets.productId, data.productId!), eq(productMarkets.market, data.market)))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(productMarkets).values(data).returning();
+      return created;
+    }
+  }
+
+  async updateProductMarket(productId: number, market: string, data: Partial<InsertProductMarket>): Promise<ProductMarket> {
+    const [updated] = await db.update(productMarkets)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(productMarkets.productId, productId), eq(productMarkets.market, market)))
+      .returning();
+    return updated;
+  }
+
+  async deleteProductMarket(productId: number, market: string): Promise<void> {
+    await db.delete(productMarkets)
+      .where(and(eq(productMarkets.productId, productId), eq(productMarkets.market, market)));
+  }
+
+  async getProductsForMarket(market: string): Promise<number[]> {
+    const rows = await db.select({ productId: productMarkets.productId })
+      .from(productMarkets)
+      .where(and(eq(productMarkets.market, market), eq(productMarkets.isActive, true)));
+    return rows.map(r => r.productId);
   }
 }
 

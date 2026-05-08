@@ -297,6 +297,19 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction)
   next();
 };
 
+// ─── Market middleware ────────────────────────────────────────────────────────
+// Reads market from X-Market header (set by frontend) or falls back to Host
+function getMarketFromRequest(req: Request): string {
+  const headerMarket = req.headers['x-market'] as string | undefined;
+  if (headerMarket && ['ro', 'com', 'fr'].includes(headerMarket)) return headerMarket;
+  const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
+  const domain = host.replace(/^www\./, '').split(':')[0];
+  if (domain === 'xhaccp.ro') return 'ro';
+  if (domain === 'xhaccp.fr') return 'fr';
+  if (domain === 'xhaccp.com') return 'com';
+  return 'ro'; // default
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // SEO: server-side meta tag injection for all SPA routes (helps Google index them)
   registerSeoRoutes(app, storage);
@@ -1919,6 +1932,7 @@ Sitemap: https://${domain}/sitemap.xml
 
       const orderData = {
         userId: req.userId || null,
+        market: getMarketFromRequest(req),
         status: "pending",
         totalAmount: totalAmount.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
@@ -3689,6 +3703,28 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     } catch (error) {
       console.error("Error generating test invoice:", error);
       res.status(500).json({ message: "Failed to generate invoice", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // ─── Market Settings API (public read, no auth) ───────────────────────────
+  // GET /api/markets — list all active markets
+  app.get("/api/markets", async (_req, res) => {
+    try {
+      const markets = await storage.getMarketSettings();
+      res.json(markets.filter(m => m.isActive));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch markets" });
+    }
+  });
+
+  // GET /api/markets/:market — get settings for a specific market (used by frontend)
+  app.get("/api/markets/:market", async (req, res) => {
+    try {
+      const ms = await storage.getMarketSetting(req.params.market);
+      if (!ms || !ms.isActive) return res.status(404).json({ message: "Market not found" });
+      res.json(ms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch market" });
     }
   });
 

@@ -1,6 +1,48 @@
 import { db } from "./db";
-import { categories, categoryTranslations, products, users, orders, orderItems, invoices, invoiceItems } from "../shared/schema";
+import { categories, categoryTranslations, products, users, orders, orderItems, invoices, invoiceItems, marketSettings } from "../shared/schema";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
+
+// Seed default market settings if not present
+export async function seedMarketSettings() {
+  try {
+    const existing = await db.select().from(marketSettings);
+    if (existing.length > 0) return;
+    console.log("🌍 Seeding default market settings...");
+    await db.insert(marketSettings).values([
+      {
+        market: "ro",
+        label: "România",
+        currency: "RON",
+        defaultVatPercentage: "19.00",
+        freeShippingThreshold: "1000.00",
+        standardShippingCost: "35.00",
+        isActive: true,
+      },
+      {
+        market: "com",
+        label: "International",
+        currency: "EUR",
+        defaultVatPercentage: "0.00",
+        freeShippingThreshold: "200.00",
+        standardShippingCost: "15.00",
+        isActive: true,
+      },
+      {
+        market: "fr",
+        label: "France",
+        currency: "EUR",
+        defaultVatPercentage: "20.00",
+        freeShippingThreshold: "150.00",
+        standardShippingCost: "12.00",
+        isActive: false,
+      },
+    ]);
+    console.log("✅ Default market settings seeded (ro, com, fr)");
+  } catch (error) {
+    console.error("Error seeding market settings:", error);
+  }
+}
 
 export async function seedDatabase() {
   try {

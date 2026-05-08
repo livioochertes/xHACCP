@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import { registerRoutes } from "./routes";
 import { registerAdminRoutes } from "./admin-routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { seedDatabase, seedCategoryTranslations } from "./sample-data";
+import { seedDatabase, seedCategoryTranslations, seedMarketSettings } from "./sample-data";
 import { loadAllDataIntoMemory } from "./routes";
 import { logR2Status } from "./r2-storage";
 import { startBlogScheduler } from "./blog-scheduler";
@@ -118,6 +118,7 @@ app.use((req, res, next) => {
       await seedDatabase();
       await seedCategoryTranslations();
     }
+    await seedMarketSettings();
     await loadAllDataIntoMemory();
   } catch (error) {
     console.error('Data loading failed:', error);
