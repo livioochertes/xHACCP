@@ -39,7 +39,9 @@ export default function Invoice() {
   const { data: companySettings } = useQuery({
     queryKey: ['/admin/api/company-settings'],
     queryFn: async () => {
-      const response = await fetch('/admin/api/company-settings');
+      const response = await fetch('/admin/api/company-settings', {
+        headers: { 'X-Market': getMarketFromHostname() }
+      });
       if (!response.ok) {
         throw new Error('Company settings not found');
       }
