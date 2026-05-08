@@ -7,6 +7,18 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+function getMarketFromHostname(): string {
+  try {
+    const hostname = window.location.hostname;
+    if (hostname === 'xhaccp.ro' || hostname.endsWith('.xhaccp.ro')) return 'ro';
+    if (hostname === 'xhaccp.fr' || hostname.endsWith('.xhaccp.fr')) return 'fr';
+    if (hostname === 'xhaccp.com' || hostname.endsWith('.xhaccp.com')) return 'com';
+    return 'ro';
+  } catch {
+    return 'ro';
+  }
+}
+
 export async function apiRequest(
   method: string,
   url: string,
@@ -18,6 +30,7 @@ export async function apiRequest(
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
+  headers["X-Market"] = getMarketFromHostname();
 
   const res = await fetch(url, {
     method,
@@ -62,7 +75,8 @@ export const getQueryFn: <T>(options: {
     const headers: Record<string, string> = {
       "Cache-Control": "no-cache, no-store, must-revalidate",
       "Pragma": "no-cache",
-      "Expires": "0"
+      "Expires": "0",
+      "X-Market": getMarketFromHostname()
     };
     
     if (token) {
