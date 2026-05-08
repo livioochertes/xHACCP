@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/utils";
+import { getMarketFromHostname } from "@/lib/queryClient";
 
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +20,9 @@ export default function Cart() {
   const { data: shippingSettings } = useQuery({
     queryKey: ['/api/shipping-settings'],
     queryFn: async () => {
-      const response = await fetch('/api/shipping-settings');
+      const response = await fetch('/api/shipping-settings', {
+        headers: { 'X-Market': getMarketFromHostname() }
+      });
       if (!response.ok) throw new Error('Failed to fetch shipping settings');
       return response.json();
     },

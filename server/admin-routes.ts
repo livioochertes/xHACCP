@@ -949,7 +949,7 @@ export async function registerAdminRoutes(app: Express) {
       
       // Filter by market if specified
       if (market && market !== 'all') {
-        filteredOrders = filteredOrders.filter(order => ((order as any).market || 'ro') === market);
+        filteredOrders = filteredOrders.filter(order => (order.market || 'ro') === market);
       }
       
       // Filter by supplier if specified

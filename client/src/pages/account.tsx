@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -417,7 +417,7 @@ export default function Account() {
       
       if (existingInvoice) {
         const pdfResponse = await fetch(`/api/invoices/${existingInvoice.id}/pdf`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'X-Market': getMarketFromHostname() }
         });
         
         if (pdfResponse.ok) {
@@ -443,7 +443,8 @@ export default function Account() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Market': getMarketFromHostname()
         }
       });
       
@@ -452,7 +453,7 @@ export default function Account() {
         
         if (invoiceData && invoiceData.invoiceNumber) {
           const pdfResponse = await fetch(`/api/invoices/${invoiceData.id}/pdf`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'X-Market': getMarketFromHostname() }
           });
           
           if (pdfResponse.ok) {
@@ -502,6 +503,7 @@ export default function Account() {
       const response = await fetch(`/api/orders/${order.id}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Market': getMarketFromHostname(),
         }
       });
       

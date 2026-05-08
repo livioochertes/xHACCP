@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import type { CartItemWithProduct } from "@shared/schema";
 
 interface CartContextType {
@@ -66,7 +66,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
       } else {
         // Guest cart - get product details
-        const response = await fetch(`/api/products/${productId}`);
+        const response = await fetch(`/api/products/${productId}`, {
+          headers: { 'X-Market': getMarketFromHostname() }
+        });
         const product = await response.json();
         return { product, quantity };
       }

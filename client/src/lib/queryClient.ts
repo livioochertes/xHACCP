@@ -7,7 +7,7 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-function getMarketFromHostname(): string {
+export function getMarketFromHostname(): string {
   try {
     const hostname = window.location.hostname;
     if (hostname === 'xhaccp.ro' || hostname.endsWith('.xhaccp.ro')) return 'ro';

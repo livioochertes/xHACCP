@@ -17,7 +17,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -157,7 +157,9 @@ export default function Checkout() {
   const { data: shippingSettings } = useQuery({
     queryKey: ['/api/shipping-settings'],
     queryFn: async () => {
-      const response = await fetch('/api/shipping-settings');
+      const response = await fetch('/api/shipping-settings', {
+        headers: { 'X-Market': getMarketFromHostname() }
+      });
       if (!response.ok) throw new Error('Failed to fetch shipping settings');
       return response.json();
     },
@@ -387,7 +389,7 @@ export default function Checkout() {
     try {
       const response = await fetch('/api/vouchers/validate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Market': getMarketFromHostname() },
         body: JSON.stringify({ 
           code: voucherCode.trim(), 
           orderTotal: subtotal.toString() 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { getMarketFromHostname } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,9 @@ export default function Invoice() {
   const { data: invoice, isLoading, error } = useQuery({
     queryKey: ['/api/invoices/number', invoiceNumber],
     queryFn: async () => {
-      const response = await fetch(`/api/invoices/number/${invoiceNumber}`);
+      const response = await fetch(`/api/invoices/number/${invoiceNumber}`, {
+        headers: { 'X-Market': getMarketFromHostname() }
+      });
       if (!response.ok) {
         throw new Error('Invoice not found');
       }

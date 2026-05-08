@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { getMarketFromHostname } from "@/lib/queryClient";
 import { useParams, Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,9 @@ export default function BlogPostPage() {
   const { data: post, isLoading, isError } = useQuery<BlogPost>({
     queryKey: ["/api/blog/posts", slug],
     queryFn: async () => {
-      const res = await fetch(`/api/blog/posts/${slug}`);
+      const res = await fetch(`/api/blog/posts/${slug}`, {
+        headers: { 'X-Market': getMarketFromHostname() }
+      });
       if (!res.ok) throw new Error("Post not found");
       return res.json();
     },

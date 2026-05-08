@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "../contexts/language-context";
+import { getMarketFromHostname } from "../lib/queryClient";
 import type { ProductTranslation } from "@shared/schema";
 
 interface TranslatedProduct {
@@ -37,7 +38,9 @@ export function useProductTranslations(productIds: number[]) {
       if (productIds.length === 0 || language === 'en') {
         return {};
       }
-      const response = await fetch(`/api/translations/${language}?ids=${productIds.join(',')}`);
+      const response = await fetch(`/api/translations/${language}?ids=${productIds.join(',')}`, {
+        headers: { 'X-Market': getMarketFromHostname() }
+      });
       if (!response.ok) {
         return {};
       }
