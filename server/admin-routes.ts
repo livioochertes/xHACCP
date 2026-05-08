@@ -4652,11 +4652,21 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // GET /admin/api/market-products?market=ro — list product market rows for a given market
+  // When ?market= is omitted, returns rows for ALL markets (ro + fr + com combined)
   app.get("/admin/api/market-products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const market = (req.query.market as string) || "ro";
-      const pms = await storage.getProductMarketsByMarket(market);
-      res.json(pms);
+      const market = req.query.market as string | undefined;
+      if (market) {
+        const pms = await storage.getProductMarketsByMarket(market);
+        res.json(pms);
+      } else {
+        const [ro, fr, com] = await Promise.all([
+          storage.getProductMarketsByMarket("ro"),
+          storage.getProductMarketsByMarket("fr"),
+          storage.getProductMarketsByMarket("com"),
+        ]);
+        res.json([...ro, ...fr, ...com]);
+      }
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch market products" });
     }

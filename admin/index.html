@@ -5307,8 +5307,8 @@
               price: local[m].price || null,
               compareAtPrice: local[m].compareAtPrice || null,
             }));
-            const res = await fetch(`/admin/api/products/${editingProduct.id}/markets`, {
-              method: 'PUT',
+            const res = await fetch(`/admin/api/products/${editingProduct.id}/markets/bulk`, {
+              method: 'POST',
               headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ markets })
             });
