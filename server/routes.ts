@@ -176,6 +176,31 @@ let productMarketsMap = new Map<number, Map<string, any>>();
 // Market settings in memory: market → MarketSettings row
 let marketSettingsMap = new Map<string, any>();
 
+// Refresh only market caches from DB (called after admin CRUD on market settings / product markets)
+export async function refreshMarketCaches(): Promise<void> {
+  try {
+    const allMarketSettings = await storage.getMarketSettings();
+    marketSettingsMap.clear();
+    for (const ms of allMarketSettings) {
+      marketSettingsMap.set(ms.market, ms);
+    }
+    const allProductMarketsRows: any[] = [];
+    for (const ms of allMarketSettings) {
+      const rows = await storage.getProductMarketsByMarket(ms.market);
+      allProductMarketsRows.push(...rows);
+    }
+    productMarketsMap.clear();
+    for (const pm of allProductMarketsRows) {
+      if (!productMarketsMap.has(pm.productId)) {
+        productMarketsMap.set(pm.productId, new Map());
+      }
+      productMarketsMap.get(pm.productId)!.set(pm.market, pm);
+    }
+  } catch (err) {
+    console.error("Error refreshing market caches:", err);
+  }
+}
+
 // Apply market-specific price/availability overlay to a product clone
 function applyMarketOverlay(product: any, market: string): any {
   const marketRow = productMarketsMap.get(product.id)?.get(market);
@@ -184,11 +209,15 @@ function applyMarketOverlay(product: any, market: string): any {
   const hasOverrides = marketRow.price != null || marketRow.compareAtPrice != null ||
     marketRow.currency != null || marketRow.inStock != null || marketRow.stockQuantity != null;
   if (!hasOverrides) return product;
+  // Currency priority: product_markets.currency → market_settings.currency → product.currency
+  const effectiveCurrency = marketRow.currency
+    ?? marketSettingsMap.get(market)?.currency
+    ?? product.currency;
   return {
     ...product,
     price: marketRow.price ?? product.price,
     compareAtPrice: marketRow.compareAtPrice ?? product.compareAtPrice,
-    currency: marketRow.currency ?? product.currency,
+    currency: effectiveCurrency,
     inStock: marketRow.inStock ?? product.inStock,
     stockQuantity: marketRow.stockQuantity ?? product.stockQuantity,
     _marketOverride: market,
@@ -280,27 +309,8 @@ export async function loadAllDataIntoMemory() {
     // Pre-stringify JSON for fastest possible responses
     stringifiedProductsData = JSON.stringify(allProductsData);
 
-    // Load market settings into memory
-    const allMarketSettings = await storage.getMarketSettings();
-    marketSettingsMap.clear();
-    for (const ms of allMarketSettings) {
-      marketSettingsMap.set(ms.market, ms);
-    }
-
-    // Load product markets into memory
-    const allProductMarketsRows: any[] = [];
-    // Fetch all active market rows from DB in one go per market
-    for (const ms of allMarketSettings) {
-      const rows = await storage.getProductMarketsByMarket(ms.market);
-      allProductMarketsRows.push(...rows);
-    }
-    productMarketsMap.clear();
-    for (const pm of allProductMarketsRows) {
-      if (!productMarketsMap.has(pm.productId)) {
-        productMarketsMap.set(pm.productId, new Map());
-      }
-      productMarketsMap.get(pm.productId)!.set(pm.market, pm);
-    }
+    // Load market caches
+    await refreshMarketCaches();
     
     console.log('✅ All data loaded into permanent memory - database queries eliminated');
     console.log(`📊 Memory data loaded: ${allProductsData.length} total products`);
@@ -1617,8 +1627,10 @@ Sitemap: https://${domain}/sitemap.xml
         }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
 
         if (scored.length > 0) {
-          // Return best match with a flag so frontend can redirect
-          return res.json({ ...scored[0].product, _redirected: true, _originalSlug: requestedSlug });
+          // Apply market overlay to fuzzy match — filter unavailable products for this market
+          const overlaid = applyMarketOverlay(scored[0].product, market);
+          if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
+          return res.json({ ...overlaid, _redirected: true, _originalSlug: requestedSlug });
         }
       }
 

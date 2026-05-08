@@ -11,7 +11,7 @@ import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
 import { upload, processImages, serveUploads, deleteUploadedFile } from "./upload-middleware";
-import { loadAllDataIntoMemory } from "./routes";
+import { loadAllDataIntoMemory, refreshMarketCaches } from "./routes";
 import multer from "multer";
 import { readScheduleConfig, writeScheduleConfig } from "./blog-schedule-config";
 import { restartBlogScheduler } from "./blog-scheduler";
@@ -4444,6 +4444,7 @@ export async function registerAdminRoutes(app: Express) {
       const { market, ...rest } = req.body;
       if (!market) return res.status(400).json({ message: "market field required" });
       const ms = await storage.upsertMarketSettings(market, rest);
+      refreshMarketCaches().catch(console.error);
       res.json(ms);
     } catch (error) {
       res.status(500).json({ message: "Failed to create market settings" });
@@ -4454,6 +4455,7 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/markets/settings/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const ms = await storage.upsertMarketSettings(req.params.market, req.body);
+      refreshMarketCaches().catch(console.error);
       res.json(ms);
     } catch (error) {
       res.status(500).json({ message: "Failed to update market settings" });
@@ -4485,6 +4487,7 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const ms = await storage.upsertMarketSettings(req.params.market, req.body);
+      refreshMarketCaches().catch(console.error);
       res.json(ms);
     } catch (error) {
       res.status(500).json({ message: "Failed to update market settings" });
@@ -4495,6 +4498,7 @@ export async function registerAdminRoutes(app: Express) {
   app.delete("/admin/api/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       await storage.deleteMarketSettings(req.params.market);
+      refreshMarketCaches().catch(console.error);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete market" });
@@ -4524,6 +4528,7 @@ export async function registerAdminRoutes(app: Express) {
         });
         results.push(pm);
       }
+      refreshMarketCaches().catch(console.error);
       res.json(results);
     } catch (error) {
       res.status(500).json({ message: "Failed to bulk-assign product markets" });
@@ -4562,6 +4567,7 @@ export async function registerAdminRoutes(app: Express) {
         });
         results.push(pm);
       }
+      refreshMarketCaches().catch(console.error);
       res.json(results);
     } catch (error) {
       res.status(500).json({ message: "Failed to update product markets" });
@@ -4584,6 +4590,7 @@ export async function registerAdminRoutes(app: Express) {
         inStock: inStock ?? null,
         stockQuantity: stockQuantity ?? null,
       });
+      refreshMarketCaches().catch(console.error);
       res.json(pm);
     } catch (error) {
       res.status(500).json({ message: "Failed to update product market" });
@@ -4594,6 +4601,7 @@ export async function registerAdminRoutes(app: Express) {
   app.delete("/admin/api/products/:id/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       await storage.deleteProductMarket(parseInt(req.params.id), req.params.market);
+      refreshMarketCaches().catch(console.error);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to remove product from market" });
@@ -4621,6 +4629,7 @@ export async function registerAdminRoutes(app: Express) {
         });
         results.push(pm);
       }
+      refreshMarketCaches().catch(console.error);
       res.json(results);
     } catch (error) {
       res.status(500).json({ message: "Failed to bulk-update product markets" });
