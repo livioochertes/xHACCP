@@ -4428,7 +4428,39 @@ export async function registerAdminRoutes(app: Express) {
 
   // ─── Market Settings CRUD ─────────────────────────────────────────────────
 
-  // GET /admin/api/markets — list all market settings
+  // GET /admin/api/markets/settings — list all market settings (primary path)
+  app.get("/admin/api/markets/settings", authenticateAdmin, async (_req: AdminAuthRequest, res: Response) => {
+    try {
+      const markets = await storage.getMarketSettings();
+      res.json(markets);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch market settings" });
+    }
+  });
+
+  // POST /admin/api/markets/settings — create/upsert a market (body must include `market` key)
+  app.post("/admin/api/markets/settings", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const { market, ...rest } = req.body;
+      if (!market) return res.status(400).json({ message: "market field required" });
+      const ms = await storage.upsertMarketSettings(market, rest);
+      res.json(ms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create market settings" });
+    }
+  });
+
+  // PUT /admin/api/markets/settings/:market — upsert specific market
+  app.put("/admin/api/markets/settings/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const ms = await storage.upsertMarketSettings(req.params.market, req.body);
+      res.json(ms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update market settings" });
+    }
+  });
+
+  // GET /admin/api/markets — alias: list all market settings
   app.get("/admin/api/markets", authenticateAdmin, async (_req: AdminAuthRequest, res: Response) => {
     try {
       const markets = await storage.getMarketSettings();
@@ -4452,8 +4484,7 @@ export async function registerAdminRoutes(app: Express) {
   // PUT /admin/api/markets/:market — upsert market settings
   app.put("/admin/api/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const market = req.params.market;
-      const ms = await storage.upsertMarketSettings(market, req.body);
+      const ms = await storage.upsertMarketSettings(req.params.market, req.body);
       res.json(ms);
     } catch (error) {
       res.status(500).json({ message: "Failed to update market settings" });
@@ -4472,7 +4503,34 @@ export async function registerAdminRoutes(app: Express) {
 
   // ─── Product Markets CRUD ─────────────────────────────────────────────────
 
-  // GET /admin/api/products/:id/markets — get markets for a product
+  // POST /admin/api/products/markets/bulk — assign multiple products to markets at once
+  // body: [{ productId, market, isActive, price, compareAtPrice, currency, inStock, stockQuantity }]
+  app.post("/admin/api/products/markets/bulk", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const entries = req.body;
+      if (!Array.isArray(entries)) return res.status(400).json({ message: "Array of entries required" });
+      const results = [];
+      for (const entry of entries) {
+        if (!entry.productId || !entry.market) continue;
+        const pm = await storage.setProductMarket({
+          productId: entry.productId,
+          market: entry.market,
+          isActive: entry.isActive ?? true,
+          price: entry.price ?? null,
+          compareAtPrice: entry.compareAtPrice ?? null,
+          currency: entry.currency ?? null,
+          inStock: entry.inStock ?? null,
+          stockQuantity: entry.stockQuantity ?? null,
+        });
+        results.push(pm);
+      }
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to bulk-assign product markets" });
+    }
+  });
+
+  // GET /admin/api/products/:id/markets — get all market rows for a product
   app.get("/admin/api/products/:id/markets", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const productId = parseInt(req.params.id);
@@ -4483,18 +4541,48 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // PUT /admin/api/products/:id/markets/:market — upsert product market entry
+  // PUT /admin/api/products/:id/markets — replace all market rows for a product
+  // body: [{ market, isActive, price, compareAtPrice, currency, inStock, stockQuantity }]
+  app.put("/admin/api/products/:id/markets", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const markets = req.body;
+      if (!Array.isArray(markets)) return res.status(400).json({ message: "Array of market entries required" });
+      const results = [];
+      for (const m of markets) {
+        const pm = await storage.setProductMarket({
+          productId,
+          market: m.market,
+          isActive: m.isActive ?? true,
+          price: m.price ?? null,
+          compareAtPrice: m.compareAtPrice ?? null,
+          currency: m.currency ?? null,
+          inStock: m.inStock ?? null,
+          stockQuantity: m.stockQuantity ?? null,
+        });
+        results.push(pm);
+      }
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update product markets" });
+    }
+  });
+
+  // PUT /admin/api/products/:id/markets/:market — upsert one product market entry
   app.put("/admin/api/products/:id/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const productId = parseInt(req.params.id);
       const market = req.params.market;
-      const { isActive, priceOverride, compareAtPriceOverride } = req.body;
+      const { isActive, price, compareAtPrice, currency, inStock, stockQuantity } = req.body;
       const pm = await storage.setProductMarket({
         productId,
         market,
         isActive: isActive ?? true,
-        priceOverride: priceOverride ?? null,
-        compareAtPriceOverride: compareAtPriceOverride ?? null,
+        price: price ?? null,
+        compareAtPrice: compareAtPrice ?? null,
+        currency: currency ?? null,
+        inStock: inStock ?? null,
+        stockQuantity: stockQuantity ?? null,
       });
       res.json(pm);
     } catch (error) {
@@ -4505,20 +4593,18 @@ export async function registerAdminRoutes(app: Express) {
   // DELETE /admin/api/products/:id/markets/:market — remove product from a market
   app.delete("/admin/api/products/:id/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const productId = parseInt(req.params.id);
-      const market = req.params.market;
-      await storage.deleteProductMarket(productId, market);
+      await storage.deleteProductMarket(parseInt(req.params.id), req.params.market);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to remove product from market" });
     }
   });
 
-  // POST /admin/api/products/:id/markets/bulk — set all markets for a product at once
+  // POST /admin/api/products/:id/markets/bulk — set all markets for one product at once
+  // body: { markets: [{ market, isActive, price, compareAtPrice, currency, inStock, stockQuantity }] }
   app.post("/admin/api/products/:id/markets/bulk", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const productId = parseInt(req.params.id);
-      // body: { markets: [{ market: 'ro', isActive: true, priceOverride: null }, ...] }
       const { markets } = req.body;
       if (!Array.isArray(markets)) return res.status(400).json({ message: "markets array required" });
       const results = [];
@@ -4527,8 +4613,11 @@ export async function registerAdminRoutes(app: Express) {
           productId,
           market: m.market,
           isActive: m.isActive ?? true,
-          priceOverride: m.priceOverride ?? null,
-          compareAtPriceOverride: m.compareAtPriceOverride ?? null,
+          price: m.price ?? null,
+          compareAtPrice: m.compareAtPrice ?? null,
+          currency: m.currency ?? null,
+          inStock: m.inStock ?? null,
+          stockQuantity: m.stockQuantity ?? null,
         });
         results.push(pm);
       }

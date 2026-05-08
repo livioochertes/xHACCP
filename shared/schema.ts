@@ -125,7 +125,7 @@ export const marketSettings = pgTable("market_settings", {
   market: varchar("market", { length: 10 }).notNull().unique(), // ro, com, fr
   label: varchar("label", { length: 100 }).notNull(), // e.g. "România", "International", "France"
   currency: varchar("currency", { length: 3 }).notNull().default("RON"), // RON, EUR
-  defaultVatPercentage: decimal("default_vat_percentage", { precision: 5, scale: 2 }).default("19.00"),
+  vatPercentage: decimal("default_vat_percentage", { precision: 5, scale: 2 }).default("19.00"),
   freeShippingThreshold: decimal("free_shipping_threshold", { precision: 10, scale: 2 }).default("1000.00"),
   standardShippingCost: decimal("standard_shipping_cost", { precision: 10, scale: 2 }).default("35.00"),
   isActive: boolean("is_active").default(true),
@@ -133,14 +133,19 @@ export const marketSettings = pgTable("market_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Product markets table — which products are available in which markets + optional price override
+// Product markets table — which products are available in which markets + optional overrides
 export const productMarkets = pgTable("product_markets", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
   market: varchar("market", { length: 10 }).notNull(), // ro, com, fr
   isActive: boolean("is_active").default(true),
-  priceOverride: decimal("price_override", { precision: 10, scale: 2 }), // null = use product.price
-  compareAtPriceOverride: decimal("compare_at_price_override", { precision: 10, scale: 2 }),
+  // Price overrides — null means fall back to product.price / product.compareAtPrice
+  price: decimal("price", { precision: 10, scale: 2 }),
+  compareAtPrice: decimal("compare_at_price", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 3 }), // null = inherit from marketSettings.currency
+  // Stock overrides — null means fall back to product-level stock
+  inStock: boolean("in_stock"),
+  stockQuantity: integer("stock_quantity"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({

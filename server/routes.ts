@@ -179,17 +179,20 @@ let marketSettingsMap = new Map<string, any>();
 // Apply market-specific price/availability overlay to a product clone
 function applyMarketOverlay(product: any, market: string): any {
   const marketRow = productMarketsMap.get(product.id)?.get(market);
-  if (!marketRow) return product; // no market record → serve as-is (product is globally available)
-  if (!marketRow.isActive) return null; // market row exists but disabled → hide product
-  if (marketRow.priceOverride != null || marketRow.compareAtPriceOverride != null) {
-    return {
-      ...product,
-      price: marketRow.priceOverride ?? product.price,
-      compareAtPrice: marketRow.compareAtPriceOverride ?? product.compareAtPrice,
-      _marketOverride: market,
-    };
-  }
-  return product;
+  if (!marketRow) return product; // no market record → serve as-is (globally available)
+  if (marketRow.isActive === false) return null; // disabled for this market → hide
+  const hasOverrides = marketRow.price != null || marketRow.compareAtPrice != null ||
+    marketRow.currency != null || marketRow.inStock != null || marketRow.stockQuantity != null;
+  if (!hasOverrides) return product;
+  return {
+    ...product,
+    price: marketRow.price ?? product.price,
+    compareAtPrice: marketRow.compareAtPrice ?? product.compareAtPrice,
+    currency: marketRow.currency ?? product.currency,
+    inStock: marketRow.inStock ?? product.inStock,
+    stockQuantity: marketRow.stockQuantity ?? product.stockQuantity,
+    _marketOverride: market,
+  };
 }
 
 // Load ALL data into memory at startup - never hit database again
@@ -3702,7 +3705,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         freeShippingThreshold: settings?.freeShippingThreshold || "500.00",
         standardShippingCost: settings?.standardShippingCost || "25.00",
         currency: settings?.defaultCurrency || "EUR",
-        vatPercentage: settings?.defaultVatPercentage || "19.00",
+        vatPercentage: settings?.vatPercentage || "19.00",
       });
     } catch (error) {
       console.error("Error fetching shipping settings:", error);
