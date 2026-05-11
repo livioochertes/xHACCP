@@ -3248,7 +3248,7 @@
                           <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>Priority</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Product ID</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Name</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Price</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Preț bază</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Category</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Stock</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Status</th>
@@ -3257,9 +3257,9 @@
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Product Code</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>NC Code</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>CPV Code</th>
-                          <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>🇷🇴 .ro</th>
-                          <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>🇫🇷 .fr</th>
-                          <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>🌐 .com</th>
+                          <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>🇷🇴 .ro<br/><small style={{color:'#888',fontWeight:'normal'}}>RON (lei)</small></th>
+                          <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>🇫🇷 .fr<br/><small style={{color:'#888',fontWeight:'normal'}}>EUR (€)</small></th>
+                          <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>🌐 .com<br/><small style={{color:'#888',fontWeight:'normal'}}>EUR (€)</small></th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Actions</th>
                         </tr>
                       </thead>
@@ -3400,25 +3400,43 @@
                             {['ro', 'fr', 'com'].map(market => {
                               const pm = productMarketsMap[product.id]?.[market];
                               const isActive = pm ? pm.isActive : true;
+                              const hasCustomPrice = pm && pm.price != null && pm.price !== '';
+                              const effectivePrice = hasCustomPrice ? pm.price : product.price;
+                              const symbol = market === 'ro' ? 'lei' : '€';
                               return (
-                                <td key={market} style={{padding: '8px', textAlign: 'center'}}>
-                                  <button
-                                    title={isActive ? `Activ pe .${market} — click pentru dezactivare` : `Inactiv pe .${market} — click pentru activare`}
-                                    onClick={() => toggleProductMarket(product.id, market, isActive)}
-                                    style={{
-                                      padding: '3px 10px',
-                                      border: 'none',
-                                      borderRadius: '12px',
-                                      cursor: 'pointer',
-                                      fontSize: '12px',
-                                      fontWeight: '600',
-                                      backgroundColor: isActive ? '#d4edda' : '#f8d7da',
-                                      color: isActive ? '#155724' : '#721c24',
-                                      minWidth: '44px'
-                                    }}
-                                  >
-                                    {isActive ? '✓' : '✗'}
-                                  </button>
+                                <td key={market} style={{padding: '8px', textAlign: 'center', minWidth: '80px'}}>
+                                  <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'}}>
+                                    <span
+                                      title={hasCustomPrice ? `Preț custom pentru .${market}` : `Preț bază (fără override pe .${market})`}
+                                      style={{
+                                        fontSize: '12px',
+                                        fontWeight: 'bold',
+                                        color: hasCustomPrice ? '#007bff' : '#888',
+                                        whiteSpace: 'nowrap',
+                                        letterSpacing: '0.3px'
+                                      }}
+                                    >
+                                      {parseFloat(effectivePrice || 0).toFixed(2)} {symbol}
+                                      {hasCustomPrice && <span style={{marginLeft: '2px', fontSize: '10px', color: '#fd7e14'}}>✎</span>}
+                                    </span>
+                                    <button
+                                      title={isActive ? `Activ pe .${market} — click pentru dezactivare` : `Inactiv pe .${market} — click pentru activare`}
+                                      onClick={() => toggleProductMarket(product.id, market, isActive)}
+                                      style={{
+                                        padding: '2px 8px',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        cursor: 'pointer',
+                                        fontSize: '11px',
+                                        fontWeight: '600',
+                                        backgroundColor: isActive ? '#d4edda' : '#f8d7da',
+                                        color: isActive ? '#155724' : '#721c24',
+                                        minWidth: '40px'
+                                      }}
+                                    >
+                                      {isActive ? '✓ ON' : '✗ OFF'}
+                                    </button>
+                                  </div>
                                 </td>
                               );
                             })}
