@@ -1327,7 +1327,7 @@ Sitemap: https://${domain}/sitemap.xml
         subtotal: subtotalWithoutVat.toFixed(2),
         vatAmount: vatAmount.toFixed(2),
         totalAmount: totalAmount.toFixed(2),
-        currency: (order.market && order.market !== 'ro') ? 'EUR' : 'RON',
+        currency: 'RON',
         paymentMethod,
         paymentLink: paymentLink || null,
         notes: 'Factura cu TVA 21% conform legislației române',

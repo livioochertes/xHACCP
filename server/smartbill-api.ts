@@ -527,7 +527,7 @@ export class SmartbillAPI {
           code: product.productCode || product.id.toString(),
           um: 'buc', // pieces in Romanian
           price: parseFloat(product.price || '0'),
-          currency: 'EUR',
+          currency: 'RON',
           vatPercentage: parseFloat(product.vatValue || '0'),
           category: product.category?.name || 'General',
           description: product.description || '',
@@ -716,7 +716,7 @@ export function orderToSmartbillInvoice(
     seriesName,
     isDraft: false,
     dueDate,
-    currency: (order.market && order.market !== 'ro') ? 'EUR' : 'RON',
+    currency: 'RON',
     mentions: 'Factura cu TVA 21% conform legislației române',
     observations: '',
     deliveryDate: issueDate,
