@@ -7187,15 +7187,18 @@
                         if (pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash') return 'Ramburs / Numerar';
                         return selectedOrder.paymentStatus === 'paid' ? 'Plătit ✓' : (selectedOrder.paymentStatus || 'Neplătit');
                       })()}</span></p>
-                      {selectedOrder.shippingCost && parseFloat(selectedOrder.shippingCost) > 0 ? (
-                        <div style={{marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #dee2e6'}}>
-                          <p><strong>Subtotal:</strong> {(parseFloat(selectedOrder.totalAmount) - parseFloat(selectedOrder.shippingCost)).toFixed(2)} lei</p>
-                          <p><strong>Transport:</strong> {parseFloat(selectedOrder.shippingCost).toFixed(2)} lei</p>
-                          <p style={{fontSize: '15px'}}><strong>Total:</strong> {parseFloat(selectedOrder.totalAmount).toFixed(2)} lei</p>
-                        </div>
-                      ) : (
-                        <p><strong>Total:</strong> {parseFloat(selectedOrder.totalAmount).toFixed(2)} lei</p>
-                      )}
+                      {(() => {
+                        const sc = parseFloat(selectedOrder.shippingCost || '0');
+                        const total = parseFloat(selectedOrder.totalAmount || '0');
+                        const subtotal = (total - sc).toFixed(2);
+                        return (
+                          <div style={{marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #dee2e6'}}>
+                            <p style={{margin: '4px 0'}}><strong>Subtotal:</strong> {subtotal} lei</p>
+                            <p style={{margin: '4px 0'}}><strong>Transport:</strong> {sc > 0 ? sc.toFixed(2) + ' lei' : <span style={{color: '#28a745'}}>Gratuit</span>}</p>
+                            <p style={{margin: '6px 0 0', fontSize: '15px', fontWeight: 'bold', borderTop: '1px solid #dee2e6', paddingTop: '6px'}}><strong>Total:</strong> {total.toFixed(2)} lei</p>
+                          </div>
+                        );
+                      })()}
                       <p><strong>Created:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
                       {selectedOrder.awbNumber && !selectedOrder.awbNumber.includes('-API') && !selectedOrder.awbNumber.includes('-MANUAL-') && (
                         <p><strong>AWB:</strong> <span style={{fontFamily: 'monospace', background: '#e9ecef', padding: '2px 6px', borderRadius: '3px'}}>{selectedOrder.awbNumber}</span></p>

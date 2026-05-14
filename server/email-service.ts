@@ -281,7 +281,14 @@ export async function sendNewOrderNotificationEmail(
         <p><strong>Customer:</strong> ${user.firstName} ${user.lastName}</p>
         <p><strong>Customer Email:</strong> ${user.email}</p>
         <p><strong>Customer Phone:</strong> ${shippingAddress.phone}</p>
-        <p><strong>Total Amount:</strong> ${order.totalAmount} lei</p>
+        ${(() => {
+          const sc = parseFloat((order as any).shippingCost || '0');
+          const total = parseFloat(order.totalAmount || '0');
+          const subtotal = (total - sc).toFixed(2);
+          return `<p><strong>Subtotal:</strong> ${subtotal} lei</p>
+        <p><strong>Transport:</strong> ${sc > 0 ? sc.toFixed(2) + ' lei' : 'Gratuit'}</p>
+        <p style="font-size:15px;border-top:1px solid #e0e0e0;padding-top:6px;margin-top:4px;"><strong>Total:</strong> ${total.toFixed(2)} lei</p>`;
+        })()}
         <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
         <p><strong>Status:</strong> <span style="color: #f39c12; font-weight: bold;">PENDING REVIEW</span></p>
       </div>
@@ -465,7 +472,14 @@ export async function sendLogisticsNotificationEmail(
         <p><strong>Customer:</strong> ${customerName}</p>
         <p><strong>Customer Email:</strong> ${customerEmail}</p>
         <p><strong>Customer Phone:</strong> ${customerPhone}</p>
-        <p><strong>Total Amount:</strong> ${order.totalAmount} lei</p>
+        ${(() => {
+          const sc = parseFloat((order as any).shippingCost || '0');
+          const total = parseFloat(order.totalAmount || '0');
+          const subtotal = (total - sc).toFixed(2);
+          return `<p><strong>Subtotal:</strong> ${subtotal} lei</p>
+        <p><strong>Transport:</strong> ${sc > 0 ? sc.toFixed(2) + ' lei' : 'Gratuit'}</p>
+        <p style="font-size:15px;border-top:1px solid #e0e0e0;padding-top:6px;margin-top:4px;"><strong>Total:</strong> ${total.toFixed(2)} lei</p>`;
+        })()}
         <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
         <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
       </div>
@@ -919,10 +933,23 @@ export async function sendLogisticsAWBEmail(
             <td style="padding: 4px 0; font-weight: bold;">Courier:</td>
             <td style="padding: 4px 0;">Sameday</td>
           </tr>
-          <tr>
-            <td style="padding: 4px 0; font-weight: bold;">Order Total:</td>
-            <td style="padding: 4px 0;">${order.totalAmount} lei</td>
+          ${(() => {
+            const sc = parseFloat((order as any).shippingCost || '0');
+            const total = parseFloat(order.totalAmount || '0');
+            const subtotal = (total - sc).toFixed(2);
+            return `<tr>
+            <td style="padding: 4px 0; font-weight: bold;">Subtotal:</td>
+            <td style="padding: 4px 0;">${subtotal} lei</td>
           </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold;">Transport:</td>
+            <td style="padding: 4px 0;">${sc > 0 ? sc.toFixed(2) + ' lei' : 'Gratuit'}</td>
+          </tr>
+          <tr style="border-top: 1px solid #dee2e6;">
+            <td style="padding: 6px 0; font-weight: bold; font-size: 15px;">Total:</td>
+            <td style="padding: 6px 0; font-weight: bold; font-size: 15px;">${total.toFixed(2)} lei</td>
+          </tr>`;
+          })()}
         </table>
 
         <h2 style="color: #1a56db; font-size: 16px; margin-top: 20px;">Recipient</h2>
