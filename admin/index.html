@@ -685,6 +685,7 @@
       const [bulkOperation, setBulkOperation] = useState('');
       const [bulkResults, setBulkResults] = useState(null);
       const [searchTerm, setSearchTerm] = useState('');
+      const [companySearch, setCompanySearch] = useState('');
       const [statusFilter, setStatusFilter] = useState('all');
       const [showSearchFilter, setShowSearchFilter] = useState(false);
       const [filteredOrders, setFilteredOrders] = useState([]);
@@ -904,6 +905,12 @@
             order.status.toLowerCase().includes(searchTerm.toLowerCase())
           );
         }
+
+        if (companySearch) {
+          filtered = filtered.filter(order =>
+            (order.billingAddress?.companyName || '').toLowerCase().includes(companySearch.toLowerCase())
+          );
+        }
         
         if (statusFilter !== 'all') {
           filtered = filtered.filter(order => order.status === statusFilter);
@@ -915,7 +922,7 @@
         
         setFilteredOrders(filtered);
         setOrdersPage(1);
-      }, [orders, searchTerm, statusFilter, marketFilter]);
+      }, [orders, searchTerm, companySearch, statusFilter, marketFilter]);
       
       // Filter products based on search and filters
       useEffect(() => {
@@ -2455,9 +2462,24 @@
                       <div style={{flex: '1', minWidth: '200px'}}>
                         <input
                           type="text"
-                          placeholder="Search by order ID, customer name, or city..."
+                          placeholder="Caută după ID, client, oraș..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            borderRadius: '4px',
+                            border: '1px solid #ddd',
+                            fontSize: '14px'
+                          }}
+                        />
+                      </div>
+                      <div style={{flex: '1', minWidth: '180px'}}>
+                        <input
+                          type="text"
+                          placeholder="Caută după firmă..."
+                          value={companySearch}
+                          onChange={(e) => setCompanySearch(e.target.value)}
                           style={{
                             width: '100%',
                             padding: '10px',
@@ -2512,6 +2534,7 @@
                         style={{background: '#6c757d', width: 'auto', padding: '8px 16px'}}
                         onClick={() => {
                           setSearchTerm('');
+                          setCompanySearch('');
                           setStatusFilter('all');
                           setMarketFilter('all');
                         }}
