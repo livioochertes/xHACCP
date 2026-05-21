@@ -2527,7 +2527,7 @@
                 
                 {orders.length > 0 ? (
                   <div style={{overflowX: 'auto'}}>
-                    <table style={{width: '100%', borderCollapse: 'collapse'}}>
+                    <table style={{width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed'}}>
                       <thead>
                         <tr style={{backgroundColor: '#f5f5f5'}}>
                           <th style={{padding: '8px', textAlign: 'center', borderBottom: '2px solid #ddd', width: '40px', minWidth: '40px', whiteSpace: 'nowrap'}}>
@@ -2543,13 +2543,13 @@
                               checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
                             />
                           </th>
-                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '70px', minWidth: '70px', whiteSpace: 'nowrap'}}>Order ID</th>
-                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '70px', minWidth: '70px', whiteSpace: 'nowrap'}}>Client</th>
-                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '90px', maxWidth: '90px'}}>Firmă</th>
-                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>Total</th>
-                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>Status</th>
-                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>Dată</th>
-                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>Acțiuni</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '70px'}}>Order ID</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '150px'}}>Client</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '90px'}}>Firmă</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '90px'}}>Total</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '100px'}}>Status</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '90px'}}>Dată</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Acțiuni</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2568,9 +2568,9 @@
                                 }}
                               />
                             </td>
-                            <td style={{padding: '8px 12px', fontWeight: '500', whiteSpace: 'nowrap'}}>#{order.id}</td>
-                            <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}} title={`User #${order.userId}`}>{(() => { const sa = order.shippingAddress; const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(' '); return name || `#${order.userId}`; })()}</td>
-                            <td style={{padding: '8px 12px'}}><div style={{width: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={order.billingAddress?.companyName || ''}>{order.billingAddress?.companyName || ''}</div></td>
+                            <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>#{order.id}</td>
+                            <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={(() => { const sa = order.shippingAddress; const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(' '); return name || `#${order.userId}`; })()}>{(() => { const sa = order.shippingAddress; const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(' '); return name || `#${order.userId}`; })()}</td>
+                            <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={order.billingAddress?.companyName || ''}>{order.billingAddress?.companyName || ''}</td>
                             <td style={{padding: '8px 12px', color: '#28a745', fontWeight: 'bold', whiteSpace: 'nowrap'}}>{parseFloat(order.totalAmount).toFixed(2)} lei</td>
                             <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>
                               <span style={{
