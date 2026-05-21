@@ -16,9 +16,11 @@ import {
   Mail,
   Phone
 } from "lucide-react";
+import { useCompanySettings } from "../hooks/useCompanySettings";
 
 export default function Privacy() {
   const { t } = useTranslation();
+  const { contact } = useCompanySettings();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -173,34 +175,52 @@ export default function Privacy() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <MapPin className="h-5 w-5 text-secondary mt-1" />
-                      <div>
-                        <p className="font-semibold text-primary">NAMARTE</p>
-                        <p className="text-slate-600">Calea Moșilor no. 158</p>
-                        <p className="text-slate-600">Bucharest, District 2, Romania</p>
+                    {(contact.name || contact.address) && (
+                      <div className="flex items-start space-x-3">
+                        <MapPin className="h-5 w-5 text-secondary mt-1" />
+                        <div>
+                          {contact.name && <p className="font-semibold text-primary">{contact.name}</p>}
+                          {contact.address && <p className="text-slate-600">{contact.address}</p>}
+                          {(contact.city || contact.zipCode || contact.country) && (
+                            <p className="text-slate-600">{[contact.zipCode, contact.city, contact.country].filter(Boolean).join(', ')}</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <FileText className="h-5 w-5 text-secondary" />
-                      <div>
-                        <p className="text-slate-600">Tax Registration Number: RO16582983</p>
+                    )}
+                    {contact.vatNumber && (
+                      <div className="flex items-center space-x-3">
+                        <FileText className="h-5 w-5 text-secondary" />
+                        <div>
+                          <p className="text-slate-600">Tax Registration Number: {contact.vatNumber}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    {contact.registrationNumber && (
+                      <div className="flex items-center space-x-3">
+                        <FileText className="h-5 w-5 text-secondary" />
+                        <div>
+                          <p className="text-slate-600">Reg. Com.: {contact.registrationNumber}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <Mail className="h-5 w-5 text-secondary" />
-                      <div>
-                        <p className="text-slate-600">info@xhaccp.com</p>
+                    {contact.email && (
+                      <div className="flex items-center space-x-3">
+                        <Mail className="h-5 w-5 text-secondary" />
+                        <div>
+                          <p className="text-slate-600">{contact.email}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Phone className="h-5 w-5 text-secondary" />
-                      <div>
-                        <p className="text-slate-600">+40 740 000 520</p>
+                    )}
+                    {contact.phone && (
+                      <div className="flex items-center space-x-3">
+                        <Phone className="h-5 w-5 text-secondary" />
+                        <div>
+                          <p className="text-slate-600">{contact.phone}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -260,7 +280,7 @@ export default function Privacy() {
                 Contact Support
               </Link>
               <a 
-                href="mailto:info@xhaccp.com" 
+                href={`mailto:${contact.email || 'info@xhaccp.com'}`}
                 className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-secondary transition-colors"
               >
                 Email Us

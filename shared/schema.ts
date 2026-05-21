@@ -294,6 +294,12 @@ export const companySettings = pgTable("company_settings", {
   // Shipping settings
   freeShippingThreshold: decimal("free_shipping_threshold", { precision: 10, scale: 2 }).default("500.00"),
   standardShippingCost: decimal("standard_shipping_cost", { precision: 10, scale: 2 }).default("25.00"),
+  // Per-market contact data (ro / fr / com)
+  marketContacts: jsonb("market_contacts").$type<{
+    ro?: { name?: string; address?: string; city?: string; zipCode?: string; country?: string; phone?: string; email?: string; vatNumber?: string; registrationNumber?: string; };
+    fr?: { name?: string; address?: string; city?: string; zipCode?: string; country?: string; phone?: string; email?: string; vatNumber?: string; registrationNumber?: string; };
+    com?: { name?: string; address?: string; city?: string; zipCode?: string; country?: string; phone?: string; email?: string; vatNumber?: string; registrationNumber?: string; };
+  }>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

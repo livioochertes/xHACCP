@@ -3753,6 +3753,17 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   });
 
   // Public shipping settings endpoint (no auth required) — market-aware
+  app.get("/api/company-settings", async (req, res) => {
+    try {
+      const settings = await storage.getCompanySettings();
+      if (!settings) return res.json({});
+      const { name, email, phone, address, city, zipCode, country, website, vatNumber, registrationNumber, description, marketContacts } = settings;
+      res.json({ name, email, phone, address, city, zipCode, country, website, vatNumber, registrationNumber, description, marketContacts });
+    } catch (err) {
+      res.json({});
+    }
+  });
+
   app.get("/api/shipping-settings", async (req, res) => {
     try {
       const market = getMarketFromRequest(req);

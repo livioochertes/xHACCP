@@ -17,6 +17,7 @@ import ProductCard from "@/components/product-card";
 import ContactModal from "@/components/contact-modal";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import type { Category, ProductWithCategory } from "@shared/schema";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 
 interface ShippingSettings {
   freeShippingThreshold: string;
@@ -34,6 +35,7 @@ export default function Home() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { clearCart } = useCart();
+  const { contact } = useCompanySettings();
   const [, setLocation] = useLocation();
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
@@ -538,21 +540,29 @@ export default function Home() {
                     {t('footer.needHelp')} {t('footer.chat')}
                   </Link>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <i className="fas fa-envelope text-secondary"></i>
-                  <span className="text-slate-300">info@xhaccp.com</span>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <i className="fas fa-map-marker-alt text-secondary mt-1"></i>
-                  <div className="text-slate-300">
-                    <div>Calea Mosilor 158, Bucharest</div>
-                    <div>020883 Romania</div>
+                {contact.email && (
+                  <div className="flex items-center space-x-2">
+                    <i className="fas fa-envelope text-secondary"></i>
+                    <a href={`mailto:${contact.email}`} className="text-slate-300 hover:text-white transition-colors">{contact.email}</a>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <i className="fas fa-clock text-secondary"></i>
-                  <span className="text-slate-300">Mon-Fri: 9AM-5PM EET</span>
-                </div>
+                )}
+                {contact.phone && (
+                  <div className="flex items-center space-x-2">
+                    <i className="fas fa-phone text-secondary"></i>
+                    <a href={`tel:${contact.phone}`} className="text-slate-300 hover:text-white transition-colors">{contact.phone}</a>
+                  </div>
+                )}
+                {(contact.address || contact.city) && (
+                  <div className="flex items-start space-x-2">
+                    <i className="fas fa-map-marker-alt text-secondary mt-1"></i>
+                    <div className="text-slate-300">
+                      {contact.address && <div>{contact.address}</div>}
+                      {(contact.zipCode || contact.city || contact.country) && (
+                        <div>{[contact.zipCode, contact.city, contact.country].filter(Boolean).join(', ')}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
