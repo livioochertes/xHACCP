@@ -2528,7 +2528,7 @@
                     <table style={{width: '100%', borderCollapse: 'collapse'}}>
                       <thead>
                         <tr style={{backgroundColor: '#f5f5f5'}}>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>
+                          <th style={{padding: '8px', textAlign: 'center', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>
                             <input 
                               type="checkbox" 
                               onChange={(e) => {
@@ -2539,22 +2539,21 @@
                                 }
                               }}
                               checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
-                              style={{marginRight: '8px'}}
                             />
-                            Select
                           </th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Order ID</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Customer</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Amount</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Status</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Date</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Actions</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>Order ID</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>Client</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Firmă</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>Total</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>Status</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>Dată</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '1%', whiteSpace: 'nowrap'}}>Acțiuni</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredOrders.slice(0, 10).map((order, index) => (
                           <tr key={index} style={{borderBottom: '1px solid #eee'}}>
-                            <td style={{padding: '12px'}}>
+                            <td style={{padding: '8px', textAlign: 'center'}}>
                               <input 
                                 type="checkbox" 
                                 checked={selectedOrders.includes(order.id)}
@@ -2567,10 +2566,11 @@
                                 }}
                               />
                             </td>
-                            <td style={{padding: '12px', fontWeight: '500'}}>#{order.id}</td>
-                            <td style={{padding: '12px'}}>User #{order.userId}</td>
-                            <td style={{padding: '12px', color: '#28a745', fontWeight: 'bold'}}>${order.totalAmount}</td>
-                            <td style={{padding: '12px'}}>
+                            <td style={{padding: '8px 12px', fontWeight: '500', whiteSpace: 'nowrap'}}>#{order.id}</td>
+                            <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>#{order.userId}</td>
+                            <td style={{padding: '8px 12px'}}>{order.billingAddress?.companyName || ''}</td>
+                            <td style={{padding: '8px 12px', color: '#28a745', fontWeight: 'bold', whiteSpace: 'nowrap'}}>{parseFloat(order.totalAmount).toFixed(2)} lei</td>
+                            <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>
                               <span style={{
                                 padding: '4px 8px', 
                                 borderRadius: '4px', 
@@ -2592,8 +2592,8 @@
                                 {order.status === 'in_delivery' ? 'In Delivery' : order.status === 'cash_on_delivery' ? 'COD' : order.status}
                               </span>
                             </td>
-                            <td style={{padding: '12px'}}>{new Date(order.createdAt).toLocaleDateString()}</td>
-                            <td style={{padding: '12px'}}>
+                            <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>{new Date(order.createdAt).toLocaleDateString()}</td>
+                            <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>
                               <div style={{display: 'flex', gap: '5px', flexWrap: 'wrap'}}>
                                 <button 
                                   style={{
