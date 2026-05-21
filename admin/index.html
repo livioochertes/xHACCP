@@ -2567,7 +2567,7 @@
                               />
                             </td>
                             <td style={{padding: '8px 12px', fontWeight: '500', whiteSpace: 'nowrap'}}>#{order.id}</td>
-                            <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>User #{order.userId}</td>
+                            <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}} title={`User #${order.userId}`}>{(() => { const sa = order.shippingAddress; const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(' '); return name || `#${order.userId}`; })()}</td>
                             <td style={{padding: '8px 12px'}}>{order.billingAddress?.companyName || ''}</td>
                             <td style={{padding: '8px 12px', color: '#28a745', fontWeight: 'bold', whiteSpace: 'nowrap'}}>{parseFloat(order.totalAmount).toFixed(2)} lei</td>
                             <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>

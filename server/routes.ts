@@ -436,7 +436,6 @@ ${urlEntries.join('')}
     const domain = host.replace(/^www\./, '');
     res.setHeader('Content-Type', 'text/plain');
     res.send(`User-agent: *
-Allow: /
 Disallow: /admin
 Disallow: /checkout
 Disallow: /cart
