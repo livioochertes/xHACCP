@@ -2545,7 +2545,7 @@
                           </th>
                           <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '70px'}}>Order ID</th>
                           <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '150px'}}>Client</th>
-                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '90px'}}>Firmă</th>
+                          <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '180px'}}>Firmă</th>
                           <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '90px'}}>Total</th>
                           <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '100px'}}>Status</th>
                           <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '90px'}}>Dată</th>
@@ -2570,7 +2570,7 @@
                             </td>
                             <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>#{order.id}</td>
                             <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={(() => { const sa = order.shippingAddress; const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(' '); return name || `#${order.userId}`; })()}>{(() => { const sa = order.shippingAddress; const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(' '); return name || `#${order.userId}`; })()}</td>
-                            <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={order.billingAddress?.companyName || ''}>{order.billingAddress?.companyName || ''}</td>
+                            <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px'}} title={order.billingAddress?.companyName || ''}>{order.billingAddress?.companyName || ''}</td>
                             <td style={{padding: '8px 12px', color: '#28a745', fontWeight: 'bold', whiteSpace: 'nowrap'}}>{parseFloat(order.totalAmount).toFixed(2)} lei</td>
                             <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>
                               <span style={{
