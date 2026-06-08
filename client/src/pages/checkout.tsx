@@ -155,6 +155,7 @@ export default function Checkout() {
 
   // Confirmed order summary shown after COD placement
   const [confirmedOrder, setConfirmedOrder] = useState<{
+    orderId: number | null;
     subtotal: number;
     discountAmount: number;
     voucherCode: string | null;
@@ -330,7 +331,7 @@ export default function Checkout() {
         billingAddr.phone = data.phone;
       }
 
-      return await apiRequest("POST", "/api/orders", {
+      const res = await apiRequest("POST", "/api/orders", {
         shippingAddress: shippingAddr,
         billingAddress: billingAddr,
         paymentMethod: data.paymentMethod,
@@ -340,9 +341,11 @@ export default function Checkout() {
         contactPhone: data.phone,
         email: data.email,
       });
+      return res.json();
     },
-    onSuccess: async () => {
-      const summary = { ...currentOrderSummaryRef.current };
+    onSuccess: async (order: { id?: number; [key: string]: any }) => {
+      const orderId = order?.id ?? null;
+      const summary = { ...currentOrderSummaryRef.current, orderId };
       clearCart();
       setConfirmedOrder(summary);
     },
@@ -405,6 +408,7 @@ export default function Checkout() {
     };
     currentOrderSummaryRef.current = summary;
     // Also persist for the Viva redirect flow (home.tsx reads this after ?payment=success)
+    // Note: orderId is not known yet for Viva (set after redirect); home.tsx will read without it
     if (step === 3) {
       localStorage.setItem('xhaccp_pending_order_summary', JSON.stringify(summary));
     }
@@ -662,6 +666,11 @@ export default function Checkout() {
               <div>
                 <h2 className="text-2xl font-semibold mb-1">{t('checkout.orderSuccess')}</h2>
                 <p className="text-muted-foreground text-sm">{t('checkout.orderSuccessDesc')}</p>
+                {confirmedOrder.orderId && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">
+                    <span className="text-green-600">#</span>{confirmedOrder.orderId}
+                  </div>
+                )}
               </div>
               <div className="border rounded-lg p-4 text-left space-y-2">
                 <h3 className="font-semibold text-sm mb-3">{t('checkout.orderSummary')}</h3>

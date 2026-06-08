@@ -40,6 +40,7 @@ export default function Home() {
   const [, setLocation] = useLocation();
 
   const [vivaConfirmedOrder, setVivaConfirmedOrder] = useState<{
+    orderId?: number | null;
     subtotal: number;
     discountAmount: number;
     voucherCode: string | null;
@@ -214,6 +215,11 @@ export default function Home() {
                 <div>
                   <h2 className="text-xl font-semibold mb-1">{t('checkout.orderSuccess')}</h2>
                   <p className="text-muted-foreground text-sm">{t('checkout.orderSuccessDesc')}</p>
+                  {vivaConfirmedOrder.orderId && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">
+                      <span className="text-green-600">#</span>{vivaConfirmedOrder.orderId}
+                    </div>
+                  )}
                 </div>
                 <div className="border rounded-lg p-4 text-left space-y-2">
                   <h3 className="font-semibold text-sm mb-3">{t('checkout.orderSummary')}</h3>

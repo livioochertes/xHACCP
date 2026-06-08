@@ -41,6 +41,16 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
       const data = await response.json();
 
       if (data.checkoutUrl) {
+        if (data.dbOrderId) {
+          try {
+            const stored = localStorage.getItem('xhaccp_pending_order_summary');
+            if (stored) {
+              const summary = JSON.parse(stored);
+              summary.orderId = data.dbOrderId;
+              localStorage.setItem('xhaccp_pending_order_summary', JSON.stringify(summary));
+            }
+          } catch (_) {}
+        }
         window.location.href = data.checkoutUrl;
       } else {
         throw new Error("No checkout URL received");
