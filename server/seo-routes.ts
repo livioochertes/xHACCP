@@ -14,6 +14,8 @@ interface MetaTags {
   canonical: string;
   ogType?: string;
   robots?: string;
+  image?: string;
+  imageAlt?: string;
 }
 
 function getIndexHtml(): string {
@@ -70,12 +72,17 @@ function getOgLocale(lang: string): string {
   return map[lang] ?? "en_US";
 }
 
+const DEFAULT_OG_IMAGE = "https://xhaccp.ro/og-image.png";
+const DEFAULT_OG_IMAGE_ALT = "xHACCP – Echipamente și consumabile profesionale HACCP";
+
 function injectMeta(html: string, meta: MetaTags, lang: string, bodyHtml?: string, jsonLd?: object | object[]): string {
   const title = escapeHtml(meta.title);
   const description = escapeHtml(meta.description);
   const canonical = meta.canonical;
   const ogType = meta.ogType || "website";
   const ogLocale = getOgLocale(lang);
+  const imageUrl = meta.image || DEFAULT_OG_IMAGE;
+  const imageAlt = escapeHtml(meta.imageAlt || meta.title || DEFAULT_OG_IMAGE_ALT);
   let result = html;
 
   // Set the correct lang attribute on <html>
@@ -108,6 +115,13 @@ function injectMeta(html: string, meta: MetaTags, lang: string, bodyHtml?: strin
     `<meta property="og:url" content="${canonical}" />`,
     `<meta property="og:site_name" content="xHACCP" />`,
     `<meta property="og:locale" content="${ogLocale}" />`,
+    `<meta property="og:image" content="${imageUrl}" />`,
+    `<meta property="og:image:alt" content="${imageAlt}" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:title" content="${title}" />`,
+    `<meta name="twitter:description" content="${description}" />`,
+    `<meta name="twitter:image" content="${imageUrl}" />`,
+    `<meta name="twitter:image:alt" content="${imageAlt}" />`,
   ].join("\n  ");
 
   const ldTag = jsonLd
@@ -705,6 +719,12 @@ export function registerSeoRoutes(
               : "Articol despre siguranța alimentară și HACCP pentru industria HoReCa din România.",
         canonical: `${base}/blog/${slug}`,
         ogType: "article",
+        image: post.imageUrl
+          ? post.imageUrl.startsWith("http")
+            ? post.imageUrl
+            : `${base}${post.imageUrl.startsWith("/") ? "" : "/"}${post.imageUrl}`
+          : undefined,
+        imageAlt: post.title,
       };
 
       const backLabels: Record<string, string> = { ro: "Înapoi la blog", fr: "Retour au blog", en: "Back to blog" };
@@ -831,11 +851,21 @@ export function registerSeoRoutes(
       };
       const desc = descClean || (fallbackDesc[lang] ?? fallbackDesc["en"]);
 
+      const rawProductImage: string | undefined =
+        product.imageUrl || (Array.isArray(product.images) && product.images[0]) || undefined;
+      const productImage = rawProductImage
+        ? rawProductImage.startsWith("http")
+          ? rawProductImage
+          : `${base}${rawProductImage.startsWith("/") ? "" : "/"}${rawProductImage}`
+        : undefined;
+
       const meta: MetaTags = {
         title: `${translatedName} | xHACCP`,
         description: desc,
         canonical: `${base}/products/${slug}`,
         ogType: "product",
+        image: productImage,
+        imageAlt: translatedName,
       };
 
       const descFull = translatedDesc
@@ -845,7 +875,6 @@ export function registerSeoRoutes(
         ? `<p><strong>${lang === "fr" ? "Prix" : lang === "en" ? "Price" : "Preț"}: ${product.price} ${product.currency || "RON"}</strong></p>`
         : "";
       const backLabel = lang === "fr" ? "Retour aux produits" : lang === "en" ? "Back to products" : "Înapoi la produse";
-      const productImage = product.imageUrl || (Array.isArray(product.images) && product.images[0]) || undefined;
       const breadcrumbItems: object[] = [
         { "@type": "ListItem", "position": 1, "name": "Home", "item": `${base}/` },
         { "@type": "ListItem", "position": 2, "name": "Products", "item": `${base}/products` },
