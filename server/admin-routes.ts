@@ -160,6 +160,12 @@ interface AdminAuthRequest extends Request {
   isSuperAdmin?: boolean;
 }
 
+// Market access helper — superadmin (empty adminMarkets) can access all markets
+function canAccessMarket(req: AdminAuthRequest, market: string): boolean {
+  const allowed = req.adminMarkets || [];
+  return allowed.length === 0 || allowed.includes(market);
+}
+
 // Admin authentication middleware
 const authenticateAdmin = async (req: AdminAuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -587,7 +593,7 @@ export async function registerAdminRoutes(app: Express) {
 
       // Generate access token
       const token = jwt.sign(
-        { adminId: admin.id },
+        { adminId: admin.id, adminMarkets: admin.adminMarkets || [] },
         process.env.JWT_SECRET || "fallback-secret",
         { expiresIn: "24h" }
       );
@@ -660,7 +666,7 @@ export async function registerAdminRoutes(app: Express) {
 
       // Generate final access token
       const token = jwt.sign(
-        { adminId: admin.id },
+        { adminId: admin.id, adminMarkets: admin.adminMarkets || [] },
         process.env.JWT_SECRET || "fallback-secret",
         { expiresIn: "24h" }
       );
@@ -866,6 +872,21 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/admin/api/users", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const users = await storage.getAllUsers();
+      const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+      if (!isSuperAdmin) {
+        const orders = await storage.getOrders();
+        const userIdsWithOrders = new Set(
+          orders
+            .filter(o => allowedMarkets.includes(o.market || 'ro') && o.userId)
+            .map(o => o.userId!)
+        );
+        const filtered = users.filter(u =>
+          userIdsWithOrders.has(u.id) ||
+          (u.isAdmin && ((u.adminMarkets as string[]) || []).some((m: string) => allowedMarkets.includes(m)))
+        );
+        return res.json(filtered);
+      }
       res.json(users);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -900,6 +921,12 @@ export async function registerAdminRoutes(app: Express) {
       // Only superadmins can set adminMarkets on new users
       if (req.isSuperAdmin && Array.isArray(adminMarkets)) {
         userData.adminMarkets = adminMarkets;
+      }
+      // Privilege escalation prevention: non-superadmins cannot create global admin accounts
+      if (!req.isSuperAdmin && userData.isAdmin) {
+        if (!userData.adminMarkets || userData.adminMarkets.length === 0) {
+          userData.adminMarkets = req.adminMarkets || [];
+        }
       }
 
       const newUser = await storage.createUser(userData);
@@ -1017,6 +1044,11 @@ export async function registerAdminRoutes(app: Express) {
             results.push({ orderId, success: false, error: "Invalid order ID" });
             continue;
           }
+          const existingOrder = await storage.getOrder(parsedOrderId);
+          if (!existingOrder || !canAccessMarket(req, existingOrder.market || 'ro')) {
+            results.push({ orderId, success: false, error: "Access denied or order not found" });
+            continue;
+          }
           const order = await storage.updateOrderStatus(parsedOrderId, status);
           results.push({ orderId, success: true, order });
         } catch (error) {
@@ -1050,6 +1082,10 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(404).json({ success: false, message: 'Order not found' });
       }
 
+      if (!canAccessMarket(req, order.market || 'ro')) {
+        return res.status(403).json({ success: false, message: 'Access denied for this market' });
+      }
+
       res.json({ success: true, order });
     } catch (error) {
       console.error('Error fetching order:', error);
@@ -1066,6 +1102,14 @@ export async function registerAdminRoutes(app: Express) {
       const validStatuses = ['pending', 'processing', 'shipped', 'in_delivery', 'delivered', 'cancelled', 'accepted'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
+      }
+
+      const existingOrder = await storage.getOrder(orderId);
+      if (!existingOrder) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      if (!canAccessMarket(req, existingOrder.market || 'ro')) {
+        return res.status(403).json({ message: "Access denied for this market" });
       }
 
       const updatedOrder = await storage.updateOrderStatus(orderId, status);
@@ -1088,6 +1132,10 @@ export async function registerAdminRoutes(app: Express) {
       const order = await storage.getOrder(orderId);
       if (!order) {
         return res.status(404).json({ success: false, message: 'Order not found' });
+      }
+
+      if (!canAccessMarket(req, order.market || 'ro')) {
+        return res.status(403).json({ success: false, message: 'Access denied for this market' });
       }
 
       if (order.status === 'processing' || order.status === 'shipped' || order.status === 'in_delivery' || order.status === 'delivered') {
@@ -4476,6 +4524,9 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { market, ...rest } = req.body;
       if (!market) return res.status(400).json({ message: "market field required" });
+      if (!canAccessMarket(req, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const ms = await storage.upsertMarketSettings(market, rest);
       refreshMarketCaches().catch(console.error);
       res.json(ms);
@@ -4487,6 +4538,9 @@ export async function registerAdminRoutes(app: Express) {
   // PUT /admin/api/markets/settings/:market — upsert specific market
   app.put("/admin/api/markets/settings/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
+      if (!canAccessMarket(req, req.params.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const ms = await storage.upsertMarketSettings(req.params.market, req.body);
       refreshMarketCaches().catch(console.error);
       res.json(ms);
@@ -4496,10 +4550,13 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // GET /admin/api/markets — alias: list all market settings
-  app.get("/admin/api/markets", authenticateAdmin, async (_req: AdminAuthRequest, res: Response) => {
+  app.get("/admin/api/markets", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const markets = await storage.getMarketSettings();
-      res.json(markets);
+      const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+      const filtered = isSuperAdmin ? markets : markets.filter((m: any) => allowedMarkets.includes(m.market));
+      res.json(filtered);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch market settings" });
     }
@@ -4508,6 +4565,9 @@ export async function registerAdminRoutes(app: Express) {
   // GET /admin/api/markets/:market — get one market
   app.get("/admin/api/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
+      if (!canAccessMarket(req, req.params.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const ms = await storage.getMarketSetting(req.params.market);
       if (!ms) return res.status(404).json({ message: "Market not found" });
       res.json(ms);
@@ -4519,6 +4579,9 @@ export async function registerAdminRoutes(app: Express) {
   // PUT /admin/api/markets/:market — upsert market settings
   app.put("/admin/api/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
+      if (!canAccessMarket(req, req.params.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const ms = await storage.upsertMarketSettings(req.params.market, req.body);
       refreshMarketCaches().catch(console.error);
       res.json(ms);
@@ -4530,6 +4593,9 @@ export async function registerAdminRoutes(app: Express) {
   // DELETE /admin/api/markets/:market — delete a market
   app.delete("/admin/api/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
+      if (!canAccessMarket(req, req.params.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       await storage.deleteMarketSettings(req.params.market);
       refreshMarketCaches().catch(console.error);
       res.json({ success: true });

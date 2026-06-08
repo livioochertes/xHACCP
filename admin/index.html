@@ -2609,7 +2609,10 @@
                                 }}
                               />
                             </td>
-                            <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>#{order.id}</td>
+                            <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                              #{order.id}
+                              <span style={{marginLeft: '4px', padding: '1px 5px', borderRadius: '3px', fontSize: '10px', fontWeight: 'bold', background: (order.market||'ro')==='ro' ? '#fff3cd' : (order.market==='fr' ? '#cfe2ff' : '#d1e7dd'), color: '#333'}}>{(order.market||'ro').toUpperCase()}</span>
+                            </td>
                             <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={(() => { const sa = order.shippingAddress; const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(' '); return name || `#${order.userId}`; })()}>{(() => { const sa = order.shippingAddress; const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(' '); return name || `#${order.userId}`; })()}</td>
                             <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px'}} title={order.billingAddress?.companyName || ''}>{order.billingAddress?.companyName || ''}</td>
                             <td style={{padding: '8px 12px', color: '#28a745', fontWeight: 'bold', whiteSpace: 'nowrap'}}>{parseFloat(order.totalAmount).toFixed(2)} lei</td>
@@ -2845,6 +2848,12 @@
                               }}>
                                 {user.isAdmin ? 'Admin' : 'User'}
                               </span>
+                              {user.isAdmin && (user.adminMarkets || []).length === 0 && (
+                                <span style={{marginLeft: '4px', padding: '2px 6px', borderRadius: '3px', fontSize: '10px', fontWeight: 'bold', background: '#f8d7da', color: '#721c24'}}>SUPER</span>
+                              )}
+                              {user.isAdmin && (user.adminMarkets || []).map(m => (
+                                <span key={m} style={{marginLeft: '4px', padding: '2px 6px', borderRadius: '3px', fontSize: '10px', fontWeight: 'bold', background: m==='ro' ? '#fff3cd' : m==='fr' ? '#cfe2ff' : '#d1e7dd', color: '#333'}}>{m.toUpperCase()}</span>
+                              ))}
                             </td>
                             <td style={{padding: '12px'}}>
                               <div style={{display: 'flex', gap: '5px'}}>
@@ -4607,9 +4616,9 @@
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                 <h3 style={{color: '#333', marginTop: 0}}>🌍 Gestiune Piețe / Market Settings</h3>
                 {marketsLoading && <div style={{color: '#666', marginBottom: '16px'}}><span className="loading"></span> Se încarcă...</div>}
-                <MarketSettingCard market="ro" marketsData={marketsData} saveMarket={saveMarket} />
-                <MarketSettingCard market="fr" marketsData={marketsData} saveMarket={saveMarket} />
-                <MarketSettingCard market="com" marketsData={marketsData} saveMarket={saveMarket} />
+                {(adminIsSuperAdmin || (adminMarkets || []).includes('ro')) && <MarketSettingCard market="ro" marketsData={marketsData} saveMarket={saveMarket} />}
+                {(adminIsSuperAdmin || (adminMarkets || []).includes('fr')) && <MarketSettingCard market="fr" marketsData={marketsData} saveMarket={saveMarket} />}
+                {(adminIsSuperAdmin || (adminMarkets || []).includes('com')) && <MarketSettingCard market="com" marketsData={marketsData} saveMarket={saveMarket} />}
               </div>
             );
 
