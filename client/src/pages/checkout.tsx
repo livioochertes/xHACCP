@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle, ChevronDown, ChevronUp, ShoppingBag, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle, ChevronDown, ChevronUp, ShoppingBag, Eye, EyeOff, CheckCircle, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -667,8 +667,21 @@ export default function Checkout() {
                 <h2 className="text-2xl font-semibold mb-1">{t('checkout.orderSuccess')}</h2>
                 <p className="text-muted-foreground text-sm">{t('checkout.orderSuccessDesc')}</p>
                 {confirmedOrder.orderId && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">
-                    <span className="text-green-600">#</span>{confirmedOrder.orderId}
+                  <div className="mt-2 inline-flex items-center gap-1.5">
+                    <div className="inline-flex items-center gap-1.5 bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">
+                      <span className="text-green-600">#</span>{confirmedOrder.orderId}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(String(confirmedOrder.orderId));
+                        toast({ description: "Copied!" });
+                      }}
+                      className="p-1 rounded hover:bg-green-100 text-green-700 transition-colors"
+                      aria-label="Copy order number"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
                   </div>
                 )}
               </div>
