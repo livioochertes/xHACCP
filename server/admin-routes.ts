@@ -989,25 +989,12 @@ export async function registerAdminRoutes(app: Express) {
         lastName,
         isAdmin
       };
-      // Only superadmins can update adminMarkets freely
-      if (req.isSuperAdmin && Array.isArray(adminMarkets)) {
+      // Only superadmins may modify adminMarkets — all others are blocked
+      if (Array.isArray(adminMarkets)) {
+        if (!req.isSuperAdmin) {
+          return res.status(403).json({ message: "Only superadmins can modify admin market assignments" });
+        }
         updateData.adminMarkets = adminMarkets;
-      }
-      // Privilege escalation prevention: non-superadmins cannot create/keep global admin accounts
-      if (!req.isSuperAdmin && updateData.isAdmin) {
-        const callerMarkets = req.adminMarkets || [];
-        if (!Array.isArray(adminMarkets) || adminMarkets.length === 0) {
-          // No markets provided — force to caller's own markets
-          updateData.adminMarkets = callerMarkets;
-        } else {
-          // Filter to intersection with caller's markets; if empty (disjoint), fall back to caller's markets
-          const intersection = adminMarkets.filter((m: string) => callerMarkets.includes(m));
-          updateData.adminMarkets = intersection.length > 0 ? intersection : callerMarkets;
-        }
-        // Final invariant: non-superadmins can NEVER persist [] (= superadmin semantics)
-        if (updateData.adminMarkets.length === 0) {
-          return res.status(403).json({ message: "Cannot create a global admin account from a market-restricted account" });
-        }
       }
 
       const updatedUser = await storage.updateUser(userId, updateData);

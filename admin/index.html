@@ -2343,8 +2343,8 @@
 
       const handleViewChange = (view) => {
         setActiveView(view);
-        if (view === 'users' && users.length === 0) {
-          fetchUsers();
+        if (view === 'users') {
+          fetchUsers(); // Always refetch — ensures market context is current
         } else if (view === 'orders' && orders.length === 0) {
           fetchOrders();
         } else if (view === 'products') {
