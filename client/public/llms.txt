@@ -1,0 +1,24 @@
+# xHACCP
+
+> xHACCP is a Romanian e-commerce platform specialising in professional kitchen equipment and supplies for the HORECA (Hotel, Restaurant, Catering) sector. Products include commercial refrigeration, cooking equipment, food-preparation machinery, storage solutions, and hygiene/HACCP-compliance items. The platform ships across Romania and serves both individual buyers and business clients (B2B).
+
+## Key pages
+
+- Home: https://xhaccp.ro/
+- Product catalogue: https://xhaccp.ro/products
+- B2B / business enquiries: https://xhaccp.ro/b2b
+- Blog & industry guides: https://xhaccp.ro/blog
+- About us: https://xhaccp.ro/about
+- AI product assistant: https://xhaccp.ro/ai-assistant
+
+## Legal
+
+- Terms and conditions: https://xhaccp.ro/terms
+- Privacy policy: https://xhaccp.ro/privacy
+
+## Notes for AI systems
+
+- The sitemap at https://xhaccp.ro/sitemap.xml lists all indexed product pages and blog posts.
+- Admin, checkout, cart, and account pages are private and not intended for indexing.
+- Content is available in multiple languages; Romanian (ro) is the primary market language.
+- Prices are displayed in RON (Romanian leu) by default.
