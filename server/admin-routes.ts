@@ -156,6 +156,8 @@ const twoFactorLimiter = rateLimit({
 interface AdminAuthRequest extends Request {
   adminId?: number;
   admin?: any;
+  adminMarkets?: string[];
+  isSuperAdmin?: boolean;
 }
 
 // Admin authentication middleware
@@ -185,6 +187,8 @@ const authenticateAdmin = async (req: AdminAuthRequest, res: Response, next: Nex
 
     req.adminId = userId;
     req.admin = admin;
+    req.adminMarkets = (admin.adminMarkets as string[]) || [];
+    req.isSuperAdmin = req.adminMarkets.length === 0;
     next();
   } catch (error) {
     res.status(401).json({ message: "Invalid admin token" });
@@ -596,7 +600,8 @@ export async function registerAdminRoutes(app: Express) {
           email: admin.email,
           firstName: admin.firstName,
           lastName: admin.lastName,
-          twoFactorEnabled: admin.twoFactorEnabled
+          twoFactorEnabled: admin.twoFactorEnabled,
+          adminMarkets: admin.adminMarkets || []
         }
       });
     } catch (error) {
@@ -668,7 +673,8 @@ export async function registerAdminRoutes(app: Express) {
           email: admin.email,
           firstName: admin.firstName,
           lastName: admin.lastName,
-          twoFactorEnabled: admin.twoFactorEnabled
+          twoFactorEnabled: admin.twoFactorEnabled,
+          adminMarkets: admin.adminMarkets || []
         }
       });
     } catch (error) {
@@ -869,7 +875,7 @@ export async function registerAdminRoutes(app: Express) {
 
   app.post("/admin/api/users", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { email, password, firstName, lastName, isAdmin = false } = req.body;
+      const { email, password, firstName, lastName, isAdmin = false, adminMarkets } = req.body;
       
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
@@ -884,13 +890,19 @@ export async function registerAdminRoutes(app: Express) {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
       
-      const newUser = await storage.createUser({
+      const userData: any = {
         email,
         password: hashedPassword,
         firstName,
         lastName,
         isAdmin
-      });
+      };
+      // Only superadmins can set adminMarkets on new users
+      if (req.isSuperAdmin && Array.isArray(adminMarkets)) {
+        userData.adminMarkets = adminMarkets;
+      }
+
+      const newUser = await storage.createUser(userData);
 
       res.json({ message: "User created successfully", user: { id: newUser.id, email: newUser.email } });
     } catch (error) {
@@ -902,14 +914,20 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/users/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const userId = parseInt(req.params.id);
-      const { email, firstName, lastName, isAdmin } = req.body;
+      const { email, firstName, lastName, isAdmin, adminMarkets } = req.body;
       
-      const updatedUser = await storage.updateUser(userId, {
+      const updateData: any = {
         email,
         firstName,
         lastName,
         isAdmin
-      });
+      };
+      // Only superadmins can update adminMarkets
+      if (req.isSuperAdmin && Array.isArray(adminMarkets)) {
+        updateData.adminMarkets = adminMarkets;
+      }
+
+      const updatedUser = await storage.updateUser(userId, updateData);
 
       res.json({ message: "User updated successfully", user: updatedUser });
     } catch (error) {
@@ -945,6 +963,13 @@ export async function registerAdminRoutes(app: Express) {
       let filteredOrders = orders;
       if (status) {
         filteredOrders = orders.filter(order => order.status === status);
+      }
+      
+      // Enforce market restriction for non-superadmins
+      const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+      if (!isSuperAdmin) {
+        filteredOrders = filteredOrders.filter(order => allowedMarkets.includes(order.market || 'ro'));
       }
       
       // Filter by market if specified
@@ -4434,10 +4459,13 @@ export async function registerAdminRoutes(app: Express) {
   // ─── Market Settings CRUD ─────────────────────────────────────────────────
 
   // GET /admin/api/markets/settings — list all market settings (primary path)
-  app.get("/admin/api/markets/settings", authenticateAdmin, async (_req: AdminAuthRequest, res: Response) => {
+  app.get("/admin/api/markets/settings", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const markets = await storage.getMarketSettings();
-      res.json(markets);
+      const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+      const filtered = isSuperAdmin ? markets : markets.filter(m => allowedMarkets.includes(m.market));
+      res.json(filtered);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch market settings" });
     }

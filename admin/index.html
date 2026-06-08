@@ -669,6 +669,13 @@
       const [error, setError] = useState('');
       const [showTwoFactor, setShowTwoFactor] = useState(false);
       const [activeView, setActiveView] = useState('dashboard');
+      const adminIsSuperAdmin = !admin?.adminMarkets || admin.adminMarkets.length === 0;
+      const [selectedMarketTab, setSelectedMarketTab] = useState(() => {
+        const saved = sessionStorage.getItem('adminMarketTab');
+        const allowed = admin?.adminMarkets || [];
+        if (allowed.length > 0) return (saved && allowed.includes(saved)) ? saved : allowed[0];
+        return saved || 'all';
+      });
       const [orders, setOrders] = useState([]);
       const [users, setUsers] = useState([]);
       const [products, setProducts] = useState([]);
@@ -888,6 +895,12 @@
         fetchStats();
       }, []);
       
+      // Sync selectedMarketTab → marketFilter (and save to sessionStorage)
+      useEffect(() => {
+        sessionStorage.setItem('adminMarketTab', selectedMarketTab);
+        setMarketFilter(selectedMarketTab);
+      }, [selectedMarketTab]);
+
       // Refetch orders from server when market filter changes (server-side filtering)
       useEffect(() => {
         if (activeView === 'orders') {
@@ -5517,7 +5530,8 @@
           password: '',
           firstName: '',
           lastName: '',
-          isAdmin: false
+          isAdmin: false,
+          adminMarkets: []
         });
 
         const [uploading, setUploading] = useState(false);
@@ -5922,7 +5936,8 @@
               password: '',
               firstName: editingUser.firstName || '',
               lastName: editingUser.lastName || '',
-              isAdmin: editingUser.isAdmin || false
+              isAdmin: editingUser.isAdmin || false,
+              adminMarkets: editingUser.adminMarkets || []
             });
             setShowAddUserModal(true);
           }
@@ -6098,6 +6113,34 @@
                         Admin User
                       </label>
                     </div>
+                    {adminIsSuperAdmin && userFormData.isAdmin && (
+                      <div className="form-group">
+                        <label className="form-label" style={{marginBottom:'8px',display:'block'}}>
+                          Market Access <span style={{fontSize:'12px',color:'#888',fontWeight:'400'}}>(empty = superadmin, can see all)</span>
+                        </label>
+                        <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
+                          {['ro','fr','com'].map(mkt => {
+                            const flags = {ro:'🇷🇴',fr:'🇫🇷',com:'🌐'};
+                            const labels = {ro:'Romania',fr:'France',com:'International'};
+                            const checked = (userFormData.adminMarkets||[]).includes(mkt);
+                            return (
+                              <label key={mkt} style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',padding:'6px 12px',border:`2px solid ${checked?'#667eea':'#e0e0e0'}`,borderRadius:'8px',background:checked?'#f0f0ff':'white',transition:'all 0.2s'}}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    const prev = userFormData.adminMarkets || [];
+                                    setUserFormData({...userFormData, adminMarkets: e.target.checked ? [...prev, mkt] : prev.filter(m => m !== mkt)});
+                                  }}
+                                  style={{accentColor:'#667eea'}}
+                                />
+                                {flags[mkt]} {labels[mkt]}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     <div style={{display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end'}}>
                       <button
                         type="button"
@@ -6111,7 +6154,8 @@
                             password: '',
                             firstName: '',
                             lastName: '',
-                            isAdmin: false
+                            isAdmin: false,
+                            adminMarkets: []
                           });
                         }}
                       >
@@ -9764,11 +9808,49 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
               <span>xHACCP Admin</span>
             </div>
             <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-              <span style={{fontSize: '14px', color: '#666'}}>Welcome, {admin?.firstName || 'Admin'}</span>
+              <span style={{fontSize: '14px', color: '#666'}}>
+                Welcome, {admin?.firstName || 'Admin'}
+                {adminIsSuperAdmin
+                  ? <span style={{marginLeft:'6px',background:'#667eea',color:'white',fontSize:'11px',padding:'2px 7px',borderRadius:'10px',fontWeight:'600'}}>Superadmin</span>
+                  : <span style={{marginLeft:'6px',background:'#ff9800',color:'white',fontSize:'11px',padding:'2px 7px',borderRadius:'10px',fontWeight:'600'}}>{(admin?.adminMarkets||[]).map(m=>m.toUpperCase()).join(', ')}</span>
+                }
+              </span>
               <button onClick={handleLogout} className="btn btn-secondary" style={{padding: '8px 16px', fontSize: '14px', width: 'auto'}}>
                 Logout
               </button>
             </div>
+          </div>
+
+          {/* Marketplace selector bar */}
+          <div style={{background:'rgba(255,255,255,0.95)',backdropFilter:'blur(10px)',borderRadius:'12px',padding:'8px 12px',marginBottom:'12px',boxShadow:'0 4px 16px rgba(0,0,0,0.08)',border:'1px solid rgba(255,255,255,0.2)',display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+            <span style={{fontSize:'13px',fontWeight:'600',color:'#555',marginRight:'4px'}}>🌍 Marketplace:</span>
+            {adminIsSuperAdmin && (
+              <button
+                onClick={() => setSelectedMarketTab('all')}
+                style={{padding:'5px 14px',borderRadius:'20px',border:'none',cursor:'pointer',fontSize:'13px',fontWeight:'600',
+                  background: selectedMarketTab==='all' ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#f0f0f0',
+                  color: selectedMarketTab==='all' ? 'white' : '#555',
+                  boxShadow: selectedMarketTab==='all' ? '0 2px 8px rgba(102,126,234,0.4)' : 'none',
+                  transition:'all 0.2s'}}
+              >🌐 All</button>
+            )}
+            {(adminIsSuperAdmin ? ['ro','fr','com'] : (admin?.adminMarkets||[])).map(mkt => {
+              const flags = {ro:'🇷🇴',fr:'🇫🇷',com:'🌐'};
+              const labels = {ro:'Romania (.ro)',fr:'France (.fr)',com:'International (.com)'};
+              const active = selectedMarketTab === mkt;
+              return (
+                <button key={mkt}
+                  onClick={() => setSelectedMarketTab(mkt)}
+                  style={{padding:'5px 14px',borderRadius:'20px',border:'none',cursor:'pointer',fontSize:'13px',fontWeight:'600',
+                    background: active ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#f0f0f0',
+                    color: active ? 'white' : '#555',
+                    boxShadow: active ? '0 2px 8px rgba(102,126,234,0.4)' : 'none',
+                    transition:'all 0.2s'}}
+                >
+                  {flags[mkt]||'🌐'} {labels[mkt]||mkt.toUpperCase()}
+                </button>
+              );
+            })}
           </div>
           
           <div className="nav-tabs">
