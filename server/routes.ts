@@ -13,7 +13,7 @@ import QRCode from "qrcode";
 import path from "path";
 import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
-import { registerSeoRoutes } from './seo-routes.js';
+import { registerSeoRoutes, build404Html, getBaseUrl } from './seo-routes.js';
 
 const appleOAuthStates = new Map<string, number>();
 setInterval(() => {
@@ -370,7 +370,10 @@ function getMarketFromRequest(req: Request): string {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // SEO: server-side meta tag injection for all SPA routes (helps Google index them)
-  registerSeoRoutes(app, storage);
+  registerSeoRoutes(app, storage, {
+    getMarket: getMarketFromRequest,
+    applyOverlay: applyMarketOverlay,
+  });
 
   // Sitemap.xml - dynamic, includes all products
   app.get('/sitemap.xml', async (req, res) => {
@@ -381,11 +384,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { url: '/', priority: '1.0', changefreq: 'weekly' },
         { url: '/products', priority: '0.9', changefreq: 'daily' },
         { url: '/b2b', priority: '0.8', changefreq: 'monthly' },
+        { url: '/blog', priority: '0.8', changefreq: 'daily' },
+        { url: '/ai-assistant', priority: '0.6', changefreq: 'monthly' },
         { url: '/about', priority: '0.7', changefreq: 'monthly' },
         { url: '/terms', priority: '0.4', changefreq: 'yearly' },
         { url: '/privacy', priority: '0.4', changefreq: 'yearly' },
       ];
-      const products = await storage.getProducts({ limit: 10000 });
+      const allRawProducts = await storage.getProducts({ limit: 10000 });
+      const market = getMarketFromRequest(req);
+      const products = allRawProducts.filter(p => {
+        if (!p.slug) return false;
+        if (p.status?.toLowerCase() !== 'active') return false;
+        const overlaid = applyMarketOverlay(p, market);
+        return overlaid !== null;
+      });
       const now = new Date().toISOString().split('T')[0];
       const publishedBlogPosts = await storage.getBlogPosts({ published: true });
       const urlEntries = [
@@ -396,14 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`),
-        `
-  <url>
-    <loc>${BASE_URL}/blog</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>`,
-        ...products.filter(p => p.slug).map(p => `
+        ...products.map(p => `
   <url>
     <loc>${BASE_URL}/products/${p.slug}</loc>
     <lastmod>${now}</lastmod>
@@ -3947,6 +3952,44 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       res.json({ success: true, message: "Articol săptămânal generat", postId });
     } catch (error) {
       res.status(500).json({ success: false, message: "Eroare: " + (error as Error).message });
+    }
+  });
+
+  // ─── Unknown-route 404 handler ────────────────────────────────────────────
+  // Runs BEFORE Vite's blanket "app.use('*')" which always returns 200.
+  // Serves a real HTTP 404 for paths that don't match any known SPA route or
+  // API endpoint, so crawlers receive the correct status immediately.
+  const KNOWN_SPA_EXACT = new Set([
+    '/cart', '/checkout', '/login', '/account',
+  ]);
+  const KNOWN_SPA_PREFIXES = [
+    '/account/', '/invoice/', '/pay/', '/auth/',
+    '/api/', '/r2/', '/uploads/', '/attached_assets/', '/assets/',
+    '/admin', '/@', '/__', '/_vite',
+  ];
+
+  app.get('*', (req, res, next) => {
+    const p = req.path;
+    // Pass static files (have a file extension) to Vite / static middleware
+    const lastSegment = p.split('/').pop() || '';
+    if (lastSegment.includes('.')) return next();
+    // Pass known private SPA routes to Vite
+    if (KNOWN_SPA_EXACT.has(p)) return next();
+    if (KNOWN_SPA_PREFIXES.some((prefix) => p.startsWith(prefix))) return next();
+    // Only intercept HTML-accepting requests; let non-HTML fall through
+    const accept = req.headers.accept || '';
+    if (accept && !accept.includes('text/html') && !accept.includes('*/*')) {
+      return next();
+    }
+    // Truly unknown route → real 404
+    try {
+      const html = build404Html(req);
+      res.status(404)
+        .setHeader('Content-Type', 'text/html; charset=utf-8')
+        .setHeader('Cache-Control', 'no-store')
+        .send(html);
+    } catch (err) {
+      next(err);
     }
   });
 
