@@ -7237,10 +7237,14 @@
                       {(() => {
                         const sc = parseFloat(selectedOrder.shippingCost || '0');
                         const total = parseFloat(selectedOrder.totalAmount || '0');
-                        const subtotal = (total - sc).toFixed(2);
+                        const discount = parseFloat(selectedOrder.discountAmount || '0');
+                        const subtotal = (total - sc + discount).toFixed(2);
                         return (
                           <div style={{marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #dee2e6'}}>
                             <p style={{margin: '4px 0'}}><strong>Subtotal:</strong> {subtotal} lei</p>
+                            {discount > 0 && selectedOrder.voucherCode && (
+                              <p style={{margin: '4px 0', color: '#28a745'}}><strong>Discount voucher {selectedOrder.voucherCode}:</strong> -{discount.toFixed(2)} lei</p>
+                            )}
                             <p style={{margin: '4px 0'}}><strong>Transport:</strong> {sc > 0 ? sc.toFixed(2) + ' lei' : <span style={{color: '#28a745'}}>Gratuit</span>}</p>
                             <p style={{margin: '6px 0 0', fontSize: '15px', fontWeight: 'bold', borderTop: '1px solid #dee2e6', paddingTop: '6px'}}><strong>Total:</strong> {total.toFixed(2)} lei</p>
                           </div>
@@ -7461,7 +7465,7 @@ ${selectedOrder.billingAddress.country}
 
 ITEMS:
 ${selectedOrder.items ? selectedOrder.items.map(item => `${item.quantity}x ${item.product ? item.product.name : 'Product ID: ' + item.productId} - ${parseFloat(item.price).toFixed(2)} lei x${item.quantity} = ${parseFloat(item.totalPrice).toFixed(2)} lei`).join('\n') : 'No items'}
-${selectedOrder.shippingCost && parseFloat(selectedOrder.shippingCost) > 0 ? '\nTransport: ' + parseFloat(selectedOrder.shippingCost).toFixed(2) + ' lei' : ''}
+${selectedOrder.discountAmount && parseFloat(selectedOrder.discountAmount) > 0 && selectedOrder.voucherCode ? '\nDiscount voucher ' + selectedOrder.voucherCode + ': -' + parseFloat(selectedOrder.discountAmount).toFixed(2) + ' lei' : ''}${selectedOrder.shippingCost && parseFloat(selectedOrder.shippingCost) > 0 ? '\nTransport: ' + parseFloat(selectedOrder.shippingCost).toFixed(2) + ' lei' : ''}
 TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
 ========================================
                           `;
