@@ -147,6 +147,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
   const applyDirection = (lang: Language) => {
     const info = SUPPORTED_LANGUAGES.find(l => l.code === lang);
     document.documentElement.setAttribute('dir', info?.rtl ? 'rtl' : 'ltr');
+    document.documentElement.setAttribute('lang', lang);
   };
 
   const setLanguage = (lang: Language) => {
