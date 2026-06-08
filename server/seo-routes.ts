@@ -133,7 +133,7 @@ function injectMeta(html: string, meta: MetaTags, lang: string, bodyHtml?: strin
   if (bodyHtml) {
     result = result.replace(
       '<div id="root"></div>',
-      `<div id="root">${bodyHtml}</div>`
+      `<div aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">${bodyHtml}</div><div id="root"></div>`
     );
   }
 
