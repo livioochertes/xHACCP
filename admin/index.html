@@ -896,9 +896,11 @@
       }, []);
       
       // Sync selectedMarketTab → marketFilter (and save to sessionStorage)
+      // Also refetch active-tab data so switching marketplace filters all views
       useEffect(() => {
         sessionStorage.setItem('adminMarketTab', selectedMarketTab);
         setMarketFilter(selectedMarketTab);
+        if (activeView === 'users') fetchUsers();
       }, [selectedMarketTab]);
 
       // Refetch orders from server when market filter changes (server-side filtering)
@@ -2855,6 +2857,12 @@
                               {user.isAdmin && (user.adminMarkets || []).map(m => (
                                 <span key={m} style={{marginLeft: '4px', padding: '2px 6px', borderRadius: '3px', fontSize: '10px', fontWeight: 'bold', background: m==='ro' ? '#fff3cd' : m==='fr' ? '#cfe2ff' : '#d1e7dd', color: '#333'}}>{m.toUpperCase()}</span>
                               ))}
+                              {!user.isAdmin && (() => {
+                                const userMarkets = [...new Set(orders.filter(o => o.userId === user.id).map(o => o.market || 'ro'))];
+                                return userMarkets.map(m => (
+                                  <span key={m} style={{marginLeft: '4px', padding: '2px 4px', borderRadius: '3px', fontSize: '10px', fontWeight: 'bold', background: m==='ro' ? '#fff3cd' : m==='fr' ? '#cfe2ff' : '#d1e7dd', color: '#333'}}>{m.toUpperCase()}</span>
+                                ));
+                              })()}
                             </td>
                             <td style={{padding: '12px'}}>
                               <div style={{display: 'flex', gap: '5px'}}>

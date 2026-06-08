@@ -968,9 +968,19 @@ export async function registerAdminRoutes(app: Express) {
         lastName,
         isAdmin
       };
-      // Only superadmins can update adminMarkets
+      // Only superadmins can update adminMarkets freely
       if (req.isSuperAdmin && Array.isArray(adminMarkets)) {
         updateData.adminMarkets = adminMarkets;
+      }
+      // Privilege escalation prevention: non-superadmins cannot create/keep global admin accounts
+      if (!req.isSuperAdmin && updateData.isAdmin) {
+        if (!Array.isArray(adminMarkets) || adminMarkets.length === 0) {
+          // Force to caller's own markets — never allow empty (= superadmin semantics)
+          updateData.adminMarkets = req.adminMarkets || [];
+        } else {
+          // Only allow markets the caller themselves can access
+          updateData.adminMarkets = adminMarkets.filter((m: string) => (req.adminMarkets || []).includes(m));
+        }
       }
 
       const updatedUser = await storage.updateUser(userId, updateData);
