@@ -961,6 +961,19 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const userId = parseInt(req.params.id);
       const { email, firstName, lastName, isAdmin, adminMarkets } = req.body;
+
+      // Scope check: non-superadmins can only modify users within their market scope
+      if (!req.isSuperAdmin) {
+        const targetUser = await storage.getUser(userId);
+        if (targetUser) {
+          const orders = await storage.getOrders();
+          const hasOrderInMarket = orders.some(o => o.userId === userId && (req.adminMarkets || []).includes(o.market || 'ro'));
+          const isAdminWithOverlap = targetUser.isAdmin && ((targetUser.adminMarkets as string[]) || []).some((m: string) => (req.adminMarkets || []).includes(m));
+          if (!hasOrderInMarket && !isAdminWithOverlap) {
+            return res.status(403).json({ message: "Access denied: user is not in your market scope" });
+          }
+        }
+      }
       
       const updateData: any = {
         email,
@@ -999,6 +1012,19 @@ export async function registerAdminRoutes(app: Express) {
       // Don't allow deleting own account
       if (userId === req.adminId) {
         return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      // Scope check: non-superadmins can only delete users within their market scope
+      if (!req.isSuperAdmin) {
+        const targetUser = await storage.getUser(userId);
+        if (targetUser) {
+          const orders = await storage.getOrders();
+          const hasOrderInMarket = orders.some(o => o.userId === userId && (req.adminMarkets || []).includes(o.market || 'ro'));
+          const isAdminWithOverlap = targetUser.isAdmin && ((targetUser.adminMarkets as string[]) || []).some((m: string) => (req.adminMarkets || []).includes(m));
+          if (!hasOrderInMarket && !isAdminWithOverlap) {
+            return res.status(403).json({ message: "Access denied: user is not in your market scope" });
+          }
+        }
       }
 
       await storage.deleteUser(userId);
@@ -1465,15 +1491,17 @@ export async function registerAdminRoutes(app: Express) {
             continue;
           }
           const order = await storage.getOrder(parsedOrderId);
-          if (order) {
+          if (!order) {
+            results.push({ orderId, success: false, error: "Order not found" });
+          } else if (!canAccessMarket(req, order.market || 'ro')) {
+            results.push({ orderId, success: false, error: "Access denied for this market" });
+          } else {
             results.push({ 
               orderId, 
               success: true, 
               trackingNumber: `KO${Date.now()}${orderId}`,
               shippingLabel: `shipping_label_${orderId}.pdf`
             });
-          } else {
-            results.push({ orderId, success: false, error: "Order not found" });
           }
         } catch (error) {
           results.push({ orderId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
@@ -1513,7 +1541,11 @@ export async function registerAdminRoutes(app: Express) {
             continue;
           }
           const order = await storage.getOrder(parsedOrderId);
-          if (order) {
+          if (!order) {
+            results.push({ orderId, success: false, error: "Order not found" });
+          } else if (!canAccessMarket(req, order.market || 'ro')) {
+            results.push({ orderId, success: false, error: "Access denied for this market" });
+          } else {
             results.push({ 
               orderId, 
               success: true, 
@@ -1521,8 +1553,6 @@ export async function registerAdminRoutes(app: Express) {
               sentTo: `user_${order.userId}@example.com`,
               message: message || `Your order #${orderId} has been updated.`
             });
-          } else {
-            results.push({ orderId, success: false, error: "Order not found" });
           }
         } catch (error) {
           results.push({ orderId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
@@ -1558,7 +1588,11 @@ export async function registerAdminRoutes(app: Express) {
             continue;
           }
           const order = await storage.getOrder(parsedOrderId);
-          if (order) {
+          if (!order) {
+            results.push({ orderId, success: false, error: "Order not found" });
+          } else if (!canAccessMarket(req, order.market || 'ro')) {
+            results.push({ orderId, success: false, error: "Access denied for this market" });
+          } else {
             const refundAmt = refundAmount || order.totalAmount;
             results.push({ 
               orderId, 
@@ -1567,8 +1601,6 @@ export async function registerAdminRoutes(app: Express) {
               reason: reason || "Admin initiated refund",
               transactionId: `REF${Date.now()}${orderId}`
             });
-          } else {
-            results.push({ orderId, success: false, error: "Order not found" });
           }
         } catch (error) {
           results.push({ orderId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
@@ -3221,6 +3253,10 @@ export async function registerAdminRoutes(app: Express) {
       
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
+      }
+
+      if (!canAccessMarket(req, order.market || 'ro')) {
+        return res.status(403).json({ message: "Access denied for this market" });
       }
 
       const { createSamedayAPI } = await import('./sameday-api');
