@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle, ChevronDown, ChevronUp, ShoppingBag, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, CreditCard, Truck, MapPin, User, FileText, Building2, UserCircle, ChevronDown, ChevronUp, ShoppingBag, Eye, EyeOff, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -152,6 +152,26 @@ export default function Checkout() {
   } | null>(null);
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [voucherError, setVoucherError] = useState("");
+
+  // Confirmed order summary shown after COD placement
+  const [confirmedOrder, setConfirmedOrder] = useState<{
+    subtotal: number;
+    discountAmount: number;
+    voucherCode: string | null;
+    shipping: number;
+    total: number;
+    currencySymbol: string;
+  } | null>(null);
+
+  // Ref to always hold the latest order summary (used by mutation onSuccess & Viva localStorage)
+  const currentOrderSummaryRef = useRef<{
+    subtotal: number;
+    discountAmount: number;
+    voucherCode: string | null;
+    shipping: number;
+    total: number;
+    currencySymbol: string;
+  }>({ subtotal: 0, discountAmount: 0, voucherCode: null, shipping: 0, total: 0, currencySymbol: '' });
 
   // Fetch shipping settings (includes VAT percentage)
   const { data: shippingSettings } = useQuery({
@@ -322,12 +342,9 @@ export default function Checkout() {
       });
     },
     onSuccess: async () => {
+      const summary = { ...currentOrderSummaryRef.current };
       clearCart();
-      toast({
-        title: t('checkout.orderSuccess'),
-        description: t('checkout.orderSuccessDesc'),
-      });
-      navigate("/");
+      setConfirmedOrder(summary);
     },
     onError: (error) => {
       toast({
@@ -375,7 +392,24 @@ export default function Checkout() {
   // VAT is INCLUDED in prices - calculate for display only (reverse VAT calculation)
   // Formula: VAT = Total * (vatRate / (1 + vatRate))
   const vatIncludedInFinal = finalTotal * (vatPercentage / (1 + vatPercentage));
-  
+
+  // Keep ref current so onSuccess / Viva-redirect path can read the latest summary
+  useEffect(() => {
+    const summary = {
+      subtotal,
+      discountAmount: voucherDiscount,
+      voucherCode: appliedVoucher?.code ?? null,
+      shipping,
+      total: finalTotal,
+      currencySymbol,
+    };
+    currentOrderSummaryRef.current = summary;
+    // Also persist for the Viva redirect flow (home.tsx reads this after ?payment=success)
+    if (step === 3) {
+      localStorage.setItem('xhaccp_pending_order_summary', JSON.stringify(summary));
+    }
+  }, [subtotal, voucherDiscount, appliedVoucher, shipping, finalTotal, currencySymbol, step]);
+
   // Apply voucher function
   const handleApplyVoucher = async () => {
     if (!voucherCode.trim()) {
@@ -614,6 +648,58 @@ export default function Checkout() {
     console.log("Submitting order from payment step");
     createOrderMutation.mutate(data);
   };
+
+  if (confirmedOrder) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-lg mx-auto">
+            <CardContent className="pt-8 pb-8 text-center space-y-6">
+              <div className="flex justify-center">
+                <CheckCircle className="h-16 w-16 text-green-500" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold mb-1">{t('checkout.orderSuccess')}</h2>
+                <p className="text-muted-foreground text-sm">{t('checkout.orderSuccessDesc')}</p>
+              </div>
+              <div className="border rounded-lg p-4 text-left space-y-2">
+                <h3 className="font-semibold text-sm mb-3">{t('checkout.orderSummary')}</h3>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('checkout.subtotal')}:</span>
+                  <span>{confirmedOrder.subtotal.toFixed(2)} {confirmedOrder.currencySymbol}</span>
+                </div>
+                {confirmedOrder.discountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>{t('checkout.voucher')} {confirmedOrder.voucherCode ? `(${confirmedOrder.voucherCode})` : ''}:</span>
+                    <span>-{confirmedOrder.discountAmount.toFixed(2)} {confirmedOrder.currencySymbol}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('checkout.shipping')}:</span>
+                  <span>
+                    {confirmedOrder.shipping === 0
+                      ? <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
+                      : `${confirmedOrder.shipping.toFixed(2)} ${confirmedOrder.currencySymbol}`}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold">
+                  <span>{t('checkout.total')}:</span>
+                  <span>{confirmedOrder.total.toFixed(2)} {confirmedOrder.currencySymbol}</span>
+                </div>
+              </div>
+              <Link href="/">
+                <Button className="kitchen-pro-secondary w-full">
+                  {t('checkout.backToShop')}
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (

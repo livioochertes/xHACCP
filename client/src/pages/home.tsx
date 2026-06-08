@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowRight, Truck, Shield, Award, MessageSquare, Users, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Truck, Shield, Award, MessageSquare, Users, Star, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/hooks/useTranslation";
 import useEmblaCarousel from "embla-carousel-react";
@@ -37,6 +38,15 @@ export default function Home() {
   const { clearCart } = useCart();
   const { contact } = useCompanySettings();
   const [, setLocation] = useLocation();
+
+  const [vivaConfirmedOrder, setVivaConfirmedOrder] = useState<{
+    subtotal: number;
+    discountAmount: number;
+    voucherCode: string | null;
+    shipping: number;
+    total: number;
+    currencySymbol: string;
+  } | null>(null);
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
   });
@@ -54,10 +64,18 @@ export default function Home() {
     const paymentStatus = params.get('payment');
     if (paymentStatus === 'success') {
       clearCart();
-      toast({
-        title: t('checkout.orderSuccess'),
-        description: t('checkout.orderSuccessDesc'),
-      });
+      const stored = localStorage.getItem('xhaccp_pending_order_summary');
+      if (stored) {
+        try {
+          setVivaConfirmedOrder(JSON.parse(stored));
+        } catch (_) {}
+        localStorage.removeItem('xhaccp_pending_order_summary');
+      } else {
+        toast({
+          title: t('checkout.orderSuccess'),
+          description: t('checkout.orderSuccessDesc'),
+        });
+      }
       window.history.replaceState({}, '', '/');
     } else if (paymentStatus === 'failed') {
       toast({
@@ -183,6 +201,54 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+
+      {/* Viva payment order confirmation banner */}
+      {vivaConfirmedOrder && (
+        <div className="bg-green-50 border-b border-green-200">
+          <div className="container mx-auto px-4 py-6">
+            <Card className="max-w-lg mx-auto">
+              <CardContent className="pt-6 pb-6 text-center space-y-4">
+                <div className="flex justify-center">
+                  <CheckCircle className="h-12 w-12 text-green-500" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">{t('checkout.orderSuccess')}</h2>
+                  <p className="text-muted-foreground text-sm">{t('checkout.orderSuccessDesc')}</p>
+                </div>
+                <div className="border rounded-lg p-4 text-left space-y-2">
+                  <h3 className="font-semibold text-sm mb-3">{t('checkout.orderSummary')}</h3>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t('checkout.subtotal')}:</span>
+                    <span>{vivaConfirmedOrder.subtotal.toFixed(2)} {vivaConfirmedOrder.currencySymbol}</span>
+                  </div>
+                  {vivaConfirmedOrder.discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>{t('checkout.voucher')} {vivaConfirmedOrder.voucherCode ? `(${vivaConfirmedOrder.voucherCode})` : ''}:</span>
+                      <span>-{vivaConfirmedOrder.discountAmount.toFixed(2)} {vivaConfirmedOrder.currencySymbol}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t('checkout.shipping')}:</span>
+                    <span>
+                      {vivaConfirmedOrder.shipping === 0
+                        ? <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
+                        : `${vivaConfirmedOrder.shipping.toFixed(2)} ${vivaConfirmedOrder.currencySymbol}`}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-semibold">
+                    <span>{t('checkout.total')}:</span>
+                    <span>{vivaConfirmedOrder.total.toFixed(2)} {vivaConfirmedOrder.currencySymbol}</span>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setVivaConfirmedOrder(null)}>
+                  ✕ {t('checkout.backToShop')}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="hero-gradient text-white py-16">
