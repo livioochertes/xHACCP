@@ -130,12 +130,20 @@ export async function sendOrderConfirmationEmail(
           <tfoot>
             ${(() => {
               const shippingCost = parseFloat(order.shippingCost || '0');
-              const subtotal = (parseFloat(order.totalAmount) - shippingCost).toFixed(2);
+              const discountAmt = parseFloat((order as any).discountAmount || '0');
+              const voucherCode = (order as any).voucherCode || '';
+              const itemsSubtotal = (parseFloat(order.totalAmount) + discountAmt - shippingCost).toFixed(2);
+              const discountRow = discountAmt > 0 ? `
+                <tr>
+                  <td colspan="3" style="padding: 8px; text-align: right; color: #27ae60;">Discount voucher${voucherCode ? ' ' + voucherCode : ''}:</td>
+                  <td style="padding: 8px; text-align: right; color: #27ae60;">-${discountAmt.toFixed(2)} lei</td>
+                </tr>` : '';
               return `
                 <tr>
                   <td colspan="3" style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">Subtotal:</td>
-                  <td style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">${subtotal} lei</td>
+                  <td style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">${itemsSubtotal} lei</td>
                 </tr>
+                ${discountRow}
                 <tr>
                   <td colspan="3" style="padding: 8px; text-align: right;">Transport:</td>
                   <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' lei' : 'Gratuit'}</td>
@@ -284,9 +292,12 @@ export async function sendNewOrderNotificationEmail(
         ${(() => {
           const sc = parseFloat((order as any).shippingCost || '0');
           const total = parseFloat(order.totalAmount || '0');
-          const subtotal = (total - sc).toFixed(2);
-          return `<p><strong>Subtotal:</strong> ${subtotal} lei</p>
-        <p><strong>Transport:</strong> ${sc > 0 ? sc.toFixed(2) + ' lei' : 'Gratuit'}</p>
+          const discountAmt = parseFloat((order as any).discountAmount || '0');
+          const voucherCode = (order as any).voucherCode || '';
+          const itemsSubtotal = (total + discountAmt - sc).toFixed(2);
+          const discountLine = discountAmt > 0 ? `<p style="color:#27ae60;"><strong>Discount voucher${voucherCode ? ' ' + voucherCode : ''}:</strong> -${discountAmt.toFixed(2)} lei</p>` : '';
+          return `<p><strong>Subtotal:</strong> ${itemsSubtotal} lei</p>
+        ${discountLine}<p><strong>Transport:</strong> ${sc > 0 ? sc.toFixed(2) + ' lei' : 'Gratuit'}</p>
         <p style="font-size:15px;border-top:1px solid #e0e0e0;padding-top:6px;margin-top:4px;"><strong>Total:</strong> ${total.toFixed(2)} lei</p>`;
         })()}
         <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
@@ -475,9 +486,12 @@ export async function sendLogisticsNotificationEmail(
         ${(() => {
           const sc = parseFloat((order as any).shippingCost || '0');
           const total = parseFloat(order.totalAmount || '0');
-          const subtotal = (total - sc).toFixed(2);
-          return `<p><strong>Subtotal:</strong> ${subtotal} lei</p>
-        <p><strong>Transport:</strong> ${sc > 0 ? sc.toFixed(2) + ' lei' : 'Gratuit'}</p>
+          const discountAmt = parseFloat((order as any).discountAmount || '0');
+          const voucherCode = (order as any).voucherCode || '';
+          const itemsSubtotal = (total + discountAmt - sc).toFixed(2);
+          const discountLine = discountAmt > 0 ? `<p style="color:#27ae60;"><strong>Discount voucher${voucherCode ? ' ' + voucherCode : ''}:</strong> -${discountAmt.toFixed(2)} lei</p>` : '';
+          return `<p><strong>Subtotal:</strong> ${itemsSubtotal} lei</p>
+        ${discountLine}<p><strong>Transport:</strong> ${sc > 0 ? sc.toFixed(2) + ' lei' : 'Gratuit'}</p>
         <p style="font-size:15px;border-top:1px solid #e0e0e0;padding-top:6px;margin-top:4px;"><strong>Total:</strong> ${total.toFixed(2)} lei</p>`;
         })()}
         <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
@@ -936,12 +950,18 @@ export async function sendLogisticsAWBEmail(
           ${(() => {
             const sc = parseFloat((order as any).shippingCost || '0');
             const total = parseFloat(order.totalAmount || '0');
-            const subtotal = (total - sc).toFixed(2);
+            const discountAmt = parseFloat((order as any).discountAmount || '0');
+            const vc = (order as any).voucherCode || '';
+            const itemsSubtotal = (total + discountAmt - sc).toFixed(2);
+            const discountRow = discountAmt > 0 ? `<tr>
+            <td style="padding: 4px 0; font-weight: bold; color: #27ae60;">Discount voucher${vc ? ' ' + vc : ''}:</td>
+            <td style="padding: 4px 0; color: #27ae60;">-${discountAmt.toFixed(2)} lei</td>
+          </tr>` : '';
             return `<tr>
             <td style="padding: 4px 0; font-weight: bold;">Subtotal:</td>
-            <td style="padding: 4px 0;">${subtotal} lei</td>
+            <td style="padding: 4px 0;">${itemsSubtotal} lei</td>
           </tr>
-          <tr>
+          ${discountRow}<tr>
             <td style="padding: 4px 0; font-weight: bold;">Transport:</td>
             <td style="padding: 4px 0;">${sc > 0 ? sc.toFixed(2) + ' lei' : 'Gratuit'}</td>
           </tr>
@@ -1218,12 +1238,20 @@ export async function sendCustomerShipmentEmail(
             ${orderItemsHtml}
             ${(() => {
               const shippingCost = parseFloat(order.shippingCost || '0');
-              const subtotal = (parseFloat(order.totalAmount) - shippingCost).toFixed(2);
+              const discountAmt = parseFloat((order as any).discountAmount || '0');
+              const vc = (order as any).voucherCode || '';
+              const itemsSubtotal = (parseFloat(order.totalAmount) + discountAmt - shippingCost).toFixed(2);
+              const discountRow = discountAmt > 0 ? `
+                <tr>
+                  <td style="padding: 8px; color: #27ae60;" colspan="2">Discount voucher${vc ? ' ' + vc : ''}</td>
+                  <td style="padding: 8px; text-align: right; color: #27ae60;">-${discountAmt.toFixed(2)} lei</td>
+                </tr>` : '';
               return `
                 <tr>
                   <td style="padding: 8px; border-top: 1px solid #ddd;" colspan="2">Subtotal</td>
-                  <td style="padding: 8px; border-top: 1px solid #ddd; text-align: right;">${subtotal} lei</td>
+                  <td style="padding: 8px; border-top: 1px solid #ddd; text-align: right;">${itemsSubtotal} lei</td>
                 </tr>
+                ${discountRow}
                 <tr>
                   <td style="padding: 8px;" colspan="2">Transport</td>
                   <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' lei' : 'Gratuit'}</td>
