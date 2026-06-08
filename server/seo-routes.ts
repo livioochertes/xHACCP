@@ -33,6 +33,22 @@ function escapeHtml(str: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/**
+ * Serialize an object to a JSON string safe for embedding inside
+ * <script type="application/ld+json">…</script>.
+ * Escapes <, >, &, and the Unicode line-separator chars U+2028/U+2029
+ * so that malicious content (e.g. "</script>") cannot break out of the
+ * script block (stored-XSS mitigation).
+ */
+function serializeJsonLd(obj: object | object[]): string {
+  return JSON.stringify(obj)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
 function injectMeta(
   html: string,
   meta: MetaTags,
@@ -70,7 +86,7 @@ function injectMeta(
   ].join("\n  ");
 
   const ldTag = jsonLd
-    ? `\n  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`
+    ? `\n  <script type="application/ld+json">${serializeJsonLd(jsonLd)}</script>`
     : "";
 
   result = result.replace("</head>", `  ${ogTags}${robotsTag}${ldTag}\n</head>`);
@@ -148,13 +164,6 @@ const STATIC_META: Record<string, (base: string) => MetaTags> = {
     description:
       "Informații despre modul în care xHACCP colectează, utilizează și protejează datele personale ale utilizatorilor, în conformitate cu GDPR.",
     canonical: base + "/privacy",
-  }),
-  "/blog": (base) => ({
-    title: "Blog HACCP & HoReCa – Resurse pentru siguranța alimentară | xHACCP",
-    description:
-      "Articole și ghiduri despre HACCP, siguranța alimentară și industria HoReCa din România. Sfaturi practice pentru restaurante, catering și bucătării profesionale.",
-    canonical: base + "/blog",
-    ogType: "website",
   }),
   "/ai-assistant": (base) => ({
     title: "Asistent AI HACCP – Întrebări despre siguranța alimentară | xHACCP",
@@ -264,6 +273,56 @@ export function registerSeoRoutes(
     });
   }
 
+  app.get("/blog", async (req, res, next) => {
+    if (!wantsHtml(req)) return next();
+    try {
+      const base = getBaseUrl(req);
+      const meta: MetaTags = {
+        title: "Blog HACCP & HoReCa – Resurse pentru siguranța alimentară | xHACCP",
+        description:
+          "Articole și ghiduri despre HACCP, siguranța alimentară și industria HoReCa din România. Sfaturi practice pentru restaurante, catering și bucătării profesionale.",
+        canonical: `${base}/blog`,
+        ogType: "website",
+      };
+
+      let publishedPosts: any[] = [];
+      try {
+        publishedPosts = await storage.getBlogPosts({ published: true, limit: 100 });
+      } catch (_) {}
+
+      const blogJsonLd: object[] = [
+        {
+          "@context": "https://schema.org",
+          "@type": "Blog",
+          "name": "Blog xHACCP",
+          "description": "Resurse profesionale despre siguranța alimentară, HACCP și industria HoReCa din România",
+          "url": `${base}/blog`,
+          "publisher": { "@type": "Organization", "name": "xHACCP", "url": base },
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          "name": "Articole Blog xHACCP",
+          "url": `${base}/blog`,
+          "itemListElement": publishedPosts.map((post, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "name": post.title,
+            "url": `${base}/blog/${post.slug}`,
+          })),
+        },
+      ];
+
+      const bodyHtml = buildStaticBodyHtml("/blog", base);
+      const html = injectMeta(getIndexHtml(), meta, bodyHtml, blogJsonLd);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.send(html);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.get("/blog/:slug", async (req, res, next) => {
     if (!wantsHtml(req)) return next();
     try {
@@ -329,6 +388,7 @@ export function registerSeoRoutes(
       if (post.excerpt) blogPostingSchema["description"] = post.excerpt.slice(0, 300);
       if (post.imageUrl) blogPostingSchema["image"] = post.imageUrl;
       if (post.publishedAt) blogPostingSchema["datePublished"] = new Date(post.publishedAt).toISOString();
+      if (post.updatedAt) blogPostingSchema["dateModified"] = new Date(post.updatedAt).toISOString();
       if (post.tags?.length) blogPostingSchema["keywords"] = post.tags.join(", ");
 
       const html = injectMeta(getIndexHtml(), meta, bodyHtml, blogPostingSchema);

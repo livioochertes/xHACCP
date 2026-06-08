@@ -91,6 +91,7 @@ export default function BlogPostPage() {
     if (post.excerpt) schema["description"] = post.excerpt;
     if (post.imageUrl) schema["image"] = post.imageUrl;
     if (post.publishedAt) schema["datePublished"] = new Date(post.publishedAt).toISOString();
+    if ((post as any).updatedAt) schema["dateModified"] = new Date((post as any).updatedAt).toISOString();
     return schema;
   }, [post]);
 
