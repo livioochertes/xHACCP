@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Filter, Grid, List, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,9 +34,6 @@ export default function Products() {
     setSearchQuery(newSearchQuery);
     setSelectedCategory(newSelectedCategory);
     setCurrentPage(newPage);
-    
-    queryClient.clear();
-    queryClient.removeQueries({ queryKey: ["/api/products"] });
   }, [location, urlChangeCounter]);
 
   useEffect(() => {
@@ -51,8 +47,6 @@ export default function Products() {
       setSelectedCategory(newSelectedCategory);
       setCurrentPage(newPage);
       setUrlChangeCounter(prev => prev + 1);
-      
-      queryClient.clear();
 
       const detail = (e as CustomEvent)?.detail;
       if (detail?.scrollToProducts) {
@@ -104,13 +98,14 @@ export default function Products() {
       categorySlug: selectedCategory || undefined,
       limit: apiLimit
     }],
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount: false,
     refetchOnReconnect: false,
     refetchInterval: false,
     refetchIntervalInBackground: false,
+    placeholderData: keepPreviousData,
     enabled: true,
   });
 
