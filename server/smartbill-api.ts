@@ -683,6 +683,36 @@ export function orderToSmartbillInvoice(
     };
   });
 
+  // Add discount line BEFORE shipping (discount applies only to products, not transport)
+  const orderDiscountAmount = parseFloat(order.discountAmount || '0') ||
+    (() => {
+      // Backward-compat: parse discount from notes for old orders without discountAmount column
+      const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)\s*\(-?([\d.]+)\)/);
+      return m ? parseFloat(m[2]) : 0;
+    })();
+  const orderVoucherCode = order.voucherCode ||
+    (() => {
+      const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)/);
+      return m ? m[1] : '';
+    })();
+
+  if (orderDiscountAmount > 0) {
+    console.log(`🎟️ Adding discount line: -${orderDiscountAmount} lei for voucher "${orderVoucherCode}"`);
+    products.push({
+      name: `Discount voucher${orderVoucherCode ? ' ' + orderVoucherCode : ''}`,
+      code: 'DISCOUNT',
+      isDiscount: true,
+      measuringUnitName: 'buc',
+      quantity: 1,
+      price: -Math.abs(orderDiscountAmount),
+      isTaxIncluded: true,
+      taxName: 'Normala',
+      taxPercentage: defaultVatPercentage,
+      saveToDb: false,
+      isService: false
+    });
+  }
+
   const orderShippingCost = parseFloat(order.shippingCost || '0');
   if (orderShippingCost > 0) {
     console.log(`🚚 Adding shipping service line: ${orderShippingCost} lei, VAT=${defaultVatPercentage}%`);

@@ -166,6 +166,8 @@ export const orders = pgTable("orders", {
   notes: text("notes"),
   // AWB (Air Waybill) fields for shipping
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default("0.00"),
+  voucherCode: varchar("voucher_code", { length: 100 }),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0.00"),
   awbNumber: varchar("awb_number", { length: 100 }),
   awbCourier: varchar("awb_courier", { length: 50 }).default("sameday"),
   awbCost: decimal("awb_cost", { precision: 10, scale: 2 }),

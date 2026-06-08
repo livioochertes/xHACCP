@@ -341,7 +341,7 @@ export class InvoiceService {
       };
 
       // Create invoice items with 21% VAT
-      const invoiceItems = order.items.map((item: any) => ({
+      const invoiceItems: any[] = order.items.map((item: any) => ({
         productId: item.productId,
         productName: item.product.name,
         productCode: item.product.productCode || null,
@@ -350,6 +350,30 @@ export class InvoiceService {
         vatRate: '21.00',
         lineTotal: item.totalPrice,
       }));
+
+      // Add discount line BEFORE shipping (discount applies only to products, not transport)
+      const localDiscountAmount = parseFloat(order.discountAmount || '0') ||
+        (() => {
+          const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)\s*\(-?([\d.]+)\)/);
+          return m ? parseFloat(m[2]) : 0;
+        })();
+      const localVoucherCode = order.voucherCode ||
+        (() => {
+          const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)/);
+          return m ? m[1] : '';
+        })();
+
+      if (localDiscountAmount > 0) {
+        invoiceItems.push({
+          productId: null,
+          productName: `Discount voucher${localVoucherCode ? ' ' + localVoucherCode : ''}`,
+          productCode: 'DISCOUNT',
+          quantity: 1,
+          unitPrice: (-Math.abs(localDiscountAmount)).toFixed(2),
+          vatRate: '21.00',
+          lineTotal: (-Math.abs(localDiscountAmount)).toFixed(2),
+        });
+      }
 
       const invoice = await storage.createInvoice(invoiceData, invoiceItems);
       
