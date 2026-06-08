@@ -1,0 +1,94 @@
+Common Keywords ?A list of keywords that appear frequently in the text of your content.	
+No common keywords found
+SEO Description ?SEO analysis of your page's meta-description.	
+The meta description is 135 characters long, which is good. Discover premium kitchen equipment and supplies at xHACCP. Professional-grade tools for commercial kitchens and culinary professionals.
+H1 Heading ?SEO Analysis of the H1 Tags on your page.	
+How to fixNo H1 tag was found. For the best SEO results there should be exactly one H1 tag on each page.
+H2 Headings ?SEO analysis of the H2 headings on your page.	
+How to fixNo H2 tag was found on the page.
+Image ALT Attributes ?SEO analysis of the "alt" attribute for image tags.	
+No images found on the page
+Keywords in Title & Description ?SEO analysis of the HTML page's Title and meta description content.	
+How to fixNo common keywords found in the page title and the description.
+Links Ratio ?SEO analysis of the ratio of internal links to external links.	
+How to fixThere are one or more issues with the number of links on this page:
+No internal links found.
+internal: 0
+external: 0
+SEO Title ?SEO analysis of the HTML title of the page.	
+The page title has 50 characters, which is good.
+xHACCP - Professional Kitchen Equipment & Supplies
+Create a responsive site ?Our analysis of the use of CSS media queries in your content.	
+The CSS code contains media queries.
+Media query found in http://xhaccp.fr/assets/index-KKjPmOiL.css.
+Homepage Is Reachable ?Tests if your homepage is reachable by making an HTTP request.	
+Homepage is reachable
+Advanced SEO
+Search Preview	
+Here is how the site may appear in search results:
+xHACCP - Professional Kitchen Equipment & Supplies
+http://xhaccp.fr
+Discover premium kitchen equipment and supplies at xHACCP. Professional-grade tools for commercial kitchens and culinary professionals.
+Canonical Tag ?Does the content have a "canonical" URL?	
+How to fixNo canonical link tag found on the page.
+null
+Every page on your site should have a <link> tag with a "rel='canonical'" attribute. The link tag should go inside the page's head tag, and it should contain the page's "correct" URL.
+
+If you've republished an article from another source (such as another site or a different section of your own site) then you need to pick which URL is the "correct" one and use that.
+
+The Rank Math WordPress plugin makes it very easy to set the canonical URL for every page of your site.
+
+Noindex Meta ?Does the content contain a noindex robots meta tag?	
+The page does not contain any index meta tag or header.
+Mobile Search Preview	
+Here is how the site may appear in search results on a mobile device:
+xHACCP - Professional Kitchen Equipment & Supplies
+http://xhaccp.fr
+Discover premium kitchen equipment and supplies at xHACCP. Professional-grade tools for commercial kitchens and culinary professionals.
+Mobile Snapshot ?A snapshot of how your content appears on a mobile device.	
+
+WWW Canonicalization ?Does the site appear on more than one URL?	
+How to fixThe www and non-www versions of the URL are not redirected to the same site.
+OpenGraph Meta ?Does your site use OpenGraph meta tags?	
+How to fixSome Opengraph meta tags are missing.
+Schema Meta Data ?Does the content include relevant Schema.org metadata?	
+How to fixNo Schema.org data found on the page.
+Sitemaps ?Does the site use an XML sitemap?	
+The site has one or more sitemaps.
+Robots.txt ?Does your site have a valid robots.txt file	
+The site has a robots.txt file which includes one or more Disallow: directives. Make sure that you only block parts you don't want to be indexed. Try our free robots.txt editor tool to easily test and validate your robots.txt file.
+Keep your content fresh ?Checks for recent content updates using available signals (XML sitemap, og:updated_time, or Last-Modified header).	
+The content is fresh. Last updated on 2026-06-08 (1 days ago) via XML Sitemap.
+Broken Links ?Detects broken or dead links (404/500 errors) in the website that may harm SEO and user trust.	
+No broken links on the page.
+Performance
+Install WP Rocket to get the Performance Boost
+Page Size ?An analysis of the size of your HTML file.	
+The size of the HTML document is less than 1 Kb, so it is under the average HTML size of 33 Kb.
+Response Time ?How fast does your server respond to requests?	
+The response time is under 0.8 seconds which is great.
+Image Headers Expire ?Do your images use "expires" headers?	
+No local images found on the page
+Minify CSS ?Are your CSS files properly minified?	
+All CSS files appear to be minified.
+Page Objects ?Analysis of the embedded objects in the pages.	
+The page makes 3 requests.
+total: 3
+images: 0
+javascript: 2
+stylesheets: 1
+Minify Javascript ?Does the site use minified JavaScript?	
+How to fixSome Javascript files don't seem to be minified.
+https://replit.com/public/js/replit-dev-banner.js
+http://xhaccp.fr/assets/index-D3N5ur-s.js
+Mobile Speed ?How fast does your website respond to mobile users?	
+The page performance is good across all key metrics.
+Security
+Theme Visibility ?Theme Visibility	
+The theme is not publicly visible, so it is not easily identifiable.
+Visible Plugins ?Visible Plugins	
+Hurray! None of the plugins are publicly visible.
+Directory Listing ?Does your web server list the contents of the directories?	
+Directory Listing seems to be disabled on the server.
+Secure Connection ?Is your content served over a secure connection?	
+The site is using a secure transfer protocol (https).
