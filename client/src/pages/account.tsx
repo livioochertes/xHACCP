@@ -1791,11 +1791,35 @@ export default function Account() {
                     </div>
                   ))}
                   
-                  {/* Order Total */}
-                  <div className="bg-gray-50 p-3 flex justify-between items-center font-medium">
-                    <span>Order Total:</span>
-                    <span>{parseFloat(selectedOrder.totalAmount).toFixed(2)} lei</span>
-                  </div>
+                  {/* Order Total Breakdown */}
+                  {(() => {
+                    const shippingCost = parseFloat(selectedOrder.shippingCost || '0');
+                    const discountAmt = parseFloat(selectedOrder.discountAmount || '0');
+                    const voucherCode = selectedOrder.voucherCode || '';
+                    const itemsSubtotal = (parseFloat(selectedOrder.totalAmount) + discountAmt - shippingCost).toFixed(2);
+                    return (
+                      <div className="bg-gray-50 p-3 space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span>{itemsSubtotal} lei</span>
+                        </div>
+                        {discountAmt > 0 && (
+                          <div className="flex justify-between text-green-600">
+                            <span>Discount voucher{voucherCode ? ` ${voucherCode}` : ''}:</span>
+                            <span>-{discountAmt.toFixed(2)} lei</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span>Transport:</span>
+                          <span>{shippingCost > 0 ? `${shippingCost.toFixed(2)} lei` : 'Gratuit'}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold border-t border-gray-200 pt-1 mt-1">
+                          <span>Total:</span>
+                          <span>{parseFloat(selectedOrder.totalAmount).toFixed(2)} lei</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             )}
