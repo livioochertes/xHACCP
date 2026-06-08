@@ -995,7 +995,8 @@
 
       const fetchUsers = async () => {
         try {
-          const response = await fetch('/admin/api/users', {
+          const marketParam = selectedMarketTab && selectedMarketTab !== 'all' ? `?market=${selectedMarketTab}` : '';
+          const response = await fetch(`/admin/api/users${marketParam}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -4616,9 +4617,16 @@
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                 <h3 style={{color: '#333', marginTop: 0}}>🌍 Gestiune Piețe / Market Settings</h3>
                 {marketsLoading && <div style={{color: '#666', marginBottom: '16px'}}><span className="loading"></span> Se încarcă...</div>}
-                {(adminIsSuperAdmin || (adminMarkets || []).includes('ro')) && <MarketSettingCard market="ro" marketsData={marketsData} saveMarket={saveMarket} />}
-                {(adminIsSuperAdmin || (adminMarkets || []).includes('fr')) && <MarketSettingCard market="fr" marketsData={marketsData} saveMarket={saveMarket} />}
-                {(adminIsSuperAdmin || (adminMarkets || []).includes('com')) && <MarketSettingCard market="com" marketsData={marketsData} saveMarket={saveMarket} />}
+                {(() => {
+                  const myMarkets = admin?.adminMarkets || [];
+                  const canSee = (m) => adminIsSuperAdmin || myMarkets.includes(m);
+                  const showTab = selectedMarketTab === 'all';
+                  return ['ro', 'fr', 'com'].map(m =>
+                    canSee(m) && (showTab || selectedMarketTab === m)
+                      ? <MarketSettingCard key={m} market={m} marketsData={marketsData} saveMarket={saveMarket} />
+                      : null
+                  );
+                })()}
               </div>
             );
 

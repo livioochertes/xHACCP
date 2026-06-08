@@ -874,7 +874,10 @@ export async function registerAdminRoutes(app: Express) {
       const users = await storage.getAllUsers();
       const allowedMarkets = req.adminMarkets || [];
       const isSuperAdmin = allowedMarkets.length === 0;
+      const marketParam = req.query.market as string | undefined;
+
       if (!isSuperAdmin) {
+        // Market-restricted admin: scope by JWT markets
         const orders = await storage.getOrders();
         const userIdsWithOrders = new Set(
           orders
@@ -887,6 +890,22 @@ export async function registerAdminRoutes(app: Express) {
         );
         return res.json(filtered);
       }
+
+      // Superadmin: optionally filter by selected market tab
+      if (marketParam && marketParam !== 'all') {
+        const orders = await storage.getOrders();
+        const userIdsWithOrders = new Set(
+          orders
+            .filter(o => (o.market || 'ro') === marketParam && o.userId)
+            .map(o => o.userId!)
+        );
+        const filtered = users.filter(u =>
+          userIdsWithOrders.has(u.id) ||
+          (u.isAdmin && ((u.adminMarkets as string[]) || []).includes(marketParam))
+        );
+        return res.json(filtered);
+      }
+
       res.json(users);
     } catch (error) {
       console.error("Error fetching users:", error);
