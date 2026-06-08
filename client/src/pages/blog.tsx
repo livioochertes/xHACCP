@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { useJsonLd } from "@/lib/use-json-ld";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -94,6 +95,39 @@ export default function Blog() {
   });
 
   const publishedPosts = posts?.filter((p) => p.published) ?? [];
+
+  const blogSchema = useMemo(() => {
+    if (!posts) return null;
+    const origin = window.location.origin;
+    return [
+      {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "name": "Blog xHACCP",
+        "description": "Resurse profesionale despre siguranța alimentară, HACCP și industria HoReCa din România",
+        "url": `${origin}/blog`,
+        "publisher": {
+          "@type": "Organization",
+          "name": "xHACCP",
+          "url": origin,
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Articole Blog xHACCP",
+        "url": `${origin}/blog`,
+        "itemListElement": publishedPosts.map((post, index) => ({
+          "@type": "ListItem",
+          "position": index + 1,
+          "name": post.title,
+          "url": `${origin}/blog/${post.slug}`,
+        })),
+      },
+    ] as Record<string, unknown>[];
+  }, [posts, publishedPosts]);
+
+  useJsonLd("blog-index", blogSchema);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMarketFromHostname } from "@/lib/queryClient";
 import { useParams, Link } from "wouter";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, Clock, ArrowLeft, Tag, User } from "lucide-react";
 import type { BlogPost } from "@shared/schema";
+import { useJsonLd } from "@/lib/use-json-ld";
 
 function simpleMarkdown(md: string): string {
   let html = md
@@ -62,6 +63,38 @@ export default function BlogPostPage() {
       document.title = `${post.title} | Blog xHACCP`;
     }
   }, [post]);
+
+  const blogPostingSchema = useMemo(() => {
+    if (!post) return null;
+    const origin = window.location.origin;
+    const schema: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": post.title,
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": `${origin}/blog/${post.slug}`,
+      },
+      "url": `${origin}/blog/${post.slug}`,
+      "articleSection": post.category,
+      "keywords": post.tags?.join(", ") || undefined,
+      "author": {
+        "@type": "Person",
+        "name": post.author,
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "xHACCP",
+        "url": origin,
+      },
+    };
+    if (post.excerpt) schema["description"] = post.excerpt;
+    if (post.imageUrl) schema["image"] = post.imageUrl;
+    if (post.publishedAt) schema["datePublished"] = new Date(post.publishedAt).toISOString();
+    return schema;
+  }, [post]);
+
+  useJsonLd("blog-post", blogPostingSchema);
 
   if (isLoading) {
     return (

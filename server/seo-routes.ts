@@ -33,7 +33,12 @@ function escapeHtml(str: string): string {
     .replace(/>/g, "&gt;");
 }
 
-function injectMeta(html: string, meta: MetaTags, bodyHtml?: string): string {
+function injectMeta(
+  html: string,
+  meta: MetaTags,
+  bodyHtml?: string,
+  jsonLd?: object | object[]
+): string {
   const title = escapeHtml(meta.title);
   const description = escapeHtml(meta.description);
   const canonical = meta.canonical;
@@ -64,7 +69,11 @@ function injectMeta(html: string, meta: MetaTags, bodyHtml?: string): string {
     `<meta property="og:site_name" content="xHACCP" />`,
   ].join("\n  ");
 
-  result = result.replace("</head>", `  ${ogTags}${robotsTag}\n</head>`);
+  const ldTag = jsonLd
+    ? `\n  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`
+    : "";
+
+  result = result.replace("</head>", `  ${ogTags}${robotsTag}${ldTag}\n</head>`);
 
   if (bodyHtml) {
     result = result.replace(
@@ -307,7 +316,22 @@ export function registerSeoRoutes(
   </article>
 </main>`;
 
-      const html = injectMeta(getIndexHtml(), meta, bodyHtml);
+      const blogPostingSchema: Record<string, unknown> = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": post.title,
+        "mainEntityOfPage": { "@type": "WebPage", "@id": `${base}/blog/${slug}` },
+        "url": `${base}/blog/${slug}`,
+        "author": { "@type": "Person", "name": post.author || "xHACCP" },
+        "publisher": { "@type": "Organization", "name": "xHACCP", "url": base },
+        "articleSection": post.category,
+      };
+      if (post.excerpt) blogPostingSchema["description"] = post.excerpt.slice(0, 300);
+      if (post.imageUrl) blogPostingSchema["image"] = post.imageUrl;
+      if (post.publishedAt) blogPostingSchema["datePublished"] = new Date(post.publishedAt).toISOString();
+      if (post.tags?.length) blogPostingSchema["keywords"] = post.tags.join(", ");
+
+      const html = injectMeta(getIndexHtml(), meta, bodyHtml, blogPostingSchema);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "public, max-age=300");
       res.send(html);
@@ -380,6 +404,46 @@ export function registerSeoRoutes(
       const price = product.price
         ? `<p><strong>Preț: ${product.price} ${product.currency || "RON"}</strong></p>`
         : "";
+      const productImage = product.imageUrl || (Array.isArray(product.images) && product.images[0]) || undefined;
+      const breadcrumbItems: object[] = [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": `${base}/` },
+        { "@type": "ListItem", "position": 2, "name": "Products", "item": `${base}/products` },
+      ];
+      if (product.category?.slug) {
+        breadcrumbItems.push({ "@type": "ListItem", "position": 3, "name": product.category.name, "item": `${base}/products?category=${product.category.slug}` });
+        breadcrumbItems.push({ "@type": "ListItem", "position": 4, "name": product.name, "item": `${base}/products/${slug}` });
+      } else {
+        breadcrumbItems.push({ "@type": "ListItem", "position": 3, "name": product.name, "item": `${base}/products/${slug}` });
+      }
+      const productObj: Record<string, unknown> = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": product.name,
+        "sku": `KP-${product.id}`,
+        "url": `${base}/products/${slug}`,
+        "brand": { "@type": "Brand", "name": "xHACCP" },
+        "offers": {
+          "@type": "Offer",
+          "price": product.price,
+          "priceCurrency": product.currency || "RON",
+          "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "url": `${base}/products/${slug}`,
+        },
+      };
+      if (desc) productObj["description"] = desc;
+      if (productImage) productObj["image"] = productImage;
+      if ((product.reviewCount || 0) > 0 && product.rating) {
+        productObj["aggregateRating"] = {
+          "@type": "AggregateRating",
+          "ratingValue": product.rating,
+          "reviewCount": product.reviewCount,
+        };
+      }
+      const productJsonLd = [
+        productObj,
+        { "@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": breadcrumbItems },
+      ];
+
       const bodyHtml = `
 <main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
   <article itemscope itemtype="https://schema.org/Product">
@@ -390,7 +454,7 @@ export function registerSeoRoutes(
   </article>
 </main>`;
 
-      const html = injectMeta(getIndexHtml(), meta, bodyHtml);
+      const html = injectMeta(getIndexHtml(), meta, bodyHtml, productJsonLd);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "public, max-age=300");
       res.send(html);

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useJsonLd } from "@/lib/use-json-ld";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { Star, ShoppingCart, Truck, Shield, ArrowLeft } from "lucide-react";
@@ -86,6 +87,68 @@ export default function ProductDetails() {
     window.scrollTo(0, 0);
     setSelectedImageIndex(0);
   }, [product?.id]);
+
+  const productSchema = useMemo(() => {
+    if (!product) return null;
+    const origin = window.location.origin;
+    const productUrl = `${origin}/products/${product.slug}`;
+    const breadcrumbItems: Record<string, unknown>[] = [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": `${origin}/` },
+      { "@type": "ListItem", "position": 2, "name": "Products", "item": `${origin}/products` },
+    ];
+    if (product.category) {
+      breadcrumbItems.push({
+        "@type": "ListItem",
+        "position": 3,
+        "name": product.category.name,
+        "item": `${origin}/products?category=${product.category.slug}`,
+      });
+      breadcrumbItems.push({ "@type": "ListItem", "position": 4, "name": product.name, "item": productUrl });
+    } else {
+      breadcrumbItems.push({ "@type": "ListItem", "position": 3, "name": product.name, "item": productUrl });
+    }
+
+    const offer: Record<string, unknown> = {
+      "@type": "Offer",
+      "price": product.price,
+      "priceCurrency": product.currency || "RON",
+      "availability": product.inStock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      "url": productUrl,
+    };
+
+    const productObj: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": product.name,
+      "sku": `KP-${product.id}`,
+      "url": productUrl,
+      "brand": { "@type": "Brand", "name": "xHACCP" },
+      "offers": offer,
+    };
+    if (product.description) productObj["description"] = product.description;
+    if (allImages.length > 0) productObj["image"] = allImages;
+    const reviewCount = product.reviewCount || 0;
+    if (reviewCount > 0 && product.rating) {
+      productObj["aggregateRating"] = {
+        "@type": "AggregateRating",
+        "ratingValue": product.rating,
+        "reviewCount": reviewCount,
+      };
+    }
+
+    return [
+      productObj,
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": breadcrumbItems,
+      },
+    ] as Record<string, unknown>[];
+  }, [product, allImages]);
+
+  useJsonLd("product-detail", productSchema);
 
   const handleAddToCart = () => {
     if (!product) return;
