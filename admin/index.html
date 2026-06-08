@@ -7609,12 +7609,17 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                       className="btn"
                       style={{background: '#28a745', padding: '15px', display: 'flex', alignItems: 'center', gap: '10px'}}
                       onClick={() => {
-                        const orderIds = selectedOrders.join(', ');
-                        const csvContent = `Order ID,Customer,Status,Amount,Voucher Code,Discount Amount,Date\n${selectedOrders.map(id => {
+                        const escCsv = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
+                        const csvContent = `Order ID,Customer Name,Customer Email,Shipping Address,Payment Method,Status,Amount,Voucher Code,Discount Amount,Date\n${selectedOrders.map(id => {
                           const order = filteredOrders.find(o => o.id === id);
+                          const sa = order.shippingAddress || {};
+                          const customerName = [sa.firstName, sa.lastName].filter(Boolean).join(' ') || sa.name || '';
+                          const customerEmail = sa.email || '';
+                          const shippingAddress = [sa.address, sa.city, sa.county, sa.postalCode, sa.country].filter(Boolean).join(', ');
+                          const paymentMethod = order.paymentMethod || '';
                           const voucherCode = order.voucherCode || '';
                           const discountAmount = order.discountAmount ? parseFloat(order.discountAmount).toFixed(2) : '0.00';
-                          return `${order.id},User ${order.userId},${order.status},${order.totalAmount},${voucherCode},${discountAmount},${new Date(order.createdAt).toLocaleDateString()}`;
+                          return `${order.id},${escCsv(customerName)},${escCsv(customerEmail)},${escCsv(shippingAddress)},${escCsv(paymentMethod)},${escCsv(order.status)},${order.totalAmount},${escCsv(voucherCode)},${discountAmount},${new Date(order.createdAt).toLocaleDateString()}`;
                         }).join('\n')}`;
                         
                         const blob = new Blob([csvContent], { type: 'text/csv' });
