@@ -69,6 +69,11 @@ export default function Header() {
     }
   };
 
+  const closeMobileAndDispatch = (href?: string) => {
+    setMobileMenuOpen(false);
+    window.dispatchEvent(new CustomEvent('urlchange', { detail: { scrollToProducts: true } }));
+  };
+
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       {/* Top Banner */}
@@ -189,30 +194,22 @@ export default function Header() {
                       <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     </div>
                   </form>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      navigate(`/products`);
-                      window.dispatchEvent(new CustomEvent('urlchange', { detail: { scrollToProducts: true } }));
-                    }}
+                  <Link
+                    href="/products"
+                    className="w-full justify-start inline-flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => closeMobileAndDispatch()}
                   >
                     {t('nav.products')}
-                  </Button>
-                  {categories?.filter(category => category.showOnMainTop).sort((a, b) => a.sortOrder - b.sortOrder).map((category: any) => (
-                    <Button 
-                      key={category.id} 
-                      variant="ghost" 
-                      className="w-full justify-start"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        navigate(`/products?category=${category.slug}`);
-                        window.dispatchEvent(new CustomEvent('urlchange', { detail: { scrollToProducts: true } }));
-                      }}
+                  </Link>
+                  {categories?.filter((category: any) => category.showOnMainTop).sort((a: any, b: any) => a.sortOrder - b.sortOrder).map((category: any) => (
+                    <Link
+                      key={category.id}
+                      href={`/products?category=${category.slug}`}
+                      className="w-full justify-start inline-flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                      onClick={() => closeMobileAndDispatch()}
                     >
                       {getCategoryName(category)}
-                    </Button>
+                    </Link>
                   ))}
                   <Button 
                     variant="ghost" 
@@ -225,44 +222,32 @@ export default function Header() {
                     <MessageSquare className="h-4 w-4 mr-2" />
                     {t('contact.title')}
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      navigate("/ai-assistant");
-                      window.scrollTo(0, 0);
-                    }}
+                  <Link
+                    href="/ai-assistant"
+                    className="w-full justify-start inline-flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => { setMobileMenuOpen(false); window.scrollTo(0, 0); }}
                   >
                     <Bot className="h-4 w-4 mr-2" />
                     {t('nav.aiAssistant')}
-                  </Button>
+                  </Link>
                   {isAuthenticated ? (
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        navigate("/account");
-                        window.scrollTo(0, 0);
-                      }}
+                    <Link
+                      href="/account"
+                      className="w-full justify-start inline-flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                      onClick={() => { setMobileMenuOpen(false); window.scrollTo(0, 0); }}
                     >
                       <User className="h-4 w-4 mr-2" />
                       {user?.firstName || t('nav.account')}
-                    </Button>
+                    </Link>
                   ) : !isLoading ? (
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        navigate("/login");
-                        window.scrollTo(0, 0);
-                      }}
+                    <Link
+                      href="/login"
+                      className="w-full justify-start inline-flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                      onClick={() => { setMobileMenuOpen(false); window.scrollTo(0, 0); }}
                     >
                       <User className="h-4 w-4 mr-2" />
                       {t('nav.login')}
-                    </Button>
+                    </Link>
                   ) : (
                     <Button variant="ghost" className="w-full justify-start" disabled>
                       <User className="h-4 w-4 mr-2" />
@@ -281,44 +266,22 @@ export default function Header() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-8">
-              <Button 
-                variant="ghost" 
-                className="font-medium"
-                onClick={() => {
-                  console.log("🚀 All Categories button clicked");
-                  const startTime = performance.now();
-                  const targetUrl = `/products`;
-                  console.log("🎯 Navigating to:", targetUrl);
-                  navigate(targetUrl);
-                  console.log("⏱️ Navigation initiated:", performance.now() - startTime, "ms");
-                  console.log("🔗 Current URL after navigation:", window.location.href);
-                  
-                  // Force a re-render by dispatching a custom event
-                  window.dispatchEvent(new CustomEvent('urlchange'));
-                }}
+              <Link
+                href="/products"
+                className="font-medium inline-flex items-center px-3 py-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-sm"
+                onClick={() => window.dispatchEvent(new CustomEvent('urlchange'))}
               >
                 {t('nav.allCategories')}
-              </Button>
-              {categories?.filter(category => category.showOnMainTop).sort((a, b) => a.sortOrder - b.sortOrder).map((category: any) => (
-                <Button 
-                  key={category.id} 
-                  variant="ghost" 
-                  className="font-medium hidden lg:block" 
-                  onClick={() => {
-                    console.log("🚀 Category button clicked:", category.name);
-                    const startTime = performance.now();
-                    const targetUrl = `/products?category=${category.slug}`;
-                    console.log("🎯 Navigating to:", targetUrl);
-                    navigate(targetUrl);
-                    console.log("⏱️ Navigation initiated:", performance.now() - startTime, "ms");
-                    console.log("🔗 Current URL after navigation:", window.location.href);
-                    
-                    // Force a re-render by dispatching a custom event
-                    window.dispatchEvent(new CustomEvent('urlchange'));
-                  }}
+              </Link>
+              {categories?.filter((category: any) => category.showOnMainTop).sort((a: any, b: any) => a.sortOrder - b.sortOrder).map((category: any) => (
+                <Link
+                  key={category.id}
+                  href={`/products?category=${category.slug}`}
+                  className="font-medium hidden lg:inline-flex items-center px-3 py-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-sm"
+                  onClick={() => window.dispatchEvent(new CustomEvent('urlchange'))}
                 >
                   {getCategoryName(category)}
-                </Button>
+                </Link>
               ))}
             </div>
             <div className="hidden lg:flex items-center space-x-4">

@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { useLocation } from "wouter";
-import { Filter, Grid, List, Search } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Filter, Grid, List, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,44 +15,41 @@ import ProductCard from "@/components/product-card";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import type { Category, ProductWithCategory } from "@shared/schema";
 
+const PAGE_SIZE = 20;
+
 export default function Products() {
   const [location, navigate] = useLocation();
   const { t } = useTranslation();
   
-  // Parse URL parameters and track location changes to force re-render
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [urlChangeCounter, setUrlChangeCounter] = useState(0);
   
-  // Update URL parameters when location changes OR when URL changes via navigation
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const newSearchQuery = urlParams.get("search") || "";
     const newSelectedCategory = urlParams.get("category") || "";
+    const newPage = Math.max(1, parseInt(urlParams.get("page") || "1"));
     
-    console.log("📍 Location changed:", window.location.href, "Search:", newSearchQuery, "Category:", newSelectedCategory);
-    
-    // Always update to ensure sync
     setSearchQuery(newSearchQuery);
     setSelectedCategory(newSelectedCategory);
-    setCurrentLimit(20); // Reset limit when category changes
+    setCurrentPage(newPage);
     
-    // Force query to refresh by completely clearing cache
     queryClient.clear();
-    // Also remove any React Query cache
     queryClient.removeQueries({ queryKey: ["/api/products"] });
   }, [location, urlChangeCounter]);
 
-  // Also listen for URL changes via popstate (back/forward buttons) and custom events
   useEffect(() => {
     const handleUrlChange = (e?: Event) => {
       const urlParams = new URLSearchParams(window.location.search);
       const newSearchQuery = urlParams.get("search") || "";
       const newSelectedCategory = urlParams.get("category") || "";
+      const newPage = Math.max(1, parseInt(urlParams.get("page") || "1"));
       
       setSearchQuery(newSearchQuery);
       setSelectedCategory(newSelectedCategory);
-      setCurrentLimit(20);
+      setCurrentPage(newPage);
       setUrlChangeCounter(prev => prev + 1);
       
       queryClient.clear();
@@ -61,9 +58,7 @@ export default function Products() {
       if (detail?.scrollToProducts) {
         setTimeout(() => {
           const el = document.getElementById('products-grid');
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 300);
       }
     };
@@ -77,25 +72,17 @@ export default function Products() {
     };
   }, []);
   
-  console.log("🔍 Products component render:", {
-    location,
-    searchQuery,
-    selectedCategory,
-    timestamp: new Date().toISOString()
-  });
-  
   const [sortBy, setSortBy] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
-    staleTime: Infinity, // Never consider data stale
-    gcTime: Infinity, // Never garbage collect
+    staleTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    networkMode: 'offlineFirst', // Prefer cached data
-
+    networkMode: 'offlineFirst',
   });
 
   const { getCategoryName: getTranslatedCategoryName } = useCategoryTranslations(
@@ -108,85 +95,75 @@ export default function Products() {
     return getTranslatedCategoryName(category.id, category.name);
   };
 
-  // Server-side caching handles prefetching, no need for client-side prefetch
-
-  const [currentLimit, setCurrentLimit] = useState(20);
+  // Request enough products to cover the current page
+  const apiLimit = currentPage * PAGE_SIZE;
   
-  const { data: products = [], isLoading, isFetching, isPlaceholderData } = useQuery<ProductWithCategory[]>({
+  const { data: allProducts = [], isLoading, isFetching } = useQuery<ProductWithCategory[]>({
     queryKey: ["/api/products", { 
       search: searchQuery || undefined,
       categorySlug: selectedCategory || undefined,
-      limit: currentLimit
+      limit: apiLimit
     }],
-    staleTime: 0, // Always fresh data
-    gcTime: 0, // Don't cache at all
+    staleTime: 0,
+    gcTime: 0,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: false,
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    enabled: true, // Always enabled to ensure queries run
-
+    enabled: true,
   });
 
-  // Log products data for debugging
-  useEffect(() => {
-    console.log("🔄 Products data:", {
-      productsLength: products?.length || 0,
-      isLoading,
-      isFetching,
-      products: products?.slice(0, 5).map(p => ({ id: p.id, name: p.name })) || [],
-      actualArrayLength: Array.isArray(products) ? products.length : 0,
-      timestamp: new Date().toISOString()
-    });
-  }, [products, isLoading, isFetching]);
+  const sortedAll = useMemo(() => {
+    if (!allProducts.length) return allProducts;
+    const sorted = [...allProducts];
+    switch (sortBy) {
+      case "price-asc": return sorted.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+      case "price-desc": return sorted.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+      case "name": return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      case "rating": return sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      default: return sorted;
+    }
+  }, [allProducts, sortBy]);
 
-  // Check if there are more products to load
-  const hasMoreProducts = products.length >= currentLimit;
-  
-  const handleLoadMore = () => {
-    setCurrentLimit(prev => prev + 20);
+  // Paginate client-side
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const products = sortedAll.slice(startIndex, startIndex + PAGE_SIZE);
+  const totalFetched = allProducts.length;
+  const hasNextPage = totalFetched >= currentPage * PAGE_SIZE;
+  const hasPrevPage = currentPage > 1;
+
+  // Build URL for pagination links (preserves category/search params)
+  const buildPageUrl = (page: number) => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set("search", searchQuery);
+    if (selectedCategory) params.set("category", selectedCategory);
+    if (page > 1) params.set("page", String(page));
+    const qs = params.toString();
+    return `/products${qs ? `?${qs}` : ""}`;
+  };
+
+  // Build URL for category sidebar links (resets to page 1)
+  const buildCategoryUrl = (slug?: string) => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set("search", searchQuery);
+    if (slug) params.set("category", slug);
+    const qs = params.toString();
+    return `/products${qs ? `?${qs}` : ""}`;
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const newSearch = formData.get("search") as string;
-    
-    console.log("🔍 Search form submitted:", newSearch);
-    const startTime = performance.now();
-    
-    // Update URL with search params
     const params = new URLSearchParams();
     if (newSearch) params.set("search", newSearch);
     if (selectedCategory) params.set("category", selectedCategory);
-    const newUrl = `/products${params.toString() ? `?${params.toString()}` : ""}`;
-    navigate(newUrl);
-    
-    console.log("⏱️ Search navigation initiated:", performance.now() - startTime, "ms");
+    navigate(`/products${params.toString() ? `?${params.toString()}` : ""}`);
   };
-
-  const sortedProducts = useMemo(() => {
-    if (!products.length) return products;
-    const sorted = [...products];
-    switch (sortBy) {
-      case "price-asc":
-        return sorted.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
-      case "price-desc":
-        return sorted.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
-      case "name":
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      case "rating":
-        return sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-      case "newest":
-      default:
-        return sorted;
-    }
-  }, [products, sortBy]);
 
   return (
     <div className="min-h-screen bg-slate-50">
-
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters */}
@@ -212,58 +189,39 @@ export default function Products() {
                   </div>
                 </form>
 
-                {/* Categories */}
+                {/* Categories — crawlable <a> links */}
                 <div className="mb-6">
                   <h4 className="font-medium mb-3">{t('nav.categories')}</h4>
-                  <div className="space-y-2">
-                    <Button
-                      variant={selectedCategory === "" ? "default" : "ghost"}
-                      className="w-full justify-start"
-                      onClick={() => {
-                        console.log("🚀 Sidebar All Products clicked");
-                        const startTime = performance.now();
-                        const params = new URLSearchParams();
-                        if (searchQuery) params.set("search", searchQuery);
-                        const newUrl = `/products${params.toString() ? `?${params.toString()}` : ""}`;
-                        console.log("🎯 Sidebar navigating to:", newUrl);
-                        navigate(newUrl);
-                        console.log("⏱️ Sidebar navigation initiated:", performance.now() - startTime, "ms");
-                        console.log("🔗 Current URL after navigation:", window.location.href);
-                        
-                        // Force a re-render by dispatching a custom event
-                        window.dispatchEvent(new CustomEvent('urlchange'));
-                      }}
+                  <nav aria-label="Product categories" className="space-y-1">
+                    <Link
+                      href={buildCategoryUrl()}
+                      onClick={() => window.dispatchEvent(new CustomEvent('urlchange'))}
+                      className={`w-full justify-start inline-flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
+                        selectedCategory === ""
+                          ? "bg-primary text-primary-foreground font-medium"
+                          : "hover:bg-accent hover:text-accent-foreground"
+                      }`}
                     >
                       {t('nav.products')}
-                    </Button>
+                    </Link>
                     {categories.map((category) => (
-                      <Button
+                      <Link
                         key={category.id}
-                        variant={selectedCategory === category.slug ? "default" : "ghost"}
-                        className="w-full justify-start"
-                        onClick={() => {
-                          console.log("🚀 Sidebar category clicked:", category.name);
-                          const startTime = performance.now();
-                          const params = new URLSearchParams();
-                          if (searchQuery) params.set("search", searchQuery);
-                          params.set("category", category.slug);
-                          const newUrl = `/products?${params.toString()}`;
-                          console.log("🎯 Sidebar navigating to:", newUrl);
-                          navigate(newUrl);
-                          console.log("⏱️ Sidebar navigation initiated:", performance.now() - startTime, "ms");
-                          console.log("🔗 Current URL after navigation:", window.location.href);
-                          
-                          // Force a re-render by dispatching a custom event
-                          window.dispatchEvent(new CustomEvent('urlchange'));
-                        }}
+                        href={buildCategoryUrl(category.slug)}
+                        onClick={() => window.dispatchEvent(new CustomEvent('urlchange'))}
+                        className={`w-full justify-start inline-flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
+                          selectedCategory === category.slug
+                            ? "bg-primary text-primary-foreground font-medium"
+                            : "hover:bg-accent hover:text-accent-foreground"
+                        }`}
                       >
                         {getCategoryName(category)}
                         {selectedCategory === category.slug && isLoading && (
                           <div className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
                         )}
-                      </Button>
+                      </Link>
                     ))}
-                  </div>
+                  </nav>
                 </div>
 
                 {/* Sort */}
@@ -303,7 +261,7 @@ export default function Products() {
                   )}
                 </h1>
                 <Badge variant="secondary">
-                  {products.length} {t('nav.products').toLowerCase()}
+                  {allProducts.length} {t('nav.products').toLowerCase()}
                 </Badge>
               </div>
 
@@ -325,8 +283,8 @@ export default function Products() {
               </div>
             </div>
 
-            {/* Loading State - Only show when no previous data */}
-            {isLoading && !products.length && (
+            {/* Loading State */}
+            {isLoading && !allProducts.length && (
               <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <Card key={i} className="overflow-hidden">
@@ -342,47 +300,68 @@ export default function Products() {
             )}
 
             {/* No Results */}
-            {!isLoading && !isFetching && products.length === 0 && (
+            {!isLoading && !isFetching && allProducts.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-4">{t('products.noProducts')}</p>
-                <Button onClick={() => { window.location.href = "/products"; }}>
-                  {t('products.clearFilters')}
-                </Button>
+                <Link href="/products">
+                  <Button>{t('products.clearFilters')}</Button>
+                </Link>
               </div>
             )}
 
             {/* Products Grid */}
-            {sortedProducts.length > 0 && (
+            {products.length > 0 && (
               <>
                 <div id="products-grid" className={`grid gap-6 ${
                   viewMode === "grid" 
                     ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" 
                     : "grid-cols-1"
                 }`}>
-                  {sortedProducts.map((product) => (
-                    <ProductCard key={`${product.id}-${selectedCategory}-${searchQuery}`} product={product} />
+                  {products.map((product) => (
+                    <ProductCard key={`${product.id}-${selectedCategory}-${searchQuery}-${currentPage}`} product={product} />
                   ))}
                 </div>
                 
-                {/* Load More Button */}
-                {hasMoreProducts && (
-                  <div className="flex justify-center mt-8">
-                    <Button 
-                      onClick={handleLoadMore} 
-                      disabled={isFetching}
-                      size="lg"
-                      className="px-8"
-                    >
-                      {isFetching ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-white"></div>
-                          {t('products.loadingMore')}
-                        </>
-                      ) : (
-                        <>{t('products.loadMore')}</>
-                      )}
-                    </Button>
-                  </div>
+                {/* Crawlable pagination navigation */}
+                {(hasPrevPage || hasNextPage) && (
+                  <nav aria-label="Product pagination" className="flex items-center justify-center gap-3 mt-8">
+                    {hasPrevPage ? (
+                      <Link
+                        href={buildPageUrl(currentPage - 1)}
+                        onClick={() => window.dispatchEvent(new CustomEvent('urlchange'))}
+                        className="inline-flex items-center gap-1 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        {t('products.prevPage') || 'Anterior'}
+                      </Link>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-4 py-2 rounded-md border border-input bg-background text-sm text-muted-foreground opacity-50 cursor-not-allowed">
+                        <ChevronLeft className="h-4 w-4" />
+                        {t('products.prevPage') || 'Anterior'}
+                      </span>
+                    )}
+
+                    <span className="text-sm text-muted-foreground px-2">
+                      {t('products.page') || 'Pagina'} {currentPage}
+                    </span>
+
+                    {hasNextPage ? (
+                      <Link
+                        href={buildPageUrl(currentPage + 1)}
+                        onClick={() => window.dispatchEvent(new CustomEvent('urlchange'))}
+                        className="inline-flex items-center gap-1 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                        rel="next"
+                      >
+                        {t('products.nextPage') || 'Următor'}
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-4 py-2 rounded-md border border-input bg-background text-sm text-muted-foreground opacity-50 cursor-not-allowed">
+                        {t('products.nextPage') || 'Următor'}
+                        <ChevronRight className="h-4 w-4" />
+                      </span>
+                    )}
+                  </nav>
                 )}
               </>
             )}
