@@ -943,8 +943,16 @@ export async function registerAdminRoutes(app: Express) {
       }
       // Privilege escalation prevention: non-superadmins cannot create global admin accounts
       if (!req.isSuperAdmin && userData.isAdmin) {
-        if (!userData.adminMarkets || userData.adminMarkets.length === 0) {
-          userData.adminMarkets = req.adminMarkets || [];
+        const callerMarkets = req.adminMarkets || [];
+        if (!Array.isArray(userData.adminMarkets) || userData.adminMarkets.length === 0) {
+          userData.adminMarkets = callerMarkets;
+        } else {
+          const intersection = userData.adminMarkets.filter((m: string) => callerMarkets.includes(m));
+          userData.adminMarkets = intersection.length > 0 ? intersection : callerMarkets;
+        }
+        // Final invariant: non-superadmins can NEVER persist [] (= superadmin semantics)
+        if (userData.adminMarkets.length === 0) {
+          return res.status(403).json({ message: "Cannot create a global admin account from a market-restricted account" });
         }
       }
 
@@ -987,12 +995,18 @@ export async function registerAdminRoutes(app: Express) {
       }
       // Privilege escalation prevention: non-superadmins cannot create/keep global admin accounts
       if (!req.isSuperAdmin && updateData.isAdmin) {
+        const callerMarkets = req.adminMarkets || [];
         if (!Array.isArray(adminMarkets) || adminMarkets.length === 0) {
-          // Force to caller's own markets — never allow empty (= superadmin semantics)
-          updateData.adminMarkets = req.adminMarkets || [];
+          // No markets provided — force to caller's own markets
+          updateData.adminMarkets = callerMarkets;
         } else {
-          // Only allow markets the caller themselves can access
-          updateData.adminMarkets = adminMarkets.filter((m: string) => (req.adminMarkets || []).includes(m));
+          // Filter to intersection with caller's markets; if empty (disjoint), fall back to caller's markets
+          const intersection = adminMarkets.filter((m: string) => callerMarkets.includes(m));
+          updateData.adminMarkets = intersection.length > 0 ? intersection : callerMarkets;
+        }
+        // Final invariant: non-superadmins can NEVER persist [] (= superadmin semantics)
+        if (updateData.adminMarkets.length === 0) {
+          return res.status(403).json({ message: "Cannot create a global admin account from a market-restricted account" });
         }
       }
 
