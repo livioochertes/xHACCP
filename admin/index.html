@@ -7610,9 +7610,11 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                       style={{background: '#28a745', padding: '15px', display: 'flex', alignItems: 'center', gap: '10px'}}
                       onClick={() => {
                         const orderIds = selectedOrders.join(', ');
-                        const csvContent = `Order ID,Customer,Status,Amount,Date\n${selectedOrders.map(id => {
+                        const csvContent = `Order ID,Customer,Status,Amount,Voucher Code,Discount Amount,Date\n${selectedOrders.map(id => {
                           const order = filteredOrders.find(o => o.id === id);
-                          return `${order.id},User ${order.userId},${order.status},${order.totalAmount},${new Date(order.createdAt).toLocaleDateString()}`;
+                          const voucherCode = order.voucherCode || '';
+                          const discountAmount = order.discountAmount ? parseFloat(order.discountAmount).toFixed(2) : '0.00';
+                          return `${order.id},User ${order.userId},${order.status},${order.totalAmount},${voucherCode},${discountAmount},${new Date(order.createdAt).toLocaleDateString()}`;
                         }).join('\n')}`;
                         
                         const blob = new Blob([csvContent], { type: 'text/csv' });
