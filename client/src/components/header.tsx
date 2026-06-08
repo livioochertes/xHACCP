@@ -15,9 +15,9 @@ import ContactModal from "@/components/contact-modal";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import xhaccpLogo from "@assets/logo_xHACCP-S1_1772812623761.png";
 
-interface CompanySettings {
-  freeShippingThreshold?: string;
-  defaultCurrency?: string;
+interface ShippingSettings {
+  freeShippingThreshold: string;
+  currency: string;
 }
 
 export default function Header() {
@@ -33,15 +33,15 @@ export default function Header() {
     queryKey: ["/api/categories"],
   });
 
-  const { data: companySettings } = useQuery<CompanySettings>({
-    queryKey: ["/admin/api/company-settings"],
+  const { data: shippingSettings } = useQuery<ShippingSettings>({
+    queryKey: ["/api/shipping-settings"],
   });
 
   const cartItemCount = cart?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
   const freeShippingMessage = useMemo(() => {
-    const thresholdValue = parseFloat(companySettings?.freeShippingThreshold || "500");
-    const currency = companySettings?.defaultCurrency || "RON";
+    const thresholdValue = parseFloat(shippingSettings?.freeShippingThreshold || "500");
+    const currency = shippingSettings?.currency || "RON";
     
     const formattedAmount = new Intl.NumberFormat('ro-RO', {
       style: 'decimal',
@@ -52,7 +52,7 @@ export default function Header() {
     const currencyLabel = currency === "RON" ? "lei" : currency === "EUR" ? "€" : currency === "USD" ? "$" : currency === "GBP" ? "£" : currency;
     
     return `${t('footer.freeShippingPrefix')} ${formattedAmount} ${currencyLabel}`;
-  }, [companySettings, t]);
+  }, [shippingSettings, t]);
 
   const categoryIds = Array.isArray(categories) ? categories.map((c: any) => c.id) : [];
   const categoriesArray = Array.isArray(categories) ? categories : [];
