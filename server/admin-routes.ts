@@ -996,6 +996,16 @@ export async function registerAdminRoutes(app: Express) {
         }
         updateData.adminMarkets = adminMarkets;
       }
+      // Non-superadmin isAdmin promotion invariant: ensure adminMarkets is never empty
+      // (empty = superadmin semantics). Force to caller's markets if not set by superadmin.
+      if (!req.isSuperAdmin && updateData.isAdmin) {
+        const callerMarkets = req.adminMarkets || [];
+        if (callerMarkets.length === 0) {
+          return res.status(403).json({ message: "Cannot promote users to admin from a market-restricted account with no markets assigned" });
+        }
+        // Always force adminMarkets when non-superadmin promotes — ensures no [] escapes
+        updateData.adminMarkets = callerMarkets;
+      }
 
       const updatedUser = await storage.updateUser(userId, updateData);
 

@@ -895,6 +895,17 @@
         fetchStats();
       }, []);
       
+      // Re-normalize selectedMarketTab when admin data is confirmed — ensures market-restricted
+      // admins never land on 'all' (e.g. from stale sessionStorage before auth resolves)
+      useEffect(() => {
+        if (admin?.adminMarkets && admin.adminMarkets.length > 0) {
+          const allowed = admin.adminMarkets;
+          if (selectedMarketTab === 'all' || !allowed.includes(selectedMarketTab)) {
+            setSelectedMarketTab(allowed[0]);
+          }
+        }
+      }, [admin]);
+
       // Sync selectedMarketTab → marketFilter (and save to sessionStorage)
       // Also refetch active-tab data so switching marketplace filters all views
       useEffect(() => {
