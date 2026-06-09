@@ -2766,7 +2766,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.units': 'unități',
     'products.compliance': 'Conformitate',
     'products.fdaApproved': 'Aprobat FDA',
-    'products.haccpCompatible': 'Compatibil HACCP',
+    'products.haccpCompatible': 'Aprobat HACCP',
     'products.foodSafe': 'Sigur pentru Alimente',
     'products.yes': 'Da',
     'products.fdaCompliant': 'Conform FDA',
