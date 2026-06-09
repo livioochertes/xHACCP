@@ -515,11 +515,11 @@ export async function createInvoiceService(): Promise<InvoiceService> {
   return new InvoiceService(config);
 }
 
-// Helper function to get company settings by market (fallback to 'ro' then any)
+// Helper function to get company settings by market (exact-match only, no cross-market fallback)
 async function getCompanySettingsByMarket(market: string) {
   const { pool } = await import('./db.js');
   try {
-    // Try exact market row first, then fallback to 'ro', then any
+    // Exact-match only — no cross-market fallback to preserve per-market data isolation
     const result = await pool.query(`
       SELECT 
         name, email, logistics_email as "logisticsEmail", phone, address, city, state, zip_code as "zipCode", 
@@ -531,16 +531,6 @@ async function getCompanySettingsByMarket(market: string) {
       LIMIT 1
     `, [market]);
     if (result.rows.length > 0) return result.rows[0];
-    // Fallback to 'ro'
-    const roResult = await pool.query(`
-      SELECT 
-        name, email, logistics_email as "logisticsEmail", phone, address, city, state, zip_code as "zipCode", 
-        country, contact_person as "contactPerson", website, 
-        vat_number as "vatNumber", registration_number as "registrationNumber", 
-        description, default_vat_percentage as "defaultVatPercentage"
-      FROM company_settings WHERE market_code = 'ro' LIMIT 1
-    `);
-    if (roResult.rows.length > 0) return roResult.rows[0];
     return null;
   } catch (err) {
     console.error('Error fetching company settings by market:', err);

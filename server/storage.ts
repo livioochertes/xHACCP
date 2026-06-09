@@ -1116,15 +1116,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCompanySettingsByMarket(market: string): Promise<CompanySettings | undefined> {
-    // Try exact market-specific row first
+    // Exact-match only — no cross-market fallback to preserve per-market data isolation
     const [marketRow] = await db.select().from(companySettings).where(eq(companySettings.marketCode, market)).limit(1);
-    if (marketRow) return marketRow;
-    // Fallback to 'ro' (global/default) row
-    const [roRow] = await db.select().from(companySettings).where(eq(companySettings.marketCode, 'ro')).limit(1);
-    if (roRow) return roRow;
-    // Last resort: any row
-    const [anyRow] = await db.select().from(companySettings).limit(1);
-    return anyRow;
+    return marketRow;
   }
 
   async updateCompanySettings(settings: Partial<InsertCompanySettings>): Promise<CompanySettings> {
