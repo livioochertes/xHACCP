@@ -19,6 +19,12 @@ interface MetaTags {
 }
 
 function getIndexHtml(): string {
+  // In development, always use client/index.html so Vite can process it
+  // (dist/public/index.html contains production bundle hashes that Vite dev doesn't serve)
+  if (process.env.NODE_ENV !== "production") {
+    const devPath = path.resolve(process.cwd(), "client", "index.html");
+    return fs.readFileSync(devPath, "utf-8");
+  }
   const prodPath = path.resolve(process.cwd(), "dist", "public", "index.html");
   if (fs.existsSync(prodPath)) {
     return fs.readFileSync(prodPath, "utf-8");
