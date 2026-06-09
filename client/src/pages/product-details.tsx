@@ -456,65 +456,6 @@ export default function ProductDetails() {
               );
             })()}
 
-            {/* Volume discount tiers table */}
-            {(() => {
-              const tiers = getSortedTiers((product as any).volumeDiscounts);
-              if (tiers.length === 0) return null;
-              const activeTier = getActiveTier(quantity, (product as any).volumeDiscounts);
-              return (
-                <div className="rounded-lg border border-amber-200 bg-amber-50/60 overflow-hidden">
-                  <div className="px-3 py-2 bg-amber-100 text-xs font-semibold text-amber-800 flex items-center gap-1.5">
-                    🏷️ Cumperi mai mult, plătești mai puțin
-                  </div>
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-amber-200 text-amber-700">
-                        <th className="px-3 py-1.5 text-left font-semibold">Cantitate</th>
-                        <th className="px-3 py-1.5 text-right font-semibold">Preț/buc</th>
-                        <th className="px-3 py-1.5 text-right font-semibold">Discount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Base tier — click to reset to 1 */}
-                      <tr
-                        onClick={() => setQuantity(1)}
-                        className={`border-b border-amber-100 cursor-pointer hover:bg-amber-200/40 transition-colors ${!activeTier ? 'bg-amber-200/60 font-semibold' : 'bg-white'}`}
-                      >
-                        <td className="px-3 py-1.5">
-                          1{tiers[0].minQty > 2 ? ` – ${tiers[0].minQty - 1}` : ''} buc.
-                          {!activeTier && <span className="ml-1 text-amber-700 text-[10px]">◀</span>}
-                        </td>
-                        <td className="px-3 py-1.5 text-right">{formatPrice(product.price, product.currency)}</td>
-                        <td className="px-3 py-1.5 text-right text-gray-400">—</td>
-                      </tr>
-                      {tiers.map((tier, i) => {
-                        const isActive = activeTier?.minQty === tier.minQty;
-                        const nextMinQty = tiers[i + 1]?.minQty;
-                        const rangeLabel = nextMinQty
-                          ? `${tier.minQty} – ${nextMinQty - 1} buc.`
-                          : `${tier.minQty}+ buc.`;
-                        const tierPrice = getVolumePrice(product.price, tier.minQty, (product as any).volumeDiscounts);
-                        return (
-                          <tr
-                            key={i}
-                            onClick={() => setQuantity(tier.minQty)}
-                            className={`cursor-pointer hover:bg-amber-200/40 transition-colors ${i < tiers.length - 1 ? 'border-b border-amber-100' : ''} ${isActive ? 'bg-amber-200/60 font-semibold' : i % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'}`}
-                          >
-                            <td className="px-3 py-1.5">
-                              {rangeLabel}
-                              {isActive && <span className="ml-1 text-amber-700 text-[10px]">◀</span>}
-                            </td>
-                            <td className="px-3 py-1.5 text-right text-emerald-700 font-medium">{formatPrice(tierPrice.toString(), product.currency)}</td>
-                            <td className="px-3 py-1.5 text-right text-emerald-600 font-medium">-{tier.discountPercent}%</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })()}
-
             {/* Flexible product specs (key-value pairs defined by admin) */}
             {(() => {
               const specs = Array.isArray((product as any).specs) ? (product as any).specs as {label: string; value: string}[] : [];
@@ -537,6 +478,72 @@ export default function ProductDetails() {
             })()}
 
             <Separator />
+
+            {/* Volume discount tiers — immediately above Add to Cart */}
+            {(() => {
+              const tiers = getSortedTiers((product as any).volumeDiscounts);
+              if (tiers.length === 0) return null;
+              const activeTier = getActiveTier(quantity, (product as any).volumeDiscounts);
+              const effectiveUnitPrice = getVolumePrice(product.price, quantity, (product as any).volumeDiscounts);
+              const cartTotal = (effectiveUnitPrice * quantity).toFixed(2);
+              return (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/50 overflow-hidden">
+                  <div className="px-3 py-2 bg-amber-100 text-xs font-semibold text-amber-800">
+                    🏷️ Cumperi mai mult, plătești mai puțin — click pe o treaptă pentru a selecta cantitatea
+                  </div>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-amber-200 text-amber-700">
+                        <th className="px-3 py-1.5 text-left font-semibold">De la</th>
+                        <th className="px-3 py-1.5 text-right font-semibold">Preț/buc</th>
+                        <th className="px-3 py-1.5 text-right font-semibold">Economie</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Base tier: 1 buc. */}
+                      <tr
+                        onClick={() => setQuantity(1)}
+                        className={`border-b border-amber-100 cursor-pointer hover:bg-amber-200/40 transition-colors ${!activeTier ? 'bg-amber-200/60 font-semibold' : 'bg-white'}`}
+                      >
+                        <td className="px-3 py-2 flex items-center gap-1.5">
+                          <span className="inline-flex items-center justify-center bg-gray-200 text-gray-700 rounded px-1.5 py-0.5 text-[11px] font-bold min-w-[32px]">1</span>
+                          buc.
+                          {!activeTier && <span className="text-amber-600 text-[10px]">◀ ales</span>}
+                        </td>
+                        <td className="px-3 py-2 text-right">{formatPrice(product.price, product.currency)}</td>
+                        <td className="px-3 py-2 text-right text-gray-400">—</td>
+                      </tr>
+                      {tiers.map((tier, i) => {
+                        const isActive = activeTier?.minQty === tier.minQty;
+                        const tierPrice = getVolumePrice(product.price, tier.minQty, (product as any).volumeDiscounts);
+                        return (
+                          <tr
+                            key={i}
+                            onClick={() => setQuantity(tier.minQty)}
+                            className={`cursor-pointer hover:bg-amber-200/40 transition-colors ${i < tiers.length - 1 ? 'border-b border-amber-100' : ''} ${isActive ? 'bg-amber-200/60 font-semibold' : i % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'}`}
+                          >
+                            <td className="px-3 py-2">
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="inline-flex items-center justify-center bg-emerald-100 text-emerald-800 rounded px-1.5 py-0.5 text-[11px] font-bold min-w-[32px]">{tier.minQty}+</span>
+                                buc.
+                                {isActive && <span className="text-amber-600 text-[10px]">◀ ales</span>}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right text-emerald-700 font-medium">{formatPrice(tierPrice.toString(), product.currency)}</td>
+                            <td className="px-3 py-2 text-right text-emerald-600 font-medium">-{tier.discountPercent}%</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {/* Cart total preview */}
+                  <div className="px-3 py-2 bg-amber-100 border-t border-amber-200 flex items-center justify-between">
+                    <span className="text-xs text-amber-800">Total coș pentru <strong>{quantity} buc.</strong></span>
+                    <span className="text-sm font-bold text-amber-900">{formatPrice(cartTotal, product.currency)}</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Quantity selector + Add to cart */}
             <div className="space-y-3">
