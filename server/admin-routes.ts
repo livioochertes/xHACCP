@@ -1794,39 +1794,57 @@ export async function registerAdminRoutes(app: Express) {
       if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market as string)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
-      
-      const products = await storage.getProducts({
-        search: search as string,
-        categoryId: categoryId ? parseInt(categoryId as string) : undefined,
-        featured: featured === 'true',
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string)
-      });
 
-      // Filter by supplier if specified
-      let filteredProducts = products;
-      if (supplierId) {
-        filteredProducts = filteredProducts.filter(product => product.supplierId === parseInt(supplierId as string));
-      }
-
-      // For restricted admins without explicit market, auto-restrict to their markets
       const allowedMarkets = req.adminMarkets || [];
       const isSuperAdmin = allowedMarkets.length === 0;
 
+      // Determine which markets we need to filter by (if any) BEFORE fetching products
+      // so we can apply market-scoped IDs in the initial fetch, not post-pagination.
+      let marketProductIds: Set<number> | null = null;
       if (!isSuperAdmin && (!market || market === 'all')) {
-        // Restricted admin sees only products in their markets
+        // Restricted admin — limit to their markets
         const marketRows = await db.select().from(productMarkets).where(
           allowedMarkets.length === 1
             ? eq(productMarkets.market, allowedMarkets[0])
             : inArray(productMarkets.market, allowedMarkets)
         );
-        const marketProductIds = new Set(marketRows.map(r => r.productId));
-        filteredProducts = filteredProducts.filter(p => marketProductIds.has(p.id));
+        marketProductIds = new Set(marketRows.map(r => r.productId));
       } else if (market && market !== 'all') {
-        // Filter by market if specified
+        // Explicit market filter requested
         const marketRows = await db.select().from(productMarkets).where(eq(productMarkets.market, market as string));
-        const marketProductIds = new Set(marketRows.map(r => r.productId));
-        filteredProducts = filteredProducts.filter(p => marketProductIds.has(p.id));
+        marketProductIds = new Set(marketRows.map(r => r.productId));
+      }
+
+      // Fetch ALL products from memory when a market filter is active so that
+      // pagination is applied AFTER filtering (prevents missing items when limit < total).
+      const needsMarketFilter = marketProductIds !== null;
+      const fetchLimit = needsMarketFilter ? 100000 : parseInt(limit as string);
+      const fetchOffset = needsMarketFilter ? 0 : parseInt(offset as string);
+
+      const products = await storage.getProducts({
+        search: search as string,
+        categoryId: categoryId ? parseInt(categoryId as string) : undefined,
+        featured: featured === 'true',
+        limit: fetchLimit,
+        offset: fetchOffset
+      });
+
+      // Apply market filter
+      let filteredProducts = products;
+      if (marketProductIds !== null) {
+        filteredProducts = filteredProducts.filter(p => (marketProductIds as Set<number>).has(p.id));
+      }
+
+      // Filter by supplier if specified
+      if (supplierId) {
+        filteredProducts = filteredProducts.filter(product => product.supplierId === parseInt(supplierId as string));
+      }
+
+      // Apply limit/offset manually when we fetched everything for market filtering
+      if (needsMarketFilter) {
+        const off = parseInt(offset as string);
+        const lim = parseInt(limit as string);
+        filteredProducts = filteredProducts.slice(off, off + lim);
       }
 
       res.json(filteredProducts);
@@ -2735,6 +2753,11 @@ export async function registerAdminRoutes(app: Express) {
       
       if (!supplier) {
         return res.status(404).json({ message: "Supplier not found" });
+      }
+
+      // Record-level market ownership check
+      if (!canAccessMarket(req as AdminAuthRequest, supplier.marketCode || 'ro')) {
+        return res.status(403).json({ message: "Access denied for this market" });
       }
       
       res.json(supplier);
@@ -3657,23 +3680,15 @@ export async function registerAdminRoutes(app: Express) {
             marketContacts: r.market_contacts
           });
         }
-        // No market-specific row found — create one from global row data (get-or-create)
-        const globalRow = await pool.query(
-          `SELECT * FROM company_settings ORDER BY created_at ASC LIMIT 1`
-        );
-        const g = globalRow.rows.length > 0 ? globalRow.rows[0] : null;
-        const baseData = g ? {
-          name: g.name, email: g.email, logisticsEmail: g.logistics_email,
-          phone: g.phone, address: g.address, city: g.city, state: g.state,
-          zipCode: g.zip_code, country: g.country, contactPerson: g.contact_person,
-          website: g.website, vatNumber: g.vat_number, registrationNumber: g.registration_number,
-          bankName: g.bank_name, iban: g.iban, description: g.description,
-          defaultCurrency: g.default_currency, defaultVatPercentage: g.default_vat_percentage,
-          reverseChargeVat: g.reverse_charge_vat,
-          freeShippingThreshold: g.free_shipping_threshold,
-          standardShippingCost: g.standard_shipping_cost
-        } : DEFAULTS;
-        // Create the market-specific row so future GETs will have it
+        // No market-specific row found — create an empty row for this market (no data cloned from other markets)
+        const emptyData = {
+          name: '', email: '', logisticsEmail: '', phone: '', address: '', city: '', state: '',
+          zipCode: '', country: '', contactPerson: '', website: '', vatNumber: '',
+          registrationNumber: '', bankName: '', iban: '', description: '',
+          defaultCurrency: 'RON', defaultVatPercentage: 19, reverseChargeVat: false,
+          freeShippingThreshold: null, standardShippingCost: null
+        };
+        // Create the empty market-specific row so future GETs will find it
         try {
           await pool.query(`
             INSERT INTO company_settings (
@@ -3682,14 +3697,10 @@ export async function registerAdminRoutes(app: Express) {
               default_currency, default_vat_percentage, reverse_charge_vat, free_shipping_threshold, standard_shipping_cost
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
             ON CONFLICT (market_code) DO NOTHING
-          `, [market, baseData.name, baseData.email, baseData.logisticsEmail, baseData.phone,
-              baseData.address, baseData.city, baseData.state, baseData.zipCode, baseData.country,
-              baseData.contactPerson, baseData.website, baseData.vatNumber, baseData.registrationNumber,
-              baseData.bankName, baseData.iban, baseData.description,
-              baseData.defaultCurrency, baseData.defaultVatPercentage, baseData.reverseChargeVat,
-              baseData.freeShippingThreshold, baseData.standardShippingCost]);
-        } catch (_) { /* ignore if row was created concurrently */ }
-        return res.json({ ...baseData, marketCode: market, marketContacts: g?.market_contacts || null });
+          `, [market, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+              'RON', 19, false, null, null]);
+        } catch (_) { /* ignore concurrent create */ }
+        return res.json({ ...emptyData, marketCode: market, marketContacts: null });
       }
 
       // No market: return global settings (first row)
@@ -4514,6 +4525,12 @@ export async function registerAdminRoutes(app: Express) {
       if (!voucher) {
         return res.status(404).json({ message: "Voucher not found" });
       }
+
+      // Record-level market ownership check
+      if (!canAccessMarket(req as AdminAuthRequest, voucher.marketCode || 'ro')) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
       res.json(voucher);
     } catch (error) {
       console.error("Error fetching voucher:", error);
