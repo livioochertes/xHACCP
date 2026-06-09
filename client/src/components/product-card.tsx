@@ -42,6 +42,11 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
     ? (parseFloat(product.compareAtPrice) - parseFloat(product.price)).toFixed(2)
     : null;
 
+  const specs = Array.isArray((product as any).specs)
+    ? ((product as any).specs as { label: string; value: string }[]).filter(s => s.label && s.value)
+    : [];
+  const visibleSpecs = specs.slice(0, 3);
+
   return (
     <Card className="product-card group cursor-pointer hover:shadow-md transition-shadow h-full">
       <Link href={`/products/${product.slug}`}>
@@ -99,6 +104,19 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
                   </Badge>
                 )}
               </div>
+
+              {/* Specs shown below price — only when product has specs */}
+              {visibleSpecs.length > 0 && (
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  {visibleSpecs.map((spec, i) => (
+                    <span key={i}>
+                      {i > 0 && <span className="mx-1.5 text-gray-300">•</span>}
+                      <span className="font-medium text-gray-600">{spec.label}:</span>{" "}
+                      <span>{spec.value}</span>
+                    </span>
+                  ))}
+                </p>
+              )}
               
               <Button
                 onClick={handleAddToCart}
