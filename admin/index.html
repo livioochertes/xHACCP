@@ -532,7 +532,9 @@
     window.fetchCategories = async (setCategoriesCallback) => {
       try {
         const token = localStorage.getItem('adminToken');
-        const response = await fetch('/admin/api/categories', {
+        const market = sessionStorage.getItem('adminMarketTab');
+        const marketParam = market && market !== 'all' ? `?market=${market}` : '';
+        const response = await fetch(`/admin/api/categories${marketParam}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -757,7 +759,8 @@
         maxUses: '',
         isActive: true,
         validFrom: '',
-        validUntil: ''
+        validUntil: '',
+        marketCode: 'ro'
       });
       const [marketsData, setMarketsData] = useState({ro: null, fr: null, com: null});
       const [marketsLoading, setMarketsLoading] = useState(false);
@@ -912,6 +915,11 @@
         sessionStorage.setItem('adminMarketTab', selectedMarketTab);
         setMarketFilter(selectedMarketTab);
         if (activeView === 'users') fetchUsers();
+        else if (activeView === 'products') fetchProducts();
+        else if (activeView === 'categories') fetchCategories();
+        else if (activeView === 'suppliers') fetchSuppliers();
+        else if (activeView === 'vouchers') fetchVouchers();
+        else if (activeView === 'company-settings') fetchCompanySettings();
       }, [selectedMarketTab]);
 
       // Refetch orders from server when market filter changes (server-side filtering)
@@ -1051,7 +1059,8 @@
 
       const fetchProducts = async () => {
         try {
-          const response = await fetch('/admin/api/products', {
+          const marketParam = selectedMarketTab && selectedMarketTab !== 'all' ? `?market=${selectedMarketTab}` : '';
+          const response = await fetch(`/admin/api/products${marketParam}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -1071,7 +1080,8 @@
 
       const fetchCategories = async () => {
         try {
-          const response = await fetch('/admin/api/categories', {
+          const marketParam = selectedMarketTab && selectedMarketTab !== 'all' ? `?market=${selectedMarketTab}` : '';
+          const response = await fetch(`/admin/api/categories${marketParam}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -1091,7 +1101,8 @@
 
       const fetchSuppliers = async () => {
         try {
-          const response = await fetch('/admin/api/suppliers', {
+          const marketParam = selectedMarketTab && selectedMarketTab !== 'all' ? `?market=${selectedMarketTab}` : '';
+          const response = await fetch(`/admin/api/suppliers${marketParam}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -1111,7 +1122,8 @@
 
       const fetchVouchers = async () => {
         try {
-          const response = await fetch('/admin/api/vouchers', {
+          const marketParam = selectedMarketTab && selectedMarketTab !== 'all' ? `?market=${selectedMarketTab}` : '';
+          const response = await fetch(`/admin/api/vouchers${marketParam}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -2366,13 +2378,13 @@
             fetchSuppliers();
           }
           fetchProductMarkets();
-        } else if (view === 'categories' && categories.length === 0) {
+        } else if (view === 'categories') {
           fetchCategories();
-        } else if (view === 'suppliers' && suppliers.length === 0) {
+        } else if (view === 'suppliers') {
           fetchSuppliers();
         } else if (view === 'company-settings') {
           fetchCompanySettings();
-        } else if (view === 'vouchers' && vouchers.length === 0) {
+        } else if (view === 'vouchers') {
           fetchVouchers();
         } else if (view === 'blog') {
           fetchBlogPosts();
@@ -3785,7 +3797,12 @@
                                 </div>
                               )}
                             </td>
-                            <td style={{padding: '12px', fontWeight: '500'}}>{category.name}</td>
+                            <td style={{padding: '12px', fontWeight: '500'}}>
+                              {category.name}
+                              <span style={{marginLeft: '6px', padding: '1px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: 'bold', background: category.marketCode === 'fr' ? '#e8f4f8' : category.marketCode === 'com' ? '#e8f8e8' : '#f0e8f8', color: category.marketCode === 'fr' ? '#1a6080' : category.marketCode === 'com' ? '#1a6030' : '#6020a0'}}>
+                                {(category.marketCode || 'ro').toUpperCase()}
+                              </span>
+                            </td>
                             <td style={{padding: '12px', fontFamily: 'monospace', fontSize: '14px', color: '#666'}}>{category.slug}</td>
                             <td style={{padding: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
                               {category.description || 'No description'}
@@ -3905,7 +3922,8 @@
                         apiKey: '',
                         integrationType: 'email',
                         notes: '',
-                        isActive: true
+                        isActive: true,
+                        marketCode: selectedMarketTab && selectedMarketTab !== 'all' ? selectedMarketTab : 'ro'
                       };
                       setSupplierLoadTrigger(prev => prev + 1);
                       setShowEditSupplierModal(true);
@@ -3982,7 +4000,12 @@
                               />
                             </td>
                             <td style={{padding: '12px', color: '#333'}}>
-                              <div style={{fontWeight: 'bold'}}>{supplier.name}</div>
+                              <div style={{fontWeight: 'bold'}}>
+                                {supplier.name}
+                                <span style={{marginLeft: '6px', padding: '1px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: 'bold', background: supplier.marketCode === 'fr' ? '#e8f4f8' : supplier.marketCode === 'com' ? '#e8f8e8' : '#f0e8f8', color: supplier.marketCode === 'fr' ? '#1a6080' : supplier.marketCode === 'com' ? '#1a6030' : '#6020a0'}}>
+                                  {(supplier.marketCode || 'ro').toUpperCase()}
+                                </span>
+                              </div>
                               <div style={{fontSize: '12px', color: '#666'}}>{supplier.contactPerson}</div>
                             </td>
                             <td style={{padding: '12px', color: '#333'}}>
@@ -4071,7 +4094,8 @@
                                       apiKey: supplier.apiKey || '',
                                       integrationType: supplier.integrationType || 'email',
                                       notes: supplier.notes || '',
-                                      isActive: supplier.isActive !== undefined ? supplier.isActive : true
+                                      isActive: supplier.isActive !== undefined ? supplier.isActive : true,
+                                      marketCode: supplier.marketCode || 'ro'
                                     };
                                     setSupplierLoadTrigger(prev => prev + 1);
                                     setShowEditSupplierModal(true);
@@ -4324,7 +4348,8 @@
                         maxUses: '',
                         isActive: true,
                         validFrom: '',
-                        validUntil: ''
+                        validUntil: '',
+                        marketCode: selectedMarketTab && selectedMarketTab !== 'all' ? selectedMarketTab : 'ro'
                       });
                       setEditingVoucher(null);
                       setShowAddVoucherModal(true);
@@ -4347,6 +4372,7 @@
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Name</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Discount</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Min Order</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Piață</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Usage</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Valid Period</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Status</th>
@@ -4367,6 +4393,11 @@
                             </td>
                             <td style={{padding: '12px'}}>
                               {voucher.minOrderAmount ? `${voucher.minOrderAmount} RON` : '-'}
+                            </td>
+                            <td style={{padding: '12px'}}>
+                              <span style={{padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 'bold', background: voucher.marketCode === 'fr' ? '#e8f4f8' : voucher.marketCode === 'com' ? '#e8f8e8' : '#f0e8f8', color: voucher.marketCode === 'fr' ? '#1a6080' : voucher.marketCode === 'com' ? '#1a6030' : '#6020a0'}}>
+                                {(voucher.marketCode || 'ro').toUpperCase()}
+                              </span>
                             </td>
                             <td style={{padding: '12px'}}>
                               {voucher.usedCount || 0}{voucher.maxUses ? ` / ${voucher.maxUses}` : ''}
@@ -4408,7 +4439,8 @@
                                       maxUses: voucher.maxUses || '',
                                       isActive: voucher.isActive !== false,
                                       validFrom: voucher.validFrom ? new Date(voucher.validFrom).toISOString().slice(0, 16) : '',
-                                      validUntil: voucher.validUntil ? new Date(voucher.validUntil).toISOString().slice(0, 16) : ''
+                                      validUntil: voucher.validUntil ? new Date(voucher.validUntil).toISOString().slice(0, 16) : '',
+                                      marketCode: voucher.marketCode || 'ro'
                                     });
                                     setShowAddVoucherModal(true);
                                   }}
@@ -4458,6 +4490,19 @@
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '500px'}}>
                       <h3 style={{marginBottom: '20px'}}>{editingVoucher ? 'Edit Voucher' : 'Add New Voucher'}</h3>
                       
+                      <div style={{marginBottom: '15px'}}>
+                        <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Piață *</label>
+                        <select
+                          value={voucherForm.marketCode}
+                          onChange={(e) => setVoucherForm({...voucherForm, marketCode: e.target.value})}
+                          style={{width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd'}}
+                        >
+                          <option value="ro">🇷🇴 România (ro)</option>
+                          <option value="fr">🇫🇷 France (fr)</option>
+                          <option value="com">🌍 International (com)</option>
+                        </select>
+                      </div>
+
                       <div style={{marginBottom: '15px'}}>
                         <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Voucher Code *</label>
                         <input
@@ -4586,7 +4631,8 @@
                                 maxUses: voucherForm.maxUses ? parseInt(voucherForm.maxUses) : null,
                                 isActive: voucherForm.isActive,
                                 validFrom: voucherForm.validFrom ? new Date(voucherForm.validFrom).toISOString() : null,
-                                validUntil: voucherForm.validUntil ? new Date(voucherForm.validUntil).toISOString() : null
+                                validUntil: voucherForm.validUntil ? new Date(voucherForm.validUntil).toISOString() : null,
+                                marketCode: voucherForm.marketCode || 'ro'
                               };
                               
                               const url = editingVoucher 
@@ -5659,7 +5705,8 @@
           apiKey: '',
           integrationType: 'email',
           notes: '',
-          isActive: true
+          isActive: true,
+          marketCode: 'ro'
         });
 
         // Load supplier form data when trigger changes
@@ -7965,6 +8012,26 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                           <option value="false">Inactive</option>
                         </select>
                       </div>
+
+                      <div>
+                        <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>
+                          Piață
+                        </label>
+                        <select
+                          value={supplierFormData.marketCode || 'ro'}
+                          onChange={(e) => setSupplierFormData({...supplierFormData, marketCode: e.target.value})}
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          <option value="ro">🇷🇴 România (ro)</option>
+                          <option value="fr">🇫🇷 France (fr)</option>
+                          <option value="com">🌍 International (com)</option>
+                        </select>
+                      </div>
                     </div>
                     
                     {supplierFormData.integrationType === 'api' && (
@@ -8725,7 +8792,8 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                     const categoryData = {
                       name: formData.get('name'),
                       description: formData.get('description'),
-                      slug: formData.get('slug') || formData.get('name').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+                      slug: formData.get('slug') || formData.get('name').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+                      marketCode: formData.get('marketCode') || 'ro'
                     };
                     
                     let result;
@@ -8772,6 +8840,14 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                         defaultValue={editingCategory?.slug || ''}
                         placeholder="auto-generated-from-name"
                       />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Piață</label>
+                      <select name="marketCode" className="form-input" defaultValue={editingCategory?.marketCode || (selectedMarketTab && selectedMarketTab !== 'all' ? selectedMarketTab : 'ro')}>
+                        <option value="ro">🇷🇴 România (ro)</option>
+                        <option value="fr">🇫🇷 France (fr)</option>
+                        <option value="com">🌍 International (com)</option>
+                      </select>
                     </div>
                     
                     <div className="form-group">

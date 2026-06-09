@@ -71,7 +71,7 @@ export interface IStorage {
   deleteUser(id: number): Promise<void>;
 
   // Category operations
-  getCategories(): Promise<Category[]>;
+  getCategories(market?: string): Promise<Category[]>;
   getCategory(id: number): Promise<Category | undefined>;
   getCategoryBySlug(slug: string): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
@@ -124,7 +124,7 @@ export interface IStorage {
   createReview(review: InsertReview): Promise<Review>;
 
   // Supplier operations
-  getSuppliers(): Promise<Supplier[]>;
+  getSuppliers(market?: string): Promise<Supplier[]>;
   getSupplier(id: number): Promise<Supplier | undefined>;
   createSupplier(supplier: InsertSupplier): Promise<Supplier>;
   updateSupplier(id: number, supplier: Partial<InsertSupplier>): Promise<Supplier>;
@@ -154,9 +154,9 @@ export interface IStorage {
   createShippingSettings(settings: InsertShippingSettings): Promise<ShippingSettings>;
 
   // Voucher operations
-  getVouchers(): Promise<Voucher[]>;
+  getVouchers(market?: string): Promise<Voucher[]>;
   getVoucher(id: number): Promise<Voucher | undefined>;
-  getVoucherByCode(code: string): Promise<Voucher | undefined>;
+  getVoucherByCode(code: string, market?: string): Promise<Voucher | undefined>;
   createVoucher(voucher: InsertVoucher): Promise<Voucher>;
   updateVoucher(id: number, voucher: Partial<InsertVoucher>): Promise<Voucher>;
   deleteVoucher(id: number): Promise<void>;
@@ -220,7 +220,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Category operations
-  async getCategories(): Promise<Category[]> {
+  async getCategories(market?: string): Promise<Category[]> {
+    if (market && market !== 'all') {
+      return await db.select().from(categories).where(eq(categories.marketCode, market)).orderBy(categories.name);
+    }
     return await db.select().from(categories).orderBy(categories.name);
   }
 
@@ -850,7 +853,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Supplier operations
-  async getSuppliers(): Promise<Supplier[]> {
+  async getSuppliers(market?: string): Promise<Supplier[]> {
+    if (market && market !== 'all') {
+      return await db.select().from(suppliers).where(eq(suppliers.marketCode, market)).orderBy(suppliers.name);
+    }
     return await db.select().from(suppliers).orderBy(suppliers.name);
   }
 
@@ -1158,7 +1164,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Voucher operations
-  async getVouchers(): Promise<Voucher[]> {
+  async getVouchers(market?: string): Promise<Voucher[]> {
+    if (market && market !== 'all') {
+      return db.select().from(vouchers).where(eq(vouchers.marketCode, market)).orderBy(desc(vouchers.createdAt));
+    }
     return db.select().from(vouchers).orderBy(desc(vouchers.createdAt));
   }
 
@@ -1167,7 +1176,14 @@ export class DatabaseStorage implements IStorage {
     return voucher;
   }
 
-  async getVoucherByCode(code: string): Promise<Voucher | undefined> {
+  async getVoucherByCode(code: string, market?: string): Promise<Voucher | undefined> {
+    if (market && market !== 'all') {
+      const [voucher] = await db.select().from(vouchers).where(
+        and(eq(vouchers.code, code.toUpperCase()), eq(vouchers.marketCode, market))
+      );
+      if (voucher) return voucher;
+      // Fallback: voucher with no market set (marketCode is null or 'ro') — treated as global
+    }
     const [voucher] = await db.select().from(vouchers).where(eq(vouchers.code, code.toUpperCase()));
     return voucher;
   }

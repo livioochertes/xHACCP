@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "./storage";
 import { db, pool } from "./db";
-import { companySettings, suppliers } from "@shared/schema";
+import { companySettings, suppliers, productMarkets } from "@shared/schema";
 import { desc, eq, and } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -1790,7 +1790,7 @@ export async function registerAdminRoutes(app: Express) {
   // Admin Product Management Routes
   app.get("/admin/api/products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { search, categoryId, featured, limit = 50, offset = 0, supplierId } = req.query;
+      const { search, categoryId, featured, limit = 50, offset = 0, supplierId, market } = req.query;
       
       const products = await storage.getProducts({
         search: search as string,
@@ -1803,7 +1803,14 @@ export async function registerAdminRoutes(app: Express) {
       // Filter by supplier if specified
       let filteredProducts = products;
       if (supplierId) {
-        filteredProducts = products.filter(product => product.supplierId === parseInt(supplierId as string));
+        filteredProducts = filteredProducts.filter(product => product.supplierId === parseInt(supplierId as string));
+      }
+
+      // Filter by market if specified — show only products assigned to that market via product_markets
+      if (market && market !== 'all') {
+        const marketRows = await db.select().from(productMarkets).where(eq(productMarkets.market, market as string));
+        const marketProductIds = new Set(marketRows.map(r => r.productId));
+        filteredProducts = filteredProducts.filter(p => marketProductIds.has(p.id));
       }
 
       res.json(filteredProducts);
@@ -2238,7 +2245,8 @@ export async function registerAdminRoutes(app: Express) {
   // Admin Category Management Routes
   app.get("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const categories = await storage.getCategories();
+      const market = req.query.market as string | undefined;
+      const categories = await storage.getCategories(market);
       res.json(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -2248,7 +2256,7 @@ export async function registerAdminRoutes(app: Express) {
 
   app.post("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { name, description, imageUrl } = req.body;
+      const { name, description, imageUrl, marketCode } = req.body;
       
       if (!name) {
         return res.status(400).json({ message: "Category name is required" });
@@ -2264,7 +2272,8 @@ export async function registerAdminRoutes(app: Express) {
         name,
         slug,
         description,
-        imageUrl: cleanImageUrl
+        imageUrl: cleanImageUrl,
+        marketCode: marketCode || 'ro',
       });
 
       await loadAllDataIntoMemory();
@@ -2278,7 +2287,7 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/categories/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const categoryId = parseInt(req.params.id);
-      const { name, description, imageUrl } = req.body;
+      const { name, description, imageUrl, marketCode } = req.body;
       
       // Extract clean URL from imageUrl (handles objects and strings)
       const cleanImageUrl = imageUrl !== undefined ? extractImageUrl(imageUrl) : undefined;
@@ -2286,7 +2295,8 @@ export async function registerAdminRoutes(app: Express) {
       const updatedCategory = await storage.updateCategory(categoryId, {
         name,
         description,
-        imageUrl: cleanImageUrl
+        imageUrl: cleanImageUrl,
+        ...(marketCode !== undefined ? { marketCode } : {}),
       });
 
       await loadAllDataIntoMemory();
@@ -2654,7 +2664,8 @@ export async function registerAdminRoutes(app: Express) {
   // Supplier routes
   app.get("/admin/api/suppliers", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const suppliers = await storage.getSuppliers();
+      const market = req.query.market as string | undefined;
+      const suppliers = await storage.getSuppliers(market);
       res.json(suppliers);
     } catch (error) {
       console.error("Error fetching suppliers:", error);
@@ -2680,7 +2691,7 @@ export async function registerAdminRoutes(app: Express) {
 
   app.post("/admin/api/suppliers", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { name, email, phone, address, city, state, zipCode, country, contactPerson, apiEndpoint, apiKey, integrationType, notes, isActive } = req.body;
+      const { name, email, phone, address, city, state, zipCode, country, contactPerson, apiEndpoint, apiKey, integrationType, notes, isActive, marketCode } = req.body;
       
       if (!name || !email) {
         return res.status(400).json({ message: "Name and email are required" });
@@ -2700,7 +2711,8 @@ export async function registerAdminRoutes(app: Express) {
         apiKey,
         integrationType: integrationType || 'email',
         notes,
-        isActive: isActive !== undefined ? isActive : true
+        isActive: isActive !== undefined ? isActive : true,
+        marketCode: marketCode || 'ro',
       });
       
       res.json(supplier);
@@ -2713,7 +2725,7 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/suppliers/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const { id } = req.params;
-      const { name, email, phone, address, city, state, zipCode, country, contactPerson, apiEndpoint, apiKey, integrationType, notes, isActive } = req.body;
+      const { name, email, phone, address, city, state, zipCode, country, contactPerson, apiEndpoint, apiKey, integrationType, notes, isActive, marketCode } = req.body;
       
       const supplier = await storage.updateSupplier(parseInt(id), {
         name,
@@ -2729,7 +2741,8 @@ export async function registerAdminRoutes(app: Express) {
         apiKey,
         integrationType,
         notes,
-        isActive
+        isActive,
+        ...(marketCode !== undefined ? { marketCode } : {}),
       });
       
       res.json(supplier);
@@ -3459,7 +3472,8 @@ export async function registerAdminRoutes(app: Express) {
   // Category Management Routes
   app.get("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const categories = await storage.getCategories();
+      const market = req.query.market as string | undefined;
+      const categories = await storage.getCategories(market);
       res.json(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -3469,7 +3483,7 @@ export async function registerAdminRoutes(app: Express) {
 
   app.post("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { name, description, imageUrl, showOnMainTop, showOnMainShop, sortOrder } = req.body;
+      const { name, description, imageUrl, showOnMainTop, showOnMainShop, sortOrder, marketCode } = req.body;
       
       if (!name) {
         return res.status(400).json({ message: "Category name is required" });
@@ -3486,6 +3500,7 @@ export async function registerAdminRoutes(app: Express) {
         showOnMainTop: showOnMainTop || false,
         showOnMainShop: showOnMainShop || false,
         sortOrder: sortOrder || 0,
+        marketCode: marketCode || 'ro',
       };
 
       const category = await storage.createCategory(categoryData);
@@ -3503,7 +3518,7 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/categories/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const categoryId = parseInt(req.params.id);
-      const { name, description, imageUrl, showOnMainTop, showOnMainShop, sortOrder } = req.body;
+      const { name, description, imageUrl, showOnMainTop, showOnMainShop, sortOrder, marketCode } = req.body;
       
       if (isNaN(categoryId)) {
         return res.status(400).json({ message: "Invalid category ID" });
@@ -3521,6 +3536,7 @@ export async function registerAdminRoutes(app: Express) {
       if (showOnMainTop !== undefined) updateData.showOnMainTop = showOnMainTop;
       if (showOnMainShop !== undefined) updateData.showOnMainShop = showOnMainShop;
       if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+      if (marketCode !== undefined) updateData.marketCode = marketCode;
 
       const category = await storage.updateCategory(categoryId, updateData);
       
@@ -4425,7 +4441,8 @@ export async function registerAdminRoutes(app: Express) {
   // Voucher Routes
   app.get("/admin/api/vouchers", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const vouchers = await storage.getVouchers();
+      const market = req.query.market as string | undefined;
+      const vouchers = await storage.getVouchers(market);
       res.json(vouchers);
     } catch (error) {
       console.error("Error fetching vouchers:", error);
@@ -4457,6 +4474,8 @@ export async function registerAdminRoutes(app: Express) {
       if (voucherData.validUntil) {
         voucherData.validUntil = new Date(voucherData.validUntil);
       }
+      // Default market to 'ro' if not provided
+      if (!voucherData.marketCode) voucherData.marketCode = 'ro';
       const voucher = await storage.createVoucher(voucherData);
       res.status(201).json(voucher);
     } catch (error) {
