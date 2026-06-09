@@ -3520,26 +3520,6 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // Category Management Routes
-  app.get("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
-    try {
-      let market = req.query.market as string | undefined;
-      const allowedMkts2 = req.adminMarkets || [];
-      const isSuperAdm2 = allowedMkts2.length === 0;
-      if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market)) {
-        return res.status(403).json({ message: "Access denied for this market" });
-      }
-      if (!isSuperAdm2 && (!market || market === 'all')) {
-        market = allowedMkts2[0];
-      }
-      const categories = await storage.getCategories(market);
-      res.json(categories);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      res.status(500).json({ message: "Failed to fetch categories" });
-    }
-  });
-
   app.post("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const { name, description, imageUrl, showOnMainTop, showOnMainShop, sortOrder, marketCode } = req.body;
@@ -3792,7 +3772,12 @@ export async function registerAdminRoutes(app: Express) {
 
   app.put("/admin/api/company-settings", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const market = req.query.market as string | undefined;
+      const market = (req.query.market as string | undefined);
+      // Enforce market authorization
+      const effectiveMarket = market && market !== 'all' ? market : 'ro';
+      if (!canAccessMarket(req as AdminAuthRequest, effectiveMarket)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const { 
         name, email, logisticsEmail, phone, address, city, state, zipCode, country, 
         contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,

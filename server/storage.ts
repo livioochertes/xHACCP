@@ -146,6 +146,7 @@ export interface IStorage {
 
   // Company settings operations
   getCompanySettings(): Promise<CompanySettings | undefined>;
+  getCompanySettingsByMarket(market: string): Promise<CompanySettings | undefined>;
   updateCompanySettings(settings: Partial<InsertCompanySettings>): Promise<CompanySettings>;
 
   // Shipping settings operations
@@ -1112,6 +1113,18 @@ export class DatabaseStorage implements IStorage {
   async getCompanySettings(): Promise<CompanySettings | undefined> {
     const [settings] = await db.select().from(companySettings).limit(1);
     return settings;
+  }
+
+  async getCompanySettingsByMarket(market: string): Promise<CompanySettings | undefined> {
+    // Try exact market-specific row first
+    const [marketRow] = await db.select().from(companySettings).where(eq(companySettings.marketCode, market)).limit(1);
+    if (marketRow) return marketRow;
+    // Fallback to 'ro' (global/default) row
+    const [roRow] = await db.select().from(companySettings).where(eq(companySettings.marketCode, 'ro')).limit(1);
+    if (roRow) return roRow;
+    // Last resort: any row
+    const [anyRow] = await db.select().from(companySettings).limit(1);
+    return anyRow;
   }
 
   async updateCompanySettings(settings: Partial<InsertCompanySettings>): Promise<CompanySettings> {

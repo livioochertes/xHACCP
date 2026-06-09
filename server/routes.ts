@@ -2303,7 +2303,8 @@ Sitemap: https://${domain}/sitemap.xml
                       }
                     }
                     if (!supplierInfo) {
-                      const companySettings = await storage.getCompanySettings();
+                      const orderMkt = (createdOrder.market as string) || 'ro';
+                      const companySettings = await storage.getCompanySettingsByMarket(orderMkt);
                       const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
                       supplierInfo = {
                         supplierName: companySettings?.name || 'xHACCP',
@@ -3482,7 +3483,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                           }
                         }
                         if (!supplierInfo) {
-                          const companySettings = await storage.getCompanySettings();
+                          const latestOrderMkt2 = (latestOrder.market as string) || "ro";
+                                                                                     const companySettings = await storage.getCompanySettingsByMarket(latestOrderMkt2);
                           const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
                           supplierInfo = {
                             supplierName: companySettings?.name || 'xHACCP',
@@ -3672,7 +3674,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                           }
                         }
                         if (!supplierInfo) {
-                          const companySettings = await storage.getCompanySettings();
+                          const latestOrderMkt2 = (latestOrder.market as string) || "ro";
+                                                                                     const companySettings = await storage.getCompanySettingsByMarket(latestOrderMkt2);
                           const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
                           supplierInfo = {
                             supplierName: companySettings?.name || 'xHACCP',
