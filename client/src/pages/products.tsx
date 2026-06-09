@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { usePageSeo } from "@/lib/use-page-seo";
+import { toSeoText } from "@/lib/seo-utils";
 
 import ProductCard from "@/components/product-card";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
@@ -22,8 +23,8 @@ export default function Products() {
   const { t } = useTranslation();
 
   usePageSeo({
-    title: "Catalog Produse HACCP & HoReCa | xHACCP",
-    description: "Explorează catalogul complet de echipamente și consumabile HACCP profesionale. Etichete HACCP, ustensile bucătărie, soluții pentru restaurante și HoReCa.",
+    title: `${toSeoText(t('home.hero.title'))} – ${t('products.title')} | xHACCP`,
+    description: toSeoText(t('home.hero.subtitle')),
   });
   
   const [searchQuery, setSearchQuery] = useState("");

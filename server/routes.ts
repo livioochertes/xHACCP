@@ -410,22 +410,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   </url>`),
         ...products.map(p => {
           const seoTitle = (p.name || '').replace(/xHACCP/gi, 'HACCP');
-          const rawImageUrl = p.imageUrl || '';
-          const absoluteImageUrl = rawImageUrl.startsWith('http')
-            ? rawImageUrl
-            : rawImageUrl
-              ? `${BASE_URL}${rawImageUrl.startsWith('/') ? '' : '/'}${rawImageUrl}`
-              : '';
           const escapedTitle = seoTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          const imageBlock = absoluteImageUrl
-            ? `\n    <image:image>\n      <image:loc>${absoluteImageUrl}</image:loc>\n      <image:title>${escapedTitle}</image:title>\n    </image:image>`
-            : '';
+
+          const makeAbsolute = (url: string) =>
+            url.startsWith('http') ? url : `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+
+          // Collect all images: primary + gallery
+          const allImageUrls: string[] = [];
+          if (p.imageUrl) allImageUrls.push(makeAbsolute(p.imageUrl));
+          if (Array.isArray((p as any).images)) {
+            for (const img of (p as any).images) {
+              const rawUrl = typeof img === 'string' ? img : img?.url;
+              if (rawUrl && rawUrl !== p.imageUrl) {
+                allImageUrls.push(makeAbsolute(rawUrl));
+              }
+            }
+          }
+
+          const imageBlocks = allImageUrls
+            .map(loc => `\n    <image:image>\n      <image:loc>${loc}</image:loc>\n      <image:title>${escapedTitle}</image:title>\n    </image:image>`)
+            .join('');
+
           return `
   <url>
     <loc>${BASE_URL}/products/${p.slug}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>${imageBlock}
+    <priority>0.8</priority>${imageBlocks}
   </url>`;
         }),
         ...publishedBlogPosts.map(b => `
