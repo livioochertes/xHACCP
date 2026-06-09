@@ -61,11 +61,21 @@ export default function ProductDetails() {
     enabled: !!product?.id,
   });
 
-  const { name: translatedName, description: translatedDescription } = useProductTranslation(
+  const { name: translatedName, description: translatedDescription, localizedSlug } = useProductTranslation(
     product?.id,
     product?.name || '',
-    product?.description || null
+    product?.description || null,
+    product?.slug
   );
+
+  // Replace URL with localized slug when available (e.g. French slug on .fr)
+  useEffect(() => {
+    if (!product || !localizedSlug) return;
+    const currentSlug = params?.slug;
+    if (currentSlug && localizedSlug !== currentSlug) {
+      window.history.replaceState(null, '', `/products/${localizedSlug}`);
+    }
+  }, [product, localizedSlug, params?.slug]);
 
   const { getCategoryName } = useCategoryTranslations(
     product?.category ? [product.category.id] : [],

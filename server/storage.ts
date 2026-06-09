@@ -424,78 +424,99 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProductBySlug(slug: string): Promise<ProductWithCategory | undefined> {
+    const productSelect = {
+      id: products.id,
+      name: products.name,
+      slug: products.slug,
+      description: products.description,
+      price: products.price,
+      compareAtPrice: products.compareAtPrice,
+      categoryId: products.categoryId,
+      supplierId: products.supplierId,
+      imageUrl: products.imageUrl,
+      images: products.images,
+      inStock: products.inStock,
+      stockQuantity: products.stockQuantity,
+      featured: products.featured,
+      rating: products.rating,
+      reviewCount: products.reviewCount,
+      vatValue: products.vatValue,
+      vatPercentage: products.vatPercentage,
+      currency: products.currency,
+      productCode: products.productCode,
+      ncCode: products.ncCode,
+      cpvCode: products.cpvCode,
+      status: products.status,
+      weight: products.weight,
+      length: products.length,
+      width: products.width,
+      height: products.height,
+      piecesPerPackage: products.piecesPerPackage,
+      productQuantity: products.productQuantity,
+      specs: products.specs,
+      volumeDiscounts: products.volumeDiscounts,
+      priority: products.priority,
+      createdAt: products.createdAt,
+      updatedAt: products.updatedAt,
+      category: {
+        id: categories.id,
+        name: categories.name,
+        slug: categories.slug,
+        description: categories.description,
+        imageUrl: categories.imageUrl,
+        showOnMainTop: categories.showOnMainTop,
+        showOnMainShop: categories.showOnMainShop,
+        sortOrder: categories.sortOrder,
+        createdAt: categories.createdAt,
+      },
+      supplier: {
+        id: suppliers.id,
+        name: suppliers.name,
+        email: suppliers.email,
+        phone: suppliers.phone,
+        address: suppliers.address,
+        city: suppliers.city,
+        state: suppliers.state,
+        zipCode: suppliers.zipCode,
+        country: suppliers.country,
+        contactPerson: suppliers.contactPerson,
+        apiEndpoint: suppliers.apiEndpoint,
+        apiKey: suppliers.apiKey,
+        integrationType: suppliers.integrationType,
+        notes: suppliers.notes,
+        isActive: suppliers.isActive,
+        createdAt: suppliers.createdAt,
+        updatedAt: suppliers.updatedAt,
+      },
+    };
+
+    // 1. Try global slug first
     const [product] = await db
-      .select({
-        id: products.id,
-        name: products.name,
-        slug: products.slug,
-        description: products.description,
-        price: products.price,
-        compareAtPrice: products.compareAtPrice,
-        categoryId: products.categoryId,
-        supplierId: products.supplierId,
-        imageUrl: products.imageUrl,
-        images: products.images,
-        inStock: products.inStock,
-        stockQuantity: products.stockQuantity,
-        featured: products.featured,
-        rating: products.rating,
-        reviewCount: products.reviewCount,
-        vatValue: products.vatValue,
-        vatPercentage: products.vatPercentage,
-        currency: products.currency,
-        productCode: products.productCode,
-        ncCode: products.ncCode,
-        cpvCode: products.cpvCode,
-        status: products.status,
-        weight: products.weight,
-        length: products.length,
-        width: products.width,
-        height: products.height,
-        piecesPerPackage: products.piecesPerPackage,
-        productQuantity: products.productQuantity,
-        specs: products.specs,
-        volumeDiscounts: products.volumeDiscounts,
-        priority: products.priority,
-        createdAt: products.createdAt,
-        updatedAt: products.updatedAt,
-        category: {
-          id: categories.id,
-          name: categories.name,
-          slug: categories.slug,
-          description: categories.description,
-          imageUrl: categories.imageUrl,
-          showOnMainTop: categories.showOnMainTop,
-          showOnMainShop: categories.showOnMainShop,
-          sortOrder: categories.sortOrder,
-          createdAt: categories.createdAt,
-        },
-        supplier: {
-          id: suppliers.id,
-          name: suppliers.name,
-          email: suppliers.email,
-          phone: suppliers.phone,
-          address: suppliers.address,
-          city: suppliers.city,
-          state: suppliers.state,
-          zipCode: suppliers.zipCode,
-          country: suppliers.country,
-          contactPerson: suppliers.contactPerson,
-          apiEndpoint: suppliers.apiEndpoint,
-          apiKey: suppliers.apiKey,
-          integrationType: suppliers.integrationType,
-          notes: suppliers.notes,
-          isActive: suppliers.isActive,
-          createdAt: suppliers.createdAt,
-          updatedAt: suppliers.updatedAt,
-        },
-      })
+      .select(productSelect)
       .from(products)
       .leftJoin(categories, eq(products.categoryId, categories.id))
       .leftJoin(suppliers, eq(products.supplierId, suppliers.id))
       .where(eq(products.slug, slug));
-    
-    return product;
+
+    if (product) return product;
+
+    // 2. Fallback: look up by localized slug stored in product_translations
+    const [translation] = await db
+      .select({ productId: productTranslations.productId })
+      .from(productTranslations)
+      .where(eq(productTranslations.slug, slug))
+      .limit(1);
+
+    if (!translation) return undefined;
+
+    const [localizedProduct] = await db
+      .select(productSelect)
+      .from(products)
+      .leftJoin(categories, eq(products.categoryId, categories.id))
+      .leftJoin(suppliers, eq(products.supplierId, suppliers.id))
+      .where(eq(products.id, translation.productId));
+
+    return localizedProduct;
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "../contexts/language-context";
 import { getMarketFromHostname } from "../lib/queryClient";
+import { toSlug } from "../lib/slug-utils";
 import type { ProductTranslation } from "@shared/schema";
 
 interface TranslatedProduct {
@@ -8,7 +9,7 @@ interface TranslatedProduct {
   description: string | null;
 }
 
-export function useProductTranslation(productId: number | undefined, originalName: string, originalDescription: string | null) {
+export function useProductTranslation(productId: number | undefined, originalName: string, originalDescription: string | null, originalSlug?: string) {
   const { language } = useLanguage();
   
   const { data: translation } = useQuery<ProductTranslation>({
@@ -19,13 +20,19 @@ export function useProductTranslation(productId: number | undefined, originalNam
   if (!productId || language === 'en' || !translation) {
     return {
       name: originalName,
-      description: originalDescription
+      description: originalDescription,
+      localizedSlug: originalSlug || null,
     };
   }
 
+  const translatedName = translation.name || originalName;
+  // Use stored slug if available, otherwise generate from translated name
+  const localizedSlug = translation.slug || toSlug(translatedName);
+
   return {
-    name: translation.name || originalName,
-    description: translation.description || originalDescription
+    name: translatedName,
+    description: translation.description || originalDescription,
+    localizedSlug,
   };
 }
 

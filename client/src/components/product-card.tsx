@@ -25,7 +25,7 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const { t } = useTranslation();
-  const { name: translatedName, description: translatedDescription } = useProductTranslation(product.id, product.name, product.description);
+  const { name: translatedName, description: translatedDescription, localizedSlug } = useProductTranslation(product.id, product.name, product.description, product.slug);
   const { getCategoryName } = useCategoryTranslations(
     product.category ? [product.category.id] : [],
     product.category ? [product.category as any] : []
@@ -51,9 +51,11 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
 
   const descSnippet = stripHtml(translatedDescription);
 
+  const productSlug = localizedSlug || product.slug;
+
   return (
     <Card className="product-card group cursor-pointer hover:shadow-md transition-shadow h-full">
-      <Link href={`/products/${product.slug}`}>
+      <Link href={`/products/${productSlug}`}>
         <CardContent className="p-0 h-full flex flex-col">
           <div className="relative">
             <img
@@ -185,7 +187,7 @@ export const ProductListItem = memo(function ProductListItem({ product }: Produc
       <CardContent className="p-0">
         <div className="flex gap-4 p-4">
           {/* Image */}
-          <Link href={`/products/${product.slug}`} className="shrink-0">
+          <Link href={`/products/${productSlug}`} className="shrink-0">
             <div className="relative w-36 h-32 sm:w-44 sm:h-36 rounded-md overflow-hidden bg-gray-100">
               <img
                 src={product.imageUrl || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300"}
@@ -204,7 +206,7 @@ export const ProductListItem = memo(function ProductListItem({ product }: Produc
           {/* Content */}
           <div className="flex-1 min-w-0 flex flex-col justify-between gap-2">
             <div>
-              <Link href={`/products/${product.slug}`}>
+              <Link href={`/products/${productSlug}`}>
                 <h3 className="font-semibold text-gray-900 text-base hover:text-emerald-700 transition-colors line-clamp-2">
                   {translatedName}
                 </h3>
@@ -235,7 +237,7 @@ export const ProductListItem = memo(function ProductListItem({ product }: Produc
                   {snippet}{" "}
                   {descriptionText.length > 120 && (
                     <Link
-                      href={`/products/${product.slug}#description`}
+                      href={`/products/${productSlug}#description`}
                       className="text-emerald-600 hover:underline font-medium whitespace-nowrap"
                       onClick={(e) => e.stopPropagation()}
                     >
