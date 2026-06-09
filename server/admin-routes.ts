@@ -3520,103 +3520,6 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.post("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
-    try {
-      const { name, description, imageUrl, showOnMainTop, showOnMainShop, sortOrder, marketCode } = req.body;
-      
-      if (!name) {
-        return res.status(400).json({ message: "Category name is required" });
-      }
-
-      // Generate slug from name
-      const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      
-      const categoryData = {
-        name,
-        slug,
-        description: description || null,
-        imageUrl: imageUrl || null,
-        showOnMainTop: showOnMainTop || false,
-        showOnMainShop: showOnMainShop || false,
-        sortOrder: sortOrder || 0,
-        marketCode: marketCode || 'ro',
-      };
-
-      const category = await storage.createCategory(categoryData);
-      
-      // Refresh memory cache
-      await loadAllDataIntoMemory();
-      
-      res.json(category);
-    } catch (error) {
-      console.error("Error creating category:", error);
-      res.status(500).json({ message: "Failed to create category" });
-    }
-  });
-
-  app.put("/admin/api/categories/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
-    try {
-      const categoryId = parseInt(req.params.id);
-      const { name, description, imageUrl, showOnMainTop, showOnMainShop, sortOrder, marketCode } = req.body;
-      
-      if (isNaN(categoryId)) {
-        return res.status(400).json({ message: "Invalid category ID" });
-      }
-
-      const updateData: any = {};
-      
-      if (name !== undefined) {
-        updateData.name = name;
-        // Update slug if name changed
-        updateData.slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      }
-      if (description !== undefined) updateData.description = description;
-      if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
-      if (showOnMainTop !== undefined) updateData.showOnMainTop = showOnMainTop;
-      if (showOnMainShop !== undefined) updateData.showOnMainShop = showOnMainShop;
-      if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
-      if (marketCode !== undefined) updateData.marketCode = marketCode;
-
-      const category = await storage.updateCategory(categoryId, updateData);
-      
-      // Refresh memory cache
-      await loadAllDataIntoMemory();
-      
-      res.json(category);
-    } catch (error) {
-      console.error("Error updating category:", error);
-      res.status(500).json({ message: "Failed to update category" });
-    }
-  });
-
-  app.delete("/admin/api/categories/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
-    try {
-      const categoryId = parseInt(req.params.id);
-      
-      if (isNaN(categoryId)) {
-        return res.status(400).json({ message: "Invalid category ID" });
-      }
-
-      // Check if category has products
-      const products = await storage.getProducts({ categoryId });
-      if (products.length > 0) {
-        return res.status(400).json({ 
-          message: `Cannot delete category. It contains ${products.length} product(s). Please move or delete the products first.` 
-        });
-      }
-
-      await storage.deleteCategory(categoryId);
-      
-      // Refresh memory cache
-      await loadAllDataIntoMemory();
-      
-      res.json({ message: "Category deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting category:", error);
-      res.status(500).json({ message: "Failed to delete category" });
-    }
-  });
-
   // Bulk update category homepage positioning
   app.put("/admin/api/categories/bulk/homepage", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
@@ -3678,11 +3581,21 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // Company Settings Routes (also accessible for invoice display)
-  app.get("/admin/api/company-settings", async (req: Request, res: Response) => {
+  // Company Settings Routes
+  app.get("/admin/api/company-settings", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     console.log('Company settings API endpoint called');
     try {
-      const market = req.query.market as string | undefined;
+      let market = req.query.market as string | undefined;
+      const csAllowed = req.adminMarkets || [];
+      const csIsSuperAdmin = csAllowed.length === 0;
+      // Restricted admins default to their first market
+      if (!csIsSuperAdmin && (!market || market === 'all')) {
+        market = csAllowed[0];
+      }
+      // Enforce access control for explicit market
+      if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const DEFAULTS = {
         name: 'Namarte CCL SRL', email: 'info@xhaccp.com',
         logisticsEmail: 'logistics@xhaccp.com', phone: '+40 123 456 789',
