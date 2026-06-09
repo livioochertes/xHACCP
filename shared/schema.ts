@@ -275,6 +275,7 @@ export const suppliers = pgTable("suppliers", {
 // Company settings table
 export const companySettings = pgTable("company_settings", {
   id: serial("id").primaryKey(),
+  marketCode: varchar("market_code", { length: 10 }).default("ro"), // per-market row (null/ro = global/default)
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   logisticsEmail: varchar("logistics_email", { length: 255 }),

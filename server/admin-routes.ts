@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "./storage";
 import { db, pool } from "./db";
 import { companySettings, suppliers, productMarkets } from "@shared/schema";
-import { desc, eq, and } from "drizzle-orm";
+import { desc, eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
@@ -1818,7 +1818,7 @@ export async function registerAdminRoutes(app: Express) {
         const marketRows = await db.select().from(productMarkets).where(
           allowedMarkets.length === 1
             ? eq(productMarkets.market, allowedMarkets[0])
-            : (productMarkets.market as any).in(allowedMarkets)
+            : inArray(productMarkets.market, allowedMarkets)
         );
         const marketProductIds = new Set(marketRows.map(r => r.productId));
         filteredProducts = filteredProducts.filter(p => marketProductIds.has(p.id));
@@ -2261,9 +2261,15 @@ export async function registerAdminRoutes(app: Express) {
   // Admin Category Management Routes
   app.get("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const market = req.query.market as string | undefined;
+      let market = req.query.market as string | undefined;
+      const allowedMkts = req.adminMarkets || [];
+      const isSuperAdm = allowedMkts.length === 0;
       if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
+      }
+      // Restricted admins without explicit market default to their first market
+      if (!isSuperAdm && (!market || market === 'all')) {
+        market = allowedMkts[0];
       }
       const categories = await storage.getCategories(market);
       res.json(categories);
@@ -2692,9 +2698,14 @@ export async function registerAdminRoutes(app: Express) {
   // Supplier routes
   app.get("/admin/api/suppliers", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const market = req.query.market as string | undefined;
+      let market = req.query.market as string | undefined;
+      const suppAllowed = req.adminMarkets || [];
+      const suppIsSuperAdmin = suppAllowed.length === 0;
       if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (!suppIsSuperAdmin && (!market || market === 'all')) {
+        market = suppAllowed[0];
       }
       const suppliers = await storage.getSuppliers(market);
       res.json(suppliers);
@@ -3512,9 +3523,14 @@ export async function registerAdminRoutes(app: Express) {
   // Category Management Routes
   app.get("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const market = req.query.market as string | undefined;
+      let market = req.query.market as string | undefined;
+      const allowedMkts2 = req.adminMarkets || [];
+      const isSuperAdm2 = allowedMkts2.length === 0;
       if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (!isSuperAdm2 && (!market || market === 'all')) {
+        market = allowedMkts2[0];
       }
       const categories = await storage.getCategories(market);
       res.json(categories);
@@ -3687,70 +3703,87 @@ export async function registerAdminRoutes(app: Express) {
     console.log('Company settings API endpoint called');
     try {
       const market = req.query.market as string | undefined;
-      const [settings] = await db
-        .select({
-          name: companySettings.name,
-          email: companySettings.email,
-          logisticsEmail: companySettings.logisticsEmail,
-          phone: companySettings.phone,
-          address: companySettings.address,
-          city: companySettings.city,
-          state: companySettings.state,
-          zipCode: companySettings.zipCode,
-          country: companySettings.country,
-          contactPerson: companySettings.contactPerson,
-          website: companySettings.website,
-          vatNumber: companySettings.vatNumber,
-          registrationNumber: companySettings.registrationNumber,
-          bankName: companySettings.bankName,
-          iban: companySettings.iban,
-          description: companySettings.description,
-          defaultCurrency: companySettings.defaultCurrency,
-          defaultVatPercentage: companySettings.defaultVatPercentage,
-          reverseChargeVat: companySettings.reverseChargeVat,
-          freeShippingThreshold: companySettings.freeShippingThreshold,
-          standardShippingCost: companySettings.standardShippingCost,
-          marketContacts: companySettings.marketContacts,
-        })
-        .from(companySettings)
-        .orderBy(desc(companySettings.createdAt))
-        .limit(1);
-      
-      console.log('Company settings query result:', settings);
-      
-      if (settings) {
-        // If market requested, merge base settings with marketContacts[market] override
-        if (market && market !== 'all' && settings.marketContacts) {
-          const contacts = settings.marketContacts as Record<string, any>;
-          const marketOverride = contacts[market] || {};
-          res.json({ ...settings, ...marketOverride, marketContacts: settings.marketContacts });
-        } else {
-          res.json(settings);
+      const DEFAULTS = {
+        name: 'Namarte CCL SRL', email: 'info@xhaccp.com',
+        logisticsEmail: 'logistics@xhaccp.com', phone: '+40 123 456 789',
+        address: 'Calea Mosilor 158', city: 'Bucharest', state: 'Bucuresti',
+        zipCode: '020883', country: 'Romania', contactPerson: 'Company Administrator',
+        website: 'https://xhaccp.com', vatNumber: 'RO12345678',
+        registrationNumber: 'J40/12345/2020', bankName: 'Banca Comercială Română',
+        iban: 'RO49 AAAA 1B31 0075 9384 0000',
+        description: 'Professional kitchen equipment and supplies for the HORECA industry.',
+        defaultCurrency: 'RON', defaultVatPercentage: '19.00', reverseChargeVat: '0.00',
+        freeShippingThreshold: '500.00', standardShippingCost: '25.00', marketContacts: null, marketCode: null
+      };
+
+      if (market && market !== 'all') {
+        // Look for a market-specific row first
+        const marketRow = await pool.query(
+          `SELECT * FROM company_settings WHERE market_code = $1 LIMIT 1`, [market]
+        );
+        if (marketRow.rows.length > 0) {
+          const r = marketRow.rows[0];
+          return res.json({
+            marketCode: r.market_code, name: r.name, email: r.email,
+            logisticsEmail: r.logistics_email, phone: r.phone, address: r.address,
+            city: r.city, state: r.state, zipCode: r.zip_code, country: r.country,
+            contactPerson: r.contact_person, website: r.website,
+            vatNumber: r.vat_number, registrationNumber: r.registration_number,
+            bankName: r.bank_name, iban: r.iban, description: r.description,
+            defaultCurrency: r.default_currency, defaultVatPercentage: r.default_vat_percentage,
+            reverseChargeVat: r.reverse_charge_vat,
+            freeShippingThreshold: r.free_shipping_threshold,
+            standardShippingCost: r.standard_shipping_cost,
+            marketContacts: r.market_contacts
+          });
         }
-      } else {
-        // Return default company settings if none exist
-        res.json({
-          name: 'Namarte CCL SRL',
-          email: 'info@xhaccp.com',
-          logisticsEmail: 'logistics@xhaccp.com',
-          phone: '+40 123 456 789',
-          address: 'Calea Mosilor 158',
-          city: 'Bucharest',
-          state: 'Bucuresti',
-          zipCode: '020883',
-          country: 'Romania',
-          contactPerson: 'Company Administrator',
-          website: 'https://xhaccp.com',
-          vatNumber: 'RO12345678',
-          registrationNumber: 'J40/12345/2020',
-          bankName: 'Banca Comercială Română',
-          iban: 'RO49 AAAA 1B31 0075 9384 0000',
-          description: 'Professional kitchen equipment and supplies for the HORECA industry.',
-          defaultCurrency: 'RON',
-          defaultVatPercentage: '19.00',
-          reverseChargeVat: '0.00'
+        // Fallback: return global row merged with marketContacts[market] if it exists
+        const globalRow = await pool.query(
+          `SELECT * FROM company_settings ORDER BY created_at ASC LIMIT 1`
+        );
+        if (globalRow.rows.length > 0) {
+          const g = globalRow.rows[0];
+          const contacts = g.market_contacts || {};
+          const override = contacts[market] || {};
+          return res.json({
+            marketCode: market, name: g.name, email: g.email,
+            logisticsEmail: g.logistics_email, phone: g.phone, address: g.address,
+            city: g.city, state: g.state, zipCode: g.zip_code, country: g.country,
+            contactPerson: g.contact_person, website: g.website,
+            vatNumber: g.vat_number, registrationNumber: g.registration_number,
+            bankName: g.bank_name, iban: g.iban, description: g.description,
+            defaultCurrency: g.default_currency, defaultVatPercentage: g.default_vat_percentage,
+            reverseChargeVat: g.reverse_charge_vat,
+            freeShippingThreshold: g.free_shipping_threshold,
+            standardShippingCost: g.standard_shipping_cost,
+            marketContacts: g.market_contacts,
+            ...override
+          });
+        }
+        return res.json({ ...DEFAULTS, marketCode: market });
+      }
+
+      // No market: return global settings (first row)
+      const globalResult = await pool.query(
+        `SELECT * FROM company_settings ORDER BY created_at ASC LIMIT 1`
+      );
+      if (globalResult.rows.length > 0) {
+        const g = globalResult.rows[0];
+        return res.json({
+          marketCode: g.market_code, name: g.name, email: g.email,
+          logisticsEmail: g.logistics_email, phone: g.phone, address: g.address,
+          city: g.city, state: g.state, zipCode: g.zip_code, country: g.country,
+          contactPerson: g.contact_person, website: g.website,
+          vatNumber: g.vat_number, registrationNumber: g.registration_number,
+          bankName: g.bank_name, iban: g.iban, description: g.description,
+          defaultCurrency: g.default_currency, defaultVatPercentage: g.default_vat_percentage,
+          reverseChargeVat: g.reverse_charge_vat,
+          freeShippingThreshold: g.free_shipping_threshold,
+          standardShippingCost: g.standard_shipping_cost,
+          marketContacts: g.market_contacts
         });
       }
+      res.json(DEFAULTS);
     } catch (error) {
       console.error("Error fetching company settings:", error);
       res.status(500).json({ message: "Failed to fetch company settings" });
@@ -3766,67 +3799,78 @@ export async function registerAdminRoutes(app: Express) {
         defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost
       } = req.body;
       
-      console.log('Updating company settings with currency:', defaultCurrency, 'VAT:', defaultVatPercentage);
+      console.log('Updating company settings, market:', market, 'currency:', defaultCurrency);
 
-      // Check if company settings exist
-      const existingResult = await pool.query('SELECT id, market_contacts FROM company_settings LIMIT 1');
-
-      // If market is specified, update only the marketContacts JSONB for that market
-      if (market && market !== 'all') {
-        if (existingResult.rows.length === 0) {
-          return res.status(404).json({ message: "Company settings not found" });
-        }
-        const existingContacts = existingResult.rows[0].market_contacts || {};
-        const updatedContacts = {
-          ...existingContacts,
-          [market]: { name, email, phone, address, city, zipCode, country, vatNumber, registrationNumber }
-        };
-        await pool.query(
-          `UPDATE company_settings SET market_contacts = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-          [JSON.stringify(updatedContacts), existingResult.rows[0].id]
-        );
-        return res.json({ message: "Market company settings updated successfully" });
-      }
-
-      // Global update — requires name + email
       if (!name || !email) {
         return res.status(400).json({ message: "Company name and email are required" });
       }
-      
-      if (existingResult.rows.length > 0) {
-        // Update existing settings
-        await pool.query(`
-          UPDATE company_settings 
-          SET name = $1, email = $2, logistics_email = $3, phone = $4, address = $5, city = $6, 
-              state = $7, zip_code = $8, country = $9, contact_person = $10, 
-              website = $11, vat_number = $12, registration_number = $13, 
-              bank_name = $14, iban = $15, description = $16,
-              default_currency = $17, default_vat_percentage = $18, reverse_charge_vat = $19,
-              free_shipping_threshold = $20, standard_shipping_cost = $21,
-              updated_at = CURRENT_TIMESTAMP
-          WHERE id = $22
-        `, [
-          name, email, logisticsEmail, phone, address, city, state, zipCode, country,
-          contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,
-          defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost,
-          existingResult.rows[0].id
-        ]);
-      } else {
-        // Insert new settings
-        await pool.query(`
-          INSERT INTO company_settings (
-            name, email, logistics_email, phone, address, city, state, zip_code, country, 
-            contact_person, website, vat_number, registration_number, bank_name, iban, description,
-            default_currency, default_vat_percentage, reverse_charge_vat, free_shipping_threshold, standard_shipping_cost
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-        `, [
-          name, email, logisticsEmail, phone, address, city, state, zipCode, country,
-          contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,
-          defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost
-        ]);
+
+      if (market && market !== 'all') {
+        // Per-market upsert: INSERT or UPDATE a row with market_code = market
+        const existing = await pool.query(
+          `SELECT id FROM company_settings WHERE market_code = $1 LIMIT 1`, [market]
+        );
+        if (existing.rows.length > 0) {
+          await pool.query(`
+            UPDATE company_settings
+            SET name=$1, email=$2, logistics_email=$3, phone=$4, address=$5, city=$6,
+                state=$7, zip_code=$8, country=$9, contact_person=$10,
+                website=$11, vat_number=$12, registration_number=$13,
+                bank_name=$14, iban=$15, description=$16,
+                default_currency=$17, default_vat_percentage=$18, reverse_charge_vat=$19,
+                free_shipping_threshold=$20, standard_shipping_cost=$21,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE market_code=$22
+          `, [name, email, logisticsEmail, phone, address, city, state, zipCode, country,
+              contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,
+              defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost,
+              market]);
+        } else {
+          await pool.query(`
+            INSERT INTO company_settings (
+              market_code, name, email, logistics_email, phone, address, city, state, zip_code, country,
+              contact_person, website, vat_number, registration_number, bank_name, iban, description,
+              default_currency, default_vat_percentage, reverse_charge_vat, free_shipping_threshold, standard_shipping_cost
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+          `, [market, name, email, logisticsEmail, phone, address, city, state, zipCode, country,
+              contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,
+              defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost]);
+        }
+        return res.json({ message: "Market company settings updated successfully" });
       }
 
-      // After updating company settings, ensure company exists as a supplier
+      // Global update (no market): update/insert the global row (market_code IS NULL or first row)
+      const globalRow = await pool.query(
+        `SELECT id FROM company_settings ORDER BY created_at ASC LIMIT 1`
+      );
+      if (globalRow.rows.length > 0) {
+        await pool.query(`
+          UPDATE company_settings 
+          SET name=$1, email=$2, logistics_email=$3, phone=$4, address=$5, city=$6,
+              state=$7, zip_code=$8, country=$9, contact_person=$10,
+              website=$11, vat_number=$12, registration_number=$13,
+              bank_name=$14, iban=$15, description=$16,
+              default_currency=$17, default_vat_percentage=$18, reverse_charge_vat=$19,
+              free_shipping_threshold=$20, standard_shipping_cost=$21,
+              updated_at=CURRENT_TIMESTAMP
+          WHERE id=$22
+        `, [name, email, logisticsEmail, phone, address, city, state, zipCode, country,
+            contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,
+            defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost,
+            globalRow.rows[0].id]);
+      } else {
+        await pool.query(`
+          INSERT INTO company_settings (
+            name, email, logistics_email, phone, address, city, state, zip_code, country,
+            contact_person, website, vat_number, registration_number, bank_name, iban, description,
+            default_currency, default_vat_percentage, reverse_charge_vat, free_shipping_threshold, standard_shipping_cost
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+        `, [name, email, logisticsEmail, phone, address, city, state, zipCode, country,
+            contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,
+            defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost]);
+      }
+
+      // After updating global settings, ensure company exists as a supplier
       await ensureCompanySupplier(name, email, phone, address, city, state, zipCode, country, contactPerson);
 
       res.json({ message: "Company settings updated successfully" });
@@ -4512,9 +4556,14 @@ export async function registerAdminRoutes(app: Express) {
   // Voucher Routes
   app.get("/admin/api/vouchers", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const market = req.query.market as string | undefined;
+      let market = req.query.market as string | undefined;
+      const vchAllowed = req.adminMarkets || [];
+      const vchIsSuperAdmin = vchAllowed.length === 0;
       if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (!vchIsSuperAdmin && (!market || market === 'all')) {
+        market = vchAllowed[0];
       }
       const vouchers = await storage.getVouchers(market);
       res.json(vouchers);
