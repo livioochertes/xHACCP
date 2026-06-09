@@ -1686,14 +1686,26 @@ Sitemap: https://${domain}/sitemap.xml
   app.get("/api/products/slug/:slug", async (req, res) => {
     try {
       const requestedSlug = req.params.slug;
-      let product = await storage.getProductBySlug(requestedSlug);
       const market = getMarketFromRequest(req);
 
-      // Exact match found
+      // Check in-memory first (includes category translations)
+      let product: any = productsBySlug.get(requestedSlug);
+
+      // Exact match found in memory
       if (product && product.status?.toLowerCase() === 'active') {
         const overlaid = applyMarketOverlay(product, market);
         if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
         return res.json(overlaid);
+      }
+
+      // Fall back to DB if not in memory (e.g. recently added product)
+      if (!product) {
+        product = await storage.getProductBySlug(requestedSlug);
+        if (product && product.status?.toLowerCase() === 'active') {
+          const overlaid = applyMarketOverlay(product, market);
+          if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
+          return res.json(overlaid);
+        }
       }
 
       // Fuzzy fallback: search by words extracted from slug
@@ -1702,8 +1714,7 @@ Sitemap: https://${domain}/sitemap.xml
         .filter(w => w.length > 2 && !['rol', 'set', 'de', 'si', 'cu'].includes(w));
 
       if (words.length > 0) {
-        const allProducts = await storage.getProducts({ limit: 1000 });
-        const activeProducts = allProducts.filter(p => p.status?.toLowerCase() === 'active');
+        const activeProducts = allProductsData.filter(p => p.status?.toLowerCase() === 'active');
 
         // Score each product by how many slug words appear in its slug or name
         const scored = activeProducts.map(p => {
