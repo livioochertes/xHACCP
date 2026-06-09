@@ -51,7 +51,7 @@ export const users = pgTable("users", {
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
-  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  slug: varchar("slug", { length: 100 }).notNull(), // unique per market — see unique constraint below
   description: text("description"),
   imageUrl: text("image_url"),
   // Homepage positioning fields
@@ -60,7 +60,9 @@ export const categories = pgTable("categories", {
   sortOrder: integer("sort_order").default(0),
   marketCode: varchar("market_code", { length: 10 }).default("ro").notNull(), // ro, fr, com
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => ({
+  slugMarketUnique: uniqueIndex("categories_slug_market_unique").on(t.slug, t.marketCode),
+}));
 
 // Products table
 export const products = pgTable("products", {
