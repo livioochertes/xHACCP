@@ -51,12 +51,14 @@ export class InvoiceService {
         throw new Error(`Order ${orderId} not found`);
       }
 
-      // Resolve per-market company settings at runtime (not at service startup)
+      // Resolve per-market company settings at runtime — immutable local variable,
+      // never mutate this.config (shared singleton) to avoid concurrency issues.
       const orderMarket = (order.market as string) || 'ro';
-      const marketCompanyInfo = await getCompanySettingsByMarket(orderMarket);
-      if (marketCompanyInfo) {
-        this.config.companyInfo = marketCompanyInfo;
-        console.log(`📋 Using market '${orderMarket}' company settings for order ${orderId}: ${marketCompanyInfo.name}`);
+      const resolvedCompanyInfo = await getCompanySettingsByMarket(orderMarket);
+      if (resolvedCompanyInfo) {
+        console.log(`📋 Using market '${orderMarket}' company settings for order ${orderId}: ${resolvedCompanyInfo.name}`);
+      } else {
+        console.log(`📋 No company settings found for market '${orderMarket}' on order ${orderId} — invoice generated with empty company details`);
       }
 
       let user = order.userId ? await storage.getUser(order.userId) : null;
@@ -101,11 +103,11 @@ export class InvoiceService {
       let invoice;
 
       if (this.config.enableSmartbill) {
-        // Generate invoice via Smartbill API
-        invoice = await this.generateSmartbillInvoice(order, user, paymentData);
+        // Generate invoice via Smartbill API — pass resolvedCompanyInfo so no shared state is mutated
+        invoice = await this.generateSmartbillInvoice(order, user, paymentData, resolvedCompanyInfo);
       } else {
         // Fallback to local invoice generation
-        invoice = await this.generateLocalInvoice(order, user, paymentData);
+        invoice = await this.generateLocalInvoice(order, user, paymentData, resolvedCompanyInfo);
       }
 
       console.log(`Invoice generated successfully for order ${orderId}:`, invoice);
@@ -123,6 +125,8 @@ export class InvoiceService {
           if (!order) {
             throw new Error(`Order ${orderId} not found`);
           }
+          const fallbackMarket = (order.market as string) || 'ro';
+          const fallbackCompanyInfo = await getCompanySettingsByMarket(fallbackMarket);
           let user = order.userId ? await storage.getUser(order.userId) : null;
           if (!user) {
             const billing = order.billingAddress as any || {};
@@ -145,7 +149,7 @@ export class InvoiceService {
               } as any;
             }
           }
-          return await this.generateLocalInvoice(order, user, paymentData);
+          return await this.generateLocalInvoice(order, user, paymentData, fallbackCompanyInfo);
         } catch (fallbackError) {
           console.error('Fallback invoice generation also failed:', fallbackError);
           throw fallbackError;
@@ -168,6 +172,11 @@ export class InvoiceService {
         throw new Error(`Order ${order.id} has no items to create invoice`);
       }
 
+      // Resolve per-market company settings — immutable local variable, never mutate this.config
+      const orderMarket = (order.market as string) || 'ro';
+      const resolvedCompanyInfo = await getCompanySettingsByMarket(orderMarket);
+      console.log(`📋 Manual invoice for order ${order.id}: using market '${orderMarket}' company settings`);
+
       const paymentData = { 
         paymentMethod: options.paymentMethod || 'wire_transfer',
         status: 'manual_creation'
@@ -175,10 +184,10 @@ export class InvoiceService {
 
       if (this.config.enableSmartbill) {
         console.log(`📋 ✅ ATTEMPTING SMARTBILL INVOICE CREATION - Series: ${this.config.defaultSeries}`);
-        return await this.generateSmartbillInvoice(order, user, paymentData);
+        return await this.generateSmartbillInvoice(order, user, paymentData, resolvedCompanyInfo);
       } else {
         console.log(`📋 ⚠️ USING LOCAL INVOICE GENERATION - Smartbill disabled`);
-        return await this.generateLocalInvoice(order, user, paymentData);
+        return await this.generateLocalInvoice(order, user, paymentData, resolvedCompanyInfo);
       }
 
     } catch (error) {
@@ -189,11 +198,13 @@ export class InvoiceService {
         console.log('🔄 ⚠️ SMARTBILL FAILED - FALLING BACK TO LOCAL GENERATION');
         console.log(`   Smartbill error: ${error instanceof Error ? error.message : String(error)}`);
         try {
+          const fallbackMarket = (order.market as string) || 'ro';
+          const fallbackCompanyInfo = await getCompanySettingsByMarket(fallbackMarket);
           const paymentData = { 
             paymentMethod: options.paymentMethod || 'wire_transfer',
             status: 'fallback_creation'
           };
-          const localInvoice = await this.generateLocalInvoice(order, user, paymentData);
+          const localInvoice = await this.generateLocalInvoice(order, user, paymentData, fallbackCompanyInfo);
           console.log(`📋 ✅ FALLBACK INVOICE CREATED: ${localInvoice.invoiceNumber}`);
           return localInvoice;
         } catch (fallbackError) {
@@ -209,13 +220,13 @@ export class InvoiceService {
   /**
    * Generate invoice via Smartbill API
    */
-  private async generateSmartbillInvoice(order: any, user: any, paymentData: any): Promise<any> {
+  private async generateSmartbillInvoice(order: any, user: any, paymentData: any, companyInfo?: any): Promise<any> {
     try {
       console.log(`🚀 STARTING SMARTBILL INVOICE GENERATION for order ${order.id}`);
       console.log(`   User: ${user.email}, Series: ${this.config.defaultSeries}`);
       
-      // Convert order to Smartbill format
-      const defaultVatPercentage = parseFloat(this.config.companyInfo?.defaultVatPercentage || '19');
+      // Use per-request companyInfo (passed in) to avoid shared-singleton mutation
+      const defaultVatPercentage = parseFloat(companyInfo?.defaultVatPercentage || this.config.companyInfo?.defaultVatPercentage || '19');
       const smartbillInvoiceData = orderToSmartbillInvoice(
         order,
         user,
@@ -289,7 +300,7 @@ export class InvoiceService {
   /**
    * Generate invoice locally (fallback method) with proper Smartbill numbering
    */
-  private async generateLocalInvoice(order: any, user: any, paymentData: any): Promise<any> {
+  private async generateLocalInvoice(order: any, user: any, paymentData: any, _companyInfo?: any): Promise<any> {
     try {
       // Get next invoice number from Smartbill series format: KTO 10001, KTO 10002, etc.
       let invoiceNumber = 'KTO 10001'; // Default fallback
