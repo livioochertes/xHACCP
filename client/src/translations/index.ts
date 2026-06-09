@@ -613,6 +613,15 @@ export interface TranslationKeys {
   'terms.footer.questions': string;
   'terms.footer.support': string;
   'terms.footer.privacy': string;
+
+  // Volume discount tiers
+  'volumeDiscount.header': string;
+  'volumeDiscount.from': string;
+  'volumeDiscount.pricePerUnit': string;
+  'volumeDiscount.savings': string;
+  'volumeDiscount.unit': string;
+  'volumeDiscount.selected': string;
+  'volumeDiscount.cartTotalFor': string;
 }
 
 const translations: Record<Language, TranslationKeys> = {
@@ -1288,6 +1297,13 @@ const translations: Record<Language, TranslationKeys> = {
     'terms.footer.questions': 'If you have any questions about these Terms and Conditions, please contact us:',
     'terms.footer.support': 'Contact Support',
     'terms.footer.privacy': 'Privacy Questions',
+    'volumeDiscount.header': 'Buy more, pay less — click a row to select quantity',
+    'volumeDiscount.from': 'From',
+    'volumeDiscount.pricePerUnit': 'Price/unit',
+    'volumeDiscount.savings': 'Savings',
+    'volumeDiscount.unit': 'pcs.',
+    'volumeDiscount.selected': '◀ selected',
+    'volumeDiscount.cartTotalFor': 'Cart total for',
   },
   
   es: {
@@ -1735,6 +1751,13 @@ const translations: Record<Language, TranslationKeys> = {
     'auth.accountCreatedDesc': 'Tu cuenta está lista. ¡Disfruta de ofertas exclusivas y pedidos fáciles!',
     'auth.registerErrorTitle': 'No pudimos crear tu cuenta',
     'auth.registerErrorDesc': 'Por favor, verifica tus datos e inténtalo de nuevo.',
+    'volumeDiscount.header': 'Compra más, paga menos — haz clic en una fila para seleccionar la cantidad',
+    'volumeDiscount.from': 'Desde',
+    'volumeDiscount.pricePerUnit': 'Precio/ud.',
+    'volumeDiscount.savings': 'Ahorro',
+    'volumeDiscount.unit': 'uds.',
+    'volumeDiscount.selected': '◀ elegido',
+    'volumeDiscount.cartTotalFor': 'Total carrito para',
   },
   
   fr: {
@@ -2216,6 +2239,13 @@ const translations: Record<Language, TranslationKeys> = {
     'auth.accountCreatedDesc': 'Votre compte est prêt. Profitez d\'offres exclusives et de commandes faciles !',
     'auth.registerErrorTitle': 'Nous n\'avons pas pu créer votre compte',
     'auth.registerErrorDesc': 'Veuillez vérifier vos informations et réessayer.',
+    'volumeDiscount.header': 'Achetez plus, payez moins — cliquez sur une ligne pour sélectionner la quantité',
+    'volumeDiscount.from': 'Dès',
+    'volumeDiscount.pricePerUnit': 'Prix/unité',
+    'volumeDiscount.savings': 'Économie',
+    'volumeDiscount.unit': 'pcs',
+    'volumeDiscount.selected': '◀ sélectionné',
+    'volumeDiscount.cartTotalFor': 'Total panier pour',
   },
   
   // Adding placeholders for other languages - these would be fully translated in a real app
@@ -2686,6 +2716,13 @@ const translations: Record<Language, TranslationKeys> = {
     'auth.accountCreatedDesc': 'Ihr Konto ist bereit. Genießen Sie exklusive Angebote und einfache Bestellungen!',
     'auth.registerErrorTitle': 'Wir konnten Ihr Konto nicht erstellen',
     'auth.registerErrorDesc': 'Bitte überprüfen Sie Ihre Angaben und versuchen Sie es erneut.',
+    'volumeDiscount.header': 'Mehr kaufen, weniger zahlen — klicken Sie auf eine Zeile, um die Menge auszuwählen',
+    'volumeDiscount.from': 'Ab',
+    'volumeDiscount.pricePerUnit': 'Preis/Stück',
+    'volumeDiscount.savings': 'Ersparnis',
+    'volumeDiscount.unit': 'Stk.',
+    'volumeDiscount.selected': '◀ gewählt',
+    'volumeDiscount.cartTotalFor': 'Warenkorb gesamt für',
   } as TranslationKeys,
   
   // Romanian translations
@@ -3183,6 +3220,13 @@ const translations: Record<Language, TranslationKeys> = {
     'auth.accountCreatedDesc': 'Contul tău este gata. Bucură-te de oferte exclusive și comenzi rapide!',
     'auth.registerErrorTitle': 'Nu am putut crea contul tău',
     'auth.registerErrorDesc': 'Te rugăm să verifici datele și să încerci din nou.',
+    'volumeDiscount.header': 'Cumperi mai mult, plătești mai puțin — click pe o treaptă pentru a selecta cantitatea',
+    'volumeDiscount.from': 'De la',
+    'volumeDiscount.pricePerUnit': 'Preț/buc',
+    'volumeDiscount.savings': 'Economie',
+    'volumeDiscount.unit': 'buc.',
+    'volumeDiscount.selected': '◀ ales',
+    'volumeDiscount.cartTotalFor': 'Total coș pentru',
   },
   
   // Placeholder for other languages

@@ -489,26 +489,26 @@ export default function ProductDetails() {
               return (
                 <div className="rounded-lg border border-amber-200 bg-amber-50/50 overflow-hidden">
                   <div className="px-3 py-2 bg-amber-100 text-xs font-semibold text-amber-800">
-                    🏷️ Cumperi mai mult, plătești mai puțin — click pe o treaptă pentru a selecta cantitatea
+                    🏷️ {t('volumeDiscount.header')}
                   </div>
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-amber-200 text-amber-700">
-                        <th className="px-3 py-1.5 text-left font-semibold">De la</th>
-                        <th className="px-3 py-1.5 text-right font-semibold">Preț/buc</th>
-                        <th className="px-3 py-1.5 text-right font-semibold">Economie</th>
+                        <th className="px-3 py-1.5 text-left font-semibold">{t('volumeDiscount.from')}</th>
+                        <th className="px-3 py-1.5 text-right font-semibold">{t('volumeDiscount.pricePerUnit')}</th>
+                        <th className="px-3 py-1.5 text-right font-semibold">{t('volumeDiscount.savings')}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Base tier: 1 buc. */}
+                      {/* Base tier */}
                       <tr
                         onClick={() => setQuantity(1)}
                         className={`border-b border-amber-100 cursor-pointer hover:bg-amber-200/40 transition-colors ${!activeTier ? 'bg-amber-200/60 font-semibold' : 'bg-white'}`}
                       >
                         <td className="px-3 py-2 flex items-center gap-1.5">
                           <span className="inline-flex items-center justify-center bg-gray-200 text-gray-700 rounded px-1.5 py-0.5 text-[11px] font-bold min-w-[32px]">1</span>
-                          buc.
-                          {!activeTier && <span className="text-amber-600 text-[10px]">◀ ales</span>}
+                          {t('volumeDiscount.unit')}
+                          {!activeTier && <span className="text-amber-600 text-[10px]">{t('volumeDiscount.selected')}</span>}
                         </td>
                         <td className="px-3 py-2 text-right">{formatPrice(product.price, product.currency)}</td>
                         <td className="px-3 py-2 text-right text-gray-400">—</td>
@@ -525,8 +525,8 @@ export default function ProductDetails() {
                             <td className="px-3 py-2">
                               <span className="inline-flex items-center gap-1.5">
                                 <span className="inline-flex items-center justify-center bg-emerald-100 text-emerald-800 rounded px-1.5 py-0.5 text-[11px] font-bold min-w-[32px]">{tier.minQty}+</span>
-                                buc.
-                                {isActive && <span className="text-amber-600 text-[10px]">◀ ales</span>}
+                                {t('volumeDiscount.unit')}
+                                {isActive && <span className="text-amber-600 text-[10px]">{t('volumeDiscount.selected')}</span>}
                               </span>
                             </td>
                             <td className="px-3 py-2 text-right text-emerald-700 font-medium">{formatPrice(tierPrice.toString(), product.currency)}</td>
@@ -538,7 +538,7 @@ export default function ProductDetails() {
                   </table>
                   {/* Cart total preview */}
                   <div className="px-3 py-2 bg-amber-100 border-t border-amber-200 flex items-center justify-between">
-                    <span className="text-xs text-amber-800">Total coș pentru <strong>{quantity} buc.</strong></span>
+                    <span className="text-xs text-amber-800">{t('volumeDiscount.cartTotalFor')} <strong>{quantity} {t('volumeDiscount.unit')}</strong></span>
                     <span className="text-sm font-bold text-amber-900">{formatPrice(cartTotal, product.currency)}</span>
                   </div>
                 </div>
