@@ -251,9 +251,15 @@ export async function loadAllDataIntoMemory() {
         const priorityB = b.priority || 999;
         return priorityA - priorityB;
       });
-      productsByCategory.set(category.slug, sortedProducts);
-      // Add product count to category (only active products)
-      (category as any).productCount = activeProducts.length;
+      // Only set productsByCategory if we found products OR the slug isn't mapped yet.
+      // This prevents FR/COM duplicate-slug categories (which have no direct product links)
+      // from overwriting the RO base categories that DO have products.
+      if (sortedProducts.length > 0 || !productsByCategory.has(category.slug)) {
+        productsByCategory.set(category.slug, sortedProducts);
+      }
+      // For product count on FR/COM categories: fall back to the already-mapped count for same slug
+      const existingCount = productsByCategory.get(category.slug)?.length ?? 0;
+      (category as any).productCount = sortedProducts.length > 0 ? sortedProducts.length : existingCount;
     }
     
     // Load all category translations and attach to categories
