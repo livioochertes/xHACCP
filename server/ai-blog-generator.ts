@@ -452,9 +452,11 @@ export async function generateBlogPostManually(customTitle?: string, customCateg
     };
     return generateBlogPostForTopic(topic);
   }
-  // Rotate through RO topics (default for manual admin use)
-  const rotationIndex = Math.floor(Date.now() / 60000) % blogTopicsRo.length;
-  return generateBlogPostForTopic(blogTopicsRo[rotationIndex]);
+  // When no title is given, rotate through the topic pool matching the requested language/market
+  const market: "ro" | "fr" | "com" = language === "fr" ? "fr" : language === "en" ? "com" : "ro";
+  const topics = getTopicsForMarket(market);
+  const rotationIndex = Math.floor(Date.now() / 60000) % topics.length;
+  return generateBlogPostForTopic(topics[rotationIndex]);
 }
 
 async function generateBlogPostForTopic(topic: BlogTopicData): Promise<number> {

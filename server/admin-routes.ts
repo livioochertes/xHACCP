@@ -4648,7 +4648,12 @@ export async function registerAdminRoutes(app: Express) {
       }
       const { generateBlogPostManually } = await import("./ai-blog-generator");
       const { title, category, language } = req.body;
-      const postId = await generateBlogPostManually(title, category, language || "ro");
+      const validLanguage: "ro" | "en" | "fr" = (language === "fr" || language === "en") ? language : "ro";
+      const langMarket = validLanguage === "fr" ? "fr" : validLanguage === "en" ? "com" : "ro";
+      if (!canAccessMarket(req, langMarket)) {
+        return res.status(403).json({ success: false, message: "Nu ai acces la piața selectată" });
+      }
+      const postId = await generateBlogPostManually(title, category, validLanguage);
       res.json({ success: true, message: "Articol generat cu succes", postId });
     } catch (error) {
       console.error("Generate blog post error:", error);
@@ -4664,7 +4669,12 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });
       }
       const { generateWeeklyBlogPost } = await import("./ai-blog-generator");
-      const postId = await generateWeeklyBlogPost();
+      const { market } = req.body;
+      const validMarket: "ro" | "fr" | "com" = (market === "fr" || market === "com") ? market : "ro";
+      if (!canAccessMarket(req, validMarket)) {
+        return res.status(403).json({ success: false, message: "Nu ai acces la piața selectată" });
+      }
+      const postId = await generateWeeklyBlogPost(validMarket);
       res.json({ success: true, message: "Articol săptămânal generat", postId });
     } catch (error) {
       res.status(500).json({ success: false, message: "Eroare: " + (error as Error).message });
