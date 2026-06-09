@@ -3998,6 +3998,42 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     }
   });
 
+  // Public aliases: /api/blog and /api/blog/:slug (market-filtered, same logic as /api/blog/posts)
+  app.get("/api/blog", async (req, res) => {
+    try {
+      const { limit, offset } = req.query;
+      const market = getMarketFromRequest(req);
+      const posts = await storage.getBlogPosts({
+        published: true,
+        marketCode: market,
+        limit: limit ? parseInt(limit as string) : undefined,
+        offset: offset ? parseInt(offset as string) : undefined,
+      });
+      res.json(posts);
+    } catch (error) {
+      console.error("Get blog posts error:", error);
+      res.status(500).json({ message: "Failed to fetch blog posts" });
+    }
+  });
+
+  app.get("/api/blog/:slug", async (req, res) => {
+    try {
+      const market = getMarketFromRequest(req);
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post || !post.published) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+      const postMarket = post.marketCode ?? 'ro';
+      if (postMarket !== market) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+      res.json(post);
+    } catch (error) {
+      console.error("Get blog post error:", error);
+      res.status(500).json({ message: "Failed to fetch blog post" });
+    }
+  });
+
   // Admin: list all posts (including unpublished)
   app.get("/api/admin/blog/posts", authenticateToken, requireAdmin, async (req, res) => {
     try {
