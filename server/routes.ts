@@ -1500,6 +1500,38 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
+  // Public company settings endpoint (allowlisted fields for invoice display)
+  app.get("/api/company-settings", async (req, res) => {
+    try {
+      const market = (req.query.market as string) || getMarketFromRequest(req);
+      const settings = await storage.getCompanySettingsByMarket(market);
+      if (settings) {
+        res.json({
+          name: settings.name,
+          email: settings.email,
+          phone: settings.phone,
+          address: settings.address,
+          city: settings.city,
+          state: settings.state,
+          zipCode: settings.zipCode,
+          country: settings.country,
+          vatNumber: settings.vatNumber,
+          registrationNumber: settings.registrationNumber,
+          bankName: settings.bankName,
+          iban: settings.iban,
+          website: settings.website,
+          defaultVatPercentage: settings.defaultVatPercentage,
+          logisticsEmail: settings.logisticsEmail,
+        });
+      } else {
+        res.json({ name: 'xHACCP', email: 'info@xhaccp.com' });
+      }
+    } catch (error) {
+      console.error("Error fetching public company settings:", error);
+      res.status(500).json({ message: "Failed to fetch company settings" });
+    }
+  });
+
   // Category routes - instant response from memory
   app.get("/api/categories", (req, res) => {
     // No browser caching to ensure admin changes are visible immediately

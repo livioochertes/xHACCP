@@ -35,11 +35,11 @@ export default function Invoice() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch company settings for dynamic invoice display
+  // Fetch company settings for dynamic invoice display (public endpoint — no admin token needed)
   const { data: companySettings } = useQuery({
-    queryKey: ['/admin/api/company-settings'],
+    queryKey: ['/api/company-settings'],
     queryFn: async () => {
-      const response = await fetch('/admin/api/company-settings', {
+      const response = await fetch(`/api/company-settings?market=${getMarketFromHostname()}`, {
         headers: { 'X-Market': getMarketFromHostname() }
       });
       if (!response.ok) {

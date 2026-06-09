@@ -2319,8 +2319,14 @@ export async function registerAdminRoutes(app: Express) {
       const categoryId = parseInt(req.params.id);
       const { name, description, imageUrl, marketCode } = req.body;
 
-      if (marketCode !== undefined && !canAccessMarket(req as AdminAuthRequest, marketCode)) {
+      // Record-level market ownership check
+      const existingCat = await storage.getCategory(categoryId);
+      if (!existingCat) return res.status(404).json({ message: "Category not found" });
+      if (!canAccessMarket(req as AdminAuthRequest, existingCat.marketCode || 'ro')) {
         return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (marketCode !== undefined && !canAccessMarket(req as AdminAuthRequest, marketCode)) {
+        return res.status(403).json({ message: "Access denied for target market" });
       }
       
       // Extract clean URL from imageUrl (handles objects and strings)
@@ -2344,7 +2350,14 @@ export async function registerAdminRoutes(app: Express) {
   app.delete("/admin/api/categories/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const categoryId = parseInt(req.params.id);
-      
+
+      // Record-level market ownership check
+      const catToDelete = await storage.getCategory(categoryId);
+      if (!catToDelete) return res.status(404).json({ message: "Category not found" });
+      if (!canAccessMarket(req as AdminAuthRequest, catToDelete.marketCode || 'ro')) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
       await storage.deleteCategory(categoryId);
       await loadAllDataIntoMemory();
       res.json({ message: "Category deleted successfully" });
@@ -2773,9 +2786,15 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const { id } = req.params;
       const { name, email, phone, address, city, state, zipCode, country, contactPerson, apiEndpoint, apiKey, integrationType, notes, isActive, marketCode } = req.body;
-      
-      if (marketCode !== undefined && !canAccessMarket(req as AdminAuthRequest, marketCode)) {
+
+      // Record-level market ownership check
+      const existingSupp = await storage.getSupplier(parseInt(id));
+      if (!existingSupp) return res.status(404).json({ message: "Supplier not found" });
+      if (!canAccessMarket(req as AdminAuthRequest, existingSupp.marketCode || 'ro')) {
         return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (marketCode !== undefined && !canAccessMarket(req as AdminAuthRequest, marketCode)) {
+        return res.status(403).json({ message: "Access denied for target market" });
       }
 
       const supplier = await storage.updateSupplier(parseInt(id), {
@@ -2909,6 +2928,14 @@ export async function registerAdminRoutes(app: Express) {
   app.delete("/admin/api/suppliers/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const { id } = req.params;
+
+      // Record-level market ownership check
+      const suppToDelete = await storage.getSupplier(parseInt(id));
+      if (!suppToDelete) return res.status(404).json({ message: "Supplier not found" });
+      if (!canAccessMarket(req as AdminAuthRequest, suppToDelete.marketCode || 'ro')) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
       await storage.deleteSupplier(parseInt(id));
       res.json({ message: "Supplier deleted successfully" });
     } catch (error) {
@@ -4528,9 +4555,17 @@ export async function registerAdminRoutes(app: Express) {
       if (voucherData.validUntil) {
         voucherData.validUntil = new Date(voucherData.validUntil);
       }
-      if (voucherData.marketCode && !canAccessMarket(req as AdminAuthRequest, voucherData.marketCode)) {
+
+      // Record-level market ownership check
+      const existingVch = await storage.getVoucher(id);
+      if (!existingVch) return res.status(404).json({ message: "Voucher not found" });
+      if (!canAccessMarket(req as AdminAuthRequest, existingVch.marketCode || 'ro')) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
+      if (voucherData.marketCode && !canAccessMarket(req as AdminAuthRequest, voucherData.marketCode)) {
+        return res.status(403).json({ message: "Access denied for target market" });
+      }
+
       const voucher = await storage.updateVoucher(id, voucherData);
       res.json(voucher);
     } catch (error) {
@@ -4542,6 +4577,14 @@ export async function registerAdminRoutes(app: Express) {
   app.delete("/admin/api/vouchers/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+
+      // Record-level market ownership check
+      const vchToDelete = await storage.getVoucher(id);
+      if (!vchToDelete) return res.status(404).json({ message: "Voucher not found" });
+      if (!canAccessMarket(req as AdminAuthRequest, vchToDelete.marketCode || 'ro')) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
       await storage.deleteVoucher(id);
       res.json({ message: "Voucher deleted successfully" });
     } catch (error) {
