@@ -164,7 +164,7 @@ export interface IStorage {
   incrementVoucherUsage(id: number): Promise<Voucher>;
 
   // Blog post operations
-  getBlogPosts(options?: { published?: boolean; language?: string; limit?: number; offset?: number }): Promise<BlogPost[]>;
+  getBlogPosts(options?: { published?: boolean; language?: string; marketCode?: string; limit?: number; offset?: number }): Promise<BlogPost[]>;
   getBlogPost(id: number): Promise<BlogPost | undefined>;
   getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
@@ -1231,13 +1231,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Blog post operations
-  async getBlogPosts(options?: { published?: boolean; language?: string; limit?: number; offset?: number }): Promise<BlogPost[]> {
+  async getBlogPosts(options?: { published?: boolean; language?: string; marketCode?: string; limit?: number; offset?: number }): Promise<BlogPost[]> {
     let query = db.select().from(blogPosts).$dynamic();
     const conditions = [];
     if (options?.published !== undefined) {
       conditions.push(eq(blogPosts.published, options.published));
     }
-    if (options?.language) {
+    if (options?.marketCode) {
+      // Filter by market_code; legacy rows with NULL market_code are treated as 'ro'
+      if (options.marketCode === 'ro') {
+        conditions.push(
+          or(eq(blogPosts.marketCode, 'ro'), isNull(blogPosts.marketCode))
+        );
+      } else {
+        conditions.push(eq(blogPosts.marketCode, options.marketCode));
+      }
+    } else if (options?.language) {
+      // Fallback: filter by language if no marketCode provided
       conditions.push(eq(blogPosts.language, options.language));
     }
     if (conditions.length > 0) {

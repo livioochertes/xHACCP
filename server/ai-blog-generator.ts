@@ -494,6 +494,12 @@ async function generateBlogPostForTopic(topic: BlogTopicData): Promise<number> {
 
   const imageUrl = pickImageForCategory(topic.category);
 
+  // Derive market code from topic language
+  const marketCode: "ro" | "fr" | "com" =
+    topic.language === "fr" ? "fr" :
+    topic.language === "en" ? "com" :
+    "ro";
+
   const post: InsertBlogPost = {
     title: topic.title,
     slug: uniqueSlug,
@@ -505,6 +511,7 @@ async function generateBlogPostForTopic(topic: BlogTopicData): Promise<number> {
     imageUrl,
     published: true,
     language: topic.language,
+    marketCode,
     readTimeMinutes: estimateReadTime(content),
     publishedAt: new Date(),
   };

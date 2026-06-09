@@ -600,6 +600,7 @@ export const blogPosts = pgTable("blog_posts", {
   imageUrl: text("image_url"),
   published: boolean("published").notNull().default(true),
   language: varchar("language", { length: 5 }).notNull().default("ro"),
+  marketCode: varchar("market_code", { length: 10 }).default("ro"),
   readTimeMinutes: integer("read_time_minutes"),
   publishedAt: timestamp("published_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),

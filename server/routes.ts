@@ -364,8 +364,13 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction)
 // ─── Market middleware ────────────────────────────────────────────────────────
 // Reads market from X-Market header (set by frontend) or falls back to Host
 function getMarketFromRequest(req: Request): string {
+  // 1. Query param (e.g. ?market=fr) — useful for manual overrides and testing
+  const queryMarket = req.query?.market as string | undefined;
+  if (queryMarket && ['ro', 'com', 'fr'].includes(queryMarket)) return queryMarket;
+  // 2. X-Market header (set by the frontend based on current language/market)
   const headerMarket = req.headers['x-market'] as string | undefined;
   if (headerMarket && ['ro', 'com', 'fr'].includes(headerMarket)) return headerMarket;
+  // 3. Hostname-based detection
   const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
   const domain = host.replace(/^www\./, '').split(':')[0];
   if (domain === 'xhaccp.ro') return 'ro';
@@ -3955,16 +3960,14 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     return "ro"; // default / 'ro' market
   }
 
-  // Public: list published posts (filtered by market/language)
+  // Public: list published posts (filtered by market)
   app.get("/api/blog/posts", async (req, res) => {
     try {
       const { limit, offset } = req.query;
-      // Derive language from market (X-Market header or hostname)
       const market = getMarketFromRequest(req);
-      const language = marketToLanguage(market);
       const posts = await storage.getBlogPosts({
         published: true,
-        language,
+        marketCode: market,
         limit: limit ? parseInt(limit as string) : undefined,
         offset: offset ? parseInt(offset as string) : undefined,
       });
@@ -3975,11 +3978,17 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     }
   });
 
-  // Public: get single post by slug
+  // Public: get single post by slug (market-scoped)
   app.get("/api/blog/posts/:slug", async (req, res) => {
     try {
+      const market = getMarketFromRequest(req);
       const post = await storage.getBlogPostBySlug(req.params.slug);
       if (!post || !post.published) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+      // Enforce market segmentation: a post belongs to its market_code (NULL → 'ro')
+      const postMarket = post.marketCode ?? 'ro';
+      if (postMarket !== market) {
         return res.status(404).json({ message: "Blog post not found" });
       }
       res.json(post);
