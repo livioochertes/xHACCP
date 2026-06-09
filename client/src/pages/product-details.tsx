@@ -18,6 +18,7 @@ import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { formatPrice } from "@/lib/utils";
 import { getSortedTiers, getActiveTier, getVolumePrice } from "@/lib/volume-price";
+import { formatProductDescription, stripFormatting } from "@/lib/format-description";
 import { Link } from "wouter";
 import type { ProductWithCategory, Review } from "@shared/schema";
 
@@ -214,14 +215,23 @@ export default function ProductDetails() {
     ));
   };
 
-  const shortDesc = useMemo(() => {
-    const desc = translatedDescription || '';
-    if (!desc) return '';
-    if (desc.length <= SHORT_DESC_LIMIT) return desc;
-    return desc.slice(0, SHORT_DESC_LIMIT).trimEnd() + '…';
-  }, [translatedDescription]);
+  const formattedDesc = useMemo(
+    () => formatProductDescription(translatedDescription || ''),
+    [translatedDescription]
+  );
 
-  const hasLongDesc = (translatedDescription || '').length > SHORT_DESC_LIMIT;
+  const plainDesc = useMemo(
+    () => stripFormatting(formattedDesc),
+    [formattedDesc]
+  );
+
+  const shortDesc = useMemo(() => {
+    if (!plainDesc) return '';
+    if (plainDesc.length <= SHORT_DESC_LIMIT) return plainDesc;
+    return plainDesc.slice(0, SHORT_DESC_LIMIT).trimEnd() + '…';
+  }, [plainDesc]);
+
+  const hasLongDesc = plainDesc.length > SHORT_DESC_LIMIT;
 
   if (isLoading) {
     return (
@@ -378,7 +388,14 @@ export default function ProductDetails() {
             {/* Short description */}
             {shortDesc && (
               <div className="text-sm text-gray-600 leading-relaxed">
-                <p>{descExpanded ? translatedDescription : shortDesc}</p>
+                {descExpanded ? (
+                  <div
+                    className="product-desc-prose"
+                    dangerouslySetInnerHTML={{ __html: formattedDesc }}
+                  />
+                ) : (
+                  <p>{shortDesc}</p>
+                )}
                 {hasLongDesc && (
                   <button
                     onClick={() => setDescExpanded(v => !v)}
@@ -630,9 +647,14 @@ export default function ProductDetails() {
             <TabsContent value="description" className="mt-6">
               <Card>
                 <CardContent className="p-8">
-                  <div className="prose max-w-none text-gray-700 leading-relaxed whitespace-pre-line">
-                    {translatedDescription || t('products.noDescription')}
-                  </div>
+                  {formattedDesc ? (
+                    <div
+                      className="product-desc-prose"
+                      dangerouslySetInnerHTML={{ __html: formattedDesc }}
+                    />
+                  ) : (
+                    <p className="text-gray-500">{t('products.noDescription')}</p>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
