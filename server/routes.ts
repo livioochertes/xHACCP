@@ -1510,7 +1510,8 @@ Sitemap: https://${domain}/sitemap.xml
       'ETag': `categories-${dataVersion}`,
       'Content-Type': 'application/json'
     });
-    const market = req.query.market as string | undefined;
+    const queryMarket = req.query.market as string | undefined;
+    const market = queryMarket || getMarketFromRequest(req);
     if (market && market !== 'all') {
       const filtered = categoriesData.filter((c: any) => (c.marketCode || 'ro') === market);
       return res.json(filtered);

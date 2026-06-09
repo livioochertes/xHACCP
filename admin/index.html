@@ -2223,7 +2223,9 @@
       // Fetch company settings
       const fetchCompanySettings = async () => {
         try {
-          const response = await fetch('/admin/api/company-settings', {
+          const mkt = sessionStorage.getItem('adminMarketTab');
+          const mktParam = mkt && mkt !== 'all' ? `?market=${mkt}` : '';
+          const response = await fetch(`/admin/api/company-settings${mktParam}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -2342,7 +2344,9 @@
       // Update company settings
       const updateCompanySettings = async (settingsData) => {
         try {
-          const response = await fetch('/admin/api/company-settings', {
+          const mkt = sessionStorage.getItem('adminMarketTab');
+          const mktParam = mkt && mkt !== 'all' ? `?market=${mkt}` : '';
+          const response = await fetch(`/admin/api/company-settings${mktParam}`, {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${token}`,

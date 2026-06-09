@@ -1809,8 +1809,21 @@ export async function registerAdminRoutes(app: Express) {
         filteredProducts = filteredProducts.filter(product => product.supplierId === parseInt(supplierId as string));
       }
 
-      // Filter by market if specified — show only products assigned to that market via product_markets
-      if (market && market !== 'all') {
+      // For restricted admins without explicit market, auto-restrict to their markets
+      const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+
+      if (!isSuperAdmin && (!market || market === 'all')) {
+        // Restricted admin sees only products in their markets
+        const marketRows = await db.select().from(productMarkets).where(
+          allowedMarkets.length === 1
+            ? eq(productMarkets.market, allowedMarkets[0])
+            : (productMarkets.market as any).in(allowedMarkets)
+        );
+        const marketProductIds = new Set(marketRows.map(r => r.productId));
+        filteredProducts = filteredProducts.filter(p => marketProductIds.has(p.id));
+      } else if (market && market !== 'all') {
+        // Filter by market if specified
         const marketRows = await db.select().from(productMarkets).where(eq(productMarkets.market, market as string));
         const marketProductIds = new Set(marketRows.map(r => r.productId));
         filteredProducts = filteredProducts.filter(p => marketProductIds.has(p.id));
@@ -2268,6 +2281,11 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(400).json({ message: "Category name is required" });
       }
 
+      const targetMarket = marketCode || 'ro';
+      if (!canAccessMarket(req as AdminAuthRequest, targetMarket)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
       // Generate slug from name
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       
@@ -2279,7 +2297,7 @@ export async function registerAdminRoutes(app: Express) {
         slug,
         description,
         imageUrl: cleanImageUrl,
-        marketCode: marketCode || 'ro',
+        marketCode: targetMarket,
       });
 
       await loadAllDataIntoMemory();
@@ -2294,6 +2312,10 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const categoryId = parseInt(req.params.id);
       const { name, description, imageUrl, marketCode } = req.body;
+
+      if (marketCode !== undefined && !canAccessMarket(req as AdminAuthRequest, marketCode)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       
       // Extract clean URL from imageUrl (handles objects and strings)
       const cleanImageUrl = imageUrl !== undefined ? extractImageUrl(imageUrl) : undefined;
@@ -2705,6 +2727,11 @@ export async function registerAdminRoutes(app: Express) {
       if (!name || !email) {
         return res.status(400).json({ message: "Name and email are required" });
       }
+
+      const targetMarket = marketCode || 'ro';
+      if (!canAccessMarket(req as AdminAuthRequest, targetMarket)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       
       const supplier = await storage.createSupplier({
         name,
@@ -2721,7 +2748,7 @@ export async function registerAdminRoutes(app: Express) {
         integrationType: integrationType || 'email',
         notes,
         isActive: isActive !== undefined ? isActive : true,
-        marketCode: marketCode || 'ro',
+        marketCode: targetMarket,
       });
       
       res.json(supplier);
@@ -2736,6 +2763,10 @@ export async function registerAdminRoutes(app: Express) {
       const { id } = req.params;
       const { name, email, phone, address, city, state, zipCode, country, contactPerson, apiEndpoint, apiKey, integrationType, notes, isActive, marketCode } = req.body;
       
+      if (marketCode !== undefined && !canAccessMarket(req as AdminAuthRequest, marketCode)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
       const supplier = await storage.updateSupplier(parseInt(id), {
         name,
         email,
@@ -3655,6 +3686,7 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/admin/api/company-settings", async (req: Request, res: Response) => {
     console.log('Company settings API endpoint called');
     try {
+      const market = req.query.market as string | undefined;
       const [settings] = await db
         .select({
           name: companySettings.name,
@@ -3687,7 +3719,14 @@ export async function registerAdminRoutes(app: Express) {
       console.log('Company settings query result:', settings);
       
       if (settings) {
-        res.json(settings);
+        // If market requested, merge base settings with marketContacts[market] override
+        if (market && market !== 'all' && settings.marketContacts) {
+          const contacts = settings.marketContacts as Record<string, any>;
+          const marketOverride = contacts[market] || {};
+          res.json({ ...settings, ...marketOverride, marketContacts: settings.marketContacts });
+        } else {
+          res.json(settings);
+        }
       } else {
         // Return default company settings if none exist
         res.json({
@@ -3720,6 +3759,7 @@ export async function registerAdminRoutes(app: Express) {
 
   app.put("/admin/api/company-settings", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
+      const market = req.query.market as string | undefined;
       const { 
         name, email, logisticsEmail, phone, address, city, state, zipCode, country, 
         contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,
@@ -3728,12 +3768,30 @@ export async function registerAdminRoutes(app: Express) {
       
       console.log('Updating company settings with currency:', defaultCurrency, 'VAT:', defaultVatPercentage);
 
+      // Check if company settings exist
+      const existingResult = await pool.query('SELECT id, market_contacts FROM company_settings LIMIT 1');
+
+      // If market is specified, update only the marketContacts JSONB for that market
+      if (market && market !== 'all') {
+        if (existingResult.rows.length === 0) {
+          return res.status(404).json({ message: "Company settings not found" });
+        }
+        const existingContacts = existingResult.rows[0].market_contacts || {};
+        const updatedContacts = {
+          ...existingContacts,
+          [market]: { name, email, phone, address, city, zipCode, country, vatNumber, registrationNumber }
+        };
+        await pool.query(
+          `UPDATE company_settings SET market_contacts = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+          [JSON.stringify(updatedContacts), existingResult.rows[0].id]
+        );
+        return res.json({ message: "Market company settings updated successfully" });
+      }
+
+      // Global update — requires name + email
       if (!name || !email) {
         return res.status(400).json({ message: "Company name and email are required" });
       }
-
-      // Check if company settings exist
-      const existingResult = await pool.query('SELECT id FROM company_settings LIMIT 1');
       
       if (existingResult.rows.length > 0) {
         // Update existing settings
@@ -4492,6 +4550,9 @@ export async function registerAdminRoutes(app: Express) {
       }
       // Default market to 'ro' if not provided
       if (!voucherData.marketCode) voucherData.marketCode = 'ro';
+      if (!canAccessMarket(req as AdminAuthRequest, voucherData.marketCode)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const voucher = await storage.createVoucher(voucherData);
       res.status(201).json(voucher);
     } catch (error) {
@@ -4510,6 +4571,9 @@ export async function registerAdminRoutes(app: Express) {
       }
       if (voucherData.validUntil) {
         voucherData.validUntil = new Date(voucherData.validUntil);
+      }
+      if (voucherData.marketCode && !canAccessMarket(req as AdminAuthRequest, voucherData.marketCode)) {
+        return res.status(403).json({ message: "Access denied for this market" });
       }
       const voucher = await storage.updateVoucher(id, voucherData);
       res.json(voucher);

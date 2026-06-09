@@ -1178,11 +1178,11 @@ export class DatabaseStorage implements IStorage {
 
   async getVoucherByCode(code: string, market?: string): Promise<Voucher | undefined> {
     if (market && market !== 'all') {
+      // Strict market match — no cross-market fallback
       const [voucher] = await db.select().from(vouchers).where(
         and(eq(vouchers.code, code.toUpperCase()), eq(vouchers.marketCode, market))
       );
-      if (voucher) return voucher;
-      // Fallback: voucher with no market set (marketCode is null or 'ro') — treated as global
+      return voucher;
     }
     const [voucher] = await db.select().from(vouchers).where(eq(vouchers.code, code.toUpperCase()));
     return voucher;
