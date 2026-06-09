@@ -5673,6 +5673,21 @@
             setUploadedImages(initialProductDataRef.current.images || []);
           }
         }, [productLoadTrigger]);
+
+        // When market-specific data loads, override price/currency/stock with market values
+        // This ensures editing on .ro tab shows .ro price, not the global fallback price
+        React.useEffect(() => {
+          if (!editingProduct || selectedMarketTab === 'all') return;
+          const mktData = editingProductMarkets[selectedMarketTab];
+          if (!mktData) return;
+          setProductFormData(prev => ({
+            ...prev,
+            price: (mktData.price !== null && mktData.price !== undefined && mktData.price !== '') ? String(mktData.price) : prev.price,
+            compareAtPrice: (mktData.compareAtPrice !== null && mktData.compareAtPrice !== undefined && mktData.compareAtPrice !== '') ? String(mktData.compareAtPrice) : prev.compareAtPrice,
+            currency: mktData.currency || prev.currency,
+            stockQuantity: (mktData.stockQuantity !== null && mktData.stockQuantity !== undefined) ? String(mktData.stockQuantity) : prev.stockQuantity,
+          }));
+        }, [editingProductMarkets, selectedMarketTab]);
         
         const [userFormData, setUserFormData] = useState({
           email: '',
@@ -6023,61 +6038,96 @@
             images: uploadedImages
           };
           
-          // Debug logging to see what data is being sent
           console.log('Product form data being submitted:', productData);
-          console.log('Currency value:', productData.currency);
-          console.log('VAT percentage:', productData.vatPercentage);
-          
-          const result = editingProduct 
-            ? await updateProduct(editingProduct.id, productData)
-            : await createProduct(productData);
-          
-          if (result.success) {
-            alert(result.message);
+          console.log('selectedMarketTab:', selectedMarketTab);
+
+          // Helper to reset form after save
+          const resetForm = () => {
             setShowAddProductModal(false);
             setEditingProduct(null);
             setProductFormData({
-              name: '',
-              description: '',
-              price: '',
-              compareAtPrice: '',
-              categoryId: '',
-              supplierId: '',
-              imageUrl: '',
-              stockQuantity: '',
-              featured: false,
-              vatValue: '',
-              vatPercentage: '21.00',
-              currency: 'EUR',
-              productCode: '',
-              ncCode: '',
-              cpvCode: '',
-              status: 'active',
-              images: [],
-              weight: '',
-              length: '',
-              width: '',
-              height: '',
-              piecesPerPackage: '',
-              productQuantity: '',
-              specs: [],
-              volumeDiscounts: [],
-              priority: 0
+              name: '', description: '', price: '', compareAtPrice: '',
+              categoryId: '', supplierId: '', imageUrl: '', stockQuantity: '',
+              featured: false, vatValue: '', vatPercentage: '21.00', currency: 'EUR',
+              productCode: '', ncCode: '', cpvCode: '', status: 'active', images: [],
+              weight: '', length: '', width: '', height: '', piecesPerPackage: '',
+              productQuantity: '', specs: [], volumeDiscounts: [], priority: 0
             });
             setUploadedImages([]);
-            // Reset import from URL state
             setImportUrl('');
             setImportedData(null);
             setUsageRightsConfirmed(false);
-            // Force immediate refresh to show updated currency/VAT values
-            console.log('Product updated successfully, refreshing list...');
             fetchProducts();
-            // Also refresh after a delay to ensure cache is updated
-            setTimeout(() => {
-              fetchProducts();
-            }, 1500);
+            setTimeout(() => fetchProducts(), 1500);
+          };
+
+          // Helper: save market-specific fields (price/currency/stock) to product_markets
+          const saveMarketData = async (productId, market) => {
+            try {
+              await fetch(`/admin/api/products/${productId}/markets/${market}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                  isActive: true,
+                  price: productData.price || null,
+                  compareAtPrice: productData.compareAtPrice || null,
+                  currency: productData.currency || null,
+                  stockQuantity: productData.stockQuantity !== '' && productData.stockQuantity !== null ? parseInt(String(productData.stockQuantity)) : null,
+                  inStock: productData.stockQuantity ? parseInt(String(productData.stockQuantity)) > 0 : null,
+                })
+              });
+            } catch (err) {
+              console.error('Failed to save market-specific data:', err);
+            }
+          };
+
+          if (editingProduct && selectedMarketTab !== 'all') {
+            // ── EDITING on specific market tab ──────────────────────────────
+            // 1. Save global fields (name, desc, images, specs, weight, etc.)
+            //    but NOT price/compareAtPrice/currency/stockQuantity — those are market-specific
+            const { price, compareAtPrice, currency, stockQuantity, inStock, ...globalFields } = productData;
+            const globalResult = await updateProduct(editingProduct.id, globalFields);
+            
+            if (!globalResult.success) {
+              alert('Eroare la salvare: ' + globalResult.message);
+              return;
+            }
+            
+            // 2. Save price/currency/stock only to this market's product_markets row
+            await saveMarketData(editingProduct.id, selectedMarketTab);
+            
+            alert('✅ Produs salvat! Prețul/stocul au fost actualizate doar pentru piața ' + selectedMarketTab.toUpperCase() + '.');
+            resetForm();
+
+          } else if (!editingProduct && selectedMarketTab !== 'all') {
+            // ── CREATING new product on specific market tab ─────────────────
+            // Create globally (all fields), then also set market-specific entry
+            const result = await createProduct(productData);
+            if (result.success) {
+              // Get the new product's id from result
+              const newId = result.product?.id || result.id;
+              if (newId) {
+                await saveMarketData(newId, selectedMarketTab);
+              }
+              alert(result.message);
+              resetForm();
+            } else {
+              alert('Error: ' + result.message);
+            }
+
           } else {
-            alert('Error: ' + result.message);
+            // ── 'all' tab OR creating globally ─────────────────────────────
+            // Current behavior: save everything to global products table
+            const result = editingProduct
+              ? await updateProduct(editingProduct.id, productData)
+              : await createProduct(productData);
+            
+            if (result.success) {
+              alert(result.message);
+              resetForm();
+            } else {
+              alert('Error: ' + result.message);
+            }
           }
         };
         
