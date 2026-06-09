@@ -25,7 +25,7 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const { t } = useTranslation();
-  const { name: translatedName } = useProductTranslation(product.id, product.name, product.description);
+  const { name: translatedName, description: translatedDescription } = useProductTranslation(product.id, product.name, product.description);
   const { getCategoryName } = useCategoryTranslations(
     product.category ? [product.category.id] : [],
     product.category ? [product.category as any] : []
@@ -48,6 +48,8 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
     ? ((product as any).specs as { label: string; value: string }[]).filter(s => s.label && s.value)
     : [];
   const visibleSpecs = specs.slice(0, 3);
+
+  const descSnippet = stripHtml(translatedDescription);
 
   return (
     <Card className="product-card group cursor-pointer hover:shadow-md transition-shadow h-full">
@@ -72,11 +74,15 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
               <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 text-base">{translatedName}</h3>
               
               {product.category && (
-                <Badge variant="secondary" className="mb-3 text-xs">
+                <Badge variant="secondary" className="mb-2 text-xs">
                   {getCategoryName(product.category.id, product.category.name)}
                 </Badge>
               )}
-              
+
+              {descSnippet && (
+                <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-3">{descSnippet}</p>
+              )}
+
               <div className="flex items-center mb-4">
                 <div className="flex items-center text-yellow-400 mr-2">
                   <Star className="h-4 w-4 fill-current" />
