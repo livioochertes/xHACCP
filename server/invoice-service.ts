@@ -51,6 +51,14 @@ export class InvoiceService {
         throw new Error(`Order ${orderId} not found`);
       }
 
+      // Resolve per-market company settings at runtime (not at service startup)
+      const orderMarket = (order.market as string) || 'ro';
+      const marketCompanyInfo = await getCompanySettingsByMarket(orderMarket);
+      if (marketCompanyInfo) {
+        this.config.companyInfo = marketCompanyInfo;
+        console.log(`📋 Using market '${orderMarket}' company settings for order ${orderId}: ${marketCompanyInfo.name}`);
+      }
+
       let user = order.userId ? await storage.getUser(order.userId) : null;
       if (!user) {
         const billing = order.billingAddress as any || {};
@@ -507,7 +515,40 @@ export async function createInvoiceService(): Promise<InvoiceService> {
   return new InvoiceService(config);
 }
 
-// Helper function to get company settings
+// Helper function to get company settings by market (fallback to 'ro' then any)
+async function getCompanySettingsByMarket(market: string) {
+  const { pool } = await import('./db.js');
+  try {
+    // Try exact market row first, then fallback to 'ro', then any
+    const result = await pool.query(`
+      SELECT 
+        name, email, logistics_email as "logisticsEmail", phone, address, city, state, zip_code as "zipCode", 
+        country, contact_person as "contactPerson", website, 
+        vat_number as "vatNumber", registration_number as "registrationNumber", 
+        description, default_vat_percentage as "defaultVatPercentage"
+      FROM company_settings 
+      WHERE market_code = $1
+      LIMIT 1
+    `, [market]);
+    if (result.rows.length > 0) return result.rows[0];
+    // Fallback to 'ro'
+    const roResult = await pool.query(`
+      SELECT 
+        name, email, logistics_email as "logisticsEmail", phone, address, city, state, zip_code as "zipCode", 
+        country, contact_person as "contactPerson", website, 
+        vat_number as "vatNumber", registration_number as "registrationNumber", 
+        description, default_vat_percentage as "defaultVatPercentage"
+      FROM company_settings WHERE market_code = 'ro' LIMIT 1
+    `);
+    if (roResult.rows.length > 0) return roResult.rows[0];
+    return null;
+  } catch (err) {
+    console.error('Error fetching company settings by market:', err);
+    return null;
+  }
+}
+
+// Helper function to get company settings (global — used at service init)
 async function getCompanySettings() {
   const { pool } = await import('./db.js');
   try {

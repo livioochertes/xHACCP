@@ -3630,30 +3630,39 @@ export async function registerAdminRoutes(app: Express) {
             marketContacts: r.market_contacts
           });
         }
-        // Fallback: return global row merged with marketContacts[market] if it exists
+        // No market-specific row found — create one from global row data (get-or-create)
         const globalRow = await pool.query(
           `SELECT * FROM company_settings ORDER BY created_at ASC LIMIT 1`
         );
-        if (globalRow.rows.length > 0) {
-          const g = globalRow.rows[0];
-          const contacts = g.market_contacts || {};
-          const override = contacts[market] || {};
-          return res.json({
-            marketCode: market, name: g.name, email: g.email,
-            logisticsEmail: g.logistics_email, phone: g.phone, address: g.address,
-            city: g.city, state: g.state, zipCode: g.zip_code, country: g.country,
-            contactPerson: g.contact_person, website: g.website,
-            vatNumber: g.vat_number, registrationNumber: g.registration_number,
-            bankName: g.bank_name, iban: g.iban, description: g.description,
-            defaultCurrency: g.default_currency, defaultVatPercentage: g.default_vat_percentage,
-            reverseChargeVat: g.reverse_charge_vat,
-            freeShippingThreshold: g.free_shipping_threshold,
-            standardShippingCost: g.standard_shipping_cost,
-            marketContacts: g.market_contacts,
-            ...override
-          });
-        }
-        return res.json({ ...DEFAULTS, marketCode: market });
+        const g = globalRow.rows.length > 0 ? globalRow.rows[0] : null;
+        const baseData = g ? {
+          name: g.name, email: g.email, logisticsEmail: g.logistics_email,
+          phone: g.phone, address: g.address, city: g.city, state: g.state,
+          zipCode: g.zip_code, country: g.country, contactPerson: g.contact_person,
+          website: g.website, vatNumber: g.vat_number, registrationNumber: g.registration_number,
+          bankName: g.bank_name, iban: g.iban, description: g.description,
+          defaultCurrency: g.default_currency, defaultVatPercentage: g.default_vat_percentage,
+          reverseChargeVat: g.reverse_charge_vat,
+          freeShippingThreshold: g.free_shipping_threshold,
+          standardShippingCost: g.standard_shipping_cost
+        } : DEFAULTS;
+        // Create the market-specific row so future GETs will have it
+        try {
+          await pool.query(`
+            INSERT INTO company_settings (
+              market_code, name, email, logistics_email, phone, address, city, state, zip_code, country,
+              contact_person, website, vat_number, registration_number, bank_name, iban, description,
+              default_currency, default_vat_percentage, reverse_charge_vat, free_shipping_threshold, standard_shipping_cost
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+            ON CONFLICT (market_code) DO NOTHING
+          `, [market, baseData.name, baseData.email, baseData.logisticsEmail, baseData.phone,
+              baseData.address, baseData.city, baseData.state, baseData.zipCode, baseData.country,
+              baseData.contactPerson, baseData.website, baseData.vatNumber, baseData.registrationNumber,
+              baseData.bankName, baseData.iban, baseData.description,
+              baseData.defaultCurrency, baseData.defaultVatPercentage, baseData.reverseChargeVat,
+              baseData.freeShippingThreshold, baseData.standardShippingCost]);
+        } catch (_) { /* ignore if row was created concurrently */ }
+        return res.json({ ...baseData, marketCode: market, marketContacts: g?.market_contacts || null });
       }
 
       // No market: return global settings (first row)
