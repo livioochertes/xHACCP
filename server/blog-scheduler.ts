@@ -32,12 +32,14 @@ export function startBlogScheduler() {
   scheduledTask = cron.schedule(
     cronExpr,
     async () => {
-      console.log("[Blog Scheduler] Se generează articol automat...");
-      try {
-        const postId = await generateWeeklyBlogPost();
-        console.log(`[Blog Scheduler] Articol generat! ID: ${postId}`);
-      } catch (error) {
-        console.error("[Blog Scheduler] Eroare:", error);
+      console.log("[Blog Scheduler] Se generează articole automate pentru toate piețele...");
+      for (const market of ["ro", "fr", "com"] as const) {
+        try {
+          const postId = await generateWeeklyBlogPost(market);
+          console.log(`[Blog Scheduler] Articol generat pentru market '${market}'! ID: ${postId}`);
+        } catch (error) {
+          console.error(`[Blog Scheduler] Eroare la market '${market}':`, error);
+        }
       }
     },
     { scheduled: true, timezone: "Europe/Bucharest" }

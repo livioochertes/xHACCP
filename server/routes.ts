@@ -3936,13 +3936,23 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   });
 
   // ─── Blog API ───────────────────────────────────────────────────────────────
-  // Public: list published posts
+  // Market → language mapping for blog posts
+  function marketToLanguage(market: string): string {
+    if (market === "fr") return "fr";
+    if (market === "com") return "en";
+    return "ro"; // default / 'ro' market
+  }
+
+  // Public: list published posts (filtered by market/language)
   app.get("/api/blog/posts", async (req, res) => {
     try {
-      const { language, limit, offset } = req.query;
+      const { limit, offset } = req.query;
+      // Derive language from market (X-Market header or hostname)
+      const market = getMarketFromRequest(req);
+      const language = marketToLanguage(market);
       const posts = await storage.getBlogPosts({
         published: true,
-        language: language as string | undefined,
+        language,
         limit: limit ? parseInt(limit as string) : undefined,
         offset: offset ? parseInt(offset as string) : undefined,
       });

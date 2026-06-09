@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowRight, Truck, Shield, Award, MessageSquare, Users, Star, ChevronLeft, ChevronRight, CheckCircle, Copy } from "lucide-react";
+import { ArrowRight, Truck, Shield, Award, MessageSquare, Users, Star, ChevronLeft, ChevronRight, CheckCircle, Copy, BookOpen, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +18,9 @@ import { useCart } from "@/hooks/use-cart";
 import ProductCard from "@/components/product-card";
 import ContactModal from "@/components/contact-modal";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
-import type { Category, ProductWithCategory } from "@shared/schema";
+import type { Category, ProductWithCategory, BlogPost } from "@shared/schema";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { getMarketFromHostname } from "@/lib/queryClient";
 
 interface ShippingSettings {
   freeShippingThreshold: string;
@@ -64,6 +65,18 @@ export default function Home() {
 
   const { data: shippingSettings } = useQuery<ShippingSettings>({
     queryKey: ["/api/shipping-settings"],
+  });
+
+  const market = getMarketFromHostname();
+  const { data: latestBlogPosts = [] } = useQuery<BlogPost[]>({
+    queryKey: ["/api/blog/posts", { limit: 3, market }],
+    queryFn: async () => {
+      const res = await fetch("/api/blog/posts?limit=3", {
+        headers: { "X-Market": market },
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   useEffect(() => {
@@ -526,6 +539,85 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Latest Blog Articles */}
+      {latestBlogPosts.length > 0 && (
+        <section className="py-16 bg-slate-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <BookOpen className="h-6 w-6 text-blue-600" />
+                <h2 className="text-3xl font-bold text-primary">{t('home.blog.title')}</h2>
+              </div>
+              <p className="text-slate-600">{t('home.blog.subtitle')}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {latestBlogPosts.map((post) => {
+                const dateStr = post.publishedAt
+                  ? new Date(post.publishedAt).toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "";
+                return (
+                  <Link key={post.id} href={`/blog/${post.slug}`}>
+                    <Card className="h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer group border border-slate-200">
+                      {post.imageUrl && (
+                        <div className="aspect-[16/9] overflow-hidden rounded-t-lg">
+                          <img
+                            src={post.imageUrl}
+                            alt={post.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                      )}
+                      <CardContent className="p-5 flex flex-col gap-3">
+                        <Badge variant="secondary" className="w-fit text-xs bg-blue-50 text-blue-700">
+                          {post.category}
+                        </Badge>
+                        <h3 className="text-base font-bold text-slate-800 group-hover:text-blue-600 transition-colors leading-snug line-clamp-2">
+                          {post.title}
+                        </h3>
+                        <p className="text-sm text-slate-600 line-clamp-2 flex-1">
+                          {post.excerpt}
+                        </p>
+                        <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100">
+                          <div className="flex items-center gap-3">
+                            {dateStr && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {dateStr}
+                              </span>
+                            )}
+                            {post.readTimeMinutes && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {post.readTimeMinutes} min
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-blue-600 font-medium">{t('home.blog.readMore')} →</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="text-center">
+              <Link href="/blog">
+                <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  {t('home.blog.viewAll')}
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Newsletter */}
       <section className="py-16 kitchen-pro-secondary">

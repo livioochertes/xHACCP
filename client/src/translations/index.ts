@@ -399,6 +399,12 @@ export interface TranslationKeys {
   'home.newsletter.subtitle': string;
   'home.newsletter.placeholder': string;
   'home.newsletter.subscribe': string;
+
+  // Blog section
+  'home.blog.title': string;
+  'home.blog.subtitle': string;
+  'home.blog.readMore': string;
+  'home.blog.viewAll': string;
   
   // Business Solutions section
   'home.business.title': string;
@@ -1021,6 +1027,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': 'Get the latest updates on new products and special offers',
     'home.newsletter.placeholder': 'Enter your email address',
     'home.newsletter.subscribe': 'Subscribe',
+    'home.blog.title': 'Latest Articles',
+    'home.blog.subtitle': 'Insights on food safety, HACCP compliance, and professional kitchen management',
+    'home.blog.readMore': 'Read more',
+    'home.blog.viewAll': 'View all articles',
     
     // Business Solutions section
     'home.business.title': 'Business Solutions',
@@ -1609,6 +1619,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': 'Recibe las últimas actualizaciones sobre nuevos productos y ofertas especiales',
     'home.newsletter.placeholder': 'Ingresa tu dirección de correo electrónico',
     'home.newsletter.subscribe': 'Suscribirse',
+    'home.blog.title': 'Últimos Artículos',
+    'home.blog.subtitle': 'Información sobre seguridad alimentaria, cumplimiento HACCP y gestión de cocinas profesionales',
+    'home.blog.readMore': 'Leer más',
+    'home.blog.viewAll': 'Ver todos los artículos',
     
     // Footer additions
     'footer.company.description': 'Equipos de cocina profesionales y soluciones de seguridad para negocios de servicios alimentarios.',
@@ -2050,6 +2064,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': 'Recevez les dernières mises à jour sur les nouveaux produits et offres spéciales',
     'home.newsletter.placeholder': 'Entrez votre adresse email',
     'home.newsletter.subscribe': 'S\'abonner',
+    'home.blog.title': 'Derniers Articles',
+    'home.blog.subtitle': 'Conseils sur la sécurité alimentaire, la conformité HACCP et la gestion des cuisines professionnelles',
+    'home.blog.readMore': 'Lire la suite',
+    'home.blog.viewAll': 'Voir tous les articles',
     
     // Business Solutions section
     'home.business.title': 'Solutions B2B',
@@ -2500,6 +2518,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': 'Erhalten Sie die neuesten Updates zu neuen Produkten und Sonderangeboten',
     'home.newsletter.placeholder': 'Geben Sie Ihre E-Mail-Adresse ein',
     'home.newsletter.subscribe': 'Abonnieren',
+    'home.blog.title': 'Neueste Artikel',
+    'home.blog.subtitle': 'Einblicke in Lebensmittelsicherheit, HACCP-Konformität und professionelles Küchenmanagement',
+    'home.blog.readMore': 'Weiterlesen',
+    'home.blog.viewAll': 'Alle Artikel ansehen',
     
     // Business Solutions section
     'home.business.title': 'Business-Lösungen',
@@ -2971,6 +2993,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': 'Primește cele mai recente actualizări despre produse noi și oferte speciale',
     'home.newsletter.placeholder': 'Introdu adresa ta de email',
     'home.newsletter.subscribe': 'Abonează-te',
+    'home.blog.title': 'Articole Recente',
+    'home.blog.subtitle': 'Resurse despre siguranța alimentară, conformitate HACCP și managementul bucătăriei profesionale',
+    'home.blog.readMore': 'Citește mai mult',
+    'home.blog.viewAll': 'Vezi toate articolele',
     
     // Business Solutions section
     'home.business.title': 'Soluții Business',
@@ -3180,6 +3206,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': 'Ricevi gli ultimi aggiornamenti su nuovi prodotti e offerte speciali',
     'home.newsletter.placeholder': 'Inserisci il tuo indirizzo email',
     'home.newsletter.subscribe': 'Iscriviti',
+    'home.blog.title': 'Ultimi Articoli',
+    'home.blog.subtitle': 'Approfondimenti sulla sicurezza alimentare, conformità HACCP e gestione delle cucine professionali',
+    'home.blog.readMore': 'Leggi di più',
+    'home.blog.viewAll': 'Vedi tutti gli articoli',
     
     // Footer additions
     'footer.company.description': 'Attrezzature da cucina professionali e soluzioni di sicurezza per aziende di servizi alimentari.',
@@ -3458,6 +3488,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': 'Receba as últimas atualizações sobre novos produtos e ofertas especiais',
     'home.newsletter.placeholder': 'Digite seu endereço de e-mail',
     'home.newsletter.subscribe': 'Inscrever-se',
+    'home.blog.title': 'Artigos Recentes',
+    'home.blog.subtitle': 'Informações sobre segurança alimentar, conformidade HACCP e gestão de cozinhas profissionais',
+    'home.blog.readMore': 'Ler mais',
+    'home.blog.viewAll': 'Ver todos os artigos',
     
     // Footer additions
     'footer.company.description': 'Equipamentos de cozinha profissionais e soluções de segurança para empresas de serviços alimentares.',
@@ -3736,6 +3770,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': '获取新产品和特别优惠的最新信息',
     'home.newsletter.placeholder': '输入您的电子邮件地址',
     'home.newsletter.subscribe': '订阅',
+    'home.blog.title': '最新文章',
+    'home.blog.subtitle': '关于食品安全、HACCP合规和专业厨房管理的见解',
+    'home.blog.readMore': '阅读更多',
+    'home.blog.viewAll': '查看所有文章',
     
     // Footer additions
     'footer.company.description': '为食品服务企业提供专业厨房设备和安全解决方案。',
@@ -4014,6 +4052,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': '新製品と特別オファーの最新情報を受け取る',
     'home.newsletter.placeholder': 'メールアドレスを入力',
     'home.newsletter.subscribe': '購読',
+    'home.blog.title': '最新記事',
+    'home.blog.subtitle': '食品安全、HACCPコンプライアンス、プロフェッショナルキッチン管理に関する情報',
+    'home.blog.readMore': '続きを読む',
+    'home.blog.viewAll': 'すべての記事を見る',
     
     // Footer additions
     'footer.company.description': 'フードサービス企業向けの専門キッチン機器と安全ソリューション。',
@@ -4292,6 +4334,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': '신제품과 특별 할인에 대한 최신 업데이트를 받으세요',
     'home.newsletter.placeholder': '이메일 주소를 입력하세요',
     'home.newsletter.subscribe': '구독',
+    'home.blog.title': '최신 기사',
+    'home.blog.subtitle': '식품 안전, HACCP 준수 및 전문 주방 관리에 관한 인사이트',
+    'home.blog.readMore': '더 읽기',
+    'home.blog.viewAll': '모든 기사 보기',
     
     // Footer additions
     'footer.company.description': '식품 서비스 비즈니스를 위한 전문 주방 장비 및 안전 솔루션.',
@@ -4572,6 +4618,10 @@ const translations: Record<Language, TranslationKeys> = {
     'home.newsletter.subtitle': 'احصل على آخر التحديثات حول المنتجات الجديدة والعروض الخاصة',
     'home.newsletter.placeholder': 'أدخل عنوان بريدك الإلكتروني',
     'home.newsletter.subscribe': 'اشترك',
+    'home.blog.title': 'أحدث المقالات',
+    'home.blog.subtitle': 'رؤى حول سلامة الغذاء والامتثال لمعايير HACCP وإدارة المطابخ الاحترافية',
+    'home.blog.readMore': 'اقرأ المزيد',
+    'home.blog.viewAll': 'عرض جميع المقالات',
     
     // Footer additions
     'footer.company.description': 'معدات المطبخ المهنية وحلول السلامة لأعمال الخدمات الغذائية.',
