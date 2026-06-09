@@ -1552,7 +1552,13 @@ Sitemap: https://${domain}/sitemap.xml
     const market = queryMarket || getMarketFromRequest(req);
     if (market && market !== 'all') {
       const filtered = categoriesData.filter((c: any) => (c.marketCode || 'ro') === market);
-      return res.json(filtered);
+      // If no market-specific categories found (e.g. production DB only has RO rows),
+      // fall back to RO base categories so FR/COM markets are never empty.
+      if (filtered.length > 0) {
+        return res.json(filtered);
+      }
+      const fallback = categoriesData.filter((c: any) => (c.marketCode || 'ro') === 'ro');
+      return res.json(fallback);
     }
     res.send(stringifiedCategoriesData);
   });
