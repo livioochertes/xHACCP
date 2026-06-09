@@ -215,14 +215,22 @@ export default function ProductDetails() {
     ));
   };
 
-  const formattedDesc = useMemo(
+  const fallbackDesc = useMemo(
     () => formatProductDescription(translatedDescription || ''),
     [translatedDescription]
   );
 
+  const { data: aiDescData, isLoading: aiDescLoading } = useQuery<{ html: string }>({
+    queryKey: [`/api/products/${product?.id}/description-ai`],
+    enabled: !!product?.id && !!(translatedDescription || product?.description),
+    staleTime: Infinity,
+  });
+
+  const formattedDesc = aiDescData?.html || fallbackDesc;
+
   const plainDesc = useMemo(
-    () => stripFormatting(formattedDesc),
-    [formattedDesc]
+    () => stripFormatting(fallbackDesc),
+    [fallbackDesc]
   );
 
   const shortDesc = useMemo(() => {
@@ -647,7 +655,12 @@ export default function ProductDetails() {
             <TabsContent value="description" className="mt-6">
               <Card>
                 <CardContent className="p-8">
-                  {formattedDesc ? (
+                  {aiDescLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="loading-spinner h-4 w-4" />
+                      <span>{t('products.aiFormatting') || 'Se formatează cu AI…'}</span>
+                    </div>
+                  ) : formattedDesc ? (
                     <div
                       className="product-desc-prose"
                       dangerouslySetInnerHTML={{ __html: formattedDesc }}
