@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useJsonLd } from "@/lib/use-json-ld";
+import { usePageSeo } from "@/lib/use-page-seo";
+import { toSeoText, truncateDesc } from "@/lib/seo-utils";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { Star, ShoppingCart, Truck, Shield, ArrowLeft } from "lucide-react";
@@ -149,6 +151,32 @@ export default function ProductDetails() {
   }, [product, allImages]);
 
   useJsonLd("product-detail", productSchema);
+
+  const seoTitle = useMemo(() => {
+    if (!product) return undefined;
+    const name = toSeoText(translatedName);
+    const cat = product.category
+      ? toSeoText(getCategoryName(product.category.id, product.category.name))
+      : "";
+    return cat ? `${name} - ${cat} | xHACCP` : `${name} | xHACCP`;
+  }, [product, translatedName, getCategoryName]);
+
+  const seoDescription = useMemo(() => {
+    if (!product) return undefined;
+    const name = toSeoText(translatedName);
+    if (translatedDescription) {
+      return truncateDesc(toSeoText(translatedDescription));
+    }
+    return `Cumpără ${name} de pe xHACCP. Echipamente și consumabile HACCP profesionale pentru bucătării comerciale și restaurante.`;
+  }, [product, translatedName, translatedDescription]);
+
+  usePageSeo({
+    title: seoTitle,
+    description: seoDescription,
+    image: allImages[0],
+    url: product ? `${window.location.origin}/products/${product.slug}` : undefined,
+    type: "product",
+  });
 
   const handleAddToCart = () => {
     if (!product) return;

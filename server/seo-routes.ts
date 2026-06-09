@@ -840,14 +840,18 @@ export function registerSeoRoutes(
         } catch (_) {}
       }
 
+      // Strip the leading "x" from "xHACCP" in product names for SEO keywords
+      // e.g. "Etichete xHACCP" → "Etichete HACCP" (brand suffix "| xHACCP" kept intact)
+      const seoName = translatedName.replace(/xHACCP/gi, "HACCP");
+
       const descClean = translatedDesc
-        ? translatedDesc.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 160)
+        ? translatedDesc.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").replace(/xHACCP/gi, "HACCP").trim().slice(0, 160)
         : "";
 
       const fallbackDesc: Record<string, string> = {
-        ro: `Cumpără ${translatedName} – produs profesional HACCP de la xHACCP. Calitate garantată pentru industria HORECA.`,
-        fr: `Achetez ${translatedName} – produit professionnel HACCP de xHACCP. Qualité garantie pour la restauration.`,
-        en: `Buy ${translatedName} – professional HACCP product from xHACCP. Guaranteed quality for foodservice.`,
+        ro: `Cumpără ${seoName} – produs profesional HACCP de la xHACCP. Calitate garantată pentru industria HORECA.`,
+        fr: `Achetez ${seoName} – produit professionnel HACCP de xHACCP. Qualité garantie pour la restauration.`,
+        en: `Buy ${seoName} – professional HACCP product from xHACCP. Guaranteed quality for foodservice.`,
       };
       const desc = descClean || (fallbackDesc[lang] ?? fallbackDesc["en"]);
 
@@ -860,16 +864,16 @@ export function registerSeoRoutes(
         : undefined;
 
       const meta: MetaTags = {
-        title: `${translatedName} | xHACCP`,
+        title: `${seoName} | xHACCP`,
         description: desc,
         canonical: `${base}/products/${slug}`,
         ogType: "product",
         image: productImage,
-        imageAlt: translatedName,
+        imageAlt: seoName,
       };
 
       const descFull = translatedDesc
-        ? translatedDesc.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 500)
+        ? translatedDesc.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").replace(/xHACCP/gi, "HACCP").trim().slice(0, 500)
         : "";
       const price = product.price
         ? `<p><strong>${lang === "fr" ? "Prix" : lang === "en" ? "Price" : "Preț"}: ${product.price} ${product.currency || "RON"}</strong></p>`
@@ -881,14 +885,14 @@ export function registerSeoRoutes(
       ];
       if (product.category?.slug) {
         breadcrumbItems.push({ "@type": "ListItem", "position": 3, "name": product.category.name, "item": `${base}/products?category=${product.category.slug}` });
-        breadcrumbItems.push({ "@type": "ListItem", "position": 4, "name": translatedName, "item": `${base}/products/${slug}` });
+        breadcrumbItems.push({ "@type": "ListItem", "position": 4, "name": seoName, "item": `${base}/products/${slug}` });
       } else {
-        breadcrumbItems.push({ "@type": "ListItem", "position": 3, "name": translatedName, "item": `${base}/products/${slug}` });
+        breadcrumbItems.push({ "@type": "ListItem", "position": 3, "name": seoName, "item": `${base}/products/${slug}` });
       }
       const productObj: Record<string, unknown> = {
         "@context": "https://schema.org",
         "@type": "Product",
-        "name": translatedName,
+        "name": seoName,
         "sku": `KP-${product.id}`,
         "url": `${base}/products/${slug}`,
         "brand": { "@type": "Brand", "name": "xHACCP" },

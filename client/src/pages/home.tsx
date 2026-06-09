@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/hooks/useTranslation";
+import { usePageSeo } from "@/lib/use-page-seo";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { useCallback, useEffect, useState, useRef } from "react";
@@ -38,6 +39,11 @@ export default function Home() {
   const { clearCart } = useCart();
   const { contact } = useCompanySettings();
   const [, setLocation] = useLocation();
+
+  usePageSeo({
+    title: `${t('home.hero.title').replace(/xHACCP/gi, 'HACCP')} | xHACCP`,
+    description: t('home.hero.subtitle').replace(/xHACCP/gi, 'HACCP'),
+  });
 
   const [vivaConfirmedOrder, setVivaConfirmedOrder] = useState<{
     orderId?: number | null;

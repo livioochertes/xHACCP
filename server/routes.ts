@@ -408,13 +408,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`),
-        ...products.map(p => `
+        ...products.map(p => {
+          const seoTitle = (p.name || '').replace(/xHACCP/gi, 'HACCP');
+          const rawImageUrl = p.imageUrl || '';
+          const absoluteImageUrl = rawImageUrl.startsWith('http')
+            ? rawImageUrl
+            : rawImageUrl
+              ? `${BASE_URL}${rawImageUrl.startsWith('/') ? '' : '/'}${rawImageUrl}`
+              : '';
+          const escapedTitle = seoTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const imageBlock = absoluteImageUrl
+            ? `\n    <image:image>\n      <image:loc>${absoluteImageUrl}</image:loc>\n      <image:title>${escapedTitle}</image:title>\n    </image:image>`
+            : '';
+          return `
   <url>
     <loc>${BASE_URL}/products/${p.slug}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>`),
+    <priority>0.8</priority>${imageBlock}
+  </url>`;
+        }),
         ...publishedBlogPosts.map(b => `
   <url>
     <loc>${BASE_URL}/blog/${b.slug}</loc>
@@ -424,7 +437,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   </url>`),
       ];
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${urlEntries.join('')}
 </urlset>`;
       res.setHeader('Content-Type', 'application/xml');

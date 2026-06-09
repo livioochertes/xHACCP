@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "@/hooks/useTranslation";
+import { usePageSeo } from "@/lib/use-page-seo";
 
 import ProductCard from "@/components/product-card";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
@@ -19,6 +20,11 @@ const PAGE_SIZE = 20;
 export default function Products() {
   const [location, navigate] = useLocation();
   const { t } = useTranslation();
+
+  usePageSeo({
+    title: "Catalog Produse HACCP & HoReCa | xHACCP",
+    description: "Explorează catalogul complet de echipamente și consumabile HACCP profesionale. Etichete HACCP, ustensile bucătărie, soluții pentru restaurante și HoReCa.",
+  });
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
