@@ -158,7 +158,7 @@ export default function ProductDetails() {
     const cat = product.category
       ? toSeoText(getCategoryName(product.category.id, product.category.name))
       : "";
-    return cat ? `${name} - ${cat} | xHACCP` : `${name} | xHACCP`;
+    return cat ? `${cat} - ${name} | xHACCP` : `${name} | xHACCP`;
   }, [product, translatedName, getCategoryName]);
 
   const seoDescription = useMemo(() => {

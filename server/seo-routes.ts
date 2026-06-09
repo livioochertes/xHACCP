@@ -36,6 +36,16 @@ function escapeHtml(str: string): string {
 }
 
 /**
+ * Removes the leading "x" from "xHACCP" in SEO keyword text so product-type
+ * references like "etichete xHACCP" become "etichete HACCP".
+ * The brand suffix "| xHACCP" and brand-identity headings are left intact by
+ * applying this only to descriptions and body copy, not to page titles.
+ */
+function seoNormalize(text: string): string {
+  return text.replace(/xHACCP/gi, "HACCP");
+}
+
+/**
  * Serialize an object to a JSON string safe for embedding inside
  * <script type="application/ld+json">…</script>.
  * Escapes <, >, &, and the Unicode line-separator chars U+2028/U+2029
@@ -77,7 +87,8 @@ const DEFAULT_OG_IMAGE_ALT = "xHACCP – Echipamente și consumabile profesional
 
 function injectMeta(html: string, meta: MetaTags, lang: string, bodyHtml?: string, jsonLd?: object | object[]): string {
   const title = escapeHtml(meta.title);
-  const description = escapeHtml(meta.description);
+  // Apply keyword normalization to description and body copy (not to page title/brand identifiers)
+  const description = escapeHtml(seoNormalize(meta.description));
   const canonical = meta.canonical;
   const ogType = meta.ogType || "website";
   const ogLocale = getOgLocale(lang);
@@ -133,7 +144,7 @@ function injectMeta(html: string, meta: MetaTags, lang: string, bodyHtml?: strin
   if (bodyHtml) {
     result = result.replace(
       '<div id="root"></div>',
-      `<div aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">${bodyHtml}</div><div id="root"></div>`
+      `<div aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">${seoNormalize(bodyHtml)}</div><div id="root"></div>`
     );
   }
 
