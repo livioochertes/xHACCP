@@ -12,7 +12,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { usePageSeo } from "@/lib/use-page-seo";
 import { toSeoText } from "@/lib/seo-utils";
 
-import ProductCard from "@/components/product-card";
+import ProductCard, { ProductListItem } from "@/components/product-card";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import type { Category, ProductWithCategory } from "@shared/schema";
 
@@ -314,14 +314,18 @@ export default function Products() {
             {/* Products Grid */}
             {products.length > 0 && (
               <>
-                <div id="products-grid" className={`grid gap-6 ${
+                <div id="products-grid" className={`grid gap-4 ${
                   viewMode === "grid" 
-                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" 
+                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" 
                     : "grid-cols-1"
                 }`}>
-                  {products.map((product) => (
-                    <ProductCard key={`${product.id}-${selectedCategory}-${searchQuery}-${currentPage}`} product={product} />
-                  ))}
+                  {products.map((product) =>
+                    viewMode === "list" ? (
+                      <ProductListItem key={`${product.id}-${selectedCategory}-${searchQuery}-${currentPage}`} product={product} />
+                    ) : (
+                      <ProductCard key={`${product.id}-${selectedCategory}-${searchQuery}-${currentPage}`} product={product} />
+                    )
+                  )}
                 </div>
                 
                 {/* Crawlable pagination navigation */}
