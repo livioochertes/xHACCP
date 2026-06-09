@@ -1092,6 +1092,7 @@ export class DatabaseStorage implements IStorage {
           height: products.height,
           piecesPerPackage: products.piecesPerPackage,
           productQuantity: products.productQuantity,
+          specs: products.specs,
           createdAt: products.createdAt,
           updatedAt: products.updatedAt,
         }
