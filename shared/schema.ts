@@ -95,6 +95,7 @@ export const products = pgTable("products", {
   height: decimal("height", { precision: 8, scale: 2 }), // Height in cm
   piecesPerPackage: integer("pieces_per_package").default(1), // Maximum pieces per package for shipping
   productQuantity: text("product_quantity"), // Net content / quantity e.g. "5L", "500g", "1 set"
+  specs: jsonb("specs").default([]), // Flexible product specs: [{label, value}, ...]
   priority: integer("priority").default(0), // Display priority: 1 = highest, 2, 3 = lower priorities, 0 = default order
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

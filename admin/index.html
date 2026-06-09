@@ -846,6 +846,7 @@
             height: editingProduct.height?.toString() || '',
             piecesPerPackage: editingProduct.piecesPerPackage?.toString() || '',
             productQuantity: editingProduct.productQuantity || '',
+            specs: Array.isArray(editingProduct.specs) ? editingProduct.specs : [],
             priority: editingProduct.priority || 0
           };
           
@@ -3033,6 +3034,7 @@
                             height: '',
                             piecesPerPackage: '',
                             productQuantity: '',
+                            specs: [],
                             priority: 0
                           };
                           
@@ -5651,6 +5653,7 @@
           height: '',
           piecesPerPackage: '',
           productQuantity: '',
+          specs: [],
           priority: 0
         });
         const [uploadedImages, setUploadedImages] = useState([]);
@@ -6054,6 +6057,7 @@
               height: '',
               piecesPerPackage: '',
               productQuantity: '',
+              specs: [],
               priority: 0
             });
             setUploadedImages([]);
@@ -6950,7 +6954,67 @@
                         These dimensions and pieces per package are used for AWB generation and shipping calculations. Cantitate is displayed on the product page.
                       </div>
                     </div>
-                    
+
+                    {/* Product Specs Section */}
+                    <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
+                      <h5 style={{color: '#333', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        📋 Specificații produs
+                        <span style={{fontSize: '12px', fontWeight: 'normal', color: '#666'}}>— caracteristici tehnice afișate pe pagina produsului</span>
+                      </h5>
+                      <div>
+                        {(productFormData.specs || []).map((spec, idx) => (
+                          <div key={idx} style={{display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center'}}>
+                            <input
+                              type="text"
+                              className="form-input"
+                              style={{flex: 1}}
+                              value={spec.label || ''}
+                              onChange={(e) => {
+                                const newSpecs = [...(productFormData.specs || [])];
+                                newSpecs[idx] = {...newSpecs[idx], label: e.target.value};
+                                setProductFormData({...productFormData, specs: newSpecs});
+                              }}
+                              placeholder="Denumire (ex: Dimensiunea etichetei)"
+                            />
+                            <input
+                              type="text"
+                              className="form-input"
+                              style={{flex: 1}}
+                              value={spec.value || ''}
+                              onChange={(e) => {
+                                const newSpecs = [...(productFormData.specs || [])];
+                                newSpecs[idx] = {...newSpecs[idx], value: e.target.value};
+                                setProductFormData({...productFormData, specs: newSpecs});
+                              }}
+                              placeholder="Valoare (ex: 38×58 mm)"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSpecs = (productFormData.specs || []).filter((_, i) => i !== idx);
+                                setProductFormData({...productFormData, specs: newSpecs});
+                              }}
+                              style={{padding: '6px 12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', flexShrink: 0, fontSize: '16px', lineHeight: '1'}}
+                              title="Șterge specificație"
+                            >×</button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSpecs = [...(productFormData.specs || []), {label: '', value: ''}];
+                            setProductFormData({...productFormData, specs: newSpecs});
+                          }}
+                          style={{marginTop: '4px', padding: '6px 14px', backgroundColor: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}
+                        >+ Adaugă specificație</button>
+                      </div>
+                      {(productFormData.specs || []).length === 0 && (
+                        <div style={{marginTop: '8px', fontSize: '12px', color: '#999'}}>
+                          Nicio specificație adăugată. Exemplu: Dimensiunea etichetei → 38×58 mm
+                        </div>
+                      )}
+                    </div>
+
                     {/* Market Prices Section - Show only for editing existing products */}
                     {editingProduct && (
                       <MarketPricesSection
@@ -7185,6 +7249,7 @@
                             height: '',
                             piecesPerPackage: '',
                             productQuantity: '',
+                            specs: [],
                             priority: 0
                           });
                           setUploadedImages([]);

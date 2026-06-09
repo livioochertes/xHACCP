@@ -439,6 +439,27 @@ export default function ProductDetails() {
               );
             })()}
 
+            {/* Flexible product specs (key-value pairs defined by admin) */}
+            {(() => {
+              const specs = Array.isArray((product as any).specs) ? (product as any).specs as {label: string; value: string}[] : [];
+              const validSpecs = specs.filter(s => s.label && s.value);
+              if (validSpecs.length === 0) return null;
+              return (
+                <div className="rounded-lg border border-gray-200 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {validSpecs.map((spec, i) => (
+                        <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                          <td className="px-3 py-2 font-medium text-gray-700 w-1/2 border-r border-gray-200">{spec.label}</td>
+                          <td className="px-3 py-2 text-gray-600">{spec.value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+
             <Separator />
 
             {/* Quantity selector + Add to cart */}
@@ -520,6 +541,29 @@ export default function ProductDetails() {
             <TabsContent value="specifications" className="mt-6">
               <Card>
                 <CardContent className="p-8">
+                  {/* Flexible product specs */}
+                  {(() => {
+                    const specs = Array.isArray((product as any).specs) ? (product as any).specs as {label: string; value: string}[] : [];
+                    const validSpecs = specs.filter(s => s.label && s.value);
+                    if (validSpecs.length === 0) return null;
+                    return (
+                      <div className="mb-8">
+                        <h4 className="font-semibold mb-3 text-gray-900">{t('products.specifications')}</h4>
+                        <div className="rounded-lg border border-gray-200 overflow-hidden">
+                          <table className="w-full text-sm">
+                            <tbody>
+                              {validSpecs.map((spec, i) => (
+                                <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                                  <td className="px-4 py-2.5 font-medium text-gray-700 w-1/2 border-r border-gray-200">{spec.label}</td>
+                                  <td className="px-4 py-2.5 text-gray-600">{spec.value}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <h4 className="font-semibold mb-3 text-gray-900">{t('products.details')}</h4>
