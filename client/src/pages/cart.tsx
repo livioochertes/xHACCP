@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/utils";
 import { getMarketFromHostname } from "@/lib/queryClient";
+import { getVolumePrice } from "@/lib/volume-price";
 
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +32,8 @@ export default function Cart() {
   const validCart = cart.filter(item => item.product && item.product.price);
 
   const subtotal = validCart.reduce((sum, item) => {
-    return sum + (parseFloat(item.product.price) * item.quantity);
+    const unitPrice = getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+    return sum + (unitPrice * item.quantity);
   }, 0);
   
   const freeShippingThreshold = shippingSettings ? parseFloat(shippingSettings.freeShippingThreshold) : 500;
@@ -141,7 +143,14 @@ export default function Cart() {
                           </Button>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
-                          {item.product?.price ? formatPrice(item.product.price, item.product.currency) : "0.00"} {t('cart.each')}
+                          {item.product?.price ? formatPrice(getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts).toFixed(2), item.product.currency) : "0.00"} {t('cart.each')}
+                          {(() => {
+                            const vd = (item.product as any).volumeDiscounts;
+                            if (!Array.isArray(vd) || vd.length === 0) return null;
+                            const active = vd.filter((t: any) => t.minQty > 0 && t.discountPercent > 0).sort((a: any, b: any) => b.minQty - a.minQty).find((t: any) => item.quantity >= t.minQty);
+                            if (!active) return null;
+                            return <span className="ml-1 text-xs text-emerald-600 font-medium">(-{active.discountPercent}%)</span>;
+                          })()}
                         </p>
                         
                         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -167,7 +176,7 @@ export default function Cart() {
                           </div>
                           
                           <span className="font-semibold text-sm sm:text-base">
-                            {item.product?.price ? formatPrice((parseFloat(item.product.price) * item.quantity).toString(), item.product.currency) : "0.00"}
+                            {item.product?.price ? formatPrice((getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts) * item.quantity).toFixed(2), item.product.currency) : "0.00"}
                           </span>
                         </div>
                       </div>

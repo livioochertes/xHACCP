@@ -847,6 +847,7 @@
             piecesPerPackage: editingProduct.piecesPerPackage?.toString() || '',
             productQuantity: editingProduct.productQuantity || '',
             specs: Array.isArray(editingProduct.specs) ? editingProduct.specs : [],
+            volumeDiscounts: Array.isArray(editingProduct.volumeDiscounts) ? editingProduct.volumeDiscounts : [],
             priority: editingProduct.priority || 0
           };
           
@@ -3035,6 +3036,7 @@
                             piecesPerPackage: '',
                             productQuantity: '',
                             specs: [],
+                            volumeDiscounts: [],
                             priority: 0
                           };
                           
@@ -5654,6 +5656,7 @@
           piecesPerPackage: '',
           productQuantity: '',
           specs: [],
+          volumeDiscounts: [],
           priority: 0
         });
         const [uploadedImages, setUploadedImages] = useState([]);
@@ -6058,6 +6061,7 @@
               piecesPerPackage: '',
               productQuantity: '',
               specs: [],
+              volumeDiscounts: [],
               priority: 0
             });
             setUploadedImages([]);
@@ -7015,6 +7019,74 @@
                       )}
                     </div>
 
+                    {/* Volume Discounts Section */}
+                    <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#fff8e1', borderRadius: '6px', border: '1px solid #ffd54f'}}>
+                      <h5 style={{color: '#333', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        🏷️ Cumperi mai mult, plătești mai puțin
+                        <span style={{fontSize: '12px', fontWeight: 'normal', color: '#666'}}>— discount automat pe cantitate</span>
+                      </h5>
+                      <div>
+                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', marginBottom: '6px'}}>
+                          <span style={{fontSize: '11px', color: '#666', fontWeight: '600', paddingLeft: '2px'}}>Cantitate minimă (buc)</span>
+                          <span style={{fontSize: '11px', color: '#666', fontWeight: '600', paddingLeft: '2px'}}>Discount (%)</span>
+                          <span></span>
+                        </div>
+                        {(productFormData.volumeDiscounts || []).map((tier, idx) => (
+                          <div key={idx} style={{display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', marginBottom: '8px', alignItems: 'center'}}>
+                            <input
+                              type="number"
+                              className="form-input"
+                              min="2"
+                              step="1"
+                              value={tier.minQty || ''}
+                              onChange={(e) => {
+                                const newTiers = [...(productFormData.volumeDiscounts || [])];
+                                newTiers[idx] = {...newTiers[idx], minQty: parseInt(e.target.value) || 0};
+                                setProductFormData({...productFormData, volumeDiscounts: newTiers});
+                              }}
+                              placeholder="ex: 5"
+                            />
+                            <input
+                              type="number"
+                              className="form-input"
+                              min="1"
+                              max="99"
+                              step="1"
+                              value={tier.discountPercent || ''}
+                              onChange={(e) => {
+                                const newTiers = [...(productFormData.volumeDiscounts || [])];
+                                newTiers[idx] = {...newTiers[idx], discountPercent: parseFloat(e.target.value) || 0};
+                                setProductFormData({...productFormData, volumeDiscounts: newTiers});
+                              }}
+                              placeholder="ex: 10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newTiers = (productFormData.volumeDiscounts || []).filter((_, i) => i !== idx);
+                                setProductFormData({...productFormData, volumeDiscounts: newTiers});
+                              }}
+                              style={{padding: '6px 12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', lineHeight: '1'}}
+                              title="Șterge treaptă"
+                            >×</button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newTiers = [...(productFormData.volumeDiscounts || []), {minQty: '', discountPercent: ''}];
+                            setProductFormData({...productFormData, volumeDiscounts: newTiers});
+                          }}
+                          style={{marginTop: '4px', padding: '6px 14px', backgroundColor: '#e6a817', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}
+                        >+ Adaugă treaptă discount</button>
+                      </div>
+                      {(productFormData.volumeDiscounts || []).length === 0 && (
+                        <div style={{marginTop: '8px', fontSize: '12px', color: '#999'}}>
+                          Nicio treaptă definită. Exemplu: de la 5 buc → 10% discount, de la 10 buc → 20% discount
+                        </div>
+                      )}
+                    </div>
+
                     {/* Market Prices Section - Show only for editing existing products */}
                     {editingProduct && (
                       <MarketPricesSection
@@ -7250,6 +7322,7 @@
                             piecesPerPackage: '',
                             productQuantity: '',
                             specs: [],
+                            volumeDiscounts: [],
                             priority: 0
                           });
                           setUploadedImages([]);

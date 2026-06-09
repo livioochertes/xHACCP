@@ -17,6 +17,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { formatPrice } from "@/lib/utils";
+import { getSortedTiers, getActiveTier, getVolumePrice } from "@/lib/volume-price";
 import { Link } from "wouter";
 import type { ProductWithCategory, Review } from "@shared/schema";
 
@@ -313,22 +314,38 @@ export default function ProductDetails() {
               </h1>
             </div>
 
-            {/* Price */}
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-primary">
-                {formatPrice(product.price, product.currency)}
-              </span>
-              {product.compareAtPrice && (
-                <>
-                  <span className="text-lg text-muted-foreground line-through">
-                    {formatPrice(product.compareAtPrice, product.currency)}
+            {/* Price — updates dynamically with quantity via volume discounts */}
+            {(() => {
+              const vd = (product as any).volumeDiscounts;
+              const activeTier = getActiveTier(quantity, vd);
+              const effectivePrice = activeTier
+                ? getVolumePrice(product.price, quantity, vd).toFixed(2)
+                : product.price;
+              return (
+                <div className="flex items-baseline gap-3 flex-wrap">
+                  <span className="text-3xl font-bold text-primary">
+                    {formatPrice(effectivePrice, product.currency)}
                   </span>
-                  <Badge variant="destructive" className="text-xs">
-                    -{Math.round((1 - parseFloat(product.price) / parseFloat(product.compareAtPrice)) * 100)}%
-                  </Badge>
-                </>
-              )}
-            </div>
+                  {activeTier ? (
+                    <>
+                      <span className="text-lg text-muted-foreground line-through">
+                        {formatPrice(product.price, product.currency)}
+                      </span>
+                      <Badge variant="destructive" className="text-xs">-{activeTier.discountPercent}%</Badge>
+                    </>
+                  ) : product.compareAtPrice ? (
+                    <>
+                      <span className="text-lg text-muted-foreground line-through">
+                        {formatPrice(product.compareAtPrice, product.currency)}
+                      </span>
+                      <Badge variant="destructive" className="text-xs">
+                        -{Math.round((1 - parseFloat(product.price) / parseFloat(product.compareAtPrice)) * 100)}%
+                      </Badge>
+                    </>
+                  ) : null}
+                </div>
+              );
+            })()}
 
             {/* Stars + review count */}
             {product.reviewCount ? (
@@ -435,6 +452,61 @@ export default function ProductDetails() {
                       )}
                     </div>
                   )}
+                </div>
+              );
+            })()}
+
+            {/* Volume discount tiers table */}
+            {(() => {
+              const tiers = getSortedTiers((product as any).volumeDiscounts);
+              if (tiers.length === 0) return null;
+              const activeTier = getActiveTier(quantity, (product as any).volumeDiscounts);
+              return (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/60 overflow-hidden">
+                  <div className="px-3 py-2 bg-amber-100 text-xs font-semibold text-amber-800 flex items-center gap-1.5">
+                    🏷️ {t('products.volumeDiscount') || 'Cumperi mai mult, plătești mai puțin'}
+                  </div>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-amber-200 text-amber-700">
+                        <th className="px-3 py-1.5 text-left font-semibold">{t('products.quantity') || 'Cantitate'}</th>
+                        <th className="px-3 py-1.5 text-right font-semibold">{t('products.pricePerUnit') || 'Preț/buc'}</th>
+                        <th className="px-3 py-1.5 text-right font-semibold">{t('products.discount') || 'Discount'}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Base tier (1 to first discount threshold - 1) */}
+                      <tr className={`border-b border-amber-100 ${!activeTier ? 'bg-amber-200/60 font-semibold' : 'bg-white'}`}>
+                        <td className="px-3 py-1.5">
+                          1 – {tiers[0].minQty - 1} {t('products.units') || 'buc.'}
+                          {!activeTier && <span className="ml-1 text-amber-700 text-[10px]">◀</span>}
+                        </td>
+                        <td className="px-3 py-1.5 text-right">{formatPrice(product.price, product.currency)}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-400">—</td>
+                      </tr>
+                      {tiers.map((tier, i) => {
+                        const isActive = activeTier?.minQty === tier.minQty;
+                        const nextMinQty = tiers[i + 1]?.minQty;
+                        const rangeLabel = nextMinQty
+                          ? `${tier.minQty} – ${nextMinQty - 1} ${t('products.units') || 'buc.'}`
+                          : `${tier.minQty}+ ${t('products.units') || 'buc.'}`;
+                        const tierPrice = getVolumePrice(product.price, tier.minQty, (product as any).volumeDiscounts);
+                        return (
+                          <tr
+                            key={i}
+                            className={`${i < tiers.length - 1 ? 'border-b border-amber-100' : ''} ${isActive ? 'bg-amber-200/60 font-semibold' : i % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'}`}
+                          >
+                            <td className="px-3 py-1.5">
+                              {rangeLabel}
+                              {isActive && <span className="ml-1 text-amber-700 text-[10px]">◀</span>}
+                            </td>
+                            <td className="px-3 py-1.5 text-right text-emerald-700 font-medium">{formatPrice(tierPrice.toString(), product.currency)}</td>
+                            <td className="px-3 py-1.5 text-right text-emerald-600 font-medium">-{tier.discountPercent}%</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               );
             })()}

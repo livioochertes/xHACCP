@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
+import { getVolumePrice } from "@/lib/volume-price";
 
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -313,12 +314,15 @@ export default function Checkout() {
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
       const token = localStorage.getItem("token");
-      const orderItems = cart.map(item => ({
-        productId: item.product.id,
-        quantity: item.quantity,
-        price: item.product.price,
-        totalPrice: (parseFloat(item.product.price) * item.quantity).toString(),
-      }));
+      const orderItems = cart.map(item => {
+        const unitPrice = getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+        return {
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: unitPrice.toFixed(2),
+          totalPrice: (unitPrice * item.quantity).toFixed(2),
+        };
+      });
 
       const shippingAddr = { ...data.shippingAddress, email: data.email };
       if (!shippingAddr.phone && data.phone) {
@@ -360,7 +364,8 @@ export default function Checkout() {
 
   const subtotal = cart.reduce((sum, item) => {
     if (!item.product || !item.product.price) return sum;
-    return sum + (parseFloat(item.product.price) * item.quantity);
+    const unitPrice = getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+    return sum + (unitPrice * item.quantity);
   }, 0);
 
   const freeShippingThreshold = shippingSettings ? parseFloat(shippingSettings.freeShippingThreshold) : 500;
@@ -1496,7 +1501,7 @@ export default function Checkout() {
                                     <span className="text-muted-foreground flex-shrink-0">x{item.quantity}</span>
                                   </div>
                                   <span className="font-medium flex-shrink-0 ml-2">
-                                    {(parseFloat(item.product.price) * item.quantity).toFixed(2)} {currencySymbol}
+                                    {(getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts) * item.quantity).toFixed(2)} {currencySymbol}
                                   </span>
                                 </div>
                               ))}
@@ -1574,7 +1579,7 @@ export default function Checkout() {
                         cartItems={cart.map(item => ({
                           productId: item.product.id,
                           quantity: item.quantity,
-                          price: item.product.price,
+                          price: getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts).toFixed(2),
                         }))}
                         voucherCode={appliedVoucher?.code}
                         orderData={(() => {
@@ -1589,12 +1594,15 @@ export default function Checkout() {
                           return {
                             shippingAddress: { ...shippingAddr, email: values.email },
                             billingAddress: billingAddr,
-                            items: cart.map(item => ({
-                              productId: item.product.id,
-                              quantity: item.quantity,
-                              price: item.product.price,
-                              totalPrice: (parseFloat(item.product.price) * item.quantity).toString(),
-                            })),
+                            items: cart.map(item => {
+                              const up = getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+                              return {
+                                productId: item.product.id,
+                                quantity: item.quantity,
+                                price: up.toFixed(2),
+                                totalPrice: (up * item.quantity).toFixed(2),
+                              };
+                            }),
                             notes: values.notes,
                             contactPhone: values.phone,
                           };
@@ -1741,7 +1749,7 @@ export default function Checkout() {
                         </p>
                       </div>
                       <p className="text-sm font-medium flex-shrink-0">
-                        {(parseFloat(item.product.price) * item.quantity).toFixed(2)} {currencySymbol}
+                        {(getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts) * item.quantity).toFixed(2)} {currencySymbol}
                       </p>
                     </div>
                   ))}
