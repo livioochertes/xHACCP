@@ -60,6 +60,10 @@ export interface TranslationKeys {
   'products.reference': string;
   'products.securePayment': string;
   'products.estimatedDelivery': string;
+  'products.dimensions': string;
+  'products.quantityPerUnit': string;
+  'products.netContent': string;
+  'products.netWeight': string;
   
   // Cart
   'cart.title': string;
@@ -672,6 +676,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': 'Reference',
     'products.securePayment': 'Secure payment',
     'products.estimatedDelivery': '1-3 business days',
+    'products.dimensions': 'Dimensions',
+    'products.quantityPerUnit': 'Qty/unit',
+    'products.netContent': 'Quantity',
+    'products.netWeight': 'Weight',
     
     // Cart
     'cart.title': 'Shopping Cart',
@@ -1342,6 +1350,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': 'Referencia',
     'products.securePayment': 'Pago seguro',
     'products.estimatedDelivery': '1-3 días laborables',
+    'products.dimensions': 'Dimensiones',
+    'products.quantityPerUnit': 'Cant./unidad',
+    'products.netContent': 'Cantidad',
+    'products.netWeight': 'Peso',
     
     // Cart
     'cart.title': 'Carrito de Compras',
@@ -1785,6 +1797,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': 'Référence',
     'products.securePayment': 'Paiement sécurisé',
     'products.estimatedDelivery': '1-3 jours ouvrés',
+    'products.dimensions': 'Dimensions',
+    'products.quantityPerUnit': 'Qté/unité',
+    'products.netContent': 'Quantité',
+    'products.netWeight': 'Poids',
     
     // Cart
     'cart.title': 'Panier',
@@ -2258,6 +2274,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': 'Referenz',
     'products.securePayment': 'Sichere Zahlung',
     'products.estimatedDelivery': '1-3 Werktage',
+    'products.dimensions': 'Abmessungen',
+    'products.quantityPerUnit': 'Mng./Einheit',
+    'products.netContent': 'Menge',
+    'products.netWeight': 'Gewicht',
     'cart.title': 'Warenkorb',
     'cart.empty': 'Ihr Warenkorb ist leer.',
     'cart.emptyDesc': 'Fügen Sie Produkte zu Ihrem Warenkorb hinzu, um loszulegen',
@@ -2729,6 +2749,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': 'Referință',
     'products.securePayment': 'Plată securizată',
     'products.estimatedDelivery': '1-3 zile lucrătoare',
+    'products.dimensions': 'Dimensiune',
+    'products.quantityPerUnit': 'Cant. unitate',
+    'products.netContent': 'Cantitate',
+    'products.netWeight': 'Greutate',
     
     // Cart
     'cart.title': 'Coș de Cumpărături',
@@ -3217,6 +3241,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': 'Riferimento',
     'products.securePayment': 'Pagamento sicuro',
     'products.estimatedDelivery': '1-3 giorni lavorativi',
+    'products.dimensions': 'Dimensioni',
+    'products.quantityPerUnit': 'Qtà/unità',
+    'products.netContent': 'Quantità',
+    'products.netWeight': 'Peso',
     'common.filters': 'Filtri',
     'messages.addedToCart': 'Aggiunto al carrello',
     'messages.addedToCartDesc': '{name} è stato aggiunto al tuo carrello.',
@@ -3514,6 +3542,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': 'Referência',
     'products.securePayment': 'Pagamento seguro',
     'products.estimatedDelivery': '1-3 dias úteis',
+    'products.dimensions': 'Dimensões',
+    'products.quantityPerUnit': 'Qtd./unidade',
+    'products.netContent': 'Quantidade',
+    'products.netWeight': 'Peso',
     'common.filters': 'Filtros',
     'messages.addedToCart': 'Adicionado ao carrinho',
     'messages.addedToCartDesc': '{name} foi adicionado ao seu carrinho.',
@@ -3811,6 +3843,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': '参考编号',
     'products.securePayment': '安全支付',
     'products.estimatedDelivery': '1-3个工作日',
+    'products.dimensions': '尺寸',
+    'products.quantityPerUnit': '单位数量',
+    'products.netContent': '数量',
+    'products.netWeight': '重量',
     'common.filters': '筛选',
     'messages.addedToCart': '已加入购物车',
     'messages.addedToCartDesc': '{name} 已添加到您的购物车。',
@@ -4108,6 +4144,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': '参照番号',
     'products.securePayment': '安全なお支払い',
     'products.estimatedDelivery': '1〜3営業日',
+    'products.dimensions': '寸法',
+    'products.quantityPerUnit': '単位数量',
+    'products.netContent': '数量',
+    'products.netWeight': '重量',
     'common.filters': 'フィルター',
     'messages.addedToCart': 'カートに追加しました',
     'messages.addedToCartDesc': '{name} がカートに追加されました。',
@@ -4405,6 +4445,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': '참조 번호',
     'products.securePayment': '안전한 결제',
     'products.estimatedDelivery': '영업일 1-3일',
+    'products.dimensions': '치수',
+    'products.quantityPerUnit': '단위 수량',
+    'products.netContent': '수량',
+    'products.netWeight': '중량',
     'common.filters': '필터',
     'messages.addedToCart': '장바구니에 추가됨',
     'messages.addedToCartDesc': '{name}이(가) 장바구니에 추가되었습니다.',
@@ -4704,6 +4748,10 @@ const translations: Record<Language, TranslationKeys> = {
     'products.reference': 'المرجع',
     'products.securePayment': 'دفع آمن',
     'products.estimatedDelivery': '1-3 أيام عمل',
+    'products.dimensions': 'الأبعاد',
+    'products.quantityPerUnit': 'الكمية/الوحدة',
+    'products.netContent': 'الكمية',
+    'products.netWeight': 'الوزن',
     'common.filters': 'الفلاتر',
     'messages.addedToCart': 'تمت الإضافة إلى السلة',
     'messages.addedToCartDesc': 'تمت إضافة {name} إلى سلة التسوق الخاصة بك.',

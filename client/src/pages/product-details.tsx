@@ -359,39 +359,85 @@ export default function ProductDetails() {
 
             <Separator />
 
-            {/* Reference + Stock */}
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Package className="h-4 w-4 flex-shrink-0" />
-                <span className="font-medium text-gray-700">{t('products.reference') || 'Référence'}:</span>
-                <span className="font-mono text-gray-500">KP-{product.id}</span>
-              </div>
+            {/* Reference + Stock + Specs */}
+            {(() => {
+              const l = product.length ? parseFloat(product.length as string) : null;
+              const w = product.width ? parseFloat(product.width as string) : null;
+              const h = product.height ? parseFloat(product.height as string) : null;
+              const dimParts = [l, w, h].filter(Boolean);
+              const dimStr = dimParts.length >= 2 ? dimParts.join(' × ') + ' cm' : null;
+              const wt = product.weight ? parseFloat(product.weight as string) : null;
+              const ppu = product.piecesPerPackage && product.piecesPerPackage > 0 ? product.piecesPerPackage : null;
+              const qty = (product as any).productQuantity || null;
+              const hasSpecs = !!(dimStr || ppu || qty || wt);
 
-              {product.inStock ? (
-                <div className="flex items-center gap-2 text-green-700">
-                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                  <span className="font-medium">{t('products.inStock') || 'En stock'}</span>
-                  {product.stockQuantity ? (
-                    <span className="text-green-600 text-xs">
-                      ({product.stockQuantity} {t('products.units') || 'unités'})
-                    </span>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-red-600">
-                  <div className="w-4 h-4 flex-shrink-0 rounded-full border-2 border-red-400" />
-                  <span className="font-medium">{t('products.outOfStock') || 'Rupture de stock'}</span>
-                </div>
-              )}
+              return (
+                <div className={`text-sm ${hasSpecs ? 'grid grid-cols-2 gap-x-4 gap-y-0' : ''}`}>
+                  {/* Left: Reference / Stock / Delivery */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Package className="h-4 w-4 flex-shrink-0" />
+                      <span className="font-medium text-gray-700">{t('products.reference') || 'Référence'}:</span>
+                      <span className="font-mono text-gray-500">KP-{product.id}</span>
+                    </div>
 
-              {/* Estimated delivery */}
-              {product.inStock && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Truck className="h-4 w-4 flex-shrink-0" />
-                  <span>{t('products.estimatedDelivery') || `${t('products.freeShippingOver') || 'Livrare gratuită peste'} ${freeShippingText}`}</span>
+                    {product.inStock ? (
+                      <div className="flex items-center gap-2 text-green-700">
+                        <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                        <span className="font-medium">{t('products.inStock') || 'En stock'}</span>
+                        {product.stockQuantity ? (
+                          <span className="text-green-600 text-xs">
+                            ({product.stockQuantity} {t('products.units') || 'unități'})
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-red-600">
+                        <div className="w-4 h-4 flex-shrink-0 rounded-full border-2 border-red-400" />
+                        <span className="font-medium">{t('products.outOfStock') || 'Stoc epuizat'}</span>
+                      </div>
+                    )}
+
+                    {product.inStock && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Truck className="h-4 w-4 flex-shrink-0" />
+                        <span>{t('products.estimatedDelivery') || '1-3 zile lucrătoare'}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: Technical specs (only if at least one value set) */}
+                  {hasSpecs && (
+                    <div className="space-y-2 border-l border-gray-200 pl-4">
+                      {dimStr && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="font-medium text-gray-700 min-w-[80px]">{t('products.dimensions')}:</span>
+                          <span className="text-gray-600">{dimStr}</span>
+                        </div>
+                      )}
+                      {ppu && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="font-medium text-gray-700 min-w-[80px]">{t('products.quantityPerUnit')}:</span>
+                          <span className="text-gray-600">{ppu} buc.</span>
+                        </div>
+                      )}
+                      {qty && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="font-medium text-gray-700 min-w-[80px]">{t('products.netContent')}:</span>
+                          <span className="text-gray-600">{qty}</span>
+                        </div>
+                      )}
+                      {wt && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="font-medium text-gray-700 min-w-[80px]">{t('products.netWeight')}:</span>
+                          <span className="text-gray-600">{wt} kg</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
 
             <Separator />
 

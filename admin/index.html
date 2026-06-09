@@ -845,6 +845,7 @@
             width: editingProduct.width?.toString() || '',
             height: editingProduct.height?.toString() || '',
             piecesPerPackage: editingProduct.piecesPerPackage?.toString() || '',
+            productQuantity: editingProduct.productQuantity || '',
             priority: editingProduct.priority || 0
           };
           
@@ -3031,6 +3032,7 @@
                             width: '',
                             height: '',
                             piecesPerPackage: '',
+                            productQuantity: '',
                             priority: 0
                           };
                           
@@ -5648,6 +5650,7 @@
           width: '',
           height: '',
           piecesPerPackage: '',
+          productQuantity: '',
           priority: 0
         });
         const [uploadedImages, setUploadedImages] = useState([]);
@@ -6050,6 +6053,7 @@
               width: '',
               height: '',
               piecesPerPackage: '',
+              productQuantity: '',
               priority: 0
             });
             setUploadedImages([]);
@@ -6928,9 +6932,22 @@
                             placeholder="e.g. 6"
                           />
                         </div>
+                        <div className="form-group" style={{display: 'flex', flexDirection: 'column'}}>
+                          <label className="form-label" style={{height: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start'}}>
+                            Cantitate (text liber)
+                            <span style={{fontSize: '11px', color: '#666', fontWeight: 'normal'}}>ex: 5L, 500g, 1 set</span>
+                          </label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={productFormData.productQuantity || ''}
+                            onChange={(e) => setProductFormData({...productFormData, productQuantity: e.target.value})}
+                            placeholder="e.g. 5L, 500g, 1 set"
+                          />
+                        </div>
                       </div>
                       <div style={{marginTop: '10px', fontSize: '12px', color: '#666'}}>
-                        These dimensions and pieces per package are used for AWB generation and shipping calculations
+                        These dimensions and pieces per package are used for AWB generation and shipping calculations. Cantitate is displayed on the product page.
                       </div>
                     </div>
                     
@@ -7167,6 +7184,7 @@
                             width: '',
                             height: '',
                             piecesPerPackage: '',
+                            productQuantity: '',
                             priority: 0
                           });
                           setUploadedImages([]);
