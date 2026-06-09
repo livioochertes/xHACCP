@@ -69,13 +69,19 @@ export default function ProductDetails() {
   );
 
   // Replace URL with localized slug when available (e.g. French slug on .fr)
+  // Only do this once when product first loads, not on every re-render
   useEffect(() => {
     if (!product || !localizedSlug) return;
     const currentSlug = params?.slug;
-    if (currentSlug && localizedSlug !== currentSlug) {
-      window.history.replaceState(null, '', `/products/${localizedSlug}`);
+    if (currentSlug && localizedSlug !== currentSlug && !currentSlug.startsWith('_')) {
+      // Use setTimeout to avoid triggering wouter's location listener during render
+      const timer = setTimeout(() => {
+        window.history.replaceState(null, '', `/products/${localizedSlug}`);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [product, localizedSlug, params?.slug]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, localizedSlug]);
 
   const { getCategoryName } = useCategoryTranslations(
     product?.category ? [product.category.id] : [],

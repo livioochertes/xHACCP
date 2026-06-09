@@ -26,8 +26,8 @@ export function useProductTranslation(productId: number | undefined, originalNam
   }
 
   const translatedName = translation.name || originalName;
-  // Use stored slug if available, otherwise generate from translated name
-  const localizedSlug = translation.slug || toSlug(translatedName);
+  // Only use slug stored in DB — never generate client-side (client slug can't be resolved by backend)
+  const localizedSlug = translation.slug || null;
 
   return {
     name: translatedName,

@@ -1400,3 +1400,43 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+// Server-side slug generation (same algorithm as client/src/lib/slug-utils.ts)
+function toSlug(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[''ʼ`'\u2018\u2019]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Backfill: generate slugs for any product_translations row that has none.
+ * Safe to run on every startup — skips rows that already have a slug.
+ */
+export async function backfillTranslationSlugs(): Promise<void> {
+  try {
+    const rows = await db
+      .select({ id: productTranslations.id, name: productTranslations.name })
+      .from(productTranslations)
+      .where(or(isNull(productTranslations.slug), eq(productTranslations.slug, '')));
+
+    if (rows.length === 0) return;
+
+    let count = 0;
+    for (const row of rows) {
+      const slug = toSlug(row.name);
+      if (!slug) continue;
+      await db
+        .update(productTranslations)
+        .set({ slug })
+        .where(eq(productTranslations.id, row.id));
+      count++;
+    }
+    console.log(`✅ Backfilled ${count} translation slugs`);
+  } catch (err) {
+    console.error('⚠️  backfillTranslationSlugs failed (non-fatal):', err);
+  }
+}

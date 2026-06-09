@@ -7,6 +7,7 @@ import { registerAdminRoutes } from "./admin-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase, seedCategoryTranslations, seedMarketSettings } from "./sample-data";
 import { loadAllDataIntoMemory } from "./routes";
+import { backfillTranslationSlugs } from "./storage";
 import { logR2Status } from "./r2-storage";
 import { startBlogScheduler } from "./blog-scheduler";
 import { startDbKeepAlive } from "./db";
@@ -135,6 +136,7 @@ app.use((req, res, next) => {
       await seedCategoryTranslations();
     }
     await seedMarketSettings();
+    await backfillTranslationSlugs();
     await loadAllDataIntoMemory();
   } catch (error) {
     console.error('Data loading failed:', error);
