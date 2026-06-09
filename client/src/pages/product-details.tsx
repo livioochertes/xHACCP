@@ -464,21 +464,24 @@ export default function ProductDetails() {
               return (
                 <div className="rounded-lg border border-amber-200 bg-amber-50/60 overflow-hidden">
                   <div className="px-3 py-2 bg-amber-100 text-xs font-semibold text-amber-800 flex items-center gap-1.5">
-                    🏷️ {t('products.volumeDiscount') || 'Cumperi mai mult, plătești mai puțin'}
+                    🏷️ Cumperi mai mult, plătești mai puțin
                   </div>
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-amber-200 text-amber-700">
-                        <th className="px-3 py-1.5 text-left font-semibold">{t('products.quantity') || 'Cantitate'}</th>
-                        <th className="px-3 py-1.5 text-right font-semibold">{t('products.pricePerUnit') || 'Preț/buc'}</th>
-                        <th className="px-3 py-1.5 text-right font-semibold">{t('products.discount') || 'Discount'}</th>
+                        <th className="px-3 py-1.5 text-left font-semibold">Cantitate</th>
+                        <th className="px-3 py-1.5 text-right font-semibold">Preț/buc</th>
+                        <th className="px-3 py-1.5 text-right font-semibold">Discount</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Base tier (1 to first discount threshold - 1) */}
-                      <tr className={`border-b border-amber-100 ${!activeTier ? 'bg-amber-200/60 font-semibold' : 'bg-white'}`}>
+                      {/* Base tier — click to reset to 1 */}
+                      <tr
+                        onClick={() => setQuantity(1)}
+                        className={`border-b border-amber-100 cursor-pointer hover:bg-amber-200/40 transition-colors ${!activeTier ? 'bg-amber-200/60 font-semibold' : 'bg-white'}`}
+                      >
                         <td className="px-3 py-1.5">
-                          1 – {tiers[0].minQty - 1} {t('products.units') || 'buc.'}
+                          1{tiers[0].minQty > 2 ? ` – ${tiers[0].minQty - 1}` : ''} buc.
                           {!activeTier && <span className="ml-1 text-amber-700 text-[10px]">◀</span>}
                         </td>
                         <td className="px-3 py-1.5 text-right">{formatPrice(product.price, product.currency)}</td>
@@ -488,13 +491,14 @@ export default function ProductDetails() {
                         const isActive = activeTier?.minQty === tier.minQty;
                         const nextMinQty = tiers[i + 1]?.minQty;
                         const rangeLabel = nextMinQty
-                          ? `${tier.minQty} – ${nextMinQty - 1} ${t('products.units') || 'buc.'}`
-                          : `${tier.minQty}+ ${t('products.units') || 'buc.'}`;
+                          ? `${tier.minQty} – ${nextMinQty - 1} buc.`
+                          : `${tier.minQty}+ buc.`;
                         const tierPrice = getVolumePrice(product.price, tier.minQty, (product as any).volumeDiscounts);
                         return (
                           <tr
                             key={i}
-                            className={`${i < tiers.length - 1 ? 'border-b border-amber-100' : ''} ${isActive ? 'bg-amber-200/60 font-semibold' : i % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'}`}
+                            onClick={() => setQuantity(tier.minQty)}
+                            className={`cursor-pointer hover:bg-amber-200/40 transition-colors ${i < tiers.length - 1 ? 'border-b border-amber-100' : ''} ${isActive ? 'bg-amber-200/60 font-semibold' : i % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'}`}
                           >
                             <td className="px-3 py-1.5">
                               {rangeLabel}
