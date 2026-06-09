@@ -2695,8 +2695,7 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
-  // AI description formatting — cached in memory for server lifetime
-  const aiDescCache = new Map<number, string>();
+  // AI description formatting — saved permanently in DB (Claude called once per product ever)
   const anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   app.get("/api/products/:id/description-ai", async (req, res) => {
@@ -2704,12 +2703,15 @@ Sitemap: https://${domain}/sitemap.xml
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) return res.status(400).json({ message: "Invalid product id" });
 
-      if (aiDescCache.has(productId)) {
-        return res.json({ html: aiDescCache.get(productId) });
+      const product = await storage.getProduct(productId);
+      if (!product) return res.status(404).json({ message: "Product not found" });
+
+      // Return saved HTML from DB — Claude was already called for this product
+      if ((product as any).descriptionHtml) {
+        return res.json({ html: (product as any).descriptionHtml });
       }
 
-      const product = await storage.getProduct(productId);
-      if (!product || !product.description || !product.description.trim()) {
+      if (!product.description || !product.description.trim()) {
         return res.json({ html: "" });
       }
 
@@ -2718,7 +2720,7 @@ Sitemap: https://${domain}/sitemap.xml
 Format the following product description as clean HTML. Follow these exact rules:
 1. Wrap each distinct paragraph in <p> tags.
 2. Detect the product name (provided below) — bold it using <strong> the FIRST time it appears in the text. Do NOT bold it every time.
-3. Convert any enumeration, list of features, benefits, or properties into a <ul> with <li> items. Lines starting with -, –, •, *, or that are clearly list items should become <li>.
+3. Convert any enumeration, list of features, benefits, or properties into a <ul> with <li> items. Lines starting with -, -, bullet symbol, *, or that are clearly list items should become <li>.
 4. If there is a "Product advantages:", "Features:", "Benefits:" or similar heading line, wrap it in <strong> tags inside a <p>.
 5. Keep the HTML minimal — only use: <p>, <ul>, <li>, <strong>, <em>. NO divs, NO inline styles, NO classes.
 6. Return ONLY the HTML — no explanation, no markdown, no code fences.
@@ -2735,7 +2737,10 @@ ${product.description}`;
       });
 
       const html = (message.content[0] as any).text?.trim() || "";
-      aiDescCache.set(productId, html);
+
+      // Save to DB permanently — Claude won't be called again for this product
+      await storage.saveProductDescriptionHtml(productId, html);
+
       res.json({ html });
     } catch (error) {
       console.error("AI description format error:", error);

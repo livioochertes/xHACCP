@@ -85,6 +85,7 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
   updateProductStock(id: number, stockQuantity: number): Promise<Product>;
+  saveProductDescriptionHtml(id: number, html: string): Promise<void>;
   deleteProduct(id: number): Promise<void>;
 
   // Product translation operations
@@ -291,6 +292,7 @@ export class DatabaseStorage implements IStorage {
         productQuantity: products.productQuantity,
         specs: products.specs,
         volumeDiscounts: products.volumeDiscounts,
+        descriptionHtml: products.descriptionHtml,
         priority: products.priority,
         createdAt: products.createdAt,
         updatedAt: products.updatedAt,
@@ -381,6 +383,7 @@ export class DatabaseStorage implements IStorage {
         productQuantity: products.productQuantity,
         specs: products.specs,
         volumeDiscounts: products.volumeDiscounts,
+        descriptionHtml: products.descriptionHtml,
         priority: products.priority,
         createdAt: products.createdAt,
         updatedAt: products.updatedAt,
@@ -540,6 +543,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(products.id, id))
       .returning();
     return updatedProduct;
+  }
+
+  async saveProductDescriptionHtml(id: number, html: string): Promise<void> {
+    await db
+      .update(products)
+      .set({ descriptionHtml: html } as any)
+      .where(eq(products.id, id));
   }
 
   async deleteProduct(id: number): Promise<void> {
