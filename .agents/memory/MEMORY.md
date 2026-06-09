@@ -1,0 +1,1 @@
+- [SPA routes must pass through Vite in dev](spa-vite-dev-routing.md) — in dev, all HTML must go through Vite's transformIndexHtml or React preamble is missing and app is blank.

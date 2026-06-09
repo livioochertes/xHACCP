@@ -599,10 +599,15 @@ export function registerSeoRoutes(
   storage: IStorage,
   marketHelpers?: MarketHelpers
 ) {
+  // In development, Vite handles all HTML requests (it injects React Refresh preamble).
+  // SEO meta-tag injection only makes sense in production for crawlers.
+  const isDev = process.env.NODE_ENV !== "production";
+
   const routes = ["/", "/products", "/about", "/b2b", "/terms", "/privacy", "/ai-assistant"];
 
   for (const route of routes) {
     app.get(route, (req, res, next) => {
+      if (isDev) return next();
       if (!wantsHtml(req)) return next();
       try {
         const base = getBaseUrl(req);
@@ -623,6 +628,7 @@ export function registerSeoRoutes(
   }
 
   app.get("/blog", async (req, res, next) => {
+    if (isDev) return next();
     if (!wantsHtml(req)) return next();
     try {
       const base = getBaseUrl(req);
@@ -678,6 +684,7 @@ export function registerSeoRoutes(
   });
 
   app.get("/blog/:slug", async (req, res, next) => {
+    if (isDev) return next();
     if (!wantsHtml(req)) return next();
     try {
       const base = getBaseUrl(req);
@@ -786,6 +793,7 @@ export function registerSeoRoutes(
   });
 
   app.get("/products/:slug", async (req, res, next) => {
+    if (isDev) return next();
     if (!wantsHtml(req)) return next();
     try {
       const base = getBaseUrl(req);

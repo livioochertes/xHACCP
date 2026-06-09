@@ -4056,11 +4056,15 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   // API endpoint, so crawlers receive the correct status immediately.
   const KNOWN_SPA_EXACT = new Set([
     '/cart', '/checkout', '/login', '/account',
+    '/products', '/blog', '/about', '/b2b', '/terms', '/privacy',
+    '/ai-assistant', '/',
   ]);
   const KNOWN_SPA_PREFIXES = [
     '/account/', '/invoice/', '/pay/', '/auth/',
     '/api/', '/r2/', '/uploads/', '/attached_assets/', '/assets/',
     '/admin', '/@', '/__', '/_vite',
+    '/products/', '/blog/', '/about', '/b2b', '/terms', '/privacy',
+    '/ai-assistant', '/cart', '/checkout', '/login',
   ];
 
   app.get('*', (req, res, next) => {

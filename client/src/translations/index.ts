@@ -55,6 +55,11 @@ export interface TranslationKeys {
   'products.sortRating': string;
   'products.loadMore': string;
   'products.loadingMore': string;
+  'products.readMore': string;
+  'products.readLess': string;
+  'products.reference': string;
+  'products.securePayment': string;
+  'products.estimatedDelivery': string;
   
   // Cart
   'cart.title': string;
@@ -662,6 +667,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': 'Highest Rated',
     'products.loadMore': 'Load More Products',
     'products.loadingMore': 'Loading more...',
+    'products.readMore': 'Read more',
+    'products.readLess': 'Read less',
+    'products.reference': 'Reference',
+    'products.securePayment': 'Secure payment',
+    'products.estimatedDelivery': '1-3 business days',
     
     // Cart
     'cart.title': 'Shopping Cart',
@@ -1327,6 +1337,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': 'Mejor Calificados',
     'products.loadMore': 'Cargar Más Productos',
     'products.loadingMore': 'Cargando más...',
+    'products.readMore': 'Leer más',
+    'products.readLess': 'Leer menos',
+    'products.reference': 'Referencia',
+    'products.securePayment': 'Pago seguro',
+    'products.estimatedDelivery': '1-3 días laborables',
     
     // Cart
     'cart.title': 'Carrito de Compras',
@@ -1765,6 +1780,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': 'Mieux Notés',
     'products.loadMore': 'Charger Plus de Produits',
     'products.loadingMore': 'Chargement...',
+    'products.readMore': 'Lire la suite',
+    'products.readLess': 'Lire moins',
+    'products.reference': 'Référence',
+    'products.securePayment': 'Paiement sécurisé',
+    'products.estimatedDelivery': '1-3 jours ouvrés',
     
     // Cart
     'cart.title': 'Panier',
@@ -2233,6 +2253,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': 'Höchste Bewertung',
     'products.loadMore': 'Mehr Produkte laden',
     'products.loadingMore': 'Laden...',
+    'products.readMore': 'Mehr lesen',
+    'products.readLess': 'Weniger lesen',
+    'products.reference': 'Referenz',
+    'products.securePayment': 'Sichere Zahlung',
+    'products.estimatedDelivery': '1-3 Werktage',
     'cart.title': 'Warenkorb',
     'cart.empty': 'Ihr Warenkorb ist leer.',
     'cart.emptyDesc': 'Fügen Sie Produkte zu Ihrem Warenkorb hinzu, um loszulegen',
@@ -2699,6 +2724,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': 'Cel Mai Bine Cotate',
     'products.loadMore': 'Încarcă Mai Multe Produse',
     'products.loadingMore': 'Se încarcă...',
+    'products.readMore': 'Citește mai mult',
+    'products.readLess': 'Citește mai puțin',
+    'products.reference': 'Referință',
+    'products.securePayment': 'Plată securizată',
+    'products.estimatedDelivery': '1-3 zile lucrătoare',
     
     // Cart
     'cart.title': 'Coș de Cumpărături',
@@ -3182,6 +3212,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': 'Valutazione Migliore',
     'products.loadMore': 'Carica Altri Prodotti',
     'products.loadingMore': 'Caricamento...',
+    'products.readMore': 'Leggi di più',
+    'products.readLess': 'Leggi di meno',
+    'products.reference': 'Riferimento',
+    'products.securePayment': 'Pagamento sicuro',
+    'products.estimatedDelivery': '1-3 giorni lavorativi',
     'common.filters': 'Filtri',
     'messages.addedToCart': 'Aggiunto al carrello',
     'messages.addedToCartDesc': '{name} è stato aggiunto al tuo carrello.',
@@ -3474,6 +3509,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': 'Melhor Avaliação',
     'products.loadMore': 'Carregar Mais Produtos',
     'products.loadingMore': 'Carregando...',
+    'products.readMore': 'Ler mais',
+    'products.readLess': 'Ler menos',
+    'products.reference': 'Referência',
+    'products.securePayment': 'Pagamento seguro',
+    'products.estimatedDelivery': '1-3 dias úteis',
     'common.filters': 'Filtros',
     'messages.addedToCart': 'Adicionado ao carrinho',
     'messages.addedToCartDesc': '{name} foi adicionado ao seu carrinho.',
@@ -3766,6 +3806,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': '评分最高',
     'products.loadMore': '加载更多产品',
     'products.loadingMore': '加载中...',
+    'products.readMore': '阅读更多',
+    'products.readLess': '收起',
+    'products.reference': '参考编号',
+    'products.securePayment': '安全支付',
+    'products.estimatedDelivery': '1-3个工作日',
     'common.filters': '筛选',
     'messages.addedToCart': '已加入购物车',
     'messages.addedToCartDesc': '{name} 已添加到您的购物车。',
@@ -4058,6 +4103,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': '評価の高い順',
     'products.loadMore': 'もっと商品を読み込む',
     'products.loadingMore': '読み込み中...',
+    'products.readMore': '続きを読む',
+    'products.readLess': '閉じる',
+    'products.reference': '参照番号',
+    'products.securePayment': '安全なお支払い',
+    'products.estimatedDelivery': '1〜3営業日',
     'common.filters': 'フィルター',
     'messages.addedToCart': 'カートに追加しました',
     'messages.addedToCartDesc': '{name} がカートに追加されました。',
@@ -4350,6 +4400,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': '평점 높은 순',
     'products.loadMore': '더 많은 제품 로드',
     'products.loadingMore': '로딩 중...',
+    'products.readMore': '더 읽기',
+    'products.readLess': '접기',
+    'products.reference': '참조 번호',
+    'products.securePayment': '안전한 결제',
+    'products.estimatedDelivery': '영업일 1-3일',
     'common.filters': '필터',
     'messages.addedToCart': '장바구니에 추가됨',
     'messages.addedToCartDesc': '{name}이(가) 장바구니에 추가되었습니다.',
@@ -4644,6 +4699,11 @@ const translations: Record<Language, TranslationKeys> = {
     'products.sortRating': 'الأعلى تقييماً',
     'products.loadMore': 'تحميل المزيد من المنتجات',
     'products.loadingMore': 'جاري التحميل...',
+    'products.readMore': 'اقرأ المزيد',
+    'products.readLess': 'اقرأ أقل',
+    'products.reference': 'المرجع',
+    'products.securePayment': 'دفع آمن',
+    'products.estimatedDelivery': '1-3 أيام عمل',
     'common.filters': 'الفلاتر',
     'messages.addedToCart': 'تمت الإضافة إلى السلة',
     'messages.addedToCartDesc': 'تمت إضافة {name} إلى سلة التسوق الخاصة بك.',
