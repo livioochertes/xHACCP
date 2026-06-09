@@ -58,7 +58,7 @@ export const categories = pgTable("categories", {
   showOnMainTop: boolean("show_on_main_top").default(false),
   showOnMainShop: boolean("show_on_main_shop").default(false),
   sortOrder: integer("sort_order").default(0),
-  marketCode: varchar("market_code", { length: 10 }).default("ro"), // ro, fr, com
+  marketCode: varchar("market_code", { length: 10 }).default("ro").notNull(), // ro, fr, com
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -267,7 +267,7 @@ export const suppliers = pgTable("suppliers", {
   integrationType: varchar("integration_type", { length: 50 }).default("email"), // email, api, manual
   notes: text("notes"),
   isActive: boolean("is_active").default(true),
-  marketCode: varchar("market_code", { length: 10 }).default("ro"), // ro, fr, com
+  marketCode: varchar("market_code", { length: 10 }).default("ro").notNull(), // ro, fr, com
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -338,7 +338,7 @@ export const vouchers = pgTable("vouchers", {
   isActive: boolean("is_active").default(true),
   validFrom: timestamp("valid_from"),
   validUntil: timestamp("valid_until"),
-  marketCode: varchar("market_code", { length: 10 }).default("ro"), // ro, fr, com
+  marketCode: varchar("market_code", { length: 10 }).default("ro").notNull(), // ro, fr, com
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

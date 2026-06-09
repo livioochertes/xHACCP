@@ -1510,6 +1510,11 @@ Sitemap: https://${domain}/sitemap.xml
       'ETag': `categories-${dataVersion}`,
       'Content-Type': 'application/json'
     });
+    const market = req.query.market as string | undefined;
+    if (market && market !== 'all') {
+      const filtered = categoriesData.filter((c: any) => (c.marketCode || 'ro') === market);
+      return res.json(filtered);
+    }
     res.send(stringifiedCategoriesData);
   });
 
@@ -1864,13 +1869,13 @@ Sitemap: https://${domain}/sitemap.xml
   // Voucher validation route (public for checkout)
   app.post("/api/vouchers/validate", async (req, res) => {
     try {
-      const { code, orderTotal } = req.body;
+      const { code, orderTotal, market } = req.body;
       
       if (!code) {
         return res.status(400).json({ valid: false, message: "Voucher code is required" });
       }
 
-      const voucher = await storage.getVoucherByCode(code);
+      const voucher = await storage.getVoucherByCode(code, market || 'ro');
       
       if (!voucher) {
         return res.status(404).json({ valid: false, message: "Voucher code not found" });
@@ -2017,7 +2022,8 @@ Sitemap: https://${domain}/sitemap.xml
       let validatedVoucher: { id: number; code: string; discountType: string; discountValue: string } | null = null;
       
       if (voucherCode) {
-        const voucher = await storage.getVoucherByCode(voucherCode);
+        const orderMarket = (req.body.market as string) || 'ro';
+        const voucher = await storage.getVoucherByCode(voucherCode, orderMarket);
         if (voucher && voucher.isActive) {
           const now = new Date();
           const validFrom = voucher.validFrom ? new Date(voucher.validFrom) : null;
@@ -2994,7 +3000,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       let discountAmount = 0;
       if (voucherCode) {
-        const voucher = await storage.getVoucherByCode(voucherCode);
+        const vivaOrderMarket = (req.body.market as string) || 'ro';
+        const voucher = await storage.getVoucherByCode(voucherCode, vivaOrderMarket);
         if (voucher && voucher.isActive) {
           const now = new Date();
           const validFrom = voucher.validFrom ? new Date(voucher.validFrom) : null;

@@ -1791,6 +1791,9 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/admin/api/products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const { search, categoryId, featured, limit = 50, offset = 0, supplierId, market } = req.query;
+      if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market as string)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       
       const products = await storage.getProducts({
         search: search as string,
@@ -2246,6 +2249,9 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const market = req.query.market as string | undefined;
+      if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const categories = await storage.getCategories(market);
       res.json(categories);
     } catch (error) {
@@ -2665,6 +2671,9 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/admin/api/suppliers", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const market = req.query.market as string | undefined;
+      if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const suppliers = await storage.getSuppliers(market);
       res.json(suppliers);
     } catch (error) {
@@ -3473,6 +3482,9 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const market = req.query.market as string | undefined;
+      if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const categories = await storage.getCategories(market);
       res.json(categories);
     } catch (error) {
@@ -3666,6 +3678,7 @@ export async function registerAdminRoutes(app: Express) {
           reverseChargeVat: companySettings.reverseChargeVat,
           freeShippingThreshold: companySettings.freeShippingThreshold,
           standardShippingCost: companySettings.standardShippingCost,
+          marketContacts: companySettings.marketContacts,
         })
         .from(companySettings)
         .orderBy(desc(companySettings.createdAt))
@@ -4442,6 +4455,9 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/admin/api/vouchers", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const market = req.query.market as string | undefined;
+      if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       const vouchers = await storage.getVouchers(market);
       res.json(vouchers);
     } catch (error) {
