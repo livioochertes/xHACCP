@@ -8,10 +8,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, Clock, Tag, BookOpen } from "lucide-react";
 import type { BlogPost } from "@shared/schema";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useLanguage } from "@/contexts/language-context";
 
-function BlogCard({ post }: { post: BlogPost }) {
+const dateLocaleMap: Record<string, string> = {
+  ro: "ro-RO",
+  fr: "fr-FR",
+  de: "de-DE",
+  es: "es-ES",
+  it: "it-IT",
+  pt: "pt-PT",
+  zh: "zh-CN",
+  ja: "ja-JP",
+  ko: "ko-KR",
+  ar: "ar-SA",
+  en: "en-US",
+};
+
+function BlogCard({ post, dateLocale }: { post: BlogPost; dateLocale: string }) {
   const dateStr = post.publishedAt
-    ? new Date(post.publishedAt).toLocaleDateString("ro-RO", {
+    ? new Date(post.publishedAt).toLocaleDateString(dateLocale, {
         day: "numeric",
         month: "long",
         year: "numeric",
@@ -36,7 +52,7 @@ function BlogCard({ post }: { post: BlogPost }) {
               <Tag className="w-3 h-3 mr-1" />
               {post.category}
             </Badge>
-            {post.language && post.language !== "ro" && (
+            {post.language && (
               <Badge variant="outline" className="text-xs uppercase">
                 {post.language}
               </Badge>
@@ -86,10 +102,21 @@ function BlogCardSkeleton() {
 }
 
 export default function Blog() {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
+  const dateLocale = dateLocaleMap[language] ?? "en-US";
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = "Blog HACCP & HoReCa | xHACCP";
-  }, []);
+    document.title = t("blog.page.title");
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement("meta");
+      metaDesc.setAttribute("name", "description");
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute("content", t("blog.page.metaDescription"));
+  }, [language]);
 
   const { data: posts, isLoading } = useQuery<BlogPost[]>({
     queryKey: ["/api/blog/posts"],
@@ -111,8 +138,8 @@ export default function Blog() {
       {
         "@context": "https://schema.org",
         "@type": "Blog",
-        "name": "Blog xHACCP",
-        "description": "Resurse profesionale despre siguranța alimentară, HACCP și industria HoReCa din România",
+        "name": t("blog.hero.title"),
+        "description": t("blog.hero.subtitle"),
         "url": `${origin}/blog`,
         "publisher": {
           "@type": "Organization",
@@ -123,7 +150,7 @@ export default function Blog() {
       {
         "@context": "https://schema.org",
         "@type": "ItemList",
-        "name": "Articole Blog xHACCP",
+        "name": t("blog.hero.title"),
         "url": `${origin}/blog`,
         "itemListElement": publishedPosts.map((post, index) => ({
           "@type": "ListItem",
@@ -133,7 +160,7 @@ export default function Blog() {
         })),
       },
     ] as Record<string, unknown>[];
-  }, [posts, publishedPosts]);
+  }, [posts, publishedPosts, language]);
 
   useJsonLd("blog-index", blogSchema);
 
@@ -143,11 +170,10 @@ export default function Blog() {
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
             <BookOpen className="w-8 h-8 text-white/80" />
-            <h1 className="text-4xl font-bold text-white">Blog xHACCP</h1>
+            <h1 className="text-4xl font-bold text-white">{t("blog.hero.title")}</h1>
           </div>
           <p className="text-blue-100 text-lg max-w-2xl mx-auto">
-            Resurse profesionale despre siguranța alimentară, HACCP și industria
-            HoReCa din România
+            {t("blog.hero.subtitle")}
           </p>
         </div>
       </div>
@@ -162,13 +188,13 @@ export default function Blog() {
         ) : publishedPosts.length === 0 ? (
           <div className="text-center py-20 text-slate-500">
             <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p className="text-lg">Nu există articole publicate încă.</p>
-            <p className="text-sm mt-2">Reveniți în curând!</p>
+            <p className="text-lg">{t("blog.noArticlesYet")}</p>
+            <p className="text-sm mt-2">{t("blog.comingSoon")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {publishedPosts.map((post) => (
-              <BlogCard key={post.id} post={post} />
+              <BlogCard key={post.id} post={post} dateLocale={dateLocale} />
             ))}
           </div>
         )}

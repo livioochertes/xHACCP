@@ -405,7 +405,19 @@ export interface TranslationKeys {
   'home.blog.subtitle': string;
   'home.blog.readMore': string;
   'home.blog.viewAll': string;
-  
+
+  // Blog page
+  'blog.hero.title': string;
+  'blog.hero.subtitle': string;
+  'blog.page.title': string;
+  'blog.page.metaDescription': string;
+  'blog.noArticlesYet': string;
+  'blog.comingSoon': string;
+  'blog.post.notFound': string;
+  'blog.post.backToBlog': string;
+  'blog.post.allArticles': string;
+  'blog.post.readMin': string;
+
   // Business Solutions section
   'home.business.title': string;
   'home.business.description': string;
@@ -1031,7 +1043,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': 'Insights on food safety, HACCP compliance, and professional kitchen management',
     'home.blog.readMore': 'Read more',
     'home.blog.viewAll': 'View all articles',
-    
+    'blog.hero.title': 'Blog xHACCP',
+    'blog.hero.subtitle': 'Professional resources on food safety, HACCP compliance, and the HoReCa industry',
+    'blog.page.title': 'Blog – Food Safety & HoReCa Resources | xHACCP',
+    'blog.page.metaDescription': 'Expert articles on food safety, HACCP compliance, kitchen management and HoReCa industry best practices.',
+    'blog.noArticlesYet': 'No articles published yet.',
+    'blog.comingSoon': 'Check back soon!',
+    'blog.post.notFound': 'Article not found.',
+    'blog.post.backToBlog': 'Back to Blog',
+    'blog.post.allArticles': 'All articles',
+    'blog.post.readMin': 'min read',
+
     // Business Solutions section
     'home.business.title': 'Business Solutions',
     'home.business.description': 'Get wholesale pricing and dedicated support for your restaurant, cafe, or food service business. We offer bulk discounts, custom solutions, and priority shipping.',
@@ -1623,7 +1645,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': 'Información sobre seguridad alimentaria, cumplimiento HACCP y gestión de cocinas profesionales',
     'home.blog.readMore': 'Leer más',
     'home.blog.viewAll': 'Ver todos los artículos',
-    
+    'blog.hero.title': 'Blog xHACCP',
+    'blog.hero.subtitle': 'Recursos profesionales sobre seguridad alimentaria, HACCP y la industria HoReCa',
+    'blog.page.title': 'Blog – Recursos de Seguridad Alimentaria y HoReCa | xHACCP',
+    'blog.page.metaDescription': 'Artículos de expertos sobre seguridad alimentaria, cumplimiento HACCP, gestión de cocinas y mejores prácticas del sector HoReCa.',
+    'blog.noArticlesYet': 'Aún no hay artículos publicados.',
+    'blog.comingSoon': '¡Vuelva pronto!',
+    'blog.post.notFound': 'Artículo no encontrado.',
+    'blog.post.backToBlog': 'Volver al Blog',
+    'blog.post.allArticles': 'Todos los artículos',
+    'blog.post.readMin': 'min de lectura',
+
     // Footer additions
     'footer.company.description': 'Equipos de cocina profesionales y soluciones de seguridad para negocios de servicios alimentarios.',
     'footer.quickLinks': 'Enlaces Rápidos',
@@ -2068,7 +2100,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': 'Conseils sur la sécurité alimentaire, la conformité HACCP et la gestion des cuisines professionnelles',
     'home.blog.readMore': 'Lire la suite',
     'home.blog.viewAll': 'Voir tous les articles',
-    
+    'blog.hero.title': 'Blog xHACCP',
+    'blog.hero.subtitle': "Ressources professionnelles sur la sécurité alimentaire, la conformité HACCP et l'industrie HoReCa",
+    'blog.page.title': 'Blog – Ressources Sécurité Alimentaire & HoReCa | xHACCP',
+    'blog.page.metaDescription': "Articles d'experts sur la sécurité alimentaire, la conformité HACCP, la gestion des cuisines et les meilleures pratiques du secteur HoReCa.",
+    'blog.noArticlesYet': "Aucun article publié pour l'instant.",
+    'blog.comingSoon': 'Revenez bientôt !',
+    'blog.post.notFound': 'Article introuvable.',
+    'blog.post.backToBlog': 'Retour au Blog',
+    'blog.post.allArticles': 'Tous les articles',
+    'blog.post.readMin': 'min de lecture',
+
     // Business Solutions section
     'home.business.title': 'Solutions B2B',
     'home.business.description': 'Obtenez des prix de gros et un support dédié pour votre restaurant, café ou entreprise de service alimentaire. Nous offrons des remises en volume, des solutions personnalisées et une livraison prioritaire.',
@@ -2522,7 +2564,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': 'Einblicke in Lebensmittelsicherheit, HACCP-Konformität und professionelles Küchenmanagement',
     'home.blog.readMore': 'Weiterlesen',
     'home.blog.viewAll': 'Alle Artikel ansehen',
-    
+    'blog.hero.title': 'Blog xHACCP',
+    'blog.hero.subtitle': 'Professionelle Ressourcen zu Lebensmittelsicherheit, HACCP-Konformität und der HoReCa-Branche',
+    'blog.page.title': 'Blog – Ressourcen für Lebensmittelsicherheit & HoReCa | xHACCP',
+    'blog.page.metaDescription': 'Expertenartikel zu Lebensmittelsicherheit, HACCP-Konformität, Küchenmanagement und Best Practices der HoReCa-Branche.',
+    'blog.noArticlesYet': 'Noch keine Artikel veröffentlicht.',
+    'blog.comingSoon': 'Schauen Sie bald wieder vorbei!',
+    'blog.post.notFound': 'Artikel nicht gefunden.',
+    'blog.post.backToBlog': 'Zurück zum Blog',
+    'blog.post.allArticles': 'Alle Artikel',
+    'blog.post.readMin': 'Min. Lesezeit',
+
     // Business Solutions section
     'home.business.title': 'Business-Lösungen',
     'home.business.description': 'Erhalten Sie Großhandelspreise und dedizierten Support für Ihr Restaurant, Café oder Foodservice-Unternehmen. Wir bieten Mengenrabatte, maßgeschneiderte Lösungen und Prioritätsversand.',
@@ -2997,7 +3049,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': 'Resurse despre siguranța alimentară, conformitate HACCP și managementul bucătăriei profesionale',
     'home.blog.readMore': 'Citește mai mult',
     'home.blog.viewAll': 'Vezi toate articolele',
-    
+    'blog.hero.title': 'Blog xHACCP',
+    'blog.hero.subtitle': 'Resurse profesionale despre siguranța alimentară, HACCP și industria HoReCa din România',
+    'blog.page.title': 'Blog HACCP & HoReCa | xHACCP',
+    'blog.page.metaDescription': 'Articole de specialitate despre siguranța alimentară, conformitate HACCP, managementul bucătăriei și industria HoReCa.',
+    'blog.noArticlesYet': 'Nu există articole publicate încă.',
+    'blog.comingSoon': 'Reveniți în curând!',
+    'blog.post.notFound': 'Articolul nu a fost găsit.',
+    'blog.post.backToBlog': 'Înapoi la Blog',
+    'blog.post.allArticles': 'Toate articolele',
+    'blog.post.readMin': 'min citire',
+
     // Business Solutions section
     'home.business.title': 'Soluții Business',
     'home.business.description': 'Obțineți prețuri en-gros și suport dedicat pentru restaurantul, cafeneaua sau afacerea dumneavoastră de servicii alimentare. Oferim reduceri în volum, soluții personalizate și livrare cu prioritate.',
@@ -3210,7 +3272,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': 'Approfondimenti sulla sicurezza alimentare, conformità HACCP e gestione delle cucine professionali',
     'home.blog.readMore': 'Leggi di più',
     'home.blog.viewAll': 'Vedi tutti gli articoli',
-    
+    'blog.hero.title': 'Blog xHACCP',
+    'blog.hero.subtitle': 'Risorse professionali su sicurezza alimentare, conformità HACCP e settore HoReCa',
+    'blog.page.title': 'Blog – Risorse Sicurezza Alimentare & HoReCa | xHACCP',
+    'blog.page.metaDescription': 'Articoli di esperti su sicurezza alimentare, conformità HACCP, gestione della cucina e best practice del settore HoReCa.',
+    'blog.noArticlesYet': 'Nessun articolo pubblicato ancora.',
+    'blog.comingSoon': 'Torna presto!',
+    'blog.post.notFound': 'Articolo non trovato.',
+    'blog.post.backToBlog': 'Torna al Blog',
+    'blog.post.allArticles': 'Tutti gli articoli',
+    'blog.post.readMin': 'min di lettura',
+
     // Footer additions
     'footer.company.description': 'Attrezzature da cucina professionali e soluzioni di sicurezza per aziende di servizi alimentari.',
     'footer.quickLinks': 'Link Rapidi',
@@ -3492,7 +3564,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': 'Informações sobre segurança alimentar, conformidade HACCP e gestão de cozinhas profissionais',
     'home.blog.readMore': 'Ler mais',
     'home.blog.viewAll': 'Ver todos os artigos',
-    
+    'blog.hero.title': 'Blog xHACCP',
+    'blog.hero.subtitle': 'Recursos profissionais sobre segurança alimentar, conformidade HACCP e o setor HoReCa',
+    'blog.page.title': 'Blog – Recursos de Segurança Alimentar & HoReCa | xHACCP',
+    'blog.page.metaDescription': 'Artigos especializados sobre segurança alimentar, conformidade HACCP, gestão de cozinha e melhores práticas do setor HoReCa.',
+    'blog.noArticlesYet': 'Nenhum artigo publicado ainda.',
+    'blog.comingSoon': 'Volte em breve!',
+    'blog.post.notFound': 'Artigo não encontrado.',
+    'blog.post.backToBlog': 'Voltar ao Blog',
+    'blog.post.allArticles': 'Todos os artigos',
+    'blog.post.readMin': 'min de leitura',
+
     // Footer additions
     'footer.company.description': 'Equipamentos de cozinha profissionais e soluções de segurança para empresas de serviços alimentares.',
     'footer.quickLinks': 'Links Rápidos',
@@ -3774,7 +3856,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': '关于食品安全、HACCP合规和专业厨房管理的见解',
     'home.blog.readMore': '阅读更多',
     'home.blog.viewAll': '查看所有文章',
-    
+    'blog.hero.title': 'xHACCP 博客',
+    'blog.hero.subtitle': '关于食品安全、HACCP合规和餐饮行业的专业资源',
+    'blog.page.title': '博客 – 食品安全与餐饮资源 | xHACCP',
+    'blog.page.metaDescription': '关于食品安全、HACCP合规、厨房管理和餐饮行业最佳实践的专业文章。',
+    'blog.noArticlesYet': '暂无已发布的文章。',
+    'blog.comingSoon': '请稍后再来！',
+    'blog.post.notFound': '文章未找到。',
+    'blog.post.backToBlog': '返回博客',
+    'blog.post.allArticles': '所有文章',
+    'blog.post.readMin': '分钟阅读',
+
     // Footer additions
     'footer.company.description': '为食品服务企业提供专业厨房设备和安全解决方案。',
     'footer.quickLinks': '快速链接',
@@ -4056,7 +4148,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': '食品安全、HACCPコンプライアンス、プロフェッショナルキッチン管理に関する情報',
     'home.blog.readMore': '続きを読む',
     'home.blog.viewAll': 'すべての記事を見る',
-    
+    'blog.hero.title': 'xHACCP ブログ',
+    'blog.hero.subtitle': '食品安全、HACCPコンプライアンス、HoReCa業界に関する専門リソース',
+    'blog.page.title': 'ブログ – 食品安全・HoReCaリソース | xHACCP',
+    'blog.page.metaDescription': '食品安全、HACCPコンプライアンス、キッチン管理、HoReCa業界のベストプラクティスに関する専門記事。',
+    'blog.noArticlesYet': 'まだ記事が公開されていません。',
+    'blog.comingSoon': 'またご確認ください！',
+    'blog.post.notFound': '記事が見つかりませんでした。',
+    'blog.post.backToBlog': 'ブログに戻る',
+    'blog.post.allArticles': 'すべての記事',
+    'blog.post.readMin': '分で読める',
+
     // Footer additions
     'footer.company.description': 'フードサービス企業向けの専門キッチン機器と安全ソリューション。',
     'footer.quickLinks': 'クイックリンク',
@@ -4338,7 +4440,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': '식품 안전, HACCP 준수 및 전문 주방 관리에 관한 인사이트',
     'home.blog.readMore': '더 읽기',
     'home.blog.viewAll': '모든 기사 보기',
-    
+    'blog.hero.title': 'xHACCP 블로그',
+    'blog.hero.subtitle': '식품 안전, HACCP 준수 및 HoReCa 산업에 관한 전문 자료',
+    'blog.page.title': '블로그 – 식품 안전 & HoReCa 자료 | xHACCP',
+    'blog.page.metaDescription': '식품 안전, HACCP 준수, 주방 관리 및 HoReCa 업계 모범 사례에 관한 전문 기사.',
+    'blog.noArticlesYet': '아직 게시된 기사가 없습니다.',
+    'blog.comingSoon': '곧 다시 확인하세요!',
+    'blog.post.notFound': '기사를 찾을 수 없습니다.',
+    'blog.post.backToBlog': '블로그로 돌아가기',
+    'blog.post.allArticles': '모든 기사',
+    'blog.post.readMin': '분 읽기',
+
     // Footer additions
     'footer.company.description': '식품 서비스 비즈니스를 위한 전문 주방 장비 및 안전 솔루션.',
     'footer.quickLinks': '빠른 링크',
@@ -4622,7 +4734,17 @@ const translations: Record<Language, TranslationKeys> = {
     'home.blog.subtitle': 'رؤى حول سلامة الغذاء والامتثال لمعايير HACCP وإدارة المطابخ الاحترافية',
     'home.blog.readMore': 'اقرأ المزيد',
     'home.blog.viewAll': 'عرض جميع المقالات',
-    
+    'blog.hero.title': 'مدونة xHACCP',
+    'blog.hero.subtitle': 'موارد احترافية حول سلامة الغذاء والامتثال لمعايير HACCP وصناعة HoReCa',
+    'blog.page.title': 'المدونة – موارد سلامة الغذاء وHoReCa | xHACCP',
+    'blog.page.metaDescription': 'مقالات متخصصة حول سلامة الغذاء والامتثال لمعايير HACCP وإدارة المطبخ وأفضل ممارسات قطاع HoReCa.',
+    'blog.noArticlesYet': 'لا توجد مقالات منشورة بعد.',
+    'blog.comingSoon': 'عد قريباً!',
+    'blog.post.notFound': 'المقال غير موجود.',
+    'blog.post.backToBlog': 'العودة إلى المدونة',
+    'blog.post.allArticles': 'جميع المقالات',
+    'blog.post.readMin': 'دقيقة قراءة',
+
     // Footer additions
     'footer.company.description': 'معدات المطبخ المهنية وحلول السلامة لأعمال الخدمات الغذائية.',
     'footer.quickLinks': 'روابط سريعة',

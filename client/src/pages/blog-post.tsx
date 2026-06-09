@@ -8,6 +8,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, Clock, ArrowLeft, Tag, User } from "lucide-react";
 import type { BlogPost } from "@shared/schema";
 import { useJsonLd } from "@/lib/use-json-ld";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useLanguage } from "@/contexts/language-context";
+
+const dateLocaleMap: Record<string, string> = {
+  ro: "ro-RO",
+  fr: "fr-FR",
+  de: "de-DE",
+  es: "es-ES",
+  it: "it-IT",
+  pt: "pt-PT",
+  zh: "zh-CN",
+  ja: "ja-JP",
+  ko: "ko-KR",
+  ar: "ar-SA",
+  en: "en-US",
+};
 
 function simpleMarkdown(md: string): string {
   let html = md
@@ -44,6 +60,9 @@ function simpleMarkdown(md: string): string {
 export default function BlogPostPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
+  const { t } = useTranslation();
+  const { language } = useLanguage();
+  const dateLocale = dateLocaleMap[language] ?? "en-US";
 
   const { data: post, isLoading, isError } = useQuery<BlogPost>({
     queryKey: ["/api/blog/posts", slug],
@@ -61,6 +80,13 @@ export default function BlogPostPage() {
     window.scrollTo(0, 0);
     if (post) {
       document.title = `${post.title} | Blog xHACCP`;
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement("meta");
+        metaDesc.setAttribute("name", "description");
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.setAttribute("content", post.excerpt ?? "");
     }
   }, [post]);
 
@@ -116,11 +142,11 @@ export default function BlogPostPage() {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-slate-500 text-lg mb-4">Articolul nu a fost găsit.</p>
+          <p className="text-slate-500 text-lg mb-4">{t("blog.post.notFound")}</p>
           <Link href="/blog">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Înapoi la Blog
+              {t("blog.post.backToBlog")}
             </Button>
           </Link>
         </div>
@@ -129,7 +155,7 @@ export default function BlogPostPage() {
   }
 
   const dateStr = post.publishedAt
-    ? new Date(post.publishedAt).toLocaleDateString("ro-RO", {
+    ? new Date(post.publishedAt).toLocaleDateString(dateLocale, {
         day: "numeric",
         month: "long",
         year: "numeric",
@@ -144,7 +170,7 @@ export default function BlogPostPage() {
         <Link href="/blog">
           <Button variant="ghost" className="mb-6 -ml-2 text-slate-500 hover:text-slate-700">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Blog xHACCP
+            {t("blog.hero.title")}
           </Button>
         </Link>
 
@@ -188,7 +214,7 @@ export default function BlogPostPage() {
           {post.readTimeMinutes && (
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
-              {post.readTimeMinutes} min citire
+              {post.readTimeMinutes} {t("blog.post.readMin")}
             </span>
           )}
         </div>
@@ -209,7 +235,7 @@ export default function BlogPostPage() {
           <Link href="/blog">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Toate articolele
+              {t("blog.post.allArticles")}
             </Button>
           </Link>
         </div>
