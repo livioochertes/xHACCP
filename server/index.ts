@@ -108,6 +108,9 @@ app.use((req, res, next) => {
   
   // Serve uploaded files - use WORKSPACE_ROOT to find uploads folder at workspace root
   app.use('/uploads', express.static(path.join(WORKSPACE_ROOT, 'uploads')));
+
+  // Serve admin vendor scripts locally (avoids CDN dependency)
+  app.use('/admin/vendor', express.static(path.join(WORKSPACE_ROOT, 'admin/vendor')));
   
   console.log(`📁 Serving uploads from: ${path.join(WORKSPACE_ROOT, 'uploads')}`);
   console.log(`📁 Serving attached_assets from: ${path.join(WORKSPACE_ROOT, 'attached_assets')}`);
