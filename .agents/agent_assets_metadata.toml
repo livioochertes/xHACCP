@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "mqsCSNlRovNVcIQsPQqoI"
+uri = "file://exports/blog-export-guide.md"
+type = "text"
+title = "Ghid export Blog AI — xHACCP"
