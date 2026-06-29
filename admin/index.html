@@ -929,13 +929,13 @@
 
   <script src="/admin/vendor/admin-bundle.js"></script>
 
-  <!-- Language switcher: position:fixed, în afara DOM-ului React (nu interferează cu Logout) -->
+  <!-- Language switcher: inline în flex row-ul header-ului, între Welcome și Logout -->
   <style>
   #admin-lang-sw {
-    position: fixed;
-    z-index: 99999;
+    position: relative;
     display: inline-flex;
     align-items: center;
+    flex-shrink: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   #admin-lang-sw .alw-trigger {
@@ -971,10 +971,18 @@
       {l:'en', flag:'🇬🇧', name:'English',  sub:'EN'}
     ];
 
-    /* ── Construiește dropdown-ul și îl adaugă la document.body (nu în React DOM) ── */
-    function buildDropdown() {
-      if (document.getElementById('admin-lang-sw')) return;
+    var flexRowObserver = null; /* MutationObserver pe flex row */
+    var isOpen = false;
+    var menuEl = null;
 
+    /* ── Găsește flex row-ul din header (conține Welcome + Logout) ── */
+    function getFlexRow() {
+      var logoutBtn = document.querySelector('.admin-header button.btn-secondary');
+      return logoutBtn ? logoutBtn.parentNode : null;
+    }
+
+    /* ── Construiește elementul dropdown ── */
+    function buildWrap() {
       var cur = LANGS.find(function(x){ return x.l === (window.ADMIN_LANG||'ro'); }) || LANGS[0];
 
       var wrap = document.createElement('div');
@@ -991,6 +999,7 @@
 
       var menu = document.createElement('div');
       menu.className = 'alw-menu';
+      menuEl = menu;
 
       LANGS.forEach(function(x) {
         var isActive = x.l === (window.ADMIN_LANG||'ro');
@@ -1003,6 +1012,7 @@
           (isActive ? '<span class="alw-dot"></span>' : '');
         item.onclick = function(e) {
           e.stopPropagation();
+          isOpen = false;
           menu.className = 'alw-menu';
           window.setAdminLang(x.l);
         };
@@ -1011,68 +1021,62 @@
 
       wrap.appendChild(trigger);
       wrap.appendChild(menu);
-      /* ── Adăugăm la body, NU în containerul React ── */
-      document.body.appendChild(wrap);
 
-      var isOpen = false;
       trigger.onclick = function(e) {
         e.stopPropagation();
         isOpen = !isOpen;
         menu.className = 'alw-menu' + (isOpen ? ' open' : '');
       };
-      document.addEventListener('click', function() {
-        isOpen = false;
-        menu.className = 'alw-menu';
+
+      return wrap;
+    }
+
+    /* ── Injectare în flex row: wrap ÎNAINTE de butonul Logout ── */
+    function inject() {
+      /* Dacă deja injectat și în DOM → nimic de făcut */
+      var existing = document.getElementById('admin-lang-sw');
+      var flexRow = getFlexRow();
+      if (!flexRow) return false;
+
+      var logoutBtn = flexRow.querySelector('button.btn-secondary');
+      if (!logoutBtn) return false;
+
+      if (existing && flexRow.contains(existing)) return true; /* deja în loc */
+
+      /* Scoatem varianta veche (dacă există în altă parte) */
+      if (existing) existing.remove();
+
+      var wrap = buildWrap();
+      flexRow.insertBefore(wrap, logoutBtn);
+
+      /* ── MutationObserver: re-injectare dacă React scoate elementul ── */
+      if (flexRowObserver) flexRowObserver.disconnect();
+      flexRowObserver = new MutationObserver(function() {
+        if (!flexRow.contains(document.getElementById('admin-lang-sw'))) {
+          /* Verificăm că flex row-ul e încă în DOM (nu că s-a delogat) */
+          if (document.contains(flexRow)) {
+            flexRowObserver.disconnect();
+            setTimeout(inject, 80);
+          }
+        }
       });
+      flexRowObserver.observe(flexRow, { childList: true });
+
+      return true;
     }
 
-    /* ── CSS injection: creează spațiu liber la dreapta header-ului (145px) ── */
-    /* Dropdown-ul position:fixed la right:16px va ocupa exact acel spațiu,
-       fără să se suprapună cu textul "Welcome user" sau butonul Logout. */
-    function injectHeaderSpacing() {
-      if (document.getElementById('alw-header-css')) return;
-      var header = document.querySelector('.admin-header');
-      if (!header) return;
-      var s = document.createElement('style');
-      s.id = 'alw-header-css';
-      /* Adaugă padding-right pe header → butonul Logout și Welcome text
-         se mută la stânga, lăsând 145px liberi la dreapta pt dropdown */
-      s.textContent = '#admin-root .admin-header { padding-right: 145px !important; box-sizing: border-box !important; }';
-      document.head.appendChild(s);
-    }
-
-    /* ── Poziționare verticală: aliniere cu header-ul ── */
-    function positionDropdown() {
-      var wrap = document.getElementById('admin-lang-sw');
-      if (!wrap) return;
-      var header = document.querySelector('.admin-header');
-      if (!header) { wrap.style.top = '12px'; wrap.style.right = '16px'; return; }
-      var rect = header.getBoundingClientRect();
-      /* Centrat vertical în header, la 16px de marginea dreaptă */
-      wrap.style.top = Math.round(rect.top + (rect.height - 34) / 2) + 'px';
-      wrap.style.right = '16px';
-      wrap.style.left = 'auto';
-    }
+    /* ── Închide meniu la click în afară ── */
+    document.addEventListener('click', function() {
+      isOpen = false;
+      if (menuEl) menuEl.className = 'alw-menu';
+    });
 
     document.addEventListener('DOMContentLoaded', function() {
+      /* Încearcă injectarea după ce React randează header-ul */
       var attempts = 0;
-      var initInterval = setInterval(function() {
-        var header = document.querySelector('.admin-header');
-        if (header) {
-          injectHeaderSpacing(); /* creează spațiu mai întâi */
-          buildDropdown();       /* construiește dropdown */
-          positionDropdown();    /* aliniază vertical */
-          clearInterval(initInterval);
-        }
-        if (++attempts > 40) {
-          injectHeaderSpacing(); buildDropdown(); positionDropdown();
-          clearInterval(initInterval);
-        }
+      var init = setInterval(function() {
+        if (inject() || ++attempts > 40) clearInterval(init);
       }, 250);
-
-      window.addEventListener('resize', positionDropdown);
-      /* Re-poziționare periodică pt layout-uri dinamice */
-      setInterval(positionDropdown, 800);
     });
   })();
   </script>
