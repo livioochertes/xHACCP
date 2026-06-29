@@ -173,6 +173,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       };
       
       return (
+        <>
         <div className="login-container">
           <div className="login-header">
             <div className="login-logo">
@@ -238,9 +239,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
+        </div>
 
-          {/* Forgot Password Modal */}
-          {showForgot && (
+        {/* Forgot Password Modal — outside login-container to avoid grey box */}
+        {showForgot && (
             <div style={{
               position:'fixed', inset:0, background:'rgba(0,0,0,0.5)',
               display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999
@@ -304,7 +306,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               </div>
             </div>
           )}
-        </div>
+        </>
       );
     }
     

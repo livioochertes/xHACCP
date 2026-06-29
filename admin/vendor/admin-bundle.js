@@ -11776,88 +11776,90 @@
         setForgotLoading(false);
       }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "login-container", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "login-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "login-logo", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("img", { src: "/attached_assets/logo_xHACCP-S1_1772812623761.png", alt: "xHACCP Logo" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h1", { className: "login-title", children: "Admin Panel" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "login-subtitle", children: "Welcome back! Please sign in to continue." })
-      ] }),
-      error && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "error-message", children: error }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("form", { onSubmit: handleSubmit, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Email" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "input",
-            {
-              type: "email",
-              className: "form-input",
-              value: formData.email,
-              onChange: (e2) => setFormData({ ...formData, email: e2.target.value }),
-              required: true,
-              placeholder: "admin@xhaccp.com"
-            }
-          )
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "login-container", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "login-header", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "login-logo", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("img", { src: "/attached_assets/logo_xHACCP-S1_1772812623761.png", alt: "xHACCP Logo" }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h1", { className: "login-title", children: "Admin Panel" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "login-subtitle", children: "Welcome back! Please sign in to continue." })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-label", style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "Password" }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-              "button",
-              {
-                type: "button",
-                onClick: () => {
-                  setShowForgot(true);
-                  setForgotEmail(formData.email);
-                  setForgotMsg("");
-                  setForgotError("");
-                },
-                style: { background: "none", border: "none", color: "#6c63ff", fontSize: "13px", cursor: "pointer", padding: "0", fontWeight: "500" },
-                children: "Forgot password?"
-              }
-            )
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative" }, children: [
+        error && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "error-message", children: error }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("form", { onSubmit: handleSubmit, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Email" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "input",
               {
-                type: showPassword ? "text" : "password",
+                type: "email",
                 className: "form-input",
-                value: formData.password,
-                onChange: (e2) => setFormData({ ...formData, password: e2.target.value }),
+                value: formData.email,
+                onChange: (e2) => setFormData({ ...formData, email: e2.target.value }),
                 required: true,
-                placeholder: "Enter your password",
-                style: { paddingRight: "44px" }
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-              "button",
-              {
-                type: "button",
-                onClick: () => setShowPassword((v) => !v),
-                style: {
-                  position: "absolute",
-                  right: "12px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "0",
-                  color: "#888",
-                  fontSize: "18px",
-                  lineHeight: 1,
-                  display: "flex",
-                  alignItems: "center"
-                },
-                title: showPassword ? "Hide password" : "Show password",
-                children: showPassword ? "\u{1F648}" : "\u{1F441}\uFE0F"
+                placeholder: "admin@xhaccp.com"
               }
             )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-label", style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "Password" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => {
+                    setShowForgot(true);
+                    setForgotEmail(formData.email);
+                    setForgotMsg("");
+                    setForgotError("");
+                  },
+                  style: { background: "none", border: "none", color: "#6c63ff", fontSize: "13px", cursor: "pointer", padding: "0", fontWeight: "500" },
+                  children: "Forgot password?"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "input",
+                {
+                  type: showPassword ? "text" : "password",
+                  className: "form-input",
+                  value: formData.password,
+                  onChange: (e2) => setFormData({ ...formData, password: e2.target.value }),
+                  required: true,
+                  placeholder: "Enter your password",
+                  style: { paddingRight: "44px" }
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => setShowPassword((v) => !v),
+                  style: {
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "0",
+                    color: "#888",
+                    fontSize: "18px",
+                    lineHeight: 1,
+                    display: "flex",
+                    alignItems: "center"
+                  },
+                  title: showPassword ? "Hide password" : "Show password",
+                  children: showPassword ? "\u{1F648}" : "\u{1F441}\uFE0F"
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "submit", className: "btn", disabled: loading, children: [
+            loading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "loading" }),
+            loading ? "Logging in..." : "Login"
           ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "submit", className: "btn", disabled: loading, children: [
-          loading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "loading" }),
-          loading ? "Logging in..." : "Login"
         ] })
       ] }),
       showForgot && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
