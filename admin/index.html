@@ -854,38 +854,8 @@
       walkDOM(document.body, lang, T[lang] || {}, getRoKeys(), getReverseMap());
     };
 
-    /* ── Auto-detectare limbă din adminMarkets (după login) ── */
-    window._autoDetectAdminLang = function() {
-      if (localStorage.getItem('adminLang')) return; /* user a ales explicit */
-      try {
-        var u = JSON.parse(localStorage.getItem('adminUser') || 'null');
-        if (!u || !u.adminMarkets || !u.adminMarkets.length) return;
-        var detected = {ro:'ro', fr:'fr', com:'en'}[u.adminMarkets[0]] || 'ro';
-        if (detected !== window.ADMIN_LANG) {
-          window.ADMIN_LANG = detected;
-          /* actualizează trigger-ul dacă există */
-          var LMAP = {ro:{flag:'🇷🇴',name:'Română'},fr:{flag:'🇫🇷',name:'Français'},en:{flag:'🇬🇧',name:'English'}};
-          var info = LMAP[detected] || LMAP.ro;
-          var fl = document.querySelector('#alw-trigger .alw-flag');
-          var nm = document.querySelector('#alw-trigger .alw-name');
-          if (fl) fl.textContent = info.flag;
-          if (nm) nm.textContent = info.name;
-          document.querySelectorAll('#admin-lang-sw .alw-item').forEach(function(item) {
-            var dot = item.querySelector('.alw-dot');
-            if (item.dataset.lang === detected) {
-              item.classList.add('active');
-              if (!dot) { var d=document.createElement('span'); d.className='alw-dot'; item.appendChild(d); }
-            } else { item.classList.remove('active'); if (dot) dot.remove(); }
-          });
-        }
-      } catch(e) {}
-    };
-
-    /* ── setAdminLang: schimbă limba FĂRĂ reload ── */
-    window.setAdminLang = function(lang) {
-      localStorage.setItem('adminLang', lang);
-      window.ADMIN_LANG = lang;
-      window._applyAdminTranslations();
+    /* ── Actualizare UI trigger după schimbare limbă ── */
+    function updateLangUI(lang) {
       var LMAP = {ro:{flag:'🇷🇴',name:'Română'},fr:{flag:'🇫🇷',name:'Français'},en:{flag:'🇬🇧',name:'English'}};
       var info = LMAP[lang] || LMAP.ro;
       var fl = document.querySelector('#alw-trigger .alw-flag');
@@ -899,6 +869,32 @@
           if (!dot) { var d=document.createElement('span'); d.className='alw-dot'; item.appendChild(d); }
         } else { item.classList.remove('active'); if (dot) dot.remove(); }
       });
+    }
+
+    /* ── Auto-detectare limbă din adminMarkets (după login) ── */
+    /* Pentru adminii de piață specifică (fr/com): limba e ÎNTOTDEAUNA piața lor,
+       indiferent de ce e în localStorage.adminLang (poate fi un relict dintr-o sesiune anterioară).
+       Superadminii (adminMarkets=[]) pot schimba manual. */
+    window._autoDetectAdminLang = function() {
+      try {
+        var u = JSON.parse(localStorage.getItem('adminUser') || 'null');
+        if (!u) return; /* nelogat */
+        if (!u.adminMarkets || !u.adminMarkets.length) return; /* superadmin — respectă alegerea manuală */
+        var detected = {ro:'ro', fr:'fr', com:'en'}[u.adminMarkets[0]] || 'ro';
+        /* pentru adminii de piață: forțăm întotdeauna limba pieței */
+        if (detected !== window.ADMIN_LANG) {
+          window.ADMIN_LANG = detected;
+          updateLangUI(detected);
+        }
+      } catch(e) {}
+    };
+
+    /* ── setAdminLang: schimbă limba FĂRĂ reload ── */
+    window.setAdminLang = function(lang) {
+      localStorage.setItem('adminLang', lang);
+      window.ADMIN_LANG = lang;
+      window._applyAdminTranslations();
+      updateLangUI(lang);
     };
 
     /* ── Pornire traducere continuă + auto-detect ── */
@@ -1030,44 +1026,53 @@
       });
     }
 
-    /* ── Poziționare dinamică: aliniază dropdown-ul ÎNAINTE de butonul Logout ── */
+    /* ── CSS injection: creează spațiu liber la dreapta header-ului (145px) ── */
+    /* Dropdown-ul position:fixed la right:16px va ocupa exact acel spațiu,
+       fără să se suprapună cu textul "Welcome user" sau butonul Logout. */
+    function injectHeaderSpacing() {
+      if (document.getElementById('alw-header-css')) return;
+      var header = document.querySelector('.admin-header');
+      if (!header) return;
+      var s = document.createElement('style');
+      s.id = 'alw-header-css';
+      /* Adaugă padding-right pe header → butonul Logout și Welcome text
+         se mută la stânga, lăsând 145px liberi la dreapta pt dropdown */
+      s.textContent = '#admin-root .admin-header { padding-right: 145px !important; box-sizing: border-box !important; }';
+      document.head.appendChild(s);
+    }
+
+    /* ── Poziționare verticală: aliniere cu header-ul ── */
     function positionDropdown() {
       var wrap = document.getElementById('admin-lang-sw');
       if (!wrap) return;
-      /* Caută butonul Logout în admin-header */
-      var logoutBtn = document.querySelector('.admin-header button.btn-secondary');
-      if (!logoutBtn) {
-        /* fallback: top-right fix dacă header-ul nu e loaded încă */
-        wrap.style.top = '14px';
-        wrap.style.right = '16px';
-        return;
-      }
-      var rect = logoutBtn.getBoundingClientRect();
-      /* Plasăm dropdown-ul imediat la stânga butonului Logout, aliniat vertical */
-      wrap.style.top = (rect.top + window.scrollY + (rect.height - 32) / 2) + 'px';
-      wrap.style.right = (window.innerWidth - rect.left + 8) + 'px';
+      var header = document.querySelector('.admin-header');
+      if (!header) { wrap.style.top = '12px'; wrap.style.right = '16px'; return; }
+      var rect = header.getBoundingClientRect();
+      /* Centrat vertical în header, la 16px de marginea dreaptă */
+      wrap.style.top = Math.round(rect.top + (rect.height - 34) / 2) + 'px';
+      wrap.style.right = '16px';
       wrap.style.left = 'auto';
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      /* Construiește dropdown după ce React randează (maxim 10s) */
       var attempts = 0;
       var initInterval = setInterval(function() {
         var header = document.querySelector('.admin-header');
         if (header) {
-          buildDropdown();
-          positionDropdown();
+          injectHeaderSpacing(); /* creează spațiu mai întâi */
+          buildDropdown();       /* construiește dropdown */
+          positionDropdown();    /* aliniază vertical */
           clearInterval(initInterval);
         }
-        if (++attempts > 33) { buildDropdown(); positionDropdown(); clearInterval(initInterval); }
-      }, 300);
+        if (++attempts > 40) {
+          injectHeaderSpacing(); buildDropdown(); positionDropdown();
+          clearInterval(initInterval);
+        }
+      }, 250);
 
-      /* Re-poziționare la resize sau scroll */
       window.addEventListener('resize', positionDropdown);
-      window.addEventListener('scroll', positionDropdown, true);
-
-      /* Re-poziționare periodică (prinde schimbări de layout React) */
-      setInterval(positionDropdown, 600);
+      /* Re-poziționare periodică pt layout-uri dinamice */
+      setInterval(positionDropdown, 800);
     });
   })();
   </script>
