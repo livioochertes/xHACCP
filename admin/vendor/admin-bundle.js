@@ -11723,6 +11723,12 @@
     const [formData, setFormData] = (0, import_react13.useState)({ email: "", password: "" });
     const [loading, setLoading] = (0, import_react13.useState)(false);
     const [error, setError] = (0, import_react13.useState)("");
+    const [showPassword, setShowPassword] = (0, import_react13.useState)(false);
+    const [showForgot, setShowForgot] = (0, import_react13.useState)(false);
+    const [forgotEmail, setForgotEmail] = (0, import_react13.useState)("");
+    const [forgotLoading, setForgotLoading] = (0, import_react13.useState)(false);
+    const [forgotMsg, setForgotMsg] = (0, import_react13.useState)("");
+    const [forgotError, setForgotError] = (0, import_react13.useState)("");
     const handleSubmit = async (e2) => {
       e2.preventDefault();
       setLoading(true);
@@ -11730,9 +11736,7 @@
       try {
         const response = await fetch("/admin/api/login", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData)
         });
         const data = await response.json();
@@ -11747,6 +11751,29 @@
         setError("Network error. Please try again.");
       } finally {
         setLoading(false);
+      }
+    };
+    const handleForgot = async (e2) => {
+      e2.preventDefault();
+      setForgotLoading(true);
+      setForgotMsg("");
+      setForgotError("");
+      try {
+        const response = await fetch("/admin/api/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: forgotEmail })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setForgotMsg(data.message || "Email trimis. Verifica\u021Bi inbox-ul.");
+        } else {
+          setForgotError(data.message || "Eroare la trimiterea emailului.");
+        }
+      } catch (err) {
+        setForgotError("Eroare de re\u021Bea. \xCEncerca\u021Bi din nou.");
+      } finally {
+        setForgotLoading(false);
       }
     };
     return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "login-container", children: [
@@ -11772,24 +11799,135 @@
           )
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Password" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "input",
-            {
-              type: "password",
-              className: "form-input",
-              value: formData.password,
-              onChange: (e2) => setFormData({ ...formData, password: e2.target.value }),
-              required: true,
-              placeholder: "Enter your password"
-            }
-          )
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-label", style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "Password" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "button",
+              {
+                type: "button",
+                onClick: () => {
+                  setShowForgot(true);
+                  setForgotEmail(formData.email);
+                  setForgotMsg("");
+                  setForgotError("");
+                },
+                style: { background: "none", border: "none", color: "#6c63ff", fontSize: "13px", cursor: "pointer", padding: "0", fontWeight: "500" },
+                children: "Forgot password?"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "input",
+              {
+                type: showPassword ? "text" : "password",
+                className: "form-input",
+                value: formData.password,
+                onChange: (e2) => setFormData({ ...formData, password: e2.target.value }),
+                required: true,
+                placeholder: "Enter your password",
+                style: { paddingRight: "44px" }
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "button",
+              {
+                type: "button",
+                onClick: () => setShowPassword((v) => !v),
+                style: {
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "0",
+                  color: "#888",
+                  fontSize: "18px",
+                  lineHeight: 1,
+                  display: "flex",
+                  alignItems: "center"
+                },
+                title: showPassword ? "Hide password" : "Show password",
+                children: showPassword ? "\u{1F648}" : "\u{1F441}\uFE0F"
+              }
+            )
+          ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "submit", className: "btn", disabled: loading, children: [
           loading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "loading" }),
           loading ? "Logging in..." : "Login"
         ] })
-      ] })
+      ] }),
+      showForgot && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999
+      }, onClick: () => setShowForgot(false), children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+        background: "white",
+        borderRadius: "12px",
+        padding: "32px",
+        width: "100%",
+        maxWidth: "400px",
+        margin: "16px",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.2)"
+      }, onClick: (e2) => e2.stopPropagation(), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { margin: "0 0 8px", color: "#333", fontSize: "20px" }, children: "Reset Password" }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "0 0 20px", color: "#666", fontSize: "14px" }, children: "Introduce\u021Bi adresa de email. Ve\u021Bi primi un email cu o parol\u0103 temporar\u0103." }),
+        forgotMsg ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "12px 16px", background: "#d4edda", borderRadius: "8px", color: "#155724", marginBottom: "16px", fontSize: "14px" }, children: [
+          "\u2705 ",
+          forgotMsg
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("form", { onSubmit: handleForgot, children: [
+          forgotError && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "10px 14px", background: "#f8d7da", borderRadius: "6px", color: "#721c24", marginBottom: "12px", fontSize: "13px" }, children: forgotError }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "16px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: "600", color: "#555" }, children: "Email" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "input",
+              {
+                type: "email",
+                value: forgotEmail,
+                onChange: (e2) => setForgotEmail(e2.target.value),
+                required: true,
+                placeholder: "admin@xhaccp.com",
+                style: { width: "100%", padding: "10px 14px", border: "1px solid #ddd", borderRadius: "8px", fontSize: "14px", boxSizing: "border-box" }
+              }
+            )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "button",
+              {
+                type: "button",
+                onClick: () => setShowForgot(false),
+                style: { flex: 1, padding: "10px", border: "1px solid #ddd", borderRadius: "8px", background: "white", cursor: "pointer", fontSize: "14px", color: "#555" },
+                children: "Anuleaz\u0103"
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "button",
+              {
+                type: "submit",
+                disabled: forgotLoading,
+                style: { flex: 1, padding: "10px", border: "none", borderRadius: "8px", background: "#6c63ff", color: "white", cursor: forgotLoading ? "not-allowed" : "pointer", fontSize: "14px", fontWeight: "600", opacity: forgotLoading ? 0.7 : 1 },
+                children: forgotLoading ? "Se trimite..." : "Trimite email"
+              }
+            )
+          ] })
+        ] }),
+        forgotMsg && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "button",
+          {
+            onClick: () => setShowForgot(false),
+            style: { width: "100%", marginTop: "12px", padding: "10px", border: "none", borderRadius: "8px", background: "#6c63ff", color: "white", cursor: "pointer", fontSize: "14px", fontWeight: "600" },
+            children: "\xCEnchide"
+          }
+        )
+      ] }) })
     ] });
   }
   function AdminDashboard({ token, admin, onLogout }) {

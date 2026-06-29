@@ -113,6 +113,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [formData, setFormData] = useState({ email: '', password: '' });
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState('');
+      const [showPassword, setShowPassword] = useState(false);
+
+      // Forgot password state
+      const [showForgot, setShowForgot] = useState(false);
+      const [forgotEmail, setForgotEmail] = useState('');
+      const [forgotLoading, setForgotLoading] = useState(false);
+      const [forgotMsg, setForgotMsg] = useState('');
+      const [forgotError, setForgotError] = useState('');
       
       const handleSubmit = async (e) => {
         e.preventDefault();
@@ -122,14 +130,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         try {
           const response = await fetch('/admin/api/login', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
           });
-          
           const data = await response.json();
-          
           if (response.ok) {
             localStorage.setItem('adminToken', data.token);
             localStorage.setItem('adminUser', JSON.stringify(data.admin));
@@ -141,6 +145,30 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           setError('Network error. Please try again.');
         } finally {
           setLoading(false);
+        }
+      };
+
+      const handleForgot = async (e) => {
+        e.preventDefault();
+        setForgotLoading(true);
+        setForgotMsg('');
+        setForgotError('');
+        try {
+          const response = await fetch('/admin/api/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: forgotEmail }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            setForgotMsg(data.message || 'Email trimis. Verificați inbox-ul.');
+          } else {
+            setForgotError(data.message || 'Eroare la trimiterea emailului.');
+          }
+        } catch (err) {
+          setForgotError('Eroare de rețea. Încercați din nou.');
+        } finally {
+          setForgotLoading(false);
         }
       };
       
@@ -170,15 +198,39 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             </div>
             
             <div className="form-group">
-              <label className="form-label">Password</label>
-              <input
-                type="password"
-                className="form-input"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                required
-                placeholder="Enter your password"
-              />
+              <label className="form-label" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                <span>Password</span>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgot(true); setForgotEmail(formData.email); setForgotMsg(''); setForgotError(''); }}
+                  style={{background:'none', border:'none', color:'#6c63ff', fontSize:'13px', cursor:'pointer', padding:'0', fontWeight:'500'}}
+                >
+                  Forgot password?
+                </button>
+              </label>
+              <div style={{position:'relative'}}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="form-input"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  required
+                  placeholder="Enter your password"
+                  style={{paddingRight:'44px'}}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  style={{
+                    position:'absolute', right:'12px', top:'50%', transform:'translateY(-50%)',
+                    background:'none', border:'none', cursor:'pointer', padding:'0',
+                    color:'#888', fontSize:'18px', lineHeight:1, display:'flex', alignItems:'center'
+                  }}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
             
             <button type="submit" className="btn" disabled={loading}>
@@ -186,7 +238,72 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
-          
+
+          {/* Forgot Password Modal */}
+          {showForgot && (
+            <div style={{
+              position:'fixed', inset:0, background:'rgba(0,0,0,0.5)',
+              display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999
+            }} onClick={() => setShowForgot(false)}>
+              <div style={{
+                background:'white', borderRadius:'12px', padding:'32px', width:'100%',
+                maxWidth:'400px', margin:'16px', boxShadow:'0 20px 60px rgba(0,0,0,0.2)'
+              }} onClick={e => e.stopPropagation()}>
+                <h3 style={{margin:'0 0 8px', color:'#333', fontSize:'20px'}}>Reset Password</h3>
+                <p style={{margin:'0 0 20px', color:'#666', fontSize:'14px'}}>
+                  Introduceți adresa de email. Veți primi un email cu o parolă temporară.
+                </p>
+                {forgotMsg ? (
+                  <div style={{padding:'12px 16px', background:'#d4edda', borderRadius:'8px', color:'#155724', marginBottom:'16px', fontSize:'14px'}}>
+                    ✅ {forgotMsg}
+                  </div>
+                ) : (
+                  <form onSubmit={handleForgot}>
+                    {forgotError && (
+                      <div style={{padding:'10px 14px', background:'#f8d7da', borderRadius:'6px', color:'#721c24', marginBottom:'12px', fontSize:'13px'}}>
+                        {forgotError}
+                      </div>
+                    )}
+                    <div style={{marginBottom:'16px'}}>
+                      <label style={{display:'block', marginBottom:'6px', fontSize:'13px', fontWeight:'600', color:'#555'}}>Email</label>
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={e => setForgotEmail(e.target.value)}
+                        required
+                        placeholder="admin@xhaccp.com"
+                        style={{width:'100%', padding:'10px 14px', border:'1px solid #ddd', borderRadius:'8px', fontSize:'14px', boxSizing:'border-box'}}
+                      />
+                    </div>
+                    <div style={{display:'flex', gap:'10px'}}>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgot(false)}
+                        style={{flex:1, padding:'10px', border:'1px solid #ddd', borderRadius:'8px', background:'white', cursor:'pointer', fontSize:'14px', color:'#555'}}
+                      >
+                        Anulează
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={forgotLoading}
+                        style={{flex:1, padding:'10px', border:'none', borderRadius:'8px', background:'#6c63ff', color:'white', cursor:forgotLoading?'not-allowed':'pointer', fontSize:'14px', fontWeight:'600', opacity:forgotLoading?0.7:1}}
+                      >
+                        {forgotLoading ? 'Se trimite...' : 'Trimite email'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+                {forgotMsg && (
+                  <button
+                    onClick={() => setShowForgot(false)}
+                    style={{width:'100%', marginTop:'12px', padding:'10px', border:'none', borderRadius:'8px', background:'#6c63ff', color:'white', cursor:'pointer', fontSize:'14px', fontWeight:'600'}}
+                  >
+                    Închide
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       );
     }

@@ -616,6 +616,60 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Forgot password endpoint
+  app.post("/admin/api/forgot-password", adminLoginLimiter, async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email este obligatoriu." });
+      }
+
+      // Always return success to avoid email enumeration
+      const admin = await storage.getUserByEmail(email);
+      if (!admin || !admin.isAdmin) {
+        return res.json({ message: "Dacă adresa există, veți primi un email cu parola temporară." });
+      }
+
+      // Generate temporary password
+      const tempPassword = crypto.randomBytes(6).toString("hex"); // 12 chars hex
+      const hashed = await bcrypt.hash(tempPassword, 10);
+
+      // Update password in DB
+      await db.execute(
+        `UPDATE users SET password = $1 WHERE id = $2`,
+        [hashed, admin.id]
+      );
+
+      // Send email
+      const { sendEmail } = await import("./email-service.js");
+      const fromEmail = process.env.SENDGRID_FROM_EMAIL || "noreply@xhaccp.com";
+      await sendEmail({
+        to: email,
+        from: fromEmail,
+        subject: "xHACCP Admin – Parolă temporară",
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f9f9f9;border-radius:12px;">
+            <h2 style="color:#6c63ff;margin-top:0;">Reset parolă Admin</h2>
+            <p>Salut,</p>
+            <p>Ai solicitat resetarea parolei pentru contul tău de administrator <strong>xHACCP</strong>.</p>
+            <p>Parola ta temporară este:</p>
+            <div style="background:#fff;border:2px solid #6c63ff;border-radius:8px;padding:16px;text-align:center;font-size:22px;font-weight:bold;letter-spacing:4px;color:#333;margin:16px 0;">
+              ${tempPassword}
+            </div>
+            <p style="color:#e53e3e;font-size:13px;">⚠️ Schimbă această parolă imediat după autentificare din setările contului.</p>
+            <p style="color:#888;font-size:12px;">Dacă nu ai solicitat această resetare, ignoră acest email.</p>
+          </div>
+        `,
+        text: `Parola ta temporară xHACCP Admin: ${tempPassword}\n\nSchimb-o imediat după autentificare.`,
+      });
+
+      return res.json({ message: "Email trimis. Verificați inbox-ul (și folderul spam)." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Eroare internă. Încercați din nou." });
+    }
+  });
+
   // 2FA verification endpoint
   app.post("/admin/api/verify-2fa", twoFactorLimiter, async (req: Request, res: Response) => {
     try {
