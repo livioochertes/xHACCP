@@ -4144,6 +4144,41 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     }
   });
 
+  // Admin: trigger translations for a specific post
+  app.post("/api/admin/blog/posts/:id/translate", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });
+      }
+      const id = parseInt(req.params.id);
+      const post = await storage.getBlogPost(id);
+      if (!post) return res.status(404).json({ success: false, message: "Post not found" });
+
+      const { generateTranslationsForPost } = await import("./ai-blog-generator");
+      const marketCode = post.marketCode ?? "ro";
+      const srcLang = post.language ?? "ro";
+
+      res.json({ success: true, message: "Traducere pornită în fundal…" });
+
+      generateTranslationsForPost(post.id, post.title, post.excerpt ?? "", post.content, srcLang, marketCode)
+        .catch(err => console.error("[Translate route] error:", err));
+    } catch (error) {
+      console.error("Translate blog post error:", error);
+      res.status(500).json({ success: false, message: "Eroare la traducere: " + (error as Error).message });
+    }
+  });
+
+  // Admin: get translations for a post
+  app.get("/api/admin/blog/posts/:id/translations", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const translations = await storage.getBlogPostTranslations(id);
+      res.json(translations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch translations" });
+    }
+  });
+
   // Admin: generate blog post via Claude AI
   app.post("/api/admin/blog/generate", authenticateToken, requireAdmin, async (req, res) => {
     try {
