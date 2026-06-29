@@ -10498,18 +10498,77 @@
       active: "Active",
       inactive: "Inactive",
       yes_delete: "Yes, delete",
-      are_you_sure: "Are you sure?"
+      are_you_sure: "Are you sure?",
+      enabled: "Enabled",
+      disabled: "Disabled",
+      notSet: "Not set",
+      noDescription: "No description",
+      draft: "Draft",
+      discontinued: "Discontinued",
+      allStatus: "All Status",
+      applySearch: "Apply Search",
+      clearFilters: "Clear Filters",
+      searchFilter: "Search & Filter",
+      bulkOps: "Bulk Operations",
+      analytics: "Analytics",
+      market: "Market"
+    },
+    stats: {
+      totalUsers: "Total Users",
+      totalOrders: "Total Orders",
+      totalProducts: "Total Products",
+      recentOrders: "Recent Orders"
+    },
+    dashboard: {
+      title: "Dashboard",
+      systemOverview: "System Overview",
+      welcomeText: "Welcome to the xHACCP Admin Panel. Here you can manage your e-commerce platform, view statistics, and monitor system performance. The dashboard shows real-time data from your PostgreSQL database.",
+      quickStats: "Quick Stats Summary",
+      registeredUsers: "registered users",
+      ordersProcessed: "orders processed",
+      productsInCatalog: "products in catalog",
+      recentOrdersLabel: "recent orders",
+      adminActions: "Admin Actions",
+      manageOrders: "Manage Orders",
+      manageUsers: "Manage Users",
+      manageProducts: "Manage Products",
+      twoFactorAuth: "Two-Factor Auth",
+      twoFactorAuthentication: "Two-Factor Authentication",
+      disable2fa: "Disable 2FA",
+      enable2fa: "Enable 2FA",
+      status: "Status",
+      total_orders: "Total Orders",
+      total_revenue: "Total Revenue",
+      total_users: "Total Users",
+      total_products: "Total Products",
+      recent_orders: "Recent Orders",
+      top_products: "Top Products",
+      stats: "Statistics"
     },
     orders: {
-      title: "Orders",
+      title: "Order Management",
       order: "Order",
-      customer: "Customer",
+      exportOrders: "Export Orders",
+      analytics: "Analytics",
+      orderActions: "Order Actions",
+      searchFilter: "Search & Filter",
+      bulkOps: "Bulk Operations",
+      orderTools: "Order Tools",
+      searchFilterTitle: "Search & Filter Orders",
+      allStatus: "All Status",
+      allMarkets: "All Markets",
+      searchPlaceholder: "Search by ID, client, city...",
+      searchCompanyPlaceholder: "Search by company...",
+      customer: "Client",
+      company: "Company",
       status: "Status",
       total: "Total",
       date: "Date",
       pending: "Pending",
+      accepted: "Accepted",
       processing: "Processing",
       shipped: "Shipped",
+      inDelivery: "In Delivery",
       delivered: "Delivered",
       cancelled: "Cancelled",
       details: "Order Details",
@@ -10518,18 +10577,95 @@
       payment: "Payment",
       notes: "Notes",
       generate_awb: "Generate AWB",
+      generateAWB: "Generate AWB",
       generate_invoice: "Generate Invoice",
       awb_generated: "AWB Generated",
-      invoice_generated: "Invoice Generated"
+      invoice_generated: "Invoice Generated",
+      viewBtn: "View",
+      acceptBtn: "Accept",
+      trackPackage: "Track Package",
+      forwardSuppliers: "Forward to Suppliers",
+      updateBtn: "Update",
+      prevPage: "\u2190 Previous",
+      nextPage: "Next \u2192",
+      pageOf: "Page {{page}} of {{total}}",
+      ordersTotal: "orders total",
+      noOrders: "No orders found",
+      noOrdersDesc: "Orders will appear here once customers start purchasing...",
+      viewDashboard: "View Dashboard",
+      clear: "Clear",
+      showing: "Showing {{count}} of {{total}} orders",
+      orderId: "Order ID",
+      orderDetails: "Order Details",
+      orderInfo: "Order Information",
+      customerInfo: "Customer Information",
+      shippingAddress: "Shipping Address",
+      paymentMethod: "Payment Method",
+      paymentStatus: "Payment Status",
+      downloadInvoice: "Download Invoice"
+    },
+    users: {
+      title: "User Management",
+      addNew: "Add New User",
+      totalUsers: "Total Users",
+      regularUsers: "Regular Users",
+      adminUsers: "Admin Users",
+      userId: "User ID",
+      name: "Name",
+      email: "Email",
+      role: "Role",
+      roleAdmin: "Admin",
+      roleUser: "User",
+      noUsers: "No users found",
+      createFirst: "Create your first user to get started.",
+      addFirst: "Add Your First User",
+      add: "Add User",
+      edit: "Edit User",
+      status: "Status",
+      registered: "Registered",
+      orders: "Orders",
+      total_spent: "Total Spent"
     },
     products: {
-      title: "Products",
+      title: "Product Management",
+      importExcel: "Import from Excel",
+      addNew: "Add New Product",
+      actions: "Product Actions",
+      downloadTemplate: "Download Excel Template",
+      generateCodes: "Generate Missing Codes",
+      searchFilterTitle: "Search & Filter Products",
+      searchLabel: "Search Products",
+      searchPlaceholder: "Search by name, ID, category, or description...",
+      allCategories: "All Categories",
+      analyticsDashboard: "Product Analytics Dashboard",
+      totalProducts: "Total Products",
+      inStock: "In Stock",
+      lowStock: "Low Stock",
+      outOfStock: "Out of Stock",
+      byCategory: "Products by Category",
+      statusDistribution: "Status Distribution",
+      priceAnalysis: "Price Analysis",
+      topByPrice: "Top Products by Price",
+      avgPrice: "Average Price",
+      lowestPrice: "Lowest Price",
+      highestPrice: "Highest Price",
+      noPricesFound: "No products with prices found",
+      analyticsGeneratedAt: "Analytics generated at",
+      analyticsError: "Please make sure products are loaded and try again.",
+      generatingAnalytics: "Generating analytics...",
+      refreshAnalytics: "Refresh Analytics",
+      showing: "Showing {{count}} of {{total}} products",
+      priority: "Priority",
+      productId: "Product ID",
+      basePrice: "Base Price",
+      stock: "Stock",
+      currency: "Currency",
+      productCode: "Product Code",
       add: "Add Product",
       edit: "Edit Product",
       name: "Product Name",
       sku: "SKU",
       price: "Price",
-      stock: "Stock",
       category: "Category",
       description: "Description",
       images: "Images",
@@ -10540,20 +10676,21 @@
       bulk_import: "Bulk Import",
       export_excel: "Export Excel"
     },
-    users: {
-      title: "Users",
-      add: "Add User",
-      edit: "Edit User",
-      name: "Full Name",
-      email: "Email",
-      role: "Role",
-      status: "Status",
-      registered: "Registered",
-      orders: "Orders",
-      total_spent: "Total Spent"
-    },
     categories: {
-      title: "Categories",
+      title: "Category Management",
+      addNew: "Add New Category",
+      homepageSettings: "Homepage Category Settings",
+      mainTopMax4: "Main Top Categories (Max 4)",
+      shopCatMax3: "Shop Categories (Max 3)",
+      noCatMainTop: "No categories assigned to main top section",
+      noCatShop: "No categories assigned to shop section",
+      viewHomepageConfig: "View Homepage Config",
+      configureHomepage: "Configure Homepage",
+      homepage: "Homepage",
+      notFeatured: "Not featured",
+      noneFound: "No categories found",
+      createFirst: "Create your first category to organize your products effectively.",
+      addFirst: "Add Your First Category",
       add: "Add Category",
       edit: "Edit Category",
       name: "Category Name",
@@ -10562,39 +10699,100 @@
       order: "Display Order"
     },
     suppliers: {
-      title: "Suppliers",
+      title: "Supplier Management",
+      addNew: "Add New Supplier",
+      overview: "Supplier Overview",
+      supplierName: "Supplier Name",
+      contact: "Contact",
+      location: "Location",
+      integration: "Integration",
+      syncPrices: "Sync Prices",
       add: "Add Supplier",
       edit: "Edit Supplier",
       name: "Supplier Name",
-      contact: "Contact",
       email: "Email",
       phone: "Phone"
     },
+    companySettings: {
+      title: "Company Settings",
+      editInfo: "Edit Company Info",
+      basicInfo: "Basic Information",
+      address: "Address",
+      legalBusiness: "Legal & Business",
+      defaultProductSettings: "Default Product Settings",
+      shippingSettings: "Shipping Settings",
+      description: "Company Description",
+      companyName: "Company Name",
+      website: "Website",
+      logisticsEmail: "Logistics Email",
+      streetAddress: "Street Address",
+      city: "City",
+      stateProvince: "State/Province",
+      zipCode: "ZIP/Postal Code",
+      country: "Country",
+      contactPerson: "Contact Person",
+      vatNumber: "VAT Number",
+      registrationNumber: "Registration Number",
+      defaultCurrency: "Default Currency",
+      defaultVatPct: "Default VAT Percentage",
+      reverseChargeVat: "Reverse Charge VAT",
+      freeShippingThreshold: "Free Shipping Threshold",
+      standardShippingCost: "Standard Shipping Cost",
+      usedAsDefaults: "Used as defaults when creating new products",
+      noDescription: 'No description available. Click "Edit Company Info" to add your company description.',
+      importantNotes: "Important Notes",
+      note1: "This information is used throughout the system for invoices, emails, and customer communications",
+      note2: "VAT Number and Registration Number are required for proper invoice generation",
+      note3: "Contact information will be displayed to customers for support inquiries",
+      note4: "All changes are automatically saved and will be reflected in new orders and communications",
+      company_name: "Company Name",
+      vat: "VAT Number",
+      phone: "Phone",
+      email: "Email",
+      save: "Save Settings"
+    },
     vouchers: {
-      title: "Vouchers",
-      add: "Add Voucher",
-      edit: "Edit Voucher",
+      title: "Voucher Management",
+      addNew: "Add New Voucher",
+      editVoucher: "Edit Voucher",
+      description: "Manage discount voucher codes. Customers can apply these codes at checkout to receive discounts.",
       code: "Code",
       discount: "Discount",
-      type: "Type",
+      minOrder: "Min Order",
       usage: "Usage",
+      validPeriod: "Valid Period",
+      noExpiry: "No expiry",
+      noneFound: 'No vouchers created yet. Click "Add New Voucher" to create one.',
+      voucherCode: "Voucher Code",
+      nameDescription: "Name/Description",
+      discountType: "Discount Type",
+      discountValue: "Discount Value",
+      minOrderAmount: "Min Order Amount",
+      fixedAmount: "Fixed Amount (RON)",
+      percentage: "Percentage (%)",
+      add: "Add Voucher",
+      edit: "Edit Voucher",
+      type: "Type",
       expires: "Expires",
       fixed: "Fixed Amount",
-      percentage: "Percentage",
       min_order: "Minimum Order",
       max_uses: "Maximum Uses",
       used: "Used"
     },
     blog: {
-      title: "Blog AI",
+      title: "Blog \u2014 Auto Generation with Claude AI",
+      generateNew: "Generate new article",
+      titleLabel: "Title (optional)",
+      titlePlaceholder: "Leave blank for automatic theme",
+      category: "Category",
+      language: "Language",
+      generating: "Generating...",
+      generate: "Generate",
       add: "Add Post",
       edit: "Edit Post",
-      generate: "Generate Post",
-      generating: "Generating...",
       publish: "Publish",
       draft: "Draft",
       published: "Published",
-      language: "Language",
       translate: "Translate"
     },
     settings: {
@@ -10605,16 +10803,6 @@
       phone: "Phone",
       email: "Email",
       save: "Save Settings"
-    },
-    dashboard: {
-      title: "Dashboard",
-      total_orders: "Total Orders",
-      total_revenue: "Total Revenue",
-      total_users: "Total Users",
-      total_products: "Total Products",
-      recent_orders: "Recent Orders",
-      top_products: "Top Products",
-      stats: "Statistics"
     }
   };
 
@@ -10692,38 +10880,174 @@
       active: "Activ",
       inactive: "Inactiv",
       yes_delete: "Da, \u0219terge",
-      are_you_sure: "E\u0219ti sigur?"
+      are_you_sure: "E\u0219ti sigur?",
+      enabled: "Activat",
+      disabled: "Dezactivat",
+      notSet: "Nesetat",
+      noDescription: "F\u0103r\u0103 descriere",
+      draft: "Ciorn\u0103",
+      discontinued: "Discontinuat",
+      allStatus: "Toate statusurile",
+      applySearch: "Aplic\u0103 C\u0103utarea",
+      clearFilters: "\u0218terge Filtrele",
+      searchFilter: "C\u0103utare & Filtrare",
+      bulkOps: "Opera\u021Biuni \xEEn Mas\u0103",
+      analytics: "Analiz\u0103",
+      market: "Pia\u021B\u0103"
+    },
+    stats: {
+      totalUsers: "Total Utilizatori",
+      totalOrders: "Total Comenzi",
+      totalProducts: "Total Produse",
+      recentOrders: "Comenzi Recente"
+    },
+    dashboard: {
+      title: "Panou de control",
+      systemOverview: "Prezentare General\u0103 Sistem",
+      welcomeText: "Bun venit \xEEn Panoul de Administrare xHACCP. Pute\u021Bi gestiona platforma de e-commerce, vizualiza statistici \u0219i monitoriza performan\u021Ba sistemului. Tabloul de bord afi\u0219eaz\u0103 date \xEEn timp real din baza de date PostgreSQL.",
+      quickStats: "Rezumat Statistici Rapide",
+      registeredUsers: "utilizatori \xEEnregistra\u021Bi",
+      ordersProcessed: "comenzi procesate",
+      productsInCatalog: "produse \xEEn catalog",
+      recentOrdersLabel: "comenzi recente",
+      adminActions: "Ac\u021Biuni Admin",
+      manageOrders: "Gestionare Comenzi",
+      manageUsers: "Gestionare Utilizatori",
+      manageProducts: "Gestionare Produse",
+      twoFactorAuth: "Autentificare 2FA",
+      twoFactorAuthentication: "Autentificare cu Doi Factori",
+      disable2fa: "Dezactivare 2FA",
+      enable2fa: "Activare 2FA",
+      status: "Status",
+      total_orders: "Total comenzi",
+      total_revenue: "Venituri totale",
+      total_users: "Total utilizatori",
+      total_products: "Total produse",
+      recent_orders: "Comenzi recente",
+      top_products: "Produse top",
+      stats: "Statistici"
     },
     orders: {
-      title: "Comenzi",
+      title: "Gestionare Comenzi",
       order: "Comand\u0103",
+      exportOrders: "Export\u0103 Comenzi",
+      analytics: "Analiz\u0103",
+      orderActions: "Ac\u021Biuni Comand\u0103",
+      searchFilter: "C\u0103utare & Filtrare",
+      bulkOps: "Opera\u021Biuni \xEEn Mas\u0103",
+      orderTools: "Instrumente Comenzi",
+      searchFilterTitle: "C\u0103utare & Filtrare Comenzi",
+      allStatus: "Toate statusurile",
+      allMarkets: "Toate pie\u021Bele",
+      searchPlaceholder: "Caut\u0103 dup\u0103 ID, client, ora\u0219...",
+      searchCompanyPlaceholder: "Caut\u0103 dup\u0103 firm\u0103...",
       customer: "Client",
+      company: "Firm\u0103",
       status: "Status",
       total: "Total",
       date: "Dat\u0103",
       pending: "\xCEn a\u0219teptare",
+      accepted: "Acceptat\u0103",
       processing: "\xCEn procesare",
-      shipped: "Expediat",
-      delivered: "Livrat",
-      cancelled: "Anulat",
+      shipped: "Expediat\u0103",
+      inDelivery: "\xCEn livrare",
+      delivered: "Livrat\u0103",
+      cancelled: "Anulat\u0103",
       details: "Detalii comand\u0103",
       items: "Produse",
       shipping: "Transport",
       payment: "Plat\u0103",
       notes: "Observa\u021Bii",
       generate_awb: "Genereaz\u0103 AWB",
+      generateAWB: "Genereaz\u0103 AWB",
       generate_invoice: "Genereaz\u0103 factur\u0103",
       awb_generated: "AWB generat",
-      invoice_generated: "Factur\u0103 generat\u0103"
+      invoice_generated: "Factur\u0103 generat\u0103",
+      viewBtn: "Vizualizeaz\u0103",
+      acceptBtn: "Accept\u0103",
+      trackPackage: "Urm\u0103rire Colet",
+      forwardSuppliers: "Trimite la Furnizori",
+      updateBtn: "Actualizeaz\u0103",
+      prevPage: "\u2190 Anterior",
+      nextPage: "Urm\u0103tor \u2192",
+      pageOf: "Pagina {{page}} din {{total}}",
+      ordersTotal: "comenzi total",
+      noOrders: "Nu s-au g\u0103sit comenzi",
+      noOrdersDesc: "Comenzile vor ap\u0103rea dup\u0103 ce clien\u021Bii \xEEncep s\u0103 cumpere...",
+      viewDashboard: "Vezi Tabloul de Bord",
+      clear: "\u0218terge",
+      showing: "Se afi\u0219eaz\u0103 {{count}} din {{total}} comenzi",
+      orderId: "ID Comand\u0103",
+      orderDetails: "Detalii Comand\u0103",
+      orderInfo: "Informa\u021Bii Comand\u0103",
+      customerInfo: "Informa\u021Bii Client",
+      shippingAddress: "Adres\u0103 de Livrare",
+      paymentMethod: "Metod\u0103 de Plat\u0103",
+      paymentStatus: "Status Plat\u0103",
+      downloadInvoice: "Descarc\u0103 Factur\u0103"
+    },
+    users: {
+      title: "Gestionare Utilizatori",
+      addNew: "Adaug\u0103 Utilizator Nou",
+      totalUsers: "Total Utilizatori",
+      regularUsers: "Utilizatori Obi\u0219nui\u021Bi",
+      adminUsers: "Utilizatori Admin",
+      userId: "ID Utilizator",
+      name: "Nume",
+      email: "Email",
+      role: "Rol",
+      roleAdmin: "Admin",
+      roleUser: "Utilizator",
+      noUsers: "Nu s-au g\u0103sit utilizatori",
+      createFirst: "Crea\u021Bi primul utilizator pentru a \xEEncepe.",
+      addFirst: "Adaug\u0103 Primul Utilizator",
+      add: "Adaug\u0103 utilizator",
+      edit: "Editeaz\u0103 utilizator",
+      status: "Status",
+      registered: "\xCEnregistrat",
+      orders: "Comenzi",
+      total_spent: "Total cheltuit"
     },
     products: {
-      title: "Produse",
+      title: "Gestionare Produse",
+      importExcel: "Import\u0103 din Excel",
+      addNew: "Adaug\u0103 Produs Nou",
+      actions: "Ac\u021Biuni Produse",
+      downloadTemplate: "Descarc\u0103 \u0218ablon Excel",
+      generateCodes: "Genereaz\u0103 Coduri Lips\u0103",
+      searchFilterTitle: "C\u0103utare & Filtrare Produse",
+      searchLabel: "Caut\u0103 Produse",
+      searchPlaceholder: "Caut\u0103 dup\u0103 nume, ID, categorie sau descriere...",
+      allCategories: "Toate Categoriile",
+      analyticsDashboard: "Tablou Analiz\u0103 Produse",
+      totalProducts: "Total Produse",
+      inStock: "\xCEn Stoc",
+      lowStock: "Stoc Redus",
+      outOfStock: "Lips\u0103 Stoc",
+      byCategory: "Produse pe Categorie",
+      statusDistribution: "Distribu\u021Bie Status",
+      priceAnalysis: "Analiz\u0103 Pre\u021Buri",
+      topByPrice: "Top Produse dup\u0103 Pre\u021B",
+      avgPrice: "Pre\u021B Mediu",
+      lowestPrice: "Cel Mai Mic Pre\u021B",
+      highestPrice: "Cel Mai Mare Pre\u021B",
+      noPricesFound: "Nu s-au g\u0103sit produse cu pre\u021Buri",
+      analyticsGeneratedAt: "Analiz\u0103 generat\u0103 la",
+      analyticsError: "Asigura\u021Bi-v\u0103 c\u0103 produsele sunt \xEEnc\u0103rcate \u0219i \xEEncerca\u021Bi din nou.",
+      generatingAnalytics: "Se genereaz\u0103 analiza...",
+      refreshAnalytics: "Re\xEEmprosp\u0103teaz\u0103 Analiza",
+      showing: "Se afi\u0219eaz\u0103 {{count}} din {{total}} produse",
+      priority: "Prioritate",
+      productId: "ID Produs",
+      basePrice: "Pre\u021B de Baz\u0103",
+      stock: "Stoc",
+      currency: "Moned\u0103",
+      productCode: "Cod Produs",
       add: "Adaug\u0103 produs",
       edit: "Editeaz\u0103 produs",
       name: "Nume produs",
       sku: "Cod produs",
       price: "Pre\u021B",
-      stock: "Stoc",
       category: "Categorie",
       description: "Descriere",
       images: "Imagini",
@@ -10734,20 +11058,21 @@
       bulk_import: "Import \xEEn mas\u0103",
       export_excel: "Export Excel"
     },
-    users: {
-      title: "Utilizatori",
-      add: "Adaug\u0103 utilizator",
-      edit: "Editeaz\u0103 utilizator",
-      name: "Nume complet",
-      email: "Email",
-      role: "Rol",
-      status: "Status",
-      registered: "\xCEnregistrat",
-      orders: "Comenzi",
-      total_spent: "Total cheltuit"
-    },
     categories: {
-      title: "Categorii",
+      title: "Gestionare Categorii",
+      addNew: "Adaug\u0103 Categorie Nou\u0103",
+      homepageSettings: "Set\u0103ri Categorii Homepage",
+      mainTopMax4: "Categorii Principale Sus (Max 4)",
+      shopCatMax3: "Categorii Magazin (Max 3)",
+      noCatMainTop: "Nu exist\u0103 categorii atribuite sec\u021Biunii principale de sus",
+      noCatShop: "Nu exist\u0103 categorii atribuite sec\u021Biunii magazin",
+      viewHomepageConfig: "Vezi Configurare Homepage",
+      configureHomepage: "Configureaz\u0103 Homepage",
+      homepage: "Homepage",
+      notFeatured: "Neafi\u0219at",
+      noneFound: "Nu s-au g\u0103sit categorii",
+      createFirst: "Crea\u021Bi prima categorie pentru a v\u0103 organiza produsele eficient.",
+      addFirst: "Adaug\u0103 Prima Categorie",
       add: "Adaug\u0103 categorie",
       edit: "Editeaz\u0103 categorie",
       name: "Nume categorie",
@@ -10756,39 +11081,100 @@
       order: "Ordine afi\u0219are"
     },
     suppliers: {
-      title: "Furnizori",
+      title: "Gestionare Furnizori",
+      addNew: "Adaug\u0103 Furnizor Nou",
+      overview: "Prezentare Furnizori",
+      supplierName: "Nume Furnizor",
+      contact: "Contact",
+      location: "Loca\u021Bie",
+      integration: "Integrare",
+      syncPrices: "Sincronizeaz\u0103 Pre\u021Buri",
       add: "Adaug\u0103 furnizor",
       edit: "Editeaz\u0103 furnizor",
       name: "Nume furnizor",
-      contact: "Contact",
       email: "Email",
       phone: "Telefon"
     },
+    companySettings: {
+      title: "Set\u0103ri Companie",
+      editInfo: "Editeaz\u0103 Informa\u021Bii Companie",
+      basicInfo: "Informa\u021Bii de Baz\u0103",
+      address: "Adres\u0103",
+      legalBusiness: "Juridic & Afaceri",
+      defaultProductSettings: "Set\u0103ri Implicite Produse",
+      shippingSettings: "Set\u0103ri Livrare",
+      description: "Descriere Companie",
+      companyName: "Nume Companie",
+      website: "Website",
+      logisticsEmail: "Email Logistic\u0103",
+      streetAddress: "Strad\u0103",
+      city: "Ora\u0219",
+      stateProvince: "Jude\u021B/Provincie",
+      zipCode: "Cod Po\u0219tal",
+      country: "\u021Aar\u0103",
+      contactPerson: "Persoan\u0103 de Contact",
+      vatNumber: "Cod TVA",
+      registrationNumber: "Num\u0103r \xCEnregistrare",
+      defaultCurrency: "Moned\u0103 Implicit\u0103",
+      defaultVatPct: "Procent TVA Implicit",
+      reverseChargeVat: "TVA Taxare Invers\u0103",
+      freeShippingThreshold: "Prag Livrare Gratuit\u0103",
+      standardShippingCost: "Cost Livrare Standard",
+      usedAsDefaults: "Utilizat ca valori implicite la crearea produselor noi",
+      noDescription: "Nu exist\u0103 descriere. Ap\u0103sa\u021Bi 'Editeaz\u0103 Informa\u021Bii Companie' pentru a ad\u0103uga descrierea.",
+      importantNotes: "Note Importante",
+      note1: "Aceste informa\u021Bii sunt utilizate \xEEn sistem pentru facturi, emailuri \u0219i comunica\u021Bii cu clien\u021Bii",
+      note2: "Codul TVA \u0219i Num\u0103rul de \xCEnregistrare sunt necesare pentru generarea corect\u0103 a facturilor",
+      note3: "Datele de contact vor fi afi\u0219ate clien\u021Bilor pentru \xEEntreb\u0103ri de suport",
+      note4: "Toate modific\u0103rile sunt salvate automat \u0219i se vor reflecta \xEEn comenzile \u0219i comunic\u0103rile noi",
+      company_name: "Nume firm\u0103",
+      vat: "Cod fiscal",
+      phone: "Telefon",
+      email: "Email",
+      save: "Salveaz\u0103 set\u0103rile"
+    },
     vouchers: {
-      title: "Vouchere",
-      add: "Adaug\u0103 voucher",
-      edit: "Editeaz\u0103 voucher",
+      title: "Gestionare Vouchere",
+      addNew: "Adaug\u0103 Voucher Nou",
+      editVoucher: "Editeaz\u0103 Voucher",
+      description: "Gestiona\u021Bi codurile de voucher cu reduceri. Clien\u021Bii le pot aplica la checkout pentru reduceri.",
       code: "Cod",
       discount: "Reducere",
-      type: "Tip",
+      minOrder: "Comand\u0103 Minim\u0103",
       usage: "Utilizare",
+      validPeriod: "Perioad\u0103 Valabilitate",
+      noExpiry: "F\u0103r\u0103 expirare",
+      noneFound: "Nu exist\u0103 vouchere create. Ap\u0103sa\u021Bi 'Adaug\u0103 Voucher Nou' pentru a crea unul.",
+      voucherCode: "Cod Voucher",
+      nameDescription: "Nume/Descriere",
+      discountType: "Tip Reducere",
+      discountValue: "Valoare Reducere",
+      minOrderAmount: "Sum\u0103 Minim\u0103 Comand\u0103",
+      fixedAmount: "Sum\u0103 Fix\u0103 (RON)",
+      percentage: "Procent (%)",
+      add: "Adaug\u0103 voucher",
+      edit: "Editeaz\u0103 voucher",
+      type: "Tip",
       expires: "Expir\u0103",
       fixed: "Sum\u0103 fix\u0103",
-      percentage: "Procentaj",
       min_order: "Comand\u0103 minim\u0103",
       max_uses: "Utiliz\u0103ri maxime",
       used: "Utilizat"
     },
     blog: {
-      title: "Blog AI",
+      title: "Blog \u2014 Generare Automat\u0103 cu Claude AI",
+      generateNew: "Genereaz\u0103 articol nou",
+      titleLabel: "Titlu (op\u021Bional)",
+      titlePlaceholder: "Las\u0103 gol pentru tem\u0103 automat\u0103",
+      category: "Categorie",
+      language: "Limb\u0103",
+      generating: "Generez...",
+      generate: "Genereaz\u0103",
       add: "Adaug\u0103 articol",
       edit: "Editeaz\u0103 articol",
-      generate: "Genereaz\u0103 articol",
-      generating: "Se genereaz\u0103...",
       publish: "Public\u0103",
       draft: "Ciorn\u0103",
       published: "Publicat",
-      language: "Limb\u0103",
       translate: "Traduce"
     },
     settings: {
@@ -10799,16 +11185,6 @@
       phone: "Telefon",
       email: "Email",
       save: "Salveaz\u0103 set\u0103rile"
-    },
-    dashboard: {
-      title: "Panou de control",
-      total_orders: "Total comenzi",
-      total_revenue: "Venituri totale",
-      total_users: "Total utilizatori",
-      total_products: "Total produse",
-      recent_orders: "Comenzi recente",
-      top_products: "Produse top",
-      stats: "Statistici"
     }
   };
 
@@ -10886,38 +11262,174 @@
       active: "Actif",
       inactive: "Inactif",
       yes_delete: "Oui, supprimer",
-      are_you_sure: "\xCAtes-vous s\xFBr?"
+      are_you_sure: "\xCAtes-vous s\xFBr?",
+      enabled: "Activ\xE9",
+      disabled: "D\xE9sactiv\xE9",
+      notSet: "Non d\xE9fini",
+      noDescription: "Aucune description",
+      draft: "Brouillon",
+      discontinued: "Discontinu\xE9",
+      allStatus: "Tous les statuts",
+      applySearch: "Appliquer la recherche",
+      clearFilters: "Effacer les filtres",
+      searchFilter: "Recherche & Filtres",
+      bulkOps: "Op\xE9rations en masse",
+      analytics: "Analytique",
+      market: "March\xE9"
+    },
+    stats: {
+      totalUsers: "Total utilisateurs",
+      totalOrders: "Total commandes",
+      totalProducts: "Total produits",
+      recentOrders: "Commandes r\xE9centes"
+    },
+    dashboard: {
+      title: "Tableau de bord",
+      systemOverview: "Vue d'ensemble du syst\xE8me",
+      welcomeText: "Bienvenue dans le Panneau d'administration xHACCP. Vous pouvez g\xE9rer votre plateforme e-commerce, consulter les statistiques et surveiller les performances du syst\xE8me. Le tableau de bord affiche des donn\xE9es en temps r\xE9el depuis la base de donn\xE9es PostgreSQL.",
+      quickStats: "R\xE9sum\xE9 des statistiques rapides",
+      registeredUsers: "utilisateurs enregistr\xE9s",
+      ordersProcessed: "commandes trait\xE9es",
+      productsInCatalog: "produits dans le catalogue",
+      recentOrdersLabel: "commandes r\xE9centes",
+      adminActions: "Actions admin",
+      manageOrders: "G\xE9rer les commandes",
+      manageUsers: "G\xE9rer les utilisateurs",
+      manageProducts: "G\xE9rer les produits",
+      twoFactorAuth: "Auth \xE0 deux facteurs",
+      twoFactorAuthentication: "Authentification \xE0 deux facteurs",
+      disable2fa: "D\xE9sactiver 2FA",
+      enable2fa: "Activer 2FA",
+      status: "Statut",
+      total_orders: "Total commandes",
+      total_revenue: "Revenus totaux",
+      total_users: "Total utilisateurs",
+      total_products: "Total produits",
+      recent_orders: "Commandes r\xE9centes",
+      top_products: "Meilleurs produits",
+      stats: "Statistiques"
     },
     orders: {
-      title: "Commandes",
+      title: "Gestion des commandes",
       order: "Commande",
+      exportOrders: "Exporter commandes",
+      analytics: "Analytique",
+      orderActions: "Actions commande",
+      searchFilter: "Recherche & Filtres",
+      bulkOps: "Op\xE9rations en masse",
+      orderTools: "Outils commandes",
+      searchFilterTitle: "Recherche & Filtres commandes",
+      allStatus: "Tous les statuts",
+      allMarkets: "Tous les march\xE9s",
+      searchPlaceholder: "Rechercher par ID, client, ville...",
+      searchCompanyPlaceholder: "Rechercher par soci\xE9t\xE9...",
       customer: "Client",
+      company: "Soci\xE9t\xE9",
       status: "Statut",
       total: "Total",
       date: "Date",
       pending: "En attente",
+      accepted: "Accept\xE9e",
       processing: "En traitement",
-      shipped: "Exp\xE9di\xE9",
-      delivered: "Livr\xE9",
-      cancelled: "Annul\xE9",
+      shipped: "Exp\xE9di\xE9e",
+      inDelivery: "En livraison",
+      delivered: "Livr\xE9e",
+      cancelled: "Annul\xE9e",
       details: "D\xE9tails commande",
       items: "Articles",
       shipping: "Livraison",
       payment: "Paiement",
       notes: "Notes",
       generate_awb: "G\xE9n\xE9rer AWB",
+      generateAWB: "G\xE9n\xE9rer AWB",
       generate_invoice: "G\xE9n\xE9rer facture",
       awb_generated: "AWB g\xE9n\xE9r\xE9",
-      invoice_generated: "Facture g\xE9n\xE9r\xE9e"
+      invoice_generated: "Facture g\xE9n\xE9r\xE9e",
+      viewBtn: "Voir",
+      acceptBtn: "Accepter",
+      trackPackage: "Suivi du colis",
+      forwardSuppliers: "Transmettre aux fournisseurs",
+      updateBtn: "Mettre \xE0 jour",
+      prevPage: "\u2190 Pr\xE9c\xE9dent",
+      nextPage: "Suivant \u2192",
+      pageOf: "Page {{page}} sur {{total}}",
+      ordersTotal: "commandes au total",
+      noOrders: "Aucune commande trouv\xE9e",
+      noOrdersDesc: "Les commandes appara\xEEtront ici d\xE8s que les clients commenceront \xE0 acheter...",
+      viewDashboard: "Voir le tableau de bord",
+      clear: "Effacer",
+      showing: "Affichage de {{count}} sur {{total}} commandes",
+      orderId: "ID Commande",
+      orderDetails: "D\xE9tails de la commande",
+      orderInfo: "Informations commande",
+      customerInfo: "Informations client",
+      shippingAddress: "Adresse de livraison",
+      paymentMethod: "Mode de paiement",
+      paymentStatus: "Statut du paiement",
+      downloadInvoice: "T\xE9l\xE9charger la facture"
+    },
+    users: {
+      title: "Gestion des utilisateurs",
+      addNew: "Ajouter un utilisateur",
+      totalUsers: "Total utilisateurs",
+      regularUsers: "Utilisateurs standard",
+      adminUsers: "Utilisateurs admin",
+      userId: "ID Utilisateur",
+      name: "Nom",
+      email: "Email",
+      role: "R\xF4le",
+      roleAdmin: "Admin",
+      roleUser: "Utilisateur",
+      noUsers: "Aucun utilisateur trouv\xE9",
+      createFirst: "Cr\xE9ez votre premier utilisateur pour commencer.",
+      addFirst: "Ajouter le premier utilisateur",
+      add: "Ajouter utilisateur",
+      edit: "Modifier utilisateur",
+      status: "Statut",
+      registered: "Inscrit",
+      orders: "Commandes",
+      total_spent: "Total d\xE9pens\xE9"
     },
     products: {
-      title: "Produits",
+      title: "Gestion des produits",
+      importExcel: "Importer depuis Excel",
+      addNew: "Ajouter un produit",
+      actions: "Actions produits",
+      downloadTemplate: "T\xE9l\xE9charger le mod\xE8le Excel",
+      generateCodes: "G\xE9n\xE9rer les codes manquants",
+      searchFilterTitle: "Recherche & Filtres produits",
+      searchLabel: "Rechercher des produits",
+      searchPlaceholder: "Rechercher par nom, ID, cat\xE9gorie ou description...",
+      allCategories: "Toutes les cat\xE9gories",
+      analyticsDashboard: "Tableau analytique des produits",
+      totalProducts: "Total produits",
+      inStock: "En stock",
+      lowStock: "Stock faible",
+      outOfStock: "Rupture de stock",
+      byCategory: "Produits par cat\xE9gorie",
+      statusDistribution: "Distribution des statuts",
+      priceAnalysis: "Analyse des prix",
+      topByPrice: "Top produits par prix",
+      avgPrice: "Prix moyen",
+      lowestPrice: "Prix le plus bas",
+      highestPrice: "Prix le plus \xE9lev\xE9",
+      noPricesFound: "Aucun produit avec des prix trouv\xE9",
+      analyticsGeneratedAt: "Analyse g\xE9n\xE9r\xE9e \xE0",
+      analyticsError: "Assurez-vous que les produits sont charg\xE9s et r\xE9essayez.",
+      generatingAnalytics: "G\xE9n\xE9ration de l'analyse...",
+      refreshAnalytics: "Actualiser l'analyse",
+      showing: "Affichage de {{count}} sur {{total}} produits",
+      priority: "Priorit\xE9",
+      productId: "ID Produit",
+      basePrice: "Prix de base",
+      stock: "Stock",
+      currency: "Devise",
+      productCode: "Code produit",
       add: "Ajouter produit",
       edit: "Modifier produit",
       name: "Nom du produit",
       sku: "R\xE9f\xE9rence",
       price: "Prix",
-      stock: "Stock",
       category: "Cat\xE9gorie",
       description: "Description",
       images: "Images",
@@ -10928,20 +11440,21 @@
       bulk_import: "Import en masse",
       export_excel: "Exporter Excel"
     },
-    users: {
-      title: "Utilisateurs",
-      add: "Ajouter utilisateur",
-      edit: "Modifier utilisateur",
-      name: "Nom complet",
-      email: "Email",
-      role: "R\xF4le",
-      status: "Statut",
-      registered: "Inscrit",
-      orders: "Commandes",
-      total_spent: "Total d\xE9pens\xE9"
-    },
     categories: {
-      title: "Cat\xE9gories",
+      title: "Gestion des cat\xE9gories",
+      addNew: "Ajouter une cat\xE9gorie",
+      homepageSettings: "Param\xE8tres cat\xE9gories page d'accueil",
+      mainTopMax4: "Cat\xE9gories principales en haut (Max 4)",
+      shopCatMax3: "Cat\xE9gories boutique (Max 3)",
+      noCatMainTop: "Aucune cat\xE9gorie assign\xE9e \xE0 la section principale du haut",
+      noCatShop: "Aucune cat\xE9gorie assign\xE9e \xE0 la section boutique",
+      viewHomepageConfig: "Voir config page d'accueil",
+      configureHomepage: "Configurer la page d'accueil",
+      homepage: "Page d'accueil",
+      notFeatured: "Non mis en avant",
+      noneFound: "Aucune cat\xE9gorie trouv\xE9e",
+      createFirst: "Cr\xE9ez votre premi\xE8re cat\xE9gorie pour organiser efficacement vos produits.",
+      addFirst: "Ajouter la premi\xE8re cat\xE9gorie",
       add: "Ajouter cat\xE9gorie",
       edit: "Modifier cat\xE9gorie",
       name: "Nom de la cat\xE9gorie",
@@ -10950,39 +11463,100 @@
       order: "Ordre d'affichage"
     },
     suppliers: {
-      title: "Fournisseurs",
+      title: "Gestion des fournisseurs",
+      addNew: "Ajouter un fournisseur",
+      overview: "Vue d'ensemble fournisseurs",
+      supplierName: "Nom du fournisseur",
+      contact: "Contact",
+      location: "Localisation",
+      integration: "Int\xE9gration",
+      syncPrices: "Synchroniser les prix",
       add: "Ajouter fournisseur",
       edit: "Modifier fournisseur",
       name: "Nom du fournisseur",
-      contact: "Contact",
       email: "Email",
       phone: "T\xE9l\xE9phone"
     },
+    companySettings: {
+      title: "Param\xE8tres soci\xE9t\xE9",
+      editInfo: "Modifier les informations",
+      basicInfo: "Informations de base",
+      address: "Adresse",
+      legalBusiness: "Juridique & Affaires",
+      defaultProductSettings: "Param\xE8tres produits par d\xE9faut",
+      shippingSettings: "Param\xE8tres livraison",
+      description: "Description soci\xE9t\xE9",
+      companyName: "Nom de la soci\xE9t\xE9",
+      website: "Site web",
+      logisticsEmail: "Email logistique",
+      streetAddress: "Adresse",
+      city: "Ville",
+      stateProvince: "R\xE9gion/Province",
+      zipCode: "Code postal",
+      country: "Pays",
+      contactPerson: "Personne de contact",
+      vatNumber: "Num\xE9ro TVA",
+      registrationNumber: "Num\xE9ro d'enregistrement",
+      defaultCurrency: "Devise par d\xE9faut",
+      defaultVatPct: "Taux TVA par d\xE9faut",
+      reverseChargeVat: "TVA autoliquidation",
+      freeShippingThreshold: "Seuil livraison gratuite",
+      standardShippingCost: "Co\xFBt livraison standard",
+      usedAsDefaults: "Utilis\xE9 comme valeurs par d\xE9faut lors de la cr\xE9ation de produits",
+      noDescription: "Aucune description disponible. Cliquez sur \xAB Modifier les informations \xBB pour ajouter une description.",
+      importantNotes: "Notes importantes",
+      note1: "Ces informations sont utilis\xE9es dans tout le syst\xE8me pour les factures, les e-mails et les communications clients",
+      note2: "Le num\xE9ro TVA et le num\xE9ro d'enregistrement sont requis pour la g\xE9n\xE9ration correcte des factures",
+      note3: "Les coordonn\xE9es seront affich\xE9es aux clients pour les demandes de support",
+      note4: "Toutes les modifications sont enregistr\xE9es automatiquement et se refl\xE9teront dans les nouvelles commandes",
+      company_name: "Nom de la soci\xE9t\xE9",
+      vat: "Num\xE9ro TVA",
+      phone: "T\xE9l\xE9phone",
+      email: "Email",
+      save: "Enregistrer les param\xE8tres"
+    },
     vouchers: {
-      title: "Bons de r\xE9duction",
-      add: "Ajouter bon",
-      edit: "Modifier bon",
+      title: "Gestion des bons de r\xE9duction",
+      addNew: "Ajouter un bon",
+      editVoucher: "Modifier le bon",
+      description: "G\xE9rez les codes de bons de r\xE9duction. Les clients peuvent les appliquer lors du paiement.",
       code: "Code",
       discount: "R\xE9duction",
-      type: "Type",
+      minOrder: "Commande min.",
       usage: "Utilisation",
+      validPeriod: "P\xE9riode de validit\xE9",
+      noExpiry: "Sans expiration",
+      noneFound: "Aucun bon cr\xE9\xE9. Cliquez sur \xAB Ajouter un bon \xBB pour en cr\xE9er un.",
+      voucherCode: "Code du bon",
+      nameDescription: "Nom/Description",
+      discountType: "Type de r\xE9duction",
+      discountValue: "Valeur de r\xE9duction",
+      minOrderAmount: "Montant minimum de commande",
+      fixedAmount: "Montant fixe (RON)",
+      percentage: "Pourcentage (%)",
+      add: "Ajouter bon",
+      edit: "Modifier bon",
+      type: "Type",
       expires: "Expire",
       fixed: "Montant fixe",
-      percentage: "Pourcentage",
       min_order: "Commande minimum",
       max_uses: "Utilisations max",
       used: "Utilis\xE9"
     },
     blog: {
-      title: "Blog IA",
+      title: "Blog \u2014 G\xE9n\xE9ration automatique avec Claude IA",
+      generateNew: "G\xE9n\xE9rer un nouvel article",
+      titleLabel: "Titre (optionnel)",
+      titlePlaceholder: "Laisser vide pour un th\xE8me automatique",
+      category: "Cat\xE9gorie",
+      language: "Langue",
+      generating: "G\xE9n\xE9ration...",
+      generate: "G\xE9n\xE9rer",
       add: "Ajouter article",
       edit: "Modifier article",
-      generate: "G\xE9n\xE9rer article",
-      generating: "G\xE9n\xE9ration en cours...",
       publish: "Publier",
       draft: "Brouillon",
       published: "Publi\xE9",
-      language: "Langue",
       translate: "Traduire"
     },
     settings: {
@@ -10993,16 +11567,6 @@
       phone: "T\xE9l\xE9phone",
       email: "Email",
       save: "Enregistrer les param\xE8tres"
-    },
-    dashboard: {
-      title: "Tableau de bord",
-      total_orders: "Total commandes",
-      total_revenue: "Revenus totaux",
-      total_users: "Total utilisateurs",
-      total_products: "Total produits",
-      recent_orders: "Commandes r\xE9centes",
-      top_products: "Meilleurs produits",
-      stats: "Statistiques"
     }
   };
 
@@ -12938,7 +13502,7 @@ Failed: ${result.failed}`);
                       fontSize: "14px"
                     },
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: "All Status" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: t2("common.allStatus") }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "pending", children: "Pending" }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "accepted", children: "Accepted" }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "processing", children: "Processing" }),
@@ -13306,7 +13870,7 @@ This will:
                       children: "\u270F\uFE0F Edit"
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
                       style: {
@@ -13330,7 +13894,10 @@ This action cannot be undone.`)) {
                           }
                         }
                       },
-                      children: "\u{1F5D1}\uFE0F Delete"
+                      children: [
+                        "\u{1F5D1}\uFE0F ",
+                        t2("common.delete")
+                      ]
                     }
                   )
                 ] }) })
@@ -13352,18 +13919,24 @@ This action cannot be undone.`)) {
         case "products":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0" }, children: "\u{1F4E6} Product Management" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0" }, children: [
+                "\u{1F4E6} ",
+                t2("products.title")
+              ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
                     style: { background: "#fd7e14", width: "auto", padding: "8px 16px" },
                     onClick: () => setShowExcelImportModal(true),
-                    children: "\u{1F4E4} Import from Excel"
+                    children: [
+                      "\u{1F4E4} ",
+                      t2("products.importExcel")
+                    ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
@@ -13412,13 +13985,16 @@ This action cannot be undone.`)) {
                         setShowAddProductModal(true);
                       });
                     },
-                    children: "\u2795 Add New Product"
+                    children: [
+                      "\u2795 ",
+                      t2("products.addNew")
+                    ]
                   }
                 )
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: "Product Actions" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: t2("products.actions") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
@@ -13434,7 +14010,9 @@ This action cannot be undone.`)) {
                     },
                     disabled: selectedProducts.length === 0,
                     children: [
-                      "\u{1F504} Bulk Operations ",
+                      "\u{1F504} ",
+                      t2("common.bulkOps"),
+                      " ",
                       selectedProducts.length > 0 && `(${selectedProducts.length})`
                     ]
                   }
@@ -13454,7 +14032,7 @@ This action cannot be undone.`)) {
                     children: "\u{1F50D} Search & Filter"
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
@@ -13466,19 +14044,25 @@ This action cannot be undone.`)) {
                       }
                       console.log("Product analytics toggled:", !showProductAnalytics);
                     },
-                    children: "\u{1F4CA} Analytics"
+                    children: [
+                      "\u{1F4CA} ",
+                      t2("common.analytics")
+                    ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
                     style: { background: "#28a745", width: "auto", padding: "8px 16px" },
                     onClick: downloadExcelTemplate,
-                    children: "\u{1F4E5} Download Excel Template"
+                    children: [
+                      "\u{1F4E5} ",
+                      t2("products.downloadTemplate")
+                    ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
@@ -13508,21 +14092,30 @@ E\u0219uate: ${result.failed || 0}`);
                         alert("\u274C Eroare la generarea codurilor");
                       }
                     },
-                    children: "\u{1F522} Genereaz\u0103 Coduri Lips\u0103"
+                    children: [
+                      "\u{1F522} ",
+                      t2("products.generateCodes")
+                    ]
                   }
                 )
               ] })
             ] }),
             showProductSearchFilter && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", marginBottom: "20px", border: "1px solid #dee2e6" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: "\u{1F50D} Search & Filter Products" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#333", marginBottom: "15px" }, children: [
+                "\u{1F50D} ",
+                t2("products.searchFilterTitle")
+              ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px", marginBottom: "15px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "500" }, children: "Search Products:" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "500" }, children: [
+                    t2("products.searchLabel"),
+                    ":"
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "input",
                     {
                       type: "text",
-                      placeholder: "Search by name, ID, category, or description...",
+                      placeholder: t2("products.searchPlaceholder"),
                       value: productSearchTerm,
                       onChange: (e2) => {
                         setProductSearchTerm(e2.target.value);
@@ -13533,7 +14126,10 @@ E\u0219uate: ${result.failed || 0}`);
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "500" }, children: "Category:" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "500" }, children: [
+                    t2("common.category"),
+                    ":"
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "select",
                     {
@@ -13541,14 +14137,17 @@ E\u0219uate: ${result.failed || 0}`);
                       onChange: (e2) => setProductCategoryFilter(e2.target.value),
                       style: { width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "4px" },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: "All Categories" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: t2("products.allCategories") }),
                         categories.map((cat) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: cat.id, children: cat.name }, cat.id))
                       ]
                     }
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "500" }, children: "Status:" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "500" }, children: [
+                    t2("common.status"),
+                    ":"
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "select",
                     {
@@ -13556,18 +14155,18 @@ E\u0219uate: ${result.failed || 0}`);
                       onChange: (e2) => setProductStatusFilter(e2.target.value),
                       style: { width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "4px" },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: "All Status" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "active", children: "Active" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "inactive", children: "Inactive" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "draft", children: "Draft" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "discontinued", children: "Discontinued" })
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: t2("common.allStatus") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "active", children: t2("common.active") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "inactive", children: t2("common.inactive") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "draft", children: t2("common.draft") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "discontinued", children: t2("common.discontinued") })
                       ]
                     }
                   )
                 ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
@@ -13580,10 +14179,13 @@ E\u0219uate: ${result.failed || 0}`);
                       });
                       alert(`Search applied! Found ${filteredProducts.length} products out of ${products.length} total.`);
                     },
-                    children: "\u2705 Apply Search"
+                    children: [
+                      "\u2705 ",
+                      t2("common.applySearch")
+                    ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
@@ -13594,42 +14196,45 @@ E\u0219uate: ${result.failed || 0}`);
                       setProductStatusFilter("all");
                       console.log("Product filters cleared");
                     },
-                    children: "\u{1F5D1}\uFE0F Clear Filters"
+                    children: [
+                      "\u{1F5D1}\uFE0F ",
+                      t2("common.clearFilters")
+                    ]
                   }
                 )
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "10px", fontSize: "14px", color: "#666" }, children: [
-                "Showing ",
-                filteredProducts.length,
-                " of ",
-                products.length,
-                " products"
-              ] })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "10px", fontSize: "14px", color: "#666" }, children: t2("products.showing", { count: filteredProducts.length, total: products.length }) })
             ] }),
             showProductAnalytics && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", marginBottom: "20px", border: "1px solid #dee2e6" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "20px" }, children: "\u{1F4CA} Product Analytics Dashboard" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#333", marginBottom: "20px" }, children: [
+                "\u{1F4CA} ",
+                t2("products.analyticsDashboard")
+              ] }),
               analyticsData && !analyticsData.error ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px", marginBottom: "25px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "20px", borderRadius: "8px", textAlign: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#007bff", fontSize: "28px", margin: "0 0 10px 0" }, children: analyticsData.totalProducts }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", margin: "0", fontSize: "14px" }, children: "Total Products" })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", margin: "0", fontSize: "14px" }, children: t2("products.totalProducts") })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "20px", borderRadius: "8px", textAlign: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#28a745", fontSize: "28px", margin: "0 0 10px 0" }, children: analyticsData.stockAnalysis.inStock }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", margin: "0", fontSize: "14px" }, children: "In Stock" })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", margin: "0", fontSize: "14px" }, children: t2("products.inStock") })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "20px", borderRadius: "8px", textAlign: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#ffc107", fontSize: "28px", margin: "0 0 10px 0" }, children: analyticsData.stockAnalysis.lowStock }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", margin: "0", fontSize: "14px" }, children: "Low Stock" })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", margin: "0", fontSize: "14px" }, children: t2("products.lowStock") })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "20px", borderRadius: "8px", textAlign: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#dc3545", fontSize: "28px", margin: "0 0 10px 0" }, children: analyticsData.stockAnalysis.outOfStock }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", margin: "0", fontSize: "14px" }, children: "Out of Stock" })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", margin: "0", fontSize: "14px" }, children: t2("products.outOfStock") })
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "20px", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#333", marginBottom: "15px", fontSize: "16px" }, children: "\u{1F4C2} Products by Category" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "15px", fontSize: "16px" }, children: [
+                      "\u{1F4C2} ",
+                      t2("products.byCategory")
+                    ] }),
                     Object.entries(analyticsData.categoryBreakdown).map(([category, data]) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", padding: "8px", background: "#f8f9fa", borderRadius: "4px" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333" }, children: category }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "10px" }, children: [
@@ -13642,7 +14247,10 @@ E\u0219uate: ${result.failed || 0}`);
                     ] }, category))
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "20px", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#333", marginBottom: "15px", fontSize: "16px" }, children: "\u{1F4C8} Status Distribution" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "15px", fontSize: "16px" }, children: [
+                      "\u{1F4C8} ",
+                      t2("products.statusDistribution")
+                    ] }),
                     Object.entries(analyticsData.statusBreakdown).map(([status, count]) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", padding: "8px", background: "#f8f9fa", borderRadius: "4px" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333", textTransform: "capitalize" }, children: status }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", fontWeight: "bold", color: status === "active" ? "#28a745" : status === "inactive" ? "#6c757d" : status === "draft" ? "#ffc107" : "#dc3545" }, children: count })
@@ -13651,24 +14259,27 @@ E\u0219uate: ${result.failed || 0}`);
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "25px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "20px", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#333", marginBottom: "15px", fontSize: "16px" }, children: "\u{1F4B0} Price Analysis" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "15px", fontSize: "16px" }, children: [
+                      "\u{1F4B0} ",
+                      t2("products.priceAnalysis")
+                    ] }),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "10px" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", padding: "8px", background: "#f8f9fa", borderRadius: "4px" }, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333" }, children: "Average Price" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333" }, children: t2("products.avgPrice") }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "14px", fontWeight: "bold", color: "#007bff" }, children: [
                           "$",
                           analyticsData.priceAnalysis.avg
                         ] })
                       ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", padding: "8px", background: "#f8f9fa", borderRadius: "4px" }, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333" }, children: "Lowest Price" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333" }, children: t2("products.lowestPrice") }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "14px", fontWeight: "bold", color: "#28a745" }, children: [
                           "$",
                           analyticsData.priceAnalysis.min
                         ] })
                       ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", padding: "8px", background: "#f8f9fa", borderRadius: "4px" }, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333" }, children: "Highest Price" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333" }, children: t2("products.highestPrice") }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "14px", fontWeight: "bold", color: "#dc3545" }, children: [
                           "$",
                           analyticsData.priceAnalysis.max
@@ -13677,7 +14288,10 @@ E\u0219uate: ${result.failed || 0}`);
                     ] })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "20px", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#333", marginBottom: "15px", fontSize: "16px" }, children: "\u{1F3C6} Top Products by Price" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "15px", fontSize: "16px" }, children: [
+                      "\u{1F3C6} ",
+                      t2("products.topByPrice")
+                    ] }),
                     analyticsData.topPriceProducts.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: "8px" }, children: analyticsData.topPriceProducts.map((product, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px", background: "#f8f9fa", borderRadius: "4px" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", flexDirection: "column" }, children: [
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "13px", fontWeight: "500", color: "#333" }, children: product.name }),
@@ -13687,11 +14301,12 @@ E\u0219uate: ${result.failed || 0}`);
                         product.price,
                         " lei"
                       ] })
-                    ] }, index)) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "14px", textAlign: "center", margin: "20px 0" }, children: "No products with prices found" })
+                    ] }, index)) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "14px", textAlign: "center", margin: "20px 0" }, children: t2("products.noPricesFound") })
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { textAlign: "center", marginTop: "20px", padding: "10px", background: "#e9ecef", borderRadius: "4px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { color: "#666", fontSize: "12px", margin: "0" }, children: [
-                  "Analytics generated at: ",
+                  t2("products.analyticsGeneratedAt"),
+                  ": ",
                   analyticsData.generatedAt
                 ] }) })
               ] }) : analyticsData && analyticsData.error ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { textAlign: "center", padding: "40px", color: "#dc3545" }, children: [
@@ -13699,13 +14314,13 @@ E\u0219uate: ${result.failed || 0}`);
                   "Error: ",
                   analyticsData.error
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: "Please make sure products are loaded and try again." })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: t2("products.analyticsError") })
               ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { textAlign: "center", padding: "40px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "loading" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", marginTop: "10px" }, children: "Generating analytics..." })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", marginTop: "10px" }, children: t2("products.generatingAnalytics") })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", marginTop: "20px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
@@ -13714,10 +14329,13 @@ E\u0219uate: ${result.failed || 0}`);
                       generateProductAnalytics();
                       console.log("Analytics refreshed");
                     },
-                    children: "\u{1F504} Refresh Analytics"
+                    children: [
+                      "\u{1F504} ",
+                      t2("products.refreshAnalytics")
+                    ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
@@ -13726,7 +14344,10 @@ E\u0219uate: ${result.failed || 0}`);
                       setShowProductAnalytics(false);
                       console.log("Analytics closed");
                     },
-                    children: "\u2716\uFE0F Close"
+                    children: [
+                      "\u2716\uFE0F ",
+                      t2("common.close")
+                    ]
                   }
                 )
               ] })
@@ -13749,17 +14370,17 @@ E\u0219uate: ${result.failed || 0}`);
                       }
                     }
                   ) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Image" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "center", borderBottom: "2px solid #ddd" }, children: "Priority" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Product ID" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Name" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Pre\u021B baz\u0103" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Category" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Stock" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Status" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.image") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "center", borderBottom: "2px solid #ddd" }, children: t2("products.priority") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("products.productId") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.name") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("products.basePrice") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.category") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("products.stock") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.status") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "VAT %" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Currency" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Product Code" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("products.currency") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("products.productCode") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "NC Code" }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "CPV Code" }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("th", { style: { padding: "12px", textAlign: "center", borderBottom: "2px solid #ddd" }, children: [
@@ -14066,22 +14687,28 @@ This action cannot be undone.`)) {
         case "categories":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0" }, children: "\u{1F4C1} Category Management" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0" }, children: [
+                "\u{1F4C1} ",
+                t2("categories.title")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                 "button",
                 {
                   className: "btn",
                   style: { background: "#28a745", width: "auto", padding: "8px 16px" },
                   onClick: () => setShowAddCategoryModal(true),
-                  children: "\u2795 Add New Category"
+                  children: [
+                    "\u2795 ",
+                    t2("categories.addNew")
+                  ]
                 }
               )
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: "Homepage Category Settings" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: t2("categories.homepageSettings") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px", marginBottom: "20px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "8px", border: "1px solid #dee2e6" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#495057", marginBottom: "15px" }, children: "Main Top Categories (Max 4)" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#495057", marginBottom: "15px" }, children: t2("categories.mainTopMax4") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "8px" }, children: [
                     categories.filter((cat) => cat.showOnMainTop).sort((a, b) => a.sortOrder - b.sortOrder).map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
                       padding: "8px 12px",
@@ -14098,11 +14725,11 @@ This action cannot be undone.`)) {
                         category.sortOrder
                       ] })
                     ] }, category.id)),
-                    categories.filter((cat) => cat.showOnMainTop).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontStyle: "italic" }, children: "No categories assigned to main top section" })
+                    categories.filter((cat) => cat.showOnMainTop).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontStyle: "italic" }, children: t2("categories.noCatMainTop") })
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "8px", border: "1px solid #dee2e6" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#495057", marginBottom: "15px" }, children: "Shop Categories (Max 3)" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#495057", marginBottom: "15px" }, children: t2("categories.shopCatMax3") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "8px" }, children: [
                     categories.filter((cat) => cat.showOnMainShop).sort((a, b) => a.sortOrder - b.sortOrder).map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
                       padding: "8px 12px",
@@ -14119,11 +14746,11 @@ This action cannot be undone.`)) {
                         category.sortOrder
                       ] })
                     ] }, category.id)),
-                    categories.filter((cat) => cat.showOnMainShop).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontStyle: "italic" }, children: "No categories assigned to shop section" })
+                    categories.filter((cat) => cat.showOnMainShop).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontStyle: "italic" }, children: t2("categories.noCatShop") })
                   ] })
                 ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                 "button",
                 {
                   className: "btn",
@@ -14139,11 +14766,14 @@ Shop Section (${mainShopCategories.length}/3): ${mainShopCategories.map((c) => c
 
 To modify these settings, use the "Configure Homepage" button below.`);
                   },
-                  children: "\u{1F4CB} View Homepage Config"
+                  children: [
+                    "\u{1F4CB} ",
+                    t2("categories.viewHomepageConfig")
+                  ]
                 }
               )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginBottom: "20px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginBottom: "20px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
               "button",
               {
                 className: "btn",
@@ -14162,18 +14792,21 @@ To modify these settings, use the "Configure Homepage" button below.`);
                   });
                   setShowHomepageConfigModal(true);
                 },
-                children: "\u2699\uFE0F Configure Homepage"
+                children: [
+                  "\u2699\uFE0F ",
+                  t2("categories.configureHomepage")
+                ]
               }
             ) }),
             categories.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "ID" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Image" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Name" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.image") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.name") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Slug" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Description" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Homepage" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Actions" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.description") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("categories.homepage") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.actions") })
               ] }) }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: categories.map((category, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
@@ -14209,7 +14842,7 @@ To modify these settings, use the "Configure Homepage" button below.`);
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "6px", padding: "1px 6px", borderRadius: "8px", fontSize: "10px", fontWeight: "bold", background: category.marketCode === "fr" ? "#e8f4f8" : category.marketCode === "com" ? "#e8f8e8" : "#f0e8f8", color: category.marketCode === "fr" ? "#1a6080" : category.marketCode === "com" ? "#1a6030" : "#6020a0" }, children: (category.marketCode || "ro").toUpperCase() })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", fontFamily: "monospace", fontSize: "14px", color: "#666" }, children: category.slug }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: category.description || "No description" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: category.description || t2("common.noDescription") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "4px" }, children: [
                   category.showOnMainTop && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: {
                     padding: "2px 6px",
@@ -14231,10 +14864,10 @@ To modify these settings, use the "Configure Homepage" button below.`);
                     "Shop #",
                     category.sortOrder
                   ] }),
-                  !category.showOnMainTop && !category.showOnMainShop && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#6c757d", fontSize: "12px" }, children: "Not featured" })
+                  !category.showOnMainTop && !category.showOnMainShop && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#6c757d", fontSize: "12px" }, children: t2("categories.notFeatured") })
                 ] }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
                       style: {
@@ -14247,10 +14880,13 @@ To modify these settings, use the "Configure Homepage" button below.`);
                         fontSize: "12px"
                       },
                       onClick: () => setEditingCategory(category),
-                      children: "\u270F\uFE0F Edit"
+                      children: [
+                        "\u270F\uFE0F ",
+                        t2("common.edit")
+                      ]
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
                       style: {
@@ -14274,21 +14910,27 @@ This action cannot be undone. Make sure no products are assigned to this categor
                           }
                         }
                       },
-                      children: "\u{1F5D1}\uFE0F Delete"
+                      children: [
+                        "\u{1F5D1}\uFE0F ",
+                        t2("common.delete")
+                      ]
                     }
                   )
                 ] }) })
               ] }, index)) })
             ] }) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: "No categories found" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: "Create your first category to organize your products effectively." }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: t2("categories.noneFound") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: t2("categories.createFirst") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                 "button",
                 {
                   className: "btn",
                   style: { background: "#28a745", width: "auto", padding: "12px 24px" },
                   onClick: () => setShowAddCategoryModal(true),
-                  children: "\u2795 Add Your First Category"
+                  children: [
+                    "\u2795 ",
+                    t2("categories.addFirst")
+                  ]
                 }
               )
             ] })
@@ -14296,8 +14938,11 @@ This action cannot be undone. Make sure no products are assigned to this categor
         case "suppliers":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0" }, children: "\u{1F3E2} Supplier Management" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0" }, children: [
+                "\u{1F3E2} ",
+                t2("suppliers.title")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                 "button",
                 {
                   className: "btn",
@@ -14324,20 +14969,26 @@ This action cannot be undone. Make sure no products are assigned to this categor
                     setSupplierLoadTrigger((prev) => prev + 1);
                     setShowEditSupplierModal(true);
                   },
-                  children: "\u2795 Add New Supplier"
+                  children: [
+                    "\u2795 ",
+                    t2("suppliers.addNew")
+                  ]
                 }
               )
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: "Supplier Overview" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: t2("suppliers.overview") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
                     style: { background: "#007bff", width: "auto", padding: "8px 16px" },
                     onClick: () => alert("Supplier analytics:\n\n\u2022 Order volume by supplier\n\u2022 Performance metrics\n\u2022 Delivery times\n\u2022 Quality ratings\n\u2022 Cost analysis"),
-                    children: "\u{1F4CA} Analytics"
+                    children: [
+                      "\u{1F4CA} ",
+                      t2("common.analytics")
+                    ]
                   }
                 ),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
@@ -14354,18 +15005,23 @@ This action cannot be undone. Make sure no products are assigned to this categor
                       }
                     },
                     children: [
-                      "\u{1F504} Bulk Operations ",
+                      "\u{1F504} ",
+                      t2("common.bulkOps"),
+                      " ",
                       selectedSuppliers.length > 0 ? `(${selectedSuppliers.length})` : ""
                     ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     className: "btn",
                     style: { background: "#6c757d", width: "auto", padding: "8px 16px" },
                     onClick: () => alert("Export suppliers:\n\n\u2022 Contact directory\n\u2022 Performance reports\n\u2022 Contract details\n\u2022 Integration settings\n\u2022 Compliance documentation"),
-                    children: "\u{1F4E4} Export"
+                    children: [
+                      "\u{1F4E4} ",
+                      t2("common.export")
+                    ]
                   }
                 )
               ] })
@@ -14381,12 +15037,12 @@ This action cannot be undone. Make sure no products are assigned to this categor
                     style: { cursor: "pointer" }
                   }
                 ) }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: "Supplier Name" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: "Contact" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: "Location" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: "Integration" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: "Status" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: "Actions" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: t2("suppliers.supplierName") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: t2("suppliers.contact") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: t2("suppliers.location") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: t2("suppliers.integration") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: t2("common.status") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "1px solid #dee2e6", color: "#333" }, children: t2("common.actions") })
               ] }) }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: suppliers.map((supplier) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #dee2e6" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -14430,9 +15086,9 @@ This action cannot be undone. Make sure no products are assigned to this categor
                   fontSize: "12px",
                   backgroundColor: supplier.isActive ? "#d4edda" : "#f8d7da",
                   color: supplier.isActive ? "#155724" : "#721c24"
-                }, children: supplier.isActive ? "\u2705 Active" : "\u274C Inactive" }) }),
+                }, children: supplier.isActive ? `\u2705 ${t2("common.active")}` : `\u274C ${t2("common.inactive")}` }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
                       style: {
@@ -14445,7 +15101,10 @@ This action cannot be undone. Make sure no products are assigned to this categor
                         fontSize: "12px"
                       },
                       onClick: () => syncSupplierPrices(supplier.id),
-                      children: "\u{1F4B0} Sync Prices"
+                      children: [
+                        "\u{1F4B0} ",
+                        t2("suppliers.syncPrices")
+                      ]
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -14522,7 +15181,7 @@ This action cannot be undone. Make sure no products are assigned to this categor
                       children: "\u{1F441}\uFE0F View"
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
                       style: {
@@ -14543,7 +15202,10 @@ This action cannot be undone.`)) {
                           alert("Supplier deletion functionality:\n\n\u2022 Remove supplier record\n\u2022 Unassign products\n\u2022 Archive order history\n\u2022 Send notifications\n\u2022 Update system logs");
                         }
                       },
-                      children: "\u{1F5D1}\uFE0F Delete"
+                      children: [
+                        "\u{1F5D1}\uFE0F ",
+                        t2("common.delete")
+                      ]
                     }
                   )
                 ] }) })
@@ -14585,109 +15247,172 @@ This action cannot be undone.`)) {
         case "company-settings":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0" }, children: "\u{1F3E2} Company Settings" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0" }, children: [
+                "\u{1F3E2} ",
+                t2("companySettings.title")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                 "button",
                 {
                   className: "btn",
                   style: { background: "#007bff", width: "auto", padding: "8px 16px" },
                   onClick: () => setShowCompanySettingsModal(true),
-                  children: "\u270F\uFE0F Edit Company Info"
+                  children: [
+                    "\u270F\uFE0F ",
+                    t2("companySettings.editInfo")
+                  ]
                 }
               )
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px", borderBottom: "2px solid #007bff", paddingBottom: "5px" }, children: "Basic Information" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px", borderBottom: "2px solid #007bff", paddingBottom: "5px" }, children: t2("companySettings.basicInfo") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Company Name:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.name || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.companyName"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.name || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Email:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.email || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("common.email"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.email || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Phone:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.phone || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("common.phone"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.phone || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Website:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.website || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.website"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.website || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Logistics Email:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.logisticsEmail || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.logisticsEmail"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.logisticsEmail || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "IBAN:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d", fontFamily: "monospace" }, children: companySettings.iban || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d", fontFamily: "monospace" }, children: companySettings.iban || t2("common.notSet") })
                 ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px", borderBottom: "2px solid #28a745", paddingBottom: "5px" }, children: "Address" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px", borderBottom: "2px solid #28a745", paddingBottom: "5px" }, children: t2("companySettings.address") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Street Address:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.address || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.streetAddress"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.address || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "City:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.city || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.city"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.city || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "State/Province:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.state || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.stateProvince"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.state || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "ZIP/Postal Code:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.zipCode || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.zipCode"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.zipCode || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Country:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.country || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.country"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.country || t2("common.notSet") })
                 ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px", borderBottom: "2px solid #ffc107", paddingBottom: "5px" }, children: "Legal & Business" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px", borderBottom: "2px solid #ffc107", paddingBottom: "5px" }, children: t2("companySettings.legalBusiness") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Contact Person:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.contactPerson || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.contactPerson"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.contactPerson || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "VAT Number:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.vatNumber || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.vatNumber"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.vatNumber || t2("common.notSet") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Registration Number:" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.registrationNumber || "Not set" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.registrationNumber"),
+                    ":"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#6c757d" }, children: companySettings.registrationNumber || t2("common.notSet") })
                 ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f0f8ff", padding: "20px", borderRadius: "6px", border: "1px solid #007bff" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#007bff", marginBottom: "15px", borderBottom: "2px solid #007bff", paddingBottom: "5px" }, children: "\u{1F4B0} Default Product Settings" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#007bff", marginBottom: "15px", borderBottom: "2px solid #007bff", paddingBottom: "5px" }, children: [
+                  "\u{1F4B0} ",
+                  t2("companySettings.defaultProductSettings")
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Default Currency:" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.defaultCurrency"),
+                    ":"
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "5px 0", color: "#007bff", fontWeight: "500" }, children: companySettings.defaultCurrency || "EUR" })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Default VAT Percentage:" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.defaultVatPct"),
+                    ":"
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { margin: "5px 0", color: "#007bff", fontWeight: "500" }, children: [
                     companySettings.defaultVatPercentage || "21.00",
                     "%"
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Reverse Charge VAT:" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.reverseChargeVat"),
+                    ":"
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { margin: "5px 0", color: "#007bff", fontWeight: "500" }, children: [
                     companySettings.reverseChargeVat || "0.00",
                     "%"
                   ] })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "12px", color: "#666", marginTop: "10px", fontStyle: "italic" }, children: "Used as defaults when creating new products" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "12px", color: "#666", marginTop: "10px", fontStyle: "italic" }, children: t2("companySettings.usedAsDefaults") })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#e3f2fd", padding: "20px", borderRadius: "6px", border: "1px solid #bbdefb" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#1976d2", marginBottom: "15px", borderBottom: "2px solid #2196f3", paddingBottom: "5px" }, children: "\u{1F69A} Shipping Settings" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#1976d2", marginBottom: "15px", borderBottom: "2px solid #2196f3", paddingBottom: "5px" }, children: [
+                  "\u{1F69A} ",
+                  t2("companySettings.shippingSettings")
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Free Shipping Threshold:" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.freeShippingThreshold"),
+                    ":"
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { margin: "5px 0", color: "#1976d2", fontWeight: "500" }, children: [
                     companySettings.freeShippingThreshold || "500.00",
                     " ",
@@ -14695,7 +15420,10 @@ This action cannot be undone.`)) {
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "10px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#495057" }, children: "Standard Shipping Cost:" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#495057" }, children: [
+                    t2("companySettings.standardShippingCost"),
+                    ":"
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { margin: "5px 0", color: "#1976d2", fontWeight: "500" }, children: [
                     companySettings.standardShippingCost || "25.00",
                     " ",
@@ -14711,25 +15439,31 @@ This action cannot be undone.`)) {
                 ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px", borderBottom: "2px solid #dc3545", paddingBottom: "5px" }, children: "Company Description" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "0", color: "#6c757d", lineHeight: "1.6" }, children: companySettings.description || 'No description available. Click "Edit Company Info" to add your company description.' })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px", borderBottom: "2px solid #dc3545", paddingBottom: "5px" }, children: t2("companySettings.description") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "0", color: "#6c757d", lineHeight: "1.6" }, children: companySettings.description || t2("companySettings.noDescription") })
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "30px", padding: "20px", background: "#e8f4f8", borderRadius: "6px", border: "1px solid #bee5eb" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: "\u{1F4DD} Important Notes" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#333", marginBottom: "10px" }, children: [
+                "\u{1F4DD} ",
+                t2("companySettings.importantNotes")
+              ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("ul", { style: { margin: "0", paddingLeft: "20px", color: "#495057" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { style: { marginBottom: "5px" }, children: "This information is used throughout the system for invoices, emails, and customer communications" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { style: { marginBottom: "5px" }, children: "VAT Number and Registration Number are required for proper invoice generation" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { style: { marginBottom: "5px" }, children: "Contact information will be displayed to customers for support inquiries" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { children: "All changes are automatically saved and will be reflected in new orders and communications" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { style: { marginBottom: "5px" }, children: t2("companySettings.note1") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { style: { marginBottom: "5px" }, children: t2("companySettings.note2") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { style: { marginBottom: "5px" }, children: t2("companySettings.note3") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { children: t2("companySettings.note4") })
               ] })
             ] })
           ] });
         case "vouchers":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0" }, children: "\u{1F39F}\uFE0F Voucher Management" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0" }, children: [
+                "\u{1F39F}\uFE0F ",
+                t2("vouchers.title")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                 "button",
                 {
                   className: "btn",
@@ -14750,22 +15484,25 @@ This action cannot be undone.`)) {
                     setEditingVoucher(null);
                     setShowAddVoucherModal(true);
                   },
-                  children: "+ Add New Voucher"
+                  children: [
+                    "+ ",
+                    t2("vouchers.addNew")
+                  ]
                 }
               )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", marginBottom: "20px" }, children: "Manage discount voucher codes. Customers can apply these codes at checkout to receive discounts." }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", marginBottom: "20px" }, children: t2("vouchers.description") }),
             vouchers.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Code" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Name" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Discount" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Min Order" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Pia\u021B\u0103" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Usage" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Valid Period" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Status" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Actions" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("vouchers.code") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.name") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("vouchers.discount") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("vouchers.minOrder") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.market") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("vouchers.usage") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("vouchers.validPeriod") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.status") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("common.actions") })
               ] }) }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: vouchers.map((voucher) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("code", { style: { background: "#f0f0f0", padding: "4px 8px", borderRadius: "4px", fontWeight: "bold" }, children: voucher.code }) }),
@@ -14781,7 +15518,7 @@ This action cannot be undone.`)) {
                   voucher.validFrom ? new Date(voucher.validFrom).toLocaleDateString() : "N/A",
                   " - ",
                   voucher.validUntil ? new Date(voucher.validUntil).toLocaleDateString() : "N/A"
-                ] }) : "No expiry" }),
+                ] }) : t2("vouchers.noExpiry") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
                   padding: "4px 8px",
                   borderRadius: "12px",
@@ -14789,7 +15526,7 @@ This action cannot be undone.`)) {
                   fontWeight: "bold",
                   background: voucher.isActive ? "#d4edda" : "#f8d7da",
                   color: voucher.isActive ? "#155724" : "#721c24"
-                }, children: voucher.isActive ? "Active" : "Inactive" }) }),
+                }, children: voucher.isActive ? t2("common.active") : t2("common.inactive") }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "button",
@@ -14812,7 +15549,7 @@ This action cannot be undone.`)) {
                         });
                         setShowAddVoucherModal(true);
                       },
-                      children: "Edit"
+                      children: t2("common.edit")
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -14838,16 +15575,19 @@ This action cannot be undone.`)) {
                           }
                         }
                       },
-                      children: "Delete"
+                      children: t2("common.delete")
                     }
                   )
                 ] }) })
               ] }, voucher.id)) })
-            ] }) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { textAlign: "center", padding: "40px", color: "#666" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: 'No vouchers created yet. Click "Add New Voucher" to create one.' }) }),
+            ] }) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { textAlign: "center", padding: "40px", color: "#666" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: t2("vouchers.noneFound") }) }),
             showAddVoucherModal && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "modal-backdrop", onClick: () => setShowAddVoucherModal(false), children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "modal-content", onClick: (e2) => e2.stopPropagation(), style: { maxWidth: "500px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { marginBottom: "20px" }, children: editingVoucher ? "Edit Voucher" : "Add New Voucher" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { marginBottom: "20px" }, children: editingVoucher ? t2("vouchers.editVoucher") : t2("vouchers.addNew") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "15px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: "Pia\u021B\u0103 *" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: [
+                  t2("common.market"),
+                  " *"
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "select",
                   {
@@ -14863,7 +15603,10 @@ This action cannot be undone.`)) {
                 )
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "15px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: "Voucher Code *" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: [
+                  t2("vouchers.voucherCode"),
+                  " *"
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                   "input",
                   {
@@ -14876,7 +15619,10 @@ This action cannot be undone.`)) {
                 )
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "15px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: "Name/Description *" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: [
+                  t2("vouchers.nameDescription"),
+                  " *"
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                   "input",
                   {
@@ -14890,7 +15636,7 @@ This action cannot be undone.`)) {
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px", marginBottom: "15px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: "Discount Type" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: t2("vouchers.discountType") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "select",
                     {
@@ -14898,14 +15644,17 @@ This action cannot be undone.`)) {
                       onChange: (e2) => setVoucherForm({ ...voucherForm, discountType: e2.target.value }),
                       style: { width: "100%", padding: "10px", borderRadius: "4px", border: "1px solid #ddd" },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "fixed", children: "Fixed Amount (RON)" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "percentage", children: "Percentage (%)" })
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "fixed", children: t2("vouchers.fixedAmount") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "percentage", children: t2("vouchers.percentage") })
                       ]
                     }
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: "Discount Value *" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: [
+                    t2("vouchers.discountValue"),
+                    " *"
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "input",
                     {
@@ -14920,7 +15669,7 @@ This action cannot be undone.`)) {
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px", marginBottom: "15px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: "Min Order Amount" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "5px", fontWeight: "bold" }, children: t2("vouchers.minOrderAmount") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "input",
                     {
@@ -15068,17 +15817,20 @@ This action cannot be undone.`)) {
           ] });
         case "blog":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", marginTop: 0 }, children: "\u{1F4DD} Blog \u2014 Generare Automat\u0103 cu Claude AI" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", marginTop: 0 }, children: [
+              "\u{1F4DD} ",
+              t2("blog.title")
+            ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", borderRadius: "8px", padding: "20px", marginBottom: "24px", border: "1px solid #e9ecef" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginTop: 0, color: "#495057" }, children: "Genereaz\u0103 articol nou" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginTop: 0, color: "#495057" }, children: t2("blog.generateNew") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: "12px", alignItems: "end" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#6c757d" }, children: "Titlu (op\u021Bional)" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#6c757d" }, children: t2("blog.titleLabel") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "input",
                     {
                       type: "text",
-                      placeholder: "Las\u0103 gol pentru tem\u0103 automat\u0103",
+                      placeholder: t2("blog.titlePlaceholder"),
                       value: blogGenerateForm.title,
                       onChange: (e2) => setBlogGenerateForm({ ...blogGenerateForm, title: e2.target.value }),
                       style: { width: "100%", padding: "8px 12px", border: "1px solid #ced4da", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" }
@@ -15086,7 +15838,7 @@ This action cannot be undone.`)) {
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#6c757d" }, children: "Categorie" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#6c757d" }, children: t2("blog.category") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "select",
                     {
@@ -15107,7 +15859,7 @@ This action cannot be undone.`)) {
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#6c757d" }, children: "Limb\u0103" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#6c757d" }, children: t2("blog.language") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "select",
                     {
@@ -15128,7 +15880,7 @@ This action cannot be undone.`)) {
                     onClick: generateBlogPost,
                     disabled: blogGenerating,
                     style: { background: blogGenerating ? "#6c757d" : "#0066cc", color: "white", border: "none", borderRadius: "6px", padding: "8px 18px", fontSize: "14px", cursor: blogGenerating ? "not-allowed" : "pointer", whiteSpace: "nowrap", fontWeight: "600" },
-                    children: blogGenerating ? "\u23F3 Generez..." : "\u2728 Genereaz\u0103"
+                    children: blogGenerating ? `\u23F3 ${t2("blog.generating")}` : `\u2728 ${t2("blog.generate")}`
                   }
                 )
               ] }),
@@ -15319,87 +16071,112 @@ This action cannot be undone.`)) {
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "stat-card", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "stat-number", children: stats?.totalProducts || "0" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "stat-label", children: "Total Products" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "stat-label", children: t2("stats.totalProducts") })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "stat-card", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "stat-number", children: stats?.recentOrders?.length || "0" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "stat-label", children: "Recent Orders" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "stat-label", children: t2("stats.recentOrders") })
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { marginBottom: "20px", color: "#333" }, children: "System Overview" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", lineHeight: "1.6" }, children: "Welcome to the xHACCP Admin Panel. Here you can manage your e-commerce platform, view statistics, and monitor system performance. The dashboard shows real-time data from your PostgreSQL database." }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { marginBottom: "20px", color: "#333" }, children: t2("dashboard.systemOverview") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", lineHeight: "1.6" }, children: t2("dashboard.welcomeText") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "30px", padding: "20px", background: "#f8f9ff", borderRadius: "6px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: "Quick Stats Summary" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: t2("dashboard.quickStats") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("ul", { style: { listStyle: "none", padding: 0 }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("li", { style: { marginBottom: "5px" }, children: [
                     "\u{1F4CA} ",
                     stats?.totalUsers || "0",
-                    " registered users"
+                    " ",
+                    t2("dashboard.registeredUsers")
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("li", { style: { marginBottom: "5px" }, children: [
                     "\u{1F6D2} ",
                     stats?.totalOrders || "0",
-                    " orders processed"
+                    " ",
+                    t2("dashboard.ordersProcessed")
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("li", { style: { marginBottom: "5px" }, children: [
                     "\u{1F4E6} ",
                     stats?.totalProducts || "0",
-                    " products in catalog"
+                    " ",
+                    t2("dashboard.productsInCatalog")
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("li", { style: { marginBottom: "5px" }, children: [
                     "\u{1F504} ",
                     stats?.recentOrders?.length || "0",
-                    " recent orders"
+                    " ",
+                    t2("dashboard.recentOrdersLabel")
                   ] })
                 ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "30px", padding: "20px", background: "#fff8e1", borderRadius: "6px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: "Admin Actions" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: t2("dashboard.adminActions") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px", marginTop: "15px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
                       className: "btn",
                       style: { background: activeView === "orders" ? "#2E7D32" : "#4CAF50", width: "auto", padding: "10px 16px" },
                       onClick: () => handleViewChange("orders"),
-                      children: "\u{1F4CB} Manage Orders"
+                      children: [
+                        "\u{1F4CB} ",
+                        t2("dashboard.manageOrders")
+                      ]
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
                       className: "btn",
                       style: { background: activeView === "users" ? "#1565C0" : "#2196F3", width: "auto", padding: "10px 16px" },
                       onClick: () => handleViewChange("users"),
-                      children: "\u{1F465} Manage Users"
+                      children: [
+                        "\u{1F465} ",
+                        t2("dashboard.manageUsers")
+                      ]
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
                       className: "btn",
                       style: { background: activeView === "products" ? "#F57C00" : "#FF9800", width: "auto", padding: "10px 16px" },
                       onClick: () => handleViewChange("products"),
-                      children: "\u{1F4E6} Manage Products"
+                      children: [
+                        "\u{1F4E6} ",
+                        t2("dashboard.manageProducts")
+                      ]
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
                       className: "btn",
                       style: { background: "#9C27B0", width: "auto", padding: "10px 16px" },
                       onClick: () => setShowTwoFactor(!showTwoFactor),
-                      children: "\u{1F510} Two-Factor Auth"
+                      children: [
+                        "\u{1F510} ",
+                        t2("dashboard.twoFactorAuth")
+                      ]
                     }
                   )
                 ] })
               ] }),
               showTwoFactor && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "30px", padding: "20px", background: "#e8f5e8", borderRadius: "6px", border: "2px solid #4CAF50" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: "\u{1F510} Two-Factor Authentication" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#333", marginBottom: "10px" }, children: [
+                  "\u{1F510} ",
+                  t2("dashboard.twoFactorAuthentication")
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { color: "#666", marginBottom: "15px" }, children: [
                   "Status: ",
-                  admin?.twoFactorEnabled ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#4CAF50", fontWeight: "bold" }, children: "\u2705 Enabled" }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#f44336", fontWeight: "bold" }, children: "\u274C Disabled" })
+                  admin?.twoFactorEnabled ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#4CAF50", fontWeight: "bold" }, children: [
+                    "\u2705 ",
+                    t2("common.enabled")
+                  ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#f44336", fontWeight: "bold" }, children: [
+                    "\u274C ",
+                    t2("common.disabled")
+                  ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -15408,7 +16185,7 @@ This action cannot be undone.`)) {
                       className: "btn",
                       style: { background: admin?.twoFactorEnabled ? "#f44336" : "#4CAF50", width: "auto", padding: "8px 16px" },
                       onClick: () => alert("2FA management functionality will be implemented"),
-                      children: admin?.twoFactorEnabled ? "\u{1F513} Disable 2FA" : "\u{1F512} Enable 2FA"
+                      children: admin?.twoFactorEnabled ? `\u{1F513} ${t2("dashboard.disable2fa")}` : `\u{1F512} ${t2("dashboard.enable2fa")}`
                     }
                   ),
                   admin?.twoFactorEnabled && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -17157,10 +17934,10 @@ This action cannot be undone.`)) {
                     value: productFormData.status,
                     onChange: (e2) => setProductFormData({ ...productFormData, status: e2.target.value }),
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "active", children: "Active" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "inactive", children: "Inactive" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "draft", children: "Draft" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "discontinued", children: "Discontinued" })
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "active", children: t2("common.active") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "inactive", children: t2("common.inactive") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "draft", children: t2("common.draft") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "discontinued", children: t2("common.discontinued") })
                     ]
                   }
                 )
@@ -17871,14 +18648,19 @@ This action cannot be undone.`)) {
           overflow: "auto"
         }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { marginBottom: "20px", color: "#333" }, children: [
-            "\u{1F4CB} Order Details - #",
+            "\u{1F4CB} ",
+            t2("orders.orderDetails"),
+            " #",
             selectedOrder.id
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "20px" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "15px", background: "#f8f9fa", borderRadius: "6px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: "Order Information" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: t2("orders.orderInfo") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Order ID:" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
+                  t2("orders.orderId"),
+                  ":"
+                ] }),
                 " #",
                 selectedOrder.id
               ] }),
@@ -17893,7 +18675,10 @@ This action cannot be undone.`)) {
                 }, children: selectedOrder.status === "in_delivery" ? "In Delivery" : selectedOrder.status })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Payment Method:" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
+                  t2("orders.paymentMethod"),
+                  ":"
+                ] }),
                 " ",
                 (() => {
                   const pm = selectedOrder.paymentMethod;
@@ -17903,7 +18688,10 @@ This action cannot be undone.`)) {
                 })()
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Payment Status:" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
+                  t2("orders.paymentStatus"),
+                  ":"
+                ] }),
                 " ",
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
                   padding: "3px 8px",
@@ -17977,7 +18765,7 @@ This action cannot be undone.`)) {
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "15px", background: "#f8f9fa", borderRadius: "6px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: "Customer Information" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: t2("orders.customerInfo") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Name:" }),
                 " ",
@@ -18004,7 +18792,7 @@ This action cannot be undone.`)) {
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px", marginBottom: "20px" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "15px", background: "#f8f9fa", borderRadius: "6px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: "Shipping Address" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: t2("orders.shippingAddress") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
                 selectedOrder.shippingAddress.firstName,
                 " ",
@@ -18256,7 +19044,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                   },
                   children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "\u{1F4C4}" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "Download Invoice" })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: t2("orders.downloadInvoice") })
                   ]
                 }
               )
@@ -18272,7 +19060,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                 setShowOrderDetails(false);
                 setSelectedOrder(null);
               },
-              children: "Close"
+              children: t2("common.close")
             }
           ) })
         ] }) }),

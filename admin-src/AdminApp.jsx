@@ -2131,7 +2131,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             fontSize: '14px'
                           }}
                         >
-                          <option value="all">All Status</option>
+                          <option value="all">{t('common.allStatus')}</option>
                           <option value="pending">Pending</option>
                           <option value="accepted">Accepted</option>
                           <option value="processing">Processing</option>
@@ -2510,7 +2510,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                     }
                                   }}
                                 >
-                                  🗑️ Delete
+                                  🗑️ {t('common.delete')}
                                 </button>
                               </div>
                             </td>
@@ -2539,14 +2539,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                  <h3 style={{color: '#333', margin: '0'}}>📦 Product Management</h3>
+                  <h3 style={{color: '#333', margin: '0'}}>📦 {t('products.title')}</h3>
                   <div style={{display: 'flex', gap: '10px'}}>
                     <button 
                       className="btn" 
                       style={{background: '#fd7e14', width: 'auto', padding: '8px 16px'}}
                       onClick={() => setShowExcelImportModal(true)}
                     >
-                      📤 Import from Excel
+                      📤 {t('products.importExcel')}
                     </button>
                     <button 
                       className="btn" 
@@ -2612,13 +2612,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         });
                       }}
                     >
-                      ➕ Add New Product
+                      ➕ {t('products.addNew')}
                     </button>
                   </div>
                 </div>
                 
                 <div style={{marginBottom: '20px'}}>
-                  <h4 style={{color: '#333', marginBottom: '15px'}}>Product Actions</h4>
+                  <h4 style={{color: '#333', marginBottom: '15px'}}>{t('products.actions')}</h4>
                   <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
                     <button 
                       className="btn" 
@@ -2632,7 +2632,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       }}
                       disabled={selectedProducts.length === 0}
                     >
-                      🔄 Bulk Operations {selectedProducts.length > 0 && `(${selectedProducts.length})`}
+                      🔄 {t('common.bulkOps')} {selectedProducts.length > 0 && `(${selectedProducts.length})`}
                     </button>
                     <button 
                       className="btn" 
@@ -2658,14 +2658,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         console.log('Product analytics toggled:', !showProductAnalytics);
                       }}
                     >
-                      📊 Analytics
+                      📊 {t('common.analytics')}
                     </button>
                     <button 
                       className="btn" 
                       style={{background: '#28a745', width: 'auto', padding: '8px 16px'}}
                       onClick={downloadExcelTemplate}
                     >
-                      📥 Download Excel Template
+                      📥 {t('products.downloadTemplate')}
                     </button>
                     <button 
                       className="btn" 
@@ -2696,20 +2696,20 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         }
                       }}
                     >
-                      🔢 Generează Coduri Lipsă
+                      🔢 {t('products.generateCodes')}
                     </button>
                   </div>
                 </div>
                 
                 {showProductSearchFilter && (
                   <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #dee2e6'}}>
-                    <h4 style={{color: '#333', marginBottom: '15px'}}>🔍 Search & Filter Products</h4>
+                    <h4 style={{color: '#333', marginBottom: '15px'}}>🔍 {t('products.searchFilterTitle')}</h4>
                     <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '15px'}}>
                       <div>
-                        <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Search Products:</label>
+                        <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>{t('products.searchLabel')}:</label>
                         <input 
                           type="text" 
-                          placeholder="Search by name, ID, category, or description..."
+                          placeholder={t('products.searchPlaceholder')}
                           value={productSearchTerm}
                           onChange={(e) => {
                             setProductSearchTerm(e.target.value);
@@ -2719,30 +2719,30 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         />
                       </div>
                       <div>
-                        <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Category:</label>
+                        <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>{t('common.category')}:</label>
                         <select 
                           value={productCategoryFilter}
                           onChange={(e) => setProductCategoryFilter(e.target.value)}
                           style={{width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px'}}
                         >
-                          <option value="all">All Categories</option>
+                          <option value="all">{t('products.allCategories')}</option>
                           {categories.map(cat => (
                             <option key={cat.id} value={cat.id}>{cat.name}</option>
                           ))}
                         </select>
                       </div>
                       <div>
-                        <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Status:</label>
+                        <label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>{t('common.status')}:</label>
                         <select 
                           value={productStatusFilter}
                           onChange={(e) => setProductStatusFilter(e.target.value)}
                           style={{width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px'}}
                         >
-                          <option value="all">All Status</option>
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
-                          <option value="draft">Draft</option>
-                          <option value="discontinued">Discontinued</option>
+                          <option value="all">{t('common.allStatus')}</option>
+                          <option value="active">{t('common.active')}</option>
+                          <option value="inactive">{t('common.inactive')}</option>
+                          <option value="draft">{t('common.draft')}</option>
+                          <option value="discontinued">{t('common.discontinued')}</option>
                         </select>
                       </div>
                     </div>
@@ -2759,7 +2759,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           alert(`Search applied! Found ${filteredProducts.length} products out of ${products.length} total.`);
                         }}
                       >
-                        ✅ Apply Search
+                        ✅ {t('common.applySearch')}
                       </button>
                       <button 
                         className="btn" 
@@ -2771,18 +2771,18 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           console.log('Product filters cleared');
                         }}
                       >
-                        🗑️ Clear Filters
+                        🗑️ {t('common.clearFilters')}
                       </button>
                     </div>
                     <div style={{marginTop: '10px', fontSize: '14px', color: '#666'}}>
-                      Showing {filteredProducts.length} of {products.length} products
+                      {t('products.showing', {count: filteredProducts.length, total: products.length})}
                     </div>
                   </div>
                 )}
                 
                 {showProductAnalytics && (
                   <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #dee2e6'}}>
-                    <h4 style={{color: '#333', marginBottom: '20px'}}>📊 Product Analytics Dashboard</h4>
+                    <h4 style={{color: '#333', marginBottom: '20px'}}>📊 {t('products.analyticsDashboard')}</h4>
                     
                     {analyticsData && !analyticsData.error ? (
                       <div>
@@ -2790,26 +2790,26 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '25px'}}>
                           <div style={{background: 'white', padding: '20px', borderRadius: '8px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
                             <h5 style={{color: '#007bff', fontSize: '28px', margin: '0 0 10px 0'}}>{analyticsData.totalProducts}</h5>
-                            <p style={{color: '#666', margin: '0', fontSize: '14px'}}>Total Products</p>
+                            <p style={{color: '#666', margin: '0', fontSize: '14px'}}>{t('products.totalProducts')}</p>
                           </div>
                           <div style={{background: 'white', padding: '20px', borderRadius: '8px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
                             <h5 style={{color: '#28a745', fontSize: '28px', margin: '0 0 10px 0'}}>{analyticsData.stockAnalysis.inStock}</h5>
-                            <p style={{color: '#666', margin: '0', fontSize: '14px'}}>In Stock</p>
+                            <p style={{color: '#666', margin: '0', fontSize: '14px'}}>{t('products.inStock')}</p>
                           </div>
                           <div style={{background: 'white', padding: '20px', borderRadius: '8px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
                             <h5 style={{color: '#ffc107', fontSize: '28px', margin: '0 0 10px 0'}}>{analyticsData.stockAnalysis.lowStock}</h5>
-                            <p style={{color: '#666', margin: '0', fontSize: '14px'}}>Low Stock</p>
+                            <p style={{color: '#666', margin: '0', fontSize: '14px'}}>{t('products.lowStock')}</p>
                           </div>
                           <div style={{background: 'white', padding: '20px', borderRadius: '8px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
                             <h5 style={{color: '#dc3545', fontSize: '28px', margin: '0 0 10px 0'}}>{analyticsData.stockAnalysis.outOfStock}</h5>
-                            <p style={{color: '#666', margin: '0', fontSize: '14px'}}>Out of Stock</p>
+                            <p style={{color: '#666', margin: '0', fontSize: '14px'}}>{t('products.outOfStock')}</p>
                           </div>
                         </div>
 
                         {/* Category Breakdown */}
                         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px'}}>
                           <div style={{background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-                            <h5 style={{color: '#333', marginBottom: '15px', fontSize: '16px'}}>📂 Products by Category</h5>
+                            <h5 style={{color: '#333', marginBottom: '15px', fontSize: '16px'}}>📂 {t('products.byCategory')}</h5>
                             {Object.entries(analyticsData.categoryBreakdown).map(([category, data]) => (
                               <div key={category} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', padding: '8px', background: '#f8f9fa', borderRadius: '4px'}}>
                                 <span style={{fontSize: '14px', color: '#333'}}>{category}</span>
@@ -2822,7 +2822,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           </div>
                           
                           <div style={{background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-                            <h5 style={{color: '#333', marginBottom: '15px', fontSize: '16px'}}>📈 Status Distribution</h5>
+                            <h5 style={{color: '#333', marginBottom: '15px', fontSize: '16px'}}>📈 {t('products.statusDistribution')}</h5>
                             {Object.entries(analyticsData.statusBreakdown).map(([status, count]) => (
                               <div key={status} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', padding: '8px', background: '#f8f9fa', borderRadius: '4px'}}>
                                 <span style={{fontSize: '14px', color: '#333', textTransform: 'capitalize'}}>{status}</span>
@@ -2835,25 +2835,25 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         {/* Price Analysis */}
                         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px'}}>
                           <div style={{background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-                            <h5 style={{color: '#333', marginBottom: '15px', fontSize: '16px'}}>💰 Price Analysis</h5>
+                            <h5 style={{color: '#333', marginBottom: '15px', fontSize: '16px'}}>💰 {t('products.priceAnalysis')}</h5>
                             <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
                               <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px'}}>
-                                <span style={{fontSize: '14px', color: '#333'}}>Average Price</span>
+                                <span style={{fontSize: '14px', color: '#333'}}>{t('products.avgPrice')}</span>
                                 <span style={{fontSize: '14px', fontWeight: 'bold', color: '#007bff'}}>${analyticsData.priceAnalysis.avg}</span>
                               </div>
                               <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px'}}>
-                                <span style={{fontSize: '14px', color: '#333'}}>Lowest Price</span>
+                                <span style={{fontSize: '14px', color: '#333'}}>{t('products.lowestPrice')}</span>
                                 <span style={{fontSize: '14px', fontWeight: 'bold', color: '#28a745'}}>${analyticsData.priceAnalysis.min}</span>
                               </div>
                               <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px'}}>
-                                <span style={{fontSize: '14px', color: '#333'}}>Highest Price</span>
+                                <span style={{fontSize: '14px', color: '#333'}}>{t('products.highestPrice')}</span>
                                 <span style={{fontSize: '14px', fontWeight: 'bold', color: '#dc3545'}}>${analyticsData.priceAnalysis.max}</span>
                               </div>
                             </div>
                           </div>
                           
                           <div style={{background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}>
-                            <h5 style={{color: '#333', marginBottom: '15px', fontSize: '16px'}}>🏆 Top Products by Price</h5>
+                            <h5 style={{color: '#333', marginBottom: '15px', fontSize: '16px'}}>🏆 {t('products.topByPrice')}</h5>
                             {analyticsData.topPriceProducts.length > 0 ? (
                               <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                                 {analyticsData.topPriceProducts.map((product, index) => (
@@ -2867,25 +2867,25 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 ))}
                               </div>
                             ) : (
-                              <p style={{color: '#666', fontSize: '14px', textAlign: 'center', margin: '20px 0'}}>No products with prices found</p>
+                              <p style={{color: '#666', fontSize: '14px', textAlign: 'center', margin: '20px 0'}}>{t('products.noPricesFound')}</p>
                             )}
                           </div>
                         </div>
 
                         {/* Generated timestamp */}
                         <div style={{textAlign: 'center', marginTop: '20px', padding: '10px', background: '#e9ecef', borderRadius: '4px'}}>
-                          <p style={{color: '#666', fontSize: '12px', margin: '0'}}>Analytics generated at: {analyticsData.generatedAt}</p>
+                          <p style={{color: '#666', fontSize: '12px', margin: '0'}}>{t('products.analyticsGeneratedAt')}: {analyticsData.generatedAt}</p>
                         </div>
                       </div>
                     ) : analyticsData && analyticsData.error ? (
                       <div style={{textAlign: 'center', padding: '40px', color: '#dc3545'}}>
                         <h5>Error: {analyticsData.error}</h5>
-                        <p>Please make sure products are loaded and try again.</p>
+                        <p>{t('products.analyticsError')}</p>
                       </div>
                     ) : (
                       <div style={{textAlign: 'center', padding: '40px'}}>
                         <div className="loading"></div>
-                        <p style={{color: '#666', marginTop: '10px'}}>Generating analytics...</p>
+                        <p style={{color: '#666', marginTop: '10px'}}>{t('products.generatingAnalytics')}</p>
                       </div>
                     )}
                     
@@ -2898,7 +2898,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           console.log('Analytics refreshed');
                         }}
                       >
-                        🔄 Refresh Analytics
+                        🔄 {t('products.refreshAnalytics')}
                       </button>
                       <button 
                         className="btn" 
@@ -2908,7 +2908,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           console.log('Analytics closed');
                         }}
                       >
-                        ✖️ Close
+                        ✖️ {t('common.close')}
                       </button>
                     </div>
                   </div>
@@ -2934,17 +2934,17 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                               }}
                             />
                           </th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Image</th>
-                          <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>Priority</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Product ID</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Name</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Preț bază</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Category</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Stock</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Status</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.image')}</th>
+                          <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>{t('products.priority')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('products.productId')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.name')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('products.basePrice')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.category')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('products.stock')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.status')}</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>VAT %</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Currency</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Product Code</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('products.currency')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('products.productCode')}</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>NC Code</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>CPV Code</th>
                           <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>🇷🇴 .ro<br/><small style={{color:'#888',fontWeight:'normal'}}>RON (lei)</small></th>
@@ -3237,21 +3237,21 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                  <h3 style={{color: '#333', margin: '0'}}>📁 Category Management</h3>
+                  <h3 style={{color: '#333', margin: '0'}}>📁 {t('categories.title')}</h3>
                   <button 
                     className="btn" 
                     style={{background: '#28a745', width: 'auto', padding: '8px 16px'}}
                     onClick={() => setShowAddCategoryModal(true)}
                   >
-                    ➕ Add New Category
+                    ➕ {t('categories.addNew')}
                   </button>
                 </div>
                 
                 <div style={{marginBottom: '20px'}}>
-                  <h4 style={{color: '#333', marginBottom: '15px'}}>Homepage Category Settings</h4>
+                  <h4 style={{color: '#333', marginBottom: '15px'}}>{t('categories.homepageSettings')}</h4>
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px'}}>
                     <div style={{padding: '20px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6'}}>
-                      <h5 style={{color: '#495057', marginBottom: '15px'}}>Main Top Categories (Max 4)</h5>
+                      <h5 style={{color: '#495057', marginBottom: '15px'}}>{t('categories.mainTopMax4')}</h5>
                       <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                         {categories.filter(cat => cat.showOnMainTop).sort((a, b) => a.sortOrder - b.sortOrder).map(category => (
                           <div key={category.id} style={{
@@ -3268,13 +3268,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           </div>
                         ))}
                         {categories.filter(cat => cat.showOnMainTop).length === 0 && (
-                          <p style={{color: '#6c757d', fontStyle: 'italic'}}>No categories assigned to main top section</p>
+                          <p style={{color: '#6c757d', fontStyle: 'italic'}}>{t('categories.noCatMainTop')}</p>
                         )}
                       </div>
                     </div>
                     
                     <div style={{padding: '20px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6'}}>
-                      <h5 style={{color: '#495057', marginBottom: '15px'}}>Shop Categories (Max 3)</h5>
+                      <h5 style={{color: '#495057', marginBottom: '15px'}}>{t('categories.shopCatMax3')}</h5>
                       <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                         {categories.filter(cat => cat.showOnMainShop).sort((a, b) => a.sortOrder - b.sortOrder).map(category => (
                           <div key={category.id} style={{
@@ -3291,7 +3291,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           </div>
                         ))}
                         {categories.filter(cat => cat.showOnMainShop).length === 0 && (
-                          <p style={{color: '#6c757d', fontStyle: 'italic'}}>No categories assigned to shop section</p>
+                          <p style={{color: '#6c757d', fontStyle: 'italic'}}>{t('categories.noCatShop')}</p>
                         )}
                       </div>
                     </div>
@@ -3307,7 +3307,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       alert(`Homepage Category Configuration:\n\nMain Top (${mainTopCategories.length}/4): ${mainTopCategories.map(c => c.name).join(', ') || 'None'}\n\nShop Section (${mainShopCategories.length}/3): ${mainShopCategories.map(c => c.name).join(', ') || 'None'}\n\nTo modify these settings, use the "Configure Homepage" button below.`);
                     }}
                   >
-                    📋 View Homepage Config
+                    📋 {t('categories.viewHomepageConfig')}
                   </button>
                 </div>
                 
@@ -3335,7 +3335,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       setShowHomepageConfigModal(true);
                     }}
                   >
-                    ⚙️ Configure Homepage
+                    ⚙️ {t('categories.configureHomepage')}
                   </button>
                 </div>
                 
@@ -3345,12 +3345,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       <thead>
                         <tr style={{backgroundColor: '#f5f5f5'}}>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>ID</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Image</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Name</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.image')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.name')}</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Slug</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Description</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Homepage</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Actions</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.description')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('categories.homepage')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3394,7 +3394,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             </td>
                             <td style={{padding: '12px', fontFamily: 'monospace', fontSize: '14px', color: '#666'}}>{category.slug}</td>
                             <td style={{padding: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                              {category.description || 'No description'}
+                              {category.description || t('common.noDescription')}
                             </td>
                             <td style={{padding: '12px'}}>
                               <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
@@ -3421,7 +3421,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                   </span>
                                 )}
                                 {!category.showOnMainTop && !category.showOnMainShop && (
-                                  <span style={{color: '#6c757d', fontSize: '12px'}}>Not featured</span>
+                                  <span style={{color: '#6c757d', fontSize: '12px'}}>{t('categories.notFeatured')}</span>
                                 )}
                               </div>
                             </td>
@@ -3439,7 +3439,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                   }}
                                   onClick={() => setEditingCategory(category)}
                                 >
-                                  ✏️ Edit
+                                  ✏️ {t('common.edit')}
                                 </button>
                                 <button 
                                   style={{
@@ -3462,7 +3462,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                     }
                                   }}
                                 >
-                                  🗑️ Delete
+                                  🗑️ {t('common.delete')}
                                 </button>
                               </div>
                             </td>
@@ -3473,14 +3473,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   </div>
                 ) : (
                   <div style={{padding: '40px', textAlign: 'center', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                    <p style={{color: '#666', fontSize: '18px', marginBottom: '15px'}}>No categories found</p>
-                    <p style={{color: '#6c757d', marginBottom: '20px'}}>Create your first category to organize your products effectively.</p>
+                    <p style={{color: '#666', fontSize: '18px', marginBottom: '15px'}}>{t('categories.noneFound')}</p>
+                    <p style={{color: '#6c757d', marginBottom: '20px'}}>{t('categories.createFirst')}</p>
                     <button 
                       className="btn" 
                       style={{background: '#28a745', width: 'auto', padding: '12px 24px'}}
                       onClick={() => setShowAddCategoryModal(true)}
                     >
-                      ➕ Add Your First Category
+                      ➕ {t('categories.addFirst')}
                     </button>
                   </div>
                 )}
@@ -3491,7 +3491,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                  <h3 style={{color: '#333', margin: '0'}}>🏢 Supplier Management</h3>
+                  <h3 style={{color: '#333', margin: '0'}}>🏢 {t('suppliers.title')}</h3>
                   <button 
                     className="btn" 
                     style={{background: '#28a745', width: 'auto', padding: '12px 20px'}}
@@ -3518,19 +3518,19 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       setShowEditSupplierModal(true);
                     }}
                   >
-                    ➕ Add New Supplier
+                    ➕ {t('suppliers.addNew')}
                   </button>
                 </div>
                 
                 <div style={{marginBottom: '20px'}}>
-                  <h4 style={{color: '#333', marginBottom: '15px'}}>Supplier Overview</h4>
+                  <h4 style={{color: '#333', marginBottom: '15px'}}>{t('suppliers.overview')}</h4>
                   <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
                     <button 
                       className="btn" 
                       style={{background: '#007bff', width: 'auto', padding: '8px 16px'}}
                       onClick={() => alert('Supplier analytics:\n\n• Order volume by supplier\n• Performance metrics\n• Delivery times\n• Quality ratings\n• Cost analysis')}
                     >
-                      📊 Analytics
+                      📊 {t('common.analytics')}
                     </button>
                     <button 
                       className="btn" 
@@ -3544,14 +3544,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         }
                       }}
                     >
-                      🔄 Bulk Operations {selectedSuppliers.length > 0 ? `(${selectedSuppliers.length})` : ''}
+                      🔄 {t('common.bulkOps')} {selectedSuppliers.length > 0 ? `(${selectedSuppliers.length})` : ''}
                     </button>
                     <button 
                       className="btn" 
                       style={{background: '#6c757d', width: 'auto', padding: '8px 16px'}}
                       onClick={() => alert('Export suppliers:\n\n• Contact directory\n• Performance reports\n• Contract details\n• Integration settings\n• Compliance documentation')}
                     >
-                      📤 Export
+                      📤 {t('common.export')}
                     </button>
                   </div>
                 </div>
@@ -3569,12 +3569,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                               style={{cursor: 'pointer'}}
                             />
                           </th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>Supplier Name</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>Contact</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>Location</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>Integration</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>Status</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>Actions</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>{t('suppliers.supplierName')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>{t('suppliers.contact')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>{t('suppliers.location')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>{t('suppliers.integration')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>{t('common.status')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #dee2e6', color: '#333'}}>{t('common.actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3624,7 +3624,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 backgroundColor: supplier.isActive ? '#d4edda' : '#f8d7da',
                                 color: supplier.isActive ? '#155724' : '#721c24'
                               }}>
-                                {supplier.isActive ? '✅ Active' : '❌ Inactive'}
+                                {supplier.isActive ? `✅ ${t('common.active')}` : `❌ ${t('common.inactive')}`}
                               </span>
                             </td>
                             <td style={{padding: '12px'}}>
@@ -3641,7 +3641,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                   }}
                                   onClick={() => syncSupplierPrices(supplier.id)}
                                 >
-                                  💰 Sync Prices
+                                  💰 {t('suppliers.syncPrices')}
                                 </button>
                                 <button 
                                   style={{
@@ -3727,7 +3727,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                     }
                                   }}
                                 >
-                                  🗑️ Delete
+                                  🗑️ {t('common.delete')}
                                 </button>
                               </div>
                             </td>
@@ -3776,119 +3776,119 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                  <h3 style={{color: '#333', margin: '0'}}>🏢 Company Settings</h3>
+                  <h3 style={{color: '#333', margin: '0'}}>🏢 {t('companySettings.title')}</h3>
                   <button 
                     className="btn" 
                     style={{background: '#007bff', width: 'auto', padding: '8px 16px'}}
                     onClick={() => setShowCompanySettingsModal(true)}
                   >
-                    ✏️ Edit Company Info
+                    ✏️ {t('companySettings.editInfo')}
                   </button>
                 </div>
                 
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px'}}>
                   {/* Basic Information */}
                   <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                    <h4 style={{color: '#333', marginBottom: '15px', borderBottom: '2px solid #007bff', paddingBottom: '5px'}}>Basic Information</h4>
+                    <h4 style={{color: '#333', marginBottom: '15px', borderBottom: '2px solid #007bff', paddingBottom: '5px'}}>{t('companySettings.basicInfo')}</h4>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Company Name:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.name || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.companyName')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.name || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Email:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.email || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('common.email')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.email || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Phone:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.phone || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('common.phone')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.phone || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Website:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.website || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.website')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.website || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Logistics Email:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.logisticsEmail || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.logisticsEmail')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.logisticsEmail || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
                       <strong style={{color: '#495057'}}>IBAN:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d', fontFamily: 'monospace'}}>{companySettings.iban || 'Not set'}</p>
+                      <p style={{margin: '5px 0', color: '#6c757d', fontFamily: 'monospace'}}>{companySettings.iban || t('common.notSet')}</p>
                     </div>
                   </div>
                   
                   {/* Address Information */}
                   <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                    <h4 style={{color: '#333', marginBottom: '15px', borderBottom: '2px solid #28a745', paddingBottom: '5px'}}>Address</h4>
+                    <h4 style={{color: '#333', marginBottom: '15px', borderBottom: '2px solid #28a745', paddingBottom: '5px'}}>{t('companySettings.address')}</h4>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Street Address:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.address || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.streetAddress')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.address || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>City:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.city || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.city')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.city || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>State/Province:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.state || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.stateProvince')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.state || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>ZIP/Postal Code:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.zipCode || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.zipCode')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.zipCode || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Country:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.country || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.country')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.country || t('common.notSet')}</p>
                     </div>
                   </div>
                   
                   {/* Legal & Business Information */}
                   <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                    <h4 style={{color: '#333', marginBottom: '15px', borderBottom: '2px solid #ffc107', paddingBottom: '5px'}}>Legal & Business</h4>
+                    <h4 style={{color: '#333', marginBottom: '15px', borderBottom: '2px solid #ffc107', paddingBottom: '5px'}}>{t('companySettings.legalBusiness')}</h4>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Contact Person:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.contactPerson || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.contactPerson')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.contactPerson || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>VAT Number:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.vatNumber || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.vatNumber')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.vatNumber || t('common.notSet')}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Registration Number:</strong>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.registrationNumber || 'Not set'}</p>
+                      <strong style={{color: '#495057'}}>{t('companySettings.registrationNumber')}:</strong>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}>{companySettings.registrationNumber || t('common.notSet')}</p>
                     </div>
                   </div>
                   
                   {/* Default Product Settings */}
                   <div style={{background: '#f0f8ff', padding: '20px', borderRadius: '6px', border: '1px solid #007bff'}}>
-                    <h4 style={{color: '#007bff', marginBottom: '15px', borderBottom: '2px solid #007bff', paddingBottom: '5px'}}>💰 Default Product Settings</h4>
+                    <h4 style={{color: '#007bff', marginBottom: '15px', borderBottom: '2px solid #007bff', paddingBottom: '5px'}}>💰 {t('companySettings.defaultProductSettings')}</h4>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Default Currency:</strong>
+                      <strong style={{color: '#495057'}}>{t('companySettings.defaultCurrency')}:</strong>
                       <p style={{margin: '5px 0', color: '#007bff', fontWeight: '500'}}>{companySettings.defaultCurrency || 'EUR'}</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Default VAT Percentage:</strong>
+                      <strong style={{color: '#495057'}}>{t('companySettings.defaultVatPct')}:</strong>
                       <p style={{margin: '5px 0', color: '#007bff', fontWeight: '500'}}>{companySettings.defaultVatPercentage || '21.00'}%</p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Reverse Charge VAT:</strong>
+                      <strong style={{color: '#495057'}}>{t('companySettings.reverseChargeVat')}:</strong>
                       <p style={{margin: '5px 0', color: '#007bff', fontWeight: '500'}}>{companySettings.reverseChargeVat || '0.00'}%</p>
                     </div>
                     <p style={{fontSize: '12px', color: '#666', marginTop: '10px', fontStyle: 'italic'}}>
-                      Used as defaults when creating new products
+                      {t('companySettings.usedAsDefaults')}
                     </p>
                   </div>
                   
                   {/* Shipping Settings Display */}
                   <div style={{background: '#e3f2fd', padding: '20px', borderRadius: '6px', border: '1px solid #bbdefb'}}>
-                    <h4 style={{color: '#1976d2', marginBottom: '15px', borderBottom: '2px solid #2196f3', paddingBottom: '5px'}}>🚚 Shipping Settings</h4>
+                    <h4 style={{color: '#1976d2', marginBottom: '15px', borderBottom: '2px solid #2196f3', paddingBottom: '5px'}}>🚚 {t('companySettings.shippingSettings')}</h4>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Free Shipping Threshold:</strong>
+                      <strong style={{color: '#495057'}}>{t('companySettings.freeShippingThreshold')}:</strong>
                       <p style={{margin: '5px 0', color: '#1976d2', fontWeight: '500'}}>
                         {companySettings.freeShippingThreshold || '500.00'} {companySettings.defaultCurrency || 'EUR'}
                       </p>
                     </div>
                     <div style={{marginBottom: '10px'}}>
-                      <strong style={{color: '#495057'}}>Standard Shipping Cost:</strong>
+                      <strong style={{color: '#495057'}}>{t('companySettings.standardShippingCost')}:</strong>
                       <p style={{margin: '5px 0', color: '#1976d2', fontWeight: '500'}}>
                         {companySettings.standardShippingCost || '25.00'} {companySettings.defaultCurrency || 'EUR'}
                       </p>
@@ -3900,20 +3900,20 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   
                   {/* Company Description */}
                   <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                    <h4 style={{color: '#333', marginBottom: '15px', borderBottom: '2px solid #dc3545', paddingBottom: '5px'}}>Company Description</h4>
+                    <h4 style={{color: '#333', marginBottom: '15px', borderBottom: '2px solid #dc3545', paddingBottom: '5px'}}>{t('companySettings.description')}</h4>
                     <p style={{margin: '0', color: '#6c757d', lineHeight: '1.6'}}>
-                      {companySettings.description || 'No description available. Click "Edit Company Info" to add your company description.'}
+                      {companySettings.description || t('companySettings.noDescription')}
                     </p>
                   </div>
                 </div>
                 
                 <div style={{marginTop: '30px', padding: '20px', background: '#e8f4f8', borderRadius: '6px', border: '1px solid #bee5eb'}}>
-                  <h4 style={{color: '#333', marginBottom: '10px'}}>📝 Important Notes</h4>
+                  <h4 style={{color: '#333', marginBottom: '10px'}}>📝 {t('companySettings.importantNotes')}</h4>
                   <ul style={{margin: '0', paddingLeft: '20px', color: '#495057'}}>
-                    <li style={{marginBottom: '5px'}}>This information is used throughout the system for invoices, emails, and customer communications</li>
-                    <li style={{marginBottom: '5px'}}>VAT Number and Registration Number are required for proper invoice generation</li>
-                    <li style={{marginBottom: '5px'}}>Contact information will be displayed to customers for support inquiries</li>
-                    <li>All changes are automatically saved and will be reflected in new orders and communications</li>
+                    <li style={{marginBottom: '5px'}}>{t('companySettings.note1')}</li>
+                    <li style={{marginBottom: '5px'}}>{t('companySettings.note2')}</li>
+                    <li style={{marginBottom: '5px'}}>{t('companySettings.note3')}</li>
+                    <li>{t('companySettings.note4')}</li>
                   </ul>
                 </div>
               </div>
@@ -3923,7 +3923,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                  <h3 style={{color: '#333', margin: '0'}}>🎟️ Voucher Management</h3>
+                  <h3 style={{color: '#333', margin: '0'}}>🎟️ {t('vouchers.title')}</h3>
                   <button 
                     className="btn" 
                     style={{background: '#28a745', width: 'auto', padding: '8px 16px'}}
@@ -3944,12 +3944,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       setShowAddVoucherModal(true);
                     }}
                   >
-                    + Add New Voucher
+                    + {t('vouchers.addNew')}
                   </button>
                 </div>
                 
                 <p style={{color: '#666', marginBottom: '20px'}}>
-                  Manage discount voucher codes. Customers can apply these codes at checkout to receive discounts.
+                  {t('vouchers.description')}
                 </p>
                 
                 {vouchers.length > 0 ? (
@@ -3957,15 +3957,15 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     <table style={{width: '100%', borderCollapse: 'collapse'}}>
                       <thead>
                         <tr style={{backgroundColor: '#f5f5f5'}}>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Code</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Name</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Discount</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Min Order</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Piață</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Usage</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Valid Period</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Status</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Actions</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('vouchers.code')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.name')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('vouchers.discount')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('vouchers.minOrder')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.market')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('vouchers.usage')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('vouchers.validPeriod')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.status')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('common.actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3998,7 +3998,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                   {' - '}
                                   {voucher.validUntil ? new Date(voucher.validUntil).toLocaleDateString() : 'N/A'}
                                 </>
-                              ) : 'No expiry'}
+                              ) : t('vouchers.noExpiry')}
                             </td>
                             <td style={{padding: '12px'}}>
                               <span style={{
@@ -4009,7 +4009,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 background: voucher.isActive ? '#d4edda' : '#f8d7da',
                                 color: voucher.isActive ? '#155724' : '#721c24'
                               }}>
-                                {voucher.isActive ? 'Active' : 'Inactive'}
+                                {voucher.isActive ? t('common.active') : t('common.inactive')}
                               </span>
                             </td>
                             <td style={{padding: '12px'}}>
@@ -4034,7 +4034,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                     setShowAddVoucherModal(true);
                                   }}
                                 >
-                                  Edit
+                                  {t('common.edit')}
                                 </button>
                                 <button 
                                   className="btn" 
@@ -4058,7 +4058,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                     }
                                   }}
                                 >
-                                  Delete
+                                  {t('common.delete')}
                                 </button>
                               </div>
                             </td>
@@ -4069,7 +4069,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   </div>
                 ) : (
                   <div style={{textAlign: 'center', padding: '40px', color: '#666'}}>
-                    <p>No vouchers created yet. Click "Add New Voucher" to create one.</p>
+                    <p>{t('vouchers.noneFound')}</p>
                   </div>
                 )}
                 
@@ -4077,10 +4077,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 {showAddVoucherModal && (
                   <div className="modal-backdrop" onClick={() => setShowAddVoucherModal(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '500px'}}>
-                      <h3 style={{marginBottom: '20px'}}>{editingVoucher ? 'Edit Voucher' : 'Add New Voucher'}</h3>
+                      <h3 style={{marginBottom: '20px'}}>{editingVoucher ? t('vouchers.editVoucher') : t('vouchers.addNew')}</h3>
                       
                       <div style={{marginBottom: '15px'}}>
-                        <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Piață *</label>
+                        <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>{t('common.market')} *</label>
                         <select
                           value={voucherForm.marketCode}
                           onChange={(e) => setVoucherForm({...voucherForm, marketCode: e.target.value})}
@@ -4093,7 +4093,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       </div>
 
                       <div style={{marginBottom: '15px'}}>
-                        <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Voucher Code *</label>
+                        <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>{t('vouchers.voucherCode')} *</label>
                         <input
                           type="text"
                           value={voucherForm.code}
@@ -4104,7 +4104,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       </div>
                       
                       <div style={{marginBottom: '15px'}}>
-                        <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Name/Description *</label>
+                        <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>{t('vouchers.nameDescription')} *</label>
                         <input
                           type="text"
                           value={voucherForm.name}
@@ -4116,18 +4116,18 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       
                       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px'}}>
                         <div>
-                          <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Discount Type</label>
+                          <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>{t('vouchers.discountType')}</label>
                           <select
                             value={voucherForm.discountType}
                             onChange={(e) => setVoucherForm({...voucherForm, discountType: e.target.value})}
                             style={{width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd'}}
                           >
-                            <option value="fixed">Fixed Amount (RON)</option>
-                            <option value="percentage">Percentage (%)</option>
+                            <option value="fixed">{t('vouchers.fixedAmount')}</option>
+                            <option value="percentage">{t('vouchers.percentage')}</option>
                           </select>
                         </div>
                         <div>
-                          <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Discount Value *</label>
+                          <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>{t('vouchers.discountValue')} *</label>
                           <input
                             type="number"
                             value={voucherForm.discountValue}
@@ -4140,7 +4140,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       
                       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px'}}>
                         <div>
-                          <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>Min Order Amount</label>
+                          <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold'}}>{t('vouchers.minOrderAmount')}</label>
                           <input
                             type="number"
                             value={voucherForm.minOrderAmount}
@@ -4287,24 +4287,24 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           case 'blog':
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
-                <h3 style={{color: '#333', marginTop: 0}}>📝 Blog — Generare Automată cu Claude AI</h3>
+                <h3 style={{color: '#333', marginTop: 0}}>📝 {t('blog.title')}</h3>
 
                 {/* Generate Form */}
                 <div style={{background: '#f8f9fa', borderRadius: '8px', padding: '20px', marginBottom: '24px', border: '1px solid #e9ecef'}}>
-                  <h4 style={{marginTop: 0, color: '#495057'}}>Generează articol nou</h4>
+                  <h4 style={{marginTop: 0, color: '#495057'}}>{t('blog.generateNew')}</h4>
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', alignItems: 'end'}}>
                     <div>
-                      <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#6c757d'}}>Titlu (opțional)</label>
+                      <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#6c757d'}}>{t('blog.titleLabel')}</label>
                       <input
                         type="text"
-                        placeholder="Lasă gol pentru temă automată"
+                        placeholder={t('blog.titlePlaceholder')}
                         value={blogGenerateForm.title}
                         onChange={e => setBlogGenerateForm({...blogGenerateForm, title: e.target.value})}
                         style={{width: '100%', padding: '8px 12px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box'}}
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#6c757d'}}>Categorie</label>
+                      <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#6c757d'}}>{t('blog.category')}</label>
                       <select
                         value={blogGenerateForm.category}
                         onChange={e => setBlogGenerateForm({...blogGenerateForm, category: e.target.value})}
@@ -4321,7 +4321,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#6c757d'}}>Limbă</label>
+                      <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#6c757d'}}>{t('blog.language')}</label>
                       <select
                         value={blogGenerateForm.language}
                         onChange={e => setBlogGenerateForm({...blogGenerateForm, language: e.target.value})}
@@ -4337,7 +4337,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       disabled={blogGenerating}
                       style={{background: blogGenerating ? '#6c757d' : '#0066cc', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 18px', fontSize: '14px', cursor: blogGenerating ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', fontWeight: '600'}}
                     >
-                      {blogGenerating ? '⏳ Generez...' : '✨ Generează'}
+                      {blogGenerating ? `⏳ ${t('blog.generating')}` : `✨ ${t('blog.generate')}`}
                     </button>
                   </div>
                   <p style={{margin: '10px 0 0', fontSize: '12px', color: '#868e96'}}>
@@ -4521,74 +4521,72 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   
                   <div className="stat-card">
                     <div className="stat-number">{stats?.totalProducts || '0'}</div>
-                    <div className="stat-label">Total Products</div>
+                    <div className="stat-label">{t('stats.totalProducts')}</div>
                   </div>
                   
                   <div className="stat-card">
                     <div className="stat-number">{stats?.recentOrders?.length || '0'}</div>
-                    <div className="stat-label">Recent Orders</div>
+                    <div className="stat-label">{t('stats.recentOrders')}</div>
                   </div>
                 </div>
                 
                 <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
-                  <h3 style={{marginBottom: '20px', color: '#333'}}>System Overview</h3>
+                  <h3 style={{marginBottom: '20px', color: '#333'}}>{t('dashboard.systemOverview')}</h3>
                   <p style={{color: '#666', lineHeight: '1.6'}}>
-                    Welcome to the xHACCP Admin Panel. Here you can manage your e-commerce platform, 
-                    view statistics, and monitor system performance. The dashboard shows real-time data 
-                    from your PostgreSQL database.
+                    {t('dashboard.welcomeText')}
                   </p>
                   
                   <div style={{marginTop: '30px', padding: '20px', background: '#f8f9ff', borderRadius: '6px'}}>
-                    <h4 style={{color: '#333', marginBottom: '10px'}}>Quick Stats Summary</h4>
+                    <h4 style={{color: '#333', marginBottom: '10px'}}>{t('dashboard.quickStats')}</h4>
                     <ul style={{listStyle: 'none', padding: 0}}>
-                      <li style={{marginBottom: '5px'}}>📊 {stats?.totalUsers || '0'} registered users</li>
-                      <li style={{marginBottom: '5px'}}>🛒 {stats?.totalOrders || '0'} orders processed</li>
-                      <li style={{marginBottom: '5px'}}>📦 {stats?.totalProducts || '0'} products in catalog</li>
-                      <li style={{marginBottom: '5px'}}>🔄 {stats?.recentOrders?.length || '0'} recent orders</li>
+                      <li style={{marginBottom: '5px'}}>📊 {stats?.totalUsers || '0'} {t('dashboard.registeredUsers')}</li>
+                      <li style={{marginBottom: '5px'}}>🛒 {stats?.totalOrders || '0'} {t('dashboard.ordersProcessed')}</li>
+                      <li style={{marginBottom: '5px'}}>📦 {stats?.totalProducts || '0'} {t('dashboard.productsInCatalog')}</li>
+                      <li style={{marginBottom: '5px'}}>🔄 {stats?.recentOrders?.length || '0'} {t('dashboard.recentOrdersLabel')}</li>
                     </ul>
                   </div>
                   
                   <div style={{marginTop: '30px', padding: '20px', background: '#fff8e1', borderRadius: '6px'}}>
-                    <h4 style={{color: '#333', marginBottom: '10px'}}>Admin Actions</h4>
+                    <h4 style={{color: '#333', marginBottom: '10px'}}>{t('dashboard.adminActions')}</h4>
                     <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '15px'}}>
                       <button 
                         className="btn" 
                         style={{background: activeView === 'orders' ? '#2E7D32' : '#4CAF50', width: 'auto', padding: '10px 16px'}}
                         onClick={() => handleViewChange('orders')}
                       >
-                        📋 Manage Orders
+                        📋 {t('dashboard.manageOrders')}
                       </button>
                       <button 
                         className="btn" 
                         style={{background: activeView === 'users' ? '#1565C0' : '#2196F3', width: 'auto', padding: '10px 16px'}}
                         onClick={() => handleViewChange('users')}
                       >
-                        👥 Manage Users
+                        👥 {t('dashboard.manageUsers')}
                       </button>
                       <button 
                         className="btn" 
                         style={{background: activeView === 'products' ? '#F57C00' : '#FF9800', width: 'auto', padding: '10px 16px'}}
                         onClick={() => handleViewChange('products')}
                       >
-                        📦 Manage Products
+                        📦 {t('dashboard.manageProducts')}
                       </button>
                       <button 
                         className="btn" 
                         style={{background: '#9C27B0', width: 'auto', padding: '10px 16px'}}
                         onClick={() => setShowTwoFactor(!showTwoFactor)}
                       >
-                        🔐 Two-Factor Auth
+                        🔐 {t('dashboard.twoFactorAuth')}
                       </button>
                     </div>
                   </div>
                   
                   {showTwoFactor && (
                     <div style={{marginTop: '30px', padding: '20px', background: '#e8f5e8', borderRadius: '6px', border: '2px solid #4CAF50'}}>
-                      <h4 style={{color: '#333', marginBottom: '10px'}}>🔐 Two-Factor Authentication</h4>
+                      <h4 style={{color: '#333', marginBottom: '10px'}}>🔐 {t('dashboard.twoFactorAuthentication')}</h4>
                       <p style={{color: '#666', marginBottom: '15px'}}>
                         Status: {admin?.twoFactorEnabled ? 
-                          <span style={{color: '#4CAF50', fontWeight: 'bold'}}>✅ Enabled</span> : 
-                          <span style={{color: '#f44336', fontWeight: 'bold'}}>❌ Disabled</span>
+                          <span style={{color: '#4CAF50', fontWeight: 'bold'}}>✅ {t('common.enabled')}</span> : 
+                          <span style={{color: '#f44336', fontWeight: 'bold'}}>❌ {t('common.disabled')}</span>
                         }
                       </p>
                       <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
@@ -4597,7 +4595,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           style={{background: admin?.twoFactorEnabled ? '#f44336' : '#4CAF50', width: 'auto', padding: '8px 16px'}}
                           onClick={() => alert('2FA management functionality will be implemented')}
                         >
-                          {admin?.twoFactorEnabled ? '🔓 Disable 2FA' : '🔒 Enable 2FA'}
+                          {admin?.twoFactorEnabled ? `🔓 ${t('dashboard.disable2fa')}` : `🔒 ${t('dashboard.enable2fa')}`}
                         </button>
                         {admin?.twoFactorEnabled && (
                           <button 
@@ -6431,10 +6429,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           value={productFormData.status}
                           onChange={(e) => setProductFormData({...productFormData, status: e.target.value})}
                         >
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
-                          <option value="draft">Draft</option>
-                          <option value="discontinued">Discontinued</option>
+                          <option value="active">{t('common.active')}</option>
+                          <option value="inactive">{t('common.inactive')}</option>
+                          <option value="draft">{t('common.draft')}</option>
+                          <option value="discontinued">{t('common.discontinued')}</option>
                         </select>
                       </div>
                       <div className="form-group">
@@ -7143,26 +7141,26 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   overflow: 'auto'
                 }}>
                   <h3 style={{marginBottom: '20px', color: '#333'}}>
-                    📋 Order Details - #{selectedOrder.id}
+                    📋 {t('orders.orderDetails')} #{selectedOrder.id}
                   </h3>
                   
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '20px'}}>
                     <div style={{padding: '15px', background: '#f8f9fa', borderRadius: '6px'}}>
-                      <h4 style={{color: '#333', marginBottom: '10px'}}>Order Information</h4>
-                      <p><strong>Order ID:</strong> #{selectedOrder.id}</p>
+                      <h4 style={{color: '#333', marginBottom: '10px'}}>{t('orders.orderInfo')}</h4>
+                      <p><strong>{t('orders.orderId')}:</strong> #{selectedOrder.id}</p>
                       <p><strong>Status:</strong> <span style={{
                         padding: '4px 8px', 
                         borderRadius: '4px', 
                         backgroundColor: selectedOrder.status === 'pending' ? '#fff3cd' : selectedOrder.status === 'accepted' ? '#d1ecf1' : selectedOrder.status === 'processing' ? '#cce5ff' : selectedOrder.status === 'shipped' ? '#d4edda' : selectedOrder.status === 'in_delivery' ? '#d4f4f4' : selectedOrder.status === 'delivered' ? '#d4edda' : selectedOrder.status === 'cancelled' ? '#f8d7da' : '#e2e3e5',
                         color: selectedOrder.status === 'pending' ? '#856404' : selectedOrder.status === 'accepted' ? '#0c5460' : selectedOrder.status === 'processing' ? '#0056b3' : selectedOrder.status === 'shipped' ? '#155724' : selectedOrder.status === 'in_delivery' ? '#0e7c7b' : selectedOrder.status === 'delivered' ? '#155724' : selectedOrder.status === 'cancelled' ? '#721c24' : '#383d41'
                       }}>{selectedOrder.status === 'in_delivery' ? 'In Delivery' : selectedOrder.status}</span></p>
-                      <p><strong>Payment Method:</strong> {(() => {
+                      <p><strong>{t('orders.paymentMethod')}:</strong> {(() => {
                         const pm = selectedOrder.paymentMethod;
                         if (pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash') return 'Ramburs (plata la livrare)';
                         if (pm === 'card' || pm === 'viva') return 'Card online';
                         return pm;
                       })()}</p>
-                      <p><strong>Payment Status:</strong> <span style={{
+                      <p><strong>{t('orders.paymentStatus')}:</strong> <span style={{
                         padding: '3px 8px',
                         borderRadius: '4px',
                         fontSize: '13px',
@@ -7207,7 +7205,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     </div>
                     
                     <div style={{padding: '15px', background: '#f8f9fa', borderRadius: '6px'}}>
-                      <h4 style={{color: '#333', marginBottom: '10px'}}>Customer Information</h4>
+                      <h4 style={{color: '#333', marginBottom: '10px'}}>{t('orders.customerInfo')}</h4>
                       <p><strong>Name:</strong> {selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
                       <p><strong>Email:</strong> {selectedOrder.shippingAddress.email || '—'}</p>
                       <p><strong>Phone:</strong> {selectedOrder.shippingAddress.phone || '—'}</p>
@@ -7217,7 +7215,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px'}}>
                     <div style={{padding: '15px', background: '#f8f9fa', borderRadius: '6px'}}>
-                      <h4 style={{color: '#333', marginBottom: '10px'}}>Shipping Address</h4>
+                      <h4 style={{color: '#333', marginBottom: '10px'}}>{t('orders.shippingAddress')}</h4>
                       <p><strong>{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</strong></p>
                       <p>{selectedOrder.shippingAddress.address}</p>
                       <p>{selectedOrder.shippingAddress.city}{selectedOrder.shippingAddress.county ? `, ${selectedOrder.shippingAddress.county}` : ''}{selectedOrder.shippingAddress.state ? `, ${selectedOrder.shippingAddress.state}` : ''}</p>
@@ -7429,7 +7427,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                         }}
                       >
                         <span>📄</span>
-                        <span>Download Invoice</span>
+                        <span>{t('orders.downloadInvoice')}</span>
                       </button>
                     </div>
                   </div>
@@ -7444,7 +7442,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                         setSelectedOrder(null);
                       }}
                     >
-                      Close
+                      {t('common.close')}
                     </button>
                   </div>
                 </div>
