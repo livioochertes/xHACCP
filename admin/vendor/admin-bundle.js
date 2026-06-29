@@ -11789,11 +11789,6 @@
           loading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "loading" }),
           loading ? "Logging in..." : "Login"
         ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "text-sm text-center", style: { marginTop: "20px" }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Demo Credentials:" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: "Email: admin@xhaccp.com" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: "Password: admin123" })
       ] })
     ] });
   }

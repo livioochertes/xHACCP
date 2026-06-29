@@ -187,11 +187,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             </button>
           </form>
           
-          <div className="text-sm text-center" style={{marginTop: '20px'}}>
-            <p><strong>Demo Credentials:</strong></p>
-            <p>Email: admin@xhaccp.com</p>
-            <p>Password: admin123</p>
-          </div>
         </div>
       );
     }
