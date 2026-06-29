@@ -1,2 +1,3 @@
 - [SPA routes must pass through Vite in dev](spa-vite-dev-routing.md) — in dev, all HTML must go through Vite's transformIndexHtml or React preamble is missing and app is blank.
 - [Localized product slugs](localized-slugs.md) — product_translations.slug holds per-language slugs; backend does 2-step lookup (global→localized); frontend useProductTranslation returns localizedSlug.
+- [Admin i18n Architecture](admin-i18n-architecture.md) — react-i18next in admin-src/; rebuild with `node admin-src/build.js`; source recovered from git history.
