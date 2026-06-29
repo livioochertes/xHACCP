@@ -149,7 +149,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           <div className="login-header">
             <div className="login-logo">
               <img src="/attached_assets/logo_xHACCP-S1_1772812623761.png" alt="xHACCP Logo" />
-              <span>xHACCP</span>
             </div>
             <h1 className="login-title">Admin Panel</h1>
             <p className="login-subtitle">Welcome back! Please sign in to continue.</p>

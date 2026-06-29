@@ -11751,10 +11751,7 @@
     };
     return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "login-container", children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "login-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "login-logo", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("img", { src: "/attached_assets/logo_xHACCP-S1_1772812623761.png", alt: "xHACCP Logo" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "xHACCP" })
-        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "login-logo", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("img", { src: "/attached_assets/logo_xHACCP-S1_1772812623761.png", alt: "xHACCP Logo" }) }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h1", { className: "login-title", children: "Admin Panel" }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { className: "login-subtitle", children: "Welcome back! Please sign in to continue." })
       ] }),
