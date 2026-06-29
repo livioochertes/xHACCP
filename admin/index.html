@@ -778,57 +778,107 @@
       return dict[txt] !== undefined ? dict[txt] : txt;
     };
 
-    /* ── WeakMap pentru originalele textelor (permite re-traducere fără reload) ── */
-    var _originals = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+    /* ── Reverse lookup: valoare tradusă → cheie RO (pentru restaurare) ── */
+    var _reverseMap = null;
+    function getReverseMap() {
+      if (_reverseMap) return _reverseMap;
+      _reverseMap = {};
+      ['fr','en'].forEach(function(l) {
+        Object.keys(T[l]).forEach(function(roKey) {
+          _reverseMap[T[l][roKey]] = roKey;
+        });
+      });
+      return _reverseMap;
+    }
 
-    /* ── Funcție centrală de traducere a DOM-ului ── */
-    window._applyAdminTranslations = function() {
-      var lang = window.ADMIN_LANG || 'ro';
-      var dict = T[lang] || {};
-      var allKeys = Object.keys(T.fr).concat(Object.keys(T.en));
-      /* chei unice, sortate descrescător după lungime (fraze înainte de cuvinte) */
-      var allRoKeys = [];
+    /* ── Chei RO sortate descrescător după lungime ── */
+    var _roKeys = null;
+    function getRoKeys() {
+      if (_roKeys) return _roKeys;
       var seen = {};
-      for (var i = 0; i < allKeys.length; i++) {
-        if (!seen[allKeys[i]]) { seen[allKeys[i]] = 1; allRoKeys.push(allKeys[i]); }
-      }
-      allRoKeys.sort(function(a,b){ return b.length - a.length; });
+      _roKeys = [];
+      ['fr','en'].forEach(function(l) {
+        Object.keys(T[l]).forEach(function(k) {
+          if (!seen[k]) { seen[k] = 1; _roKeys.push(k); }
+        });
+      });
+      _roKeys.sort(function(a,b){ return b.length - a.length; });
+      return _roKeys;
+    }
 
-      function translateNode(node) {
-        if (node.nodeType === 3) {
-          var orig = _originals ? _originals.get(node) : null;
-          if (!orig) {
-            orig = node.nodeValue;
-            if (_originals) _originals.set(node, orig);
-          }
-          /* dacă limba e 'ro', restaurăm originalul */
-          if (lang === 'ro') {
-            if (node.nodeValue !== orig) node.nodeValue = orig;
-            return;
-          }
-          /* altfel căutăm în dicționarul limbii curente */
-          var trimmed = orig ? orig.trim() : '';
-          if (!trimmed) return;
-          for (var j = 0; j < allRoKeys.length; j++) {
-            var k = allRoKeys[j];
-            if (trimmed === k || orig.indexOf(k) !== -1) {
-              var tr = dict[k];
-              if (tr && tr !== k) {
-                node.nodeValue = orig.replace(k, tr);
-                return;
-              }
-            }
-          }
-          /* nu s-a găsit în dict — restaurăm originalul (dacă fusese tradus anterior) */
-          if (node.nodeValue !== orig) node.nodeValue = orig;
-        } else if (node.nodeType === 1 && node.childNodes) {
-          var tag = node.tagName ? node.tagName.toLowerCase() : '';
-          if (tag === 'script' || tag === 'style' || tag === 'input' || tag === 'textarea') return;
-          for (var c = 0; c < node.childNodes.length; c++) translateNode(node.childNodes[c]);
+    /* ── Traducere nod text ── */
+    function translateTextNode(node, lang, dict, roKeys, reverse) {
+      var val = node.nodeValue;
+      if (!val || !val.trim()) return;
+      var trimmed = val.trim();
+
+      if (lang === 'ro') {
+        /* restaurăm dacă e tradus */
+        var roKey = reverse[trimmed];
+        if (roKey) node.nodeValue = val.replace(trimmed, roKey);
+        return;
+      }
+
+      /* dacă e deja tradus la limba curentă → skip */
+      var roFromCurrent = reverse[trimmed];
+      if (roFromCurrent && dict[roFromCurrent] === trimmed) return;
+
+      /* potrivire exactă */
+      if (dict[trimmed]) { node.nodeValue = val.replace(trimmed, dict[trimmed]); return; }
+
+      /* potrivire parțială (chei lungi primul) */
+      for (var j = 0; j < roKeys.length; j++) {
+        var k = roKeys[j];
+        if (val.indexOf(k) !== -1 && dict[k] && dict[k] !== k) {
+          node.nodeValue = val.replace(k, dict[k]);
+          return;
         }
       }
+    }
 
-      translateNode(document.body);
+    /* ── Parcurgere DOM ── */
+    function walkDOM(root, lang, dict, roKeys, reverse) {
+      if (!root) return;
+      if (root.nodeType === 3) {
+        translateTextNode(root, lang, dict, roKeys, reverse);
+      } else if (root.nodeType === 1) {
+        var tag = (root.tagName || '').toLowerCase();
+        if (tag === 'script' || tag === 'style' || tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        for (var i = 0; i < root.childNodes.length; i++) walkDOM(root.childNodes[i], lang, dict, roKeys, reverse);
+      }
+    }
+
+    /* ── Funcție centrală de traducere ── */
+    window._applyAdminTranslations = function() {
+      var lang = window.ADMIN_LANG || 'ro';
+      walkDOM(document.body, lang, T[lang] || {}, getRoKeys(), getReverseMap());
+    };
+
+    /* ── Auto-detectare limbă din adminMarkets (după login) ── */
+    window._autoDetectAdminLang = function() {
+      if (localStorage.getItem('adminLang')) return; /* user a ales explicit */
+      try {
+        var u = JSON.parse(localStorage.getItem('adminUser') || 'null');
+        if (!u || !u.adminMarkets || !u.adminMarkets.length) return;
+        var detected = {ro:'ro', fr:'fr', com:'en'}[u.adminMarkets[0]] || 'ro';
+        if (detected !== window.ADMIN_LANG) {
+          window.ADMIN_LANG = detected;
+          /* actualizează trigger-ul dacă există */
+          var LMAP = {ro:{flag:'🇷🇴',name:'Română'},fr:{flag:'🇫🇷',name:'Français'},en:{flag:'🇬🇧',name:'English'}};
+          var info = LMAP[detected] || LMAP.ro;
+          var fl = document.querySelector('#alw-trigger .alw-flag');
+          var nm = document.querySelector('#alw-trigger .alw-name');
+          if (fl) fl.textContent = info.flag;
+          if (nm) nm.textContent = info.name;
+          document.querySelectorAll('#admin-lang-sw .alw-item').forEach(function(item) {
+            var dot = item.querySelector('.alw-dot');
+            if (item.dataset.lang === detected) {
+              item.classList.add('active');
+              if (!dot) { var d=document.createElement('span'); d.className='alw-dot'; item.appendChild(d); }
+            } else { item.classList.remove('active'); if (dot) dot.remove(); }
+          });
+        }
+      } catch(e) {}
     };
 
     /* ── setAdminLang: schimbă limba FĂRĂ reload ── */
@@ -836,81 +886,78 @@
       localStorage.setItem('adminLang', lang);
       window.ADMIN_LANG = lang;
       window._applyAdminTranslations();
-      /* actualizează butonul trigger */
-      var LANGS = [{l:'ro',flag:'🇷🇴',name:'Română'},{l:'fr',flag:'🇫🇷',name:'Français'},{l:'en',flag:'🇬🇧',name:'English'}];
-      var cur = LANGS.find(function(x){ return x.l === lang; }) || LANGS[0];
-      var trigger = document.getElementById('alw-trigger');
-      if (trigger) {
-        trigger.querySelector('.alw-flag').textContent = cur.flag;
-        trigger.querySelector('.alw-name').textContent = cur.name;
-      }
-      /* actualizează starea activă din dropdown */
-      var items = document.querySelectorAll('#admin-lang-sw .alw-item');
-      items.forEach(function(item) {
+      var LMAP = {ro:{flag:'🇷🇴',name:'Română'},fr:{flag:'🇫🇷',name:'Français'},en:{flag:'🇬🇧',name:'English'}};
+      var info = LMAP[lang] || LMAP.ro;
+      var fl = document.querySelector('#alw-trigger .alw-flag');
+      var nm = document.querySelector('#alw-trigger .alw-name');
+      if (fl) fl.textContent = info.flag;
+      if (nm) nm.textContent = info.name;
+      document.querySelectorAll('#admin-lang-sw .alw-item').forEach(function(item) {
         var dot = item.querySelector('.alw-dot');
         if (item.dataset.lang === lang) {
           item.classList.add('active');
-          if (!dot) {
-            var d = document.createElement('span');
-            d.className = 'alw-dot';
-            item.appendChild(d);
-          }
-        } else {
-          item.classList.remove('active');
-          if (dot) dot.remove();
-        }
+          if (!dot) { var d=document.createElement('span'); d.className='alw-dot'; item.appendChild(d); }
+        } else { item.classList.remove('active'); if (dot) dot.remove(); }
       });
     };
 
-    /* ── MutationObserver: re-traduce textele noi adăugate de React ── */
+    /* ── Pornire traducere continuă + auto-detect ── */
     document.addEventListener('DOMContentLoaded', function() {
+      window._autoDetectAdminLang();
+
       var pending = false;
       function schedTranslate() {
-        if (window.ADMIN_LANG === 'ro') return;
         if (pending) return;
         pending = true;
-        requestAnimationFrame(function() {
-          pending = false;
-          window._applyAdminTranslations();
-        });
+        requestAnimationFrame(function() { pending = false; window._applyAdminTranslations(); });
       }
 
-      var obs = new MutationObserver(function(mutations) {
+      /* MutationObserver pe admin-root pentru schimbări de tab */
+      var root = document.getElementById('admin-root') || document.body;
+      var obs = new MutationObserver(function(muts) {
         if (window.ADMIN_LANG === 'ro') return;
-        for (var i = 0; i < mutations.length; i++) {
-          if (mutations[i].addedNodes.length > 0) { schedTranslate(); return; }
+        for (var i = 0; i < muts.length; i++) {
+          if (muts[i].addedNodes.length > 0) { schedTranslate(); return; }
         }
       });
-      obs.observe(document.body, { childList: true, subtree: true });
+      obs.observe(root, { childList: true, subtree: true });
 
-      setTimeout(schedTranslate, 500);
-      setTimeout(schedTranslate, 1200);
-      setTimeout(schedTranslate, 2500);
+      /* setInterval: re-traduce la fiecare 400ms (prinde re-render-urile React) */
+      setInterval(function() {
+        window._autoDetectAdminLang();
+        if (window.ADMIN_LANG !== 'ro') schedTranslate();
+      }, 400);
     });
   })();
   </script>
 
   <script src="/admin/vendor/admin-bundle.js"></script>
 
-  <!-- Language switcher: dropdown profesional (top-right fixed) -->
+  <!-- Language switcher: position:fixed, în afara DOM-ului React (nu interferează cu Logout) -->
   <style>
-  #admin-lang-sw { position:relative;display:inline-flex;align-items:center; }
+  #admin-lang-sw {
+    position: fixed;
+    z-index: 99999;
+    display: inline-flex;
+    align-items: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
   #admin-lang-sw .alw-trigger {
     display:flex;align-items:center;gap:5px;
-    background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);
-    border-radius:7px;padding:5px 10px;cursor:pointer;
+    background:rgba(102,126,234,0.13);border:1px solid rgba(102,126,234,0.3);
+    border-radius:7px;padding:6px 11px;cursor:pointer;
     font-size:13px;color:#374151;white-space:nowrap;
-    transition:background 0.15s;font-family:inherit;
+    transition:background 0.15s;font-family:inherit;line-height:1.2;
   }
-  #admin-lang-sw .alw-trigger:hover { background:rgba(102,126,234,0.18); }
+  #admin-lang-sw .alw-trigger:hover { background:rgba(102,126,234,0.22); }
   #admin-lang-sw .alw-menu {
     display:none;position:absolute;top:calc(100% + 6px);right:0;
     background:#fff;border:1px solid #e2e8f0;border-radius:10px;
-    box-shadow:0 6px 20px rgba(0,0,0,0.14);min-width:158px;overflow:hidden;z-index:99999;
+    box-shadow:0 6px 20px rgba(0,0,0,0.15);min-width:158px;overflow:hidden;z-index:99999;
   }
   #admin-lang-sw .alw-menu.open { display:block; }
   #admin-lang-sw .alw-item {
-    display:flex;align-items:center;gap:9px;padding:8px 13px;
+    display:flex;align-items:center;gap:9px;padding:9px 13px;
     cursor:pointer;transition:background 0.1s;
   }
   #admin-lang-sw .alw-item:hover { background:#f5f7ff; }
@@ -928,24 +975,15 @@
       {l:'en', flag:'🇬🇧', name:'English',  sub:'EN'}
     ];
 
+    /* ── Construiește dropdown-ul și îl adaugă la document.body (nu în React DOM) ── */
     function buildDropdown() {
-      if (document.getElementById('admin-lang-sw')) return; /* deja injectat */
-
-      /* Caută butonul Logout din admin-header */
-      var header = document.querySelector('.admin-header');
-      if (!header) return;
-      var logoutBtn = header.querySelector('button.btn-secondary');
-      if (!logoutBtn) return;
-      var flexRow = logoutBtn.parentNode;
-      if (!flexRow) return;
+      if (document.getElementById('admin-lang-sw')) return;
 
       var cur = LANGS.find(function(x){ return x.l === (window.ADMIN_LANG||'ro'); }) || LANGS[0];
 
-      /* ── Wrapper ── */
       var wrap = document.createElement('div');
       wrap.id = 'admin-lang-sw';
 
-      /* ── Trigger ── */
       var trigger = document.createElement('button');
       trigger.id = 'alw-trigger';
       trigger.className = 'alw-trigger';
@@ -953,9 +991,8 @@
       trigger.innerHTML =
         '<span class="alw-flag">' + cur.flag + '</span>' +
         '<span class="alw-name">' + cur.name + '</span>' +
-        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2.5" style="flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>';
 
-      /* ── Meniu ── */
       var menu = document.createElement('div');
       menu.className = 'alw-menu';
 
@@ -970,7 +1007,7 @@
           (isActive ? '<span class="alw-dot"></span>' : '');
         item.onclick = function(e) {
           e.stopPropagation();
-          menu.className = 'alw-menu'; /* închide */
+          menu.className = 'alw-menu';
           window.setAdminLang(x.l);
         };
         menu.appendChild(item);
@@ -978,11 +1015,9 @@
 
       wrap.appendChild(trigger);
       wrap.appendChild(menu);
+      /* ── Adăugăm la body, NU în containerul React ── */
+      document.body.appendChild(wrap);
 
-      /* Inserăm ÎNAINTE de butonul Logout */
-      flexRow.insertBefore(wrap, logoutBtn);
-
-      /* Toggle dropdown */
       var isOpen = false;
       trigger.onclick = function(e) {
         e.stopPropagation();
@@ -995,14 +1030,44 @@
       });
     }
 
-    /* Încearcă injectarea după ce React randează header-ul */
+    /* ── Poziționare dinamică: aliniază dropdown-ul ÎNAINTE de butonul Logout ── */
+    function positionDropdown() {
+      var wrap = document.getElementById('admin-lang-sw');
+      if (!wrap) return;
+      /* Caută butonul Logout în admin-header */
+      var logoutBtn = document.querySelector('.admin-header button.btn-secondary');
+      if (!logoutBtn) {
+        /* fallback: top-right fix dacă header-ul nu e loaded încă */
+        wrap.style.top = '14px';
+        wrap.style.right = '16px';
+        return;
+      }
+      var rect = logoutBtn.getBoundingClientRect();
+      /* Plasăm dropdown-ul imediat la stânga butonului Logout, aliniat vertical */
+      wrap.style.top = (rect.top + window.scrollY + (rect.height - 32) / 2) + 'px';
+      wrap.style.right = (window.innerWidth - rect.left + 8) + 'px';
+      wrap.style.left = 'auto';
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
+      /* Construiește dropdown după ce React randează (maxim 10s) */
       var attempts = 0;
-      var interval = setInterval(function() {
-        buildDropdown();
-        attempts++;
-        if (document.getElementById('admin-lang-sw') || attempts > 30) clearInterval(interval);
+      var initInterval = setInterval(function() {
+        var header = document.querySelector('.admin-header');
+        if (header) {
+          buildDropdown();
+          positionDropdown();
+          clearInterval(initInterval);
+        }
+        if (++attempts > 33) { buildDropdown(); positionDropdown(); clearInterval(initInterval); }
       }, 300);
+
+      /* Re-poziționare la resize sau scroll */
+      window.addEventListener('resize', positionDropdown);
+      window.addEventListener('scroll', positionDropdown, true);
+
+      /* Re-poziționare periodică (prinde schimbări de layout React) */
+      setInterval(positionDropdown, 600);
     });
   })();
   </script>
