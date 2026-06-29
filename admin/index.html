@@ -778,81 +778,115 @@
       return dict[txt] !== undefined ? dict[txt] : txt;
     };
 
-    window.setAdminLang = function(lang) {
-      localStorage.setItem('adminLang', lang);
-      location.reload();
-    };
+    /* ── WeakMap pentru originalele textelor (permite re-traducere fără reload) ── */
+    var _originals = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
 
-    /* ── MutationObserver: translatează textul din DOM după ce React rendă ── */
-    if (window.ADMIN_LANG && window.ADMIN_LANG !== 'ro') {
-      document.addEventListener('DOMContentLoaded', function() {
-        var dict = T[window.ADMIN_LANG] || {};
-        var keys = Object.keys(dict);
-        if (!keys.length) return;
+    /* ── Funcție centrală de traducere a DOM-ului ── */
+    window._applyAdminTranslations = function() {
+      var lang = window.ADMIN_LANG || 'ro';
+      var dict = T[lang] || {};
+      var allKeys = Object.keys(T.fr).concat(Object.keys(T.en));
+      /* chei unice, sortate descrescător după lungime (fraze înainte de cuvinte) */
+      var allRoKeys = [];
+      var seen = {};
+      for (var i = 0; i < allKeys.length; i++) {
+        if (!seen[allKeys[i]]) { seen[allKeys[i]] = 1; allRoKeys.push(allKeys[i]); }
+      }
+      allRoKeys.sort(function(a,b){ return b.length - a.length; });
 
-        /* sortăm cheile descrescător după lungime — mai întâi fraze lungi */
-        keys.sort(function(a,b){ return b.length - a.length; });
-
-        function translateTextNode(node) {
-          if (node.nodeType !== 3) return;
-          var val = node.nodeValue;
-          if (!val || !val.trim()) return;
-          var trimmed = val.trim();
-          for (var i = 0; i < keys.length; i++) {
-            var k = keys[i];
-            if (trimmed === k || val.indexOf(k) !== -1) {
-              var translated = dict[k];
-              if (translated && translated !== k) {
-                node.nodeValue = val.replace(k, translated);
-                return; /* o singură înlocuire pe nod */
+      function translateNode(node) {
+        if (node.nodeType === 3) {
+          var orig = _originals ? _originals.get(node) : null;
+          if (!orig) {
+            orig = node.nodeValue;
+            if (_originals) _originals.set(node, orig);
+          }
+          /* dacă limba e 'ro', restaurăm originalul */
+          if (lang === 'ro') {
+            if (node.nodeValue !== orig) node.nodeValue = orig;
+            return;
+          }
+          /* altfel căutăm în dicționarul limbii curente */
+          var trimmed = orig ? orig.trim() : '';
+          if (!trimmed) return;
+          for (var j = 0; j < allRoKeys.length; j++) {
+            var k = allRoKeys[j];
+            if (trimmed === k || orig.indexOf(k) !== -1) {
+              var tr = dict[k];
+              if (tr && tr !== k) {
+                node.nodeValue = orig.replace(k, tr);
+                return;
               }
             }
           }
+          /* nu s-a găsit în dict — restaurăm originalul (dacă fusese tradus anterior) */
+          if (node.nodeValue !== orig) node.nodeValue = orig;
+        } else if (node.nodeType === 1 && node.childNodes) {
+          var tag = node.tagName ? node.tagName.toLowerCase() : '';
+          if (tag === 'script' || tag === 'style' || tag === 'input' || tag === 'textarea') return;
+          for (var c = 0; c < node.childNodes.length; c++) translateNode(node.childNodes[c]);
         }
+      }
 
-        function walkNode(node) {
-          if (!node) return;
-          if (node.nodeType === 3) {
-            translateTextNode(node);
-          } else if (node.nodeType === 1 && node.childNodes) {
-            /* nu traducem input-uri, textarea, script, style */
-            var tag = node.tagName ? node.tagName.toLowerCase() : '';
-            if (tag === 'script' || tag === 'style' || tag === 'input' || tag === 'textarea') return;
-            for (var i = 0; i < node.childNodes.length; i++) {
-              walkNode(node.childNodes[i]);
-            }
+      translateNode(document.body);
+    };
+
+    /* ── setAdminLang: schimbă limba FĂRĂ reload ── */
+    window.setAdminLang = function(lang) {
+      localStorage.setItem('adminLang', lang);
+      window.ADMIN_LANG = lang;
+      window._applyAdminTranslations();
+      /* actualizează butonul trigger */
+      var LANGS = [{l:'ro',flag:'🇷🇴',name:'Română'},{l:'fr',flag:'🇫🇷',name:'Français'},{l:'en',flag:'🇬🇧',name:'English'}];
+      var cur = LANGS.find(function(x){ return x.l === lang; }) || LANGS[0];
+      var trigger = document.getElementById('alw-trigger');
+      if (trigger) {
+        trigger.querySelector('.alw-flag').textContent = cur.flag;
+        trigger.querySelector('.alw-name').textContent = cur.name;
+      }
+      /* actualizează starea activă din dropdown */
+      var items = document.querySelectorAll('#admin-lang-sw .alw-item');
+      items.forEach(function(item) {
+        var dot = item.querySelector('.alw-dot');
+        if (item.dataset.lang === lang) {
+          item.classList.add('active');
+          if (!dot) {
+            var d = document.createElement('span');
+            d.className = 'alw-dot';
+            item.appendChild(d);
           }
+        } else {
+          item.classList.remove('active');
+          if (dot) dot.remove();
         }
-
-        var pending = false;
-        function schedTranslate() {
-          if (pending) return;
-          pending = true;
-          requestAnimationFrame(function() {
-            pending = false;
-            walkNode(document.body);
-          });
-        }
-
-        var obs = new MutationObserver(function(mutations) {
-          for (var i = 0; i < mutations.length; i++) {
-            var m = mutations[i];
-            if (m.type === 'characterData') {
-              translateTextNode(m.target);
-            } else if (m.addedNodes && m.addedNodes.length) {
-              schedTranslate();
-              return;
-            }
-          }
-        });
-        obs.observe(document.body, { childList: true, subtree: true, characterData: true });
-
-        /* prima rulare după încărcarea inițială */
-        setTimeout(schedTranslate, 300);
-        setTimeout(schedTranslate, 800);
-        setTimeout(schedTranslate, 2000);
       });
-    }
+    };
+
+    /* ── MutationObserver: re-traduce textele noi adăugate de React ── */
+    document.addEventListener('DOMContentLoaded', function() {
+      var pending = false;
+      function schedTranslate() {
+        if (window.ADMIN_LANG === 'ro') return;
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(function() {
+          pending = false;
+          window._applyAdminTranslations();
+        });
+      }
+
+      var obs = new MutationObserver(function(mutations) {
+        if (window.ADMIN_LANG === 'ro') return;
+        for (var i = 0; i < mutations.length; i++) {
+          if (mutations[i].addedNodes.length > 0) { schedTranslate(); return; }
+        }
+      });
+      obs.observe(document.body, { childList: true, subtree: true });
+
+      setTimeout(schedTranslate, 500);
+      setTimeout(schedTranslate, 1200);
+      setTimeout(schedTranslate, 2500);
+    });
   })();
   </script>
 
@@ -860,82 +894,117 @@
 
   <!-- Language switcher: dropdown profesional (top-right fixed) -->
   <style>
-  #admin-lang-sw { position:fixed;top:14px;right:14px;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+  #admin-lang-sw { position:relative;display:inline-flex;align-items:center; }
   #admin-lang-sw .alw-trigger {
-    display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.95);
-    border:1px solid #e2e8f0;border-radius:8px;padding:6px 11px;cursor:pointer;
-    font-size:13px;color:#374151;box-shadow:0 1px 4px rgba(0,0,0,0.12);
-    white-space:nowrap;transition:box-shadow 0.15s;
+    display:flex;align-items:center;gap:5px;
+    background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);
+    border-radius:7px;padding:5px 10px;cursor:pointer;
+    font-size:13px;color:#374151;white-space:nowrap;
+    transition:background 0.15s;font-family:inherit;
   }
-  #admin-lang-sw .alw-trigger:hover { box-shadow:0 2px 8px rgba(0,0,0,0.18); }
+  #admin-lang-sw .alw-trigger:hover { background:rgba(102,126,234,0.18); }
   #admin-lang-sw .alw-menu {
-    display:none;position:absolute;top:calc(100% + 5px);right:0;
+    display:none;position:absolute;top:calc(100% + 6px);right:0;
     background:#fff;border:1px solid #e2e8f0;border-radius:10px;
-    box-shadow:0 6px 20px rgba(0,0,0,0.13);min-width:168px;overflow:hidden;
+    box-shadow:0 6px 20px rgba(0,0,0,0.14);min-width:158px;overflow:hidden;z-index:99999;
   }
   #admin-lang-sw .alw-menu.open { display:block; }
   #admin-lang-sw .alw-item {
-    display:flex;align-items:center;gap:10px;padding:9px 14px;
+    display:flex;align-items:center;gap:9px;padding:8px 13px;
     cursor:pointer;transition:background 0.1s;
   }
   #admin-lang-sw .alw-item:hover { background:#f5f7ff; }
   #admin-lang-sw .alw-item.active { background:#eef1ff; }
-  #admin-lang-sw .alw-dot { width:7px;height:7px;background:#667eea;border-radius:50%;margin-left:auto; }
-  #admin-lang-sw .alw-flag { font-size:17px;line-height:1; }
+  #admin-lang-sw .alw-dot { width:7px;height:7px;background:#667eea;border-radius:50%;margin-left:auto;flex-shrink:0; }
+  #admin-lang-sw .alw-flag { font-size:16px;line-height:1; }
   #admin-lang-sw .alw-name { font-size:13px;font-weight:500;color:#111; }
   #admin-lang-sw .alw-sub { font-size:11px;color:#888; }
   </style>
   <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  (function() {
     var LANGS = [
-      {l:'ro', flag:'🇷🇴', name:'Română',   sub:'RO'},
-      {l:'fr', flag:'🇫🇷', name:'Français',  sub:'FR'},
-      {l:'en', flag:'🇬🇧', name:'English',   sub:'EN'}
+      {l:'ro', flag:'🇷🇴', name:'Română',  sub:'RO'},
+      {l:'fr', flag:'🇫🇷', name:'Français', sub:'FR'},
+      {l:'en', flag:'🇬🇧', name:'English',  sub:'EN'}
     ];
-    var cur = LANGS.find(function(x){ return x.l === window.ADMIN_LANG; }) || LANGS[0];
 
-    var wrap = document.createElement('div');
-    wrap.id = 'admin-lang-sw';
+    function buildDropdown() {
+      if (document.getElementById('admin-lang-sw')) return; /* deja injectat */
 
-    /* ── Trigger ── */
-    var trigger = document.createElement('button');
-    trigger.className = 'alw-trigger';
-    trigger.innerHTML =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' +
-      '<span class="alw-flag">' + cur.flag + '</span>' +
-      '<span class="alw-name">' + cur.name + '</span>' +
-      '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+      /* Caută butonul Logout din admin-header */
+      var header = document.querySelector('.admin-header');
+      if (!header) return;
+      var logoutBtn = header.querySelector('button.btn-secondary');
+      if (!logoutBtn) return;
+      var flexRow = logoutBtn.parentNode;
+      if (!flexRow) return;
 
-    /* ── Dropdown ── */
-    var menu = document.createElement('div');
-    menu.className = 'alw-menu';
+      var cur = LANGS.find(function(x){ return x.l === (window.ADMIN_LANG||'ro'); }) || LANGS[0];
 
-    LANGS.forEach(function(x) {
-      var item = document.createElement('div');
-      item.className = 'alw-item' + (x.l === window.ADMIN_LANG ? ' active' : '');
-      item.innerHTML =
-        '<span class="alw-flag">' + x.flag + '</span>' +
-        '<div><div class="alw-name">' + x.name + '</div><div class="alw-sub">' + x.sub + '</div></div>' +
-        (x.l === window.ADMIN_LANG ? '<span class="alw-dot"></span>' : '');
-      item.onclick = function() { window.setAdminLang(x.l); };
-      menu.appendChild(item);
-    });
+      /* ── Wrapper ── */
+      var wrap = document.createElement('div');
+      wrap.id = 'admin-lang-sw';
 
-    wrap.appendChild(trigger);
-    wrap.appendChild(menu);
-    document.body.appendChild(wrap);
+      /* ── Trigger ── */
+      var trigger = document.createElement('button');
+      trigger.id = 'alw-trigger';
+      trigger.className = 'alw-trigger';
+      trigger.type = 'button';
+      trigger.innerHTML =
+        '<span class="alw-flag">' + cur.flag + '</span>' +
+        '<span class="alw-name">' + cur.name + '</span>' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
 
-    var open = false;
-    trigger.onclick = function(e) {
-      e.stopPropagation();
-      open = !open;
-      menu.className = 'alw-menu' + (open ? ' open' : '');
-    };
-    document.addEventListener('click', function() {
-      open = false;
+      /* ── Meniu ── */
+      var menu = document.createElement('div');
       menu.className = 'alw-menu';
+
+      LANGS.forEach(function(x) {
+        var isActive = x.l === (window.ADMIN_LANG||'ro');
+        var item = document.createElement('div');
+        item.className = 'alw-item' + (isActive ? ' active' : '');
+        item.dataset.lang = x.l;
+        item.innerHTML =
+          '<span class="alw-flag">' + x.flag + '</span>' +
+          '<div><div class="alw-name">' + x.name + '</div><div class="alw-sub">' + x.sub + '</div></div>' +
+          (isActive ? '<span class="alw-dot"></span>' : '');
+        item.onclick = function(e) {
+          e.stopPropagation();
+          menu.className = 'alw-menu'; /* închide */
+          window.setAdminLang(x.l);
+        };
+        menu.appendChild(item);
+      });
+
+      wrap.appendChild(trigger);
+      wrap.appendChild(menu);
+
+      /* Inserăm ÎNAINTE de butonul Logout */
+      flexRow.insertBefore(wrap, logoutBtn);
+
+      /* Toggle dropdown */
+      var isOpen = false;
+      trigger.onclick = function(e) {
+        e.stopPropagation();
+        isOpen = !isOpen;
+        menu.className = 'alw-menu' + (isOpen ? ' open' : '');
+      };
+      document.addEventListener('click', function() {
+        isOpen = false;
+        menu.className = 'alw-menu';
+      });
+    }
+
+    /* Încearcă injectarea după ce React randează header-ul */
+    document.addEventListener('DOMContentLoaded', function() {
+      var attempts = 0;
+      var interval = setInterval(function() {
+        buildDropdown();
+        attempts++;
+        if (document.getElementById('admin-lang-sw') || attempts > 30) clearInterval(interval);
+      }, 300);
     });
-  });
+  })();
   </script>
 </body>
 </html>
