@@ -55,8 +55,10 @@ import {
   type ProductMarket,
   type InsertProductMarket,
   blogPosts,
+  blogPostTranslations,
   type BlogPost,
   type InsertBlogPost,
+  type BlogPostTranslation,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, like, and, or, sql, inArray, isNull, ne } from "drizzle-orm";
@@ -171,6 +173,9 @@ export interface IStorage {
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: number, post: Partial<InsertBlogPost>): Promise<BlogPost>;
   deleteBlogPost(id: number): Promise<void>;
+  getBlogPostTranslations(blogPostId: number): Promise<BlogPostTranslation[]>;
+  getBlogPostTranslation(blogPostId: number, language: string): Promise<BlogPostTranslation | undefined>;
+  upsertBlogPostTranslation(blogPostId: number, language: string, data: { title: string; excerpt: string; content: string }): Promise<BlogPostTranslation>;
 
   // Market settings operations
   getMarketSettings(): Promise<MarketSettings[]>;
@@ -1331,6 +1336,41 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBlogPost(id: number): Promise<void> {
     await db.delete(blogPosts).where(eq(blogPosts.id, id));
+  }
+
+  async getBlogPostTranslations(blogPostId: number): Promise<BlogPostTranslation[]> {
+    try {
+      return await db.select().from(blogPostTranslations).where(eq(blogPostTranslations.blogPostId, blogPostId));
+    } catch { return []; }
+  }
+
+  async getBlogPostTranslation(blogPostId: number, language: string): Promise<BlogPostTranslation | undefined> {
+    try {
+      const [t] = await db.select().from(blogPostTranslations)
+        .where(and(eq(blogPostTranslations.blogPostId, blogPostId), eq(blogPostTranslations.language, language)));
+      return t;
+    } catch { return undefined; }
+  }
+
+  async upsertBlogPostTranslation(blogPostId: number, language: string, data: { title: string; excerpt: string; content: string }): Promise<BlogPostTranslation> {
+    try {
+      const [existing] = await db.select().from(blogPostTranslations)
+        .where(and(eq(blogPostTranslations.blogPostId, blogPostId), eq(blogPostTranslations.language, language)));
+      if (existing) {
+        const [updated] = await db.update(blogPostTranslations)
+          .set(data)
+          .where(and(eq(blogPostTranslations.blogPostId, blogPostId), eq(blogPostTranslations.language, language)))
+          .returning();
+        return updated;
+      }
+      const [created] = await db.insert(blogPostTranslations)
+        .values({ blogPostId, language, ...data })
+        .returning();
+      return created;
+    } catch (err) {
+      console.error("[Storage] upsertBlogPostTranslation error:", err);
+      throw err;
+    }
   }
 
   // Market settings operations

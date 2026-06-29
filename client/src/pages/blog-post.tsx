@@ -11,6 +11,9 @@ import { useJsonLd } from "@/lib/use-json-ld";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/contexts/language-context";
 
+type BlogPostTranslation = { language: string; title: string; excerpt: string; content: string };
+type BlogPostWithTranslations = BlogPost & { translations?: BlogPostTranslation[] };
+
 const dateLocaleMap: Record<string, string> = {
   ro: "ro-RO",
   fr: "fr-FR",
@@ -57,6 +60,13 @@ function simpleMarkdown(md: string): string {
   return result.join("\n");
 }
 
+// Map UI language to blog content language codes
+function uiLangToBlogLang(uiLang: string): string {
+  if (uiLang === "ro") return "ro";
+  if (uiLang === "fr") return "fr";
+  return "en";
+}
+
 export default function BlogPostPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
@@ -64,7 +74,7 @@ export default function BlogPostPage() {
   const { language } = useLanguage();
   const dateLocale = dateLocaleMap[language] ?? "en-US";
 
-  const { data: post, isLoading, isError } = useQuery<BlogPost>({
+  const { data: post, isLoading, isError } = useQuery<BlogPostWithTranslations>({
     queryKey: ["/api/blog/posts", slug],
     queryFn: async () => {
       const res = await fetch(`/api/blog/posts/${slug}`, {
@@ -76,37 +86,48 @@ export default function BlogPostPage() {
     enabled: !!slug,
   });
 
+  // Use translation that matches user's UI language when available
+  const displayPost = useMemo((): BlogPostWithTranslations | null => {
+    if (!post) return null;
+    const postLang = post.language || "ro";
+    const targetLang = uiLangToBlogLang(language);
+    if (targetLang === postLang || !post.translations?.length) return post;
+    const tr = post.translations.find(t => t.language === targetLang);
+    if (!tr) return post;
+    return { ...post, title: tr.title, excerpt: tr.excerpt, content: tr.content };
+  }, [post, language]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (post) {
-      document.title = `${post.title} | Blog xHACCP`;
+    if (displayPost) {
+      document.title = `${displayPost.title} | Blog xHACCP`;
       let metaDesc = document.querySelector('meta[name="description"]');
       if (!metaDesc) {
         metaDesc = document.createElement("meta");
         metaDesc.setAttribute("name", "description");
         document.head.appendChild(metaDesc);
       }
-      metaDesc.setAttribute("content", post.excerpt ?? "");
+      metaDesc.setAttribute("content", displayPost.excerpt ?? "");
     }
-  }, [post]);
+  }, [displayPost]);
 
   const blogPostingSchema = useMemo(() => {
-    if (!post) return null;
+    if (!displayPost) return null;
     const origin = window.location.origin;
     const schema: Record<string, unknown> = {
       "@context": "https://schema.org",
       "@type": "BlogPosting",
-      "headline": post.title,
+      "headline": displayPost.title,
       "mainEntityOfPage": {
         "@type": "WebPage",
-        "@id": `${origin}/blog/${post.slug}`,
+        "@id": `${origin}/blog/${displayPost.slug}`,
       },
-      "url": `${origin}/blog/${post.slug}`,
-      "articleSection": post.category,
-      "keywords": post.tags?.join(", ") || undefined,
+      "url": `${origin}/blog/${displayPost.slug}`,
+      "articleSection": displayPost.category,
+      "keywords": displayPost.tags?.join(", ") || undefined,
       "author": {
         "@type": "Person",
-        "name": post.author,
+        "name": displayPost.author,
       },
       "publisher": {
         "@type": "Organization",
@@ -114,12 +135,12 @@ export default function BlogPostPage() {
         "url": origin,
       },
     };
-    if (post.excerpt) schema["description"] = post.excerpt;
-    if (post.imageUrl) schema["image"] = post.imageUrl;
-    if (post.publishedAt) schema["datePublished"] = new Date(post.publishedAt).toISOString();
-    if ((post as any).updatedAt) schema["dateModified"] = new Date((post as any).updatedAt).toISOString();
+    if (displayPost.excerpt) schema["description"] = displayPost.excerpt;
+    if (displayPost.imageUrl) schema["image"] = displayPost.imageUrl;
+    if (displayPost.publishedAt) schema["datePublished"] = new Date(displayPost.publishedAt).toISOString();
+    if ((displayPost as any).updatedAt) schema["dateModified"] = new Date((displayPost as any).updatedAt).toISOString();
     return schema;
-  }, [post]);
+  }, [displayPost]);
 
   useJsonLd("blog-post", blogPostingSchema);
 
@@ -138,7 +159,7 @@ export default function BlogPostPage() {
     );
   }
 
-  if (isError || !post) {
+  if (isError || !post || !displayPost) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -154,15 +175,15 @@ export default function BlogPostPage() {
     );
   }
 
-  const dateStr = post.publishedAt
-    ? new Date(post.publishedAt).toLocaleDateString(dateLocale, {
+  const dateStr = displayPost.publishedAt
+    ? new Date(displayPost.publishedAt).toLocaleDateString(dateLocale, {
         day: "numeric",
         month: "long",
         year: "numeric",
       })
     : "";
 
-  const htmlContent = simpleMarkdown(post.content);
+  const htmlContent = simpleMarkdown(displayPost.content);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -174,11 +195,11 @@ export default function BlogPostPage() {
           </Button>
         </Link>
 
-        {post.imageUrl && (
+        {displayPost.imageUrl && (
           <div className="rounded-xl overflow-hidden mb-8 aspect-[16/9]">
             <img
-              src={post.imageUrl}
-              alt={post.title}
+              src={displayPost.imageUrl}
+              alt={displayPost.title}
               className="w-full h-full object-cover"
             />
           </div>
@@ -187,9 +208,9 @@ export default function BlogPostPage() {
         <div className="flex flex-wrap gap-2 mb-4">
           <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-0">
             <Tag className="w-3 h-3 mr-1" />
-            {post.category}
+            {displayPost.category}
           </Badge>
-          {post.tags?.map((tag) => (
+          {displayPost.tags?.map((tag) => (
             <Badge key={tag} variant="outline" className="text-xs">
               {tag}
             </Badge>
@@ -197,13 +218,13 @@ export default function BlogPostPage() {
         </div>
 
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4 leading-tight">
-          {post.title}
+          {displayPost.title}
         </h1>
 
         <div className="flex items-center gap-4 text-sm text-slate-400 dark:text-slate-500 mb-8 pb-6 border-b border-slate-200 dark:border-slate-700">
           <span className="flex items-center gap-1">
             <User className="w-4 h-4" />
-            {post.author}
+            {displayPost.author}
           </span>
           {dateStr && (
             <span className="flex items-center gap-1">
@@ -211,10 +232,10 @@ export default function BlogPostPage() {
               {dateStr}
             </span>
           )}
-          {post.readTimeMinutes && (
+          {displayPost.readTimeMinutes && (
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
-              {post.readTimeMinutes} {t("blog.post.readMin")}
+              {displayPost.readTimeMinutes} {t("blog.post.readMin")}
             </span>
           )}
         </div>

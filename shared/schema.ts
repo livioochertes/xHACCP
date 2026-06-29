@@ -620,6 +620,27 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 
+// Blog post translations table (multilingual reading)
+export const blogPostTranslations = pgTable("blog_post_translations", {
+  id: serial("id").primaryKey(),
+  blogPostId: integer("blog_post_id").notNull().references(() => blogPosts.id, { onDelete: "cascade" }),
+  language: varchar("language", { length: 5 }).notNull(),
+  title: text("title").notNull(),
+  excerpt: text("excerpt").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  uniqueLang: uniqueIndex("blog_post_translations_unique").on(table.blogPostId, table.language),
+}));
+
+export const insertBlogPostTranslationSchema = createInsertSchema(blogPostTranslations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type BlogPostTranslation = typeof blogPostTranslations.$inferSelect;
+export type InsertBlogPostTranslation = z.infer<typeof insertBlogPostTranslationSchema>;
+
 // Additional types for API responses
 export type ProductWithCategory = Product & { category: Category | null; supplier: Supplier | null };
 export type OrderWithItems = Order & { items: (OrderItem & { product: Product })[] };

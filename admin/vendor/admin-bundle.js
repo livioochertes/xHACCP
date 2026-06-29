@@ -252,7 +252,7 @@ function AdminDashboard({ token, admin, onLogout }) {
   });
   const [blogPosts, setBlogPosts] = useState([]);
   const [blogGenerating, setBlogGenerating] = useState(false);
-  const [blogGenerateForm, setBlogGenerateForm] = useState({ title: "", category: "HACCP", language: "ro" });
+  const [blogGenerateForm, setBlogGenerateForm] = useState({ title: "", category: "HACCP", language: (() => { var _m = sessionStorage.getItem("adminMarketTab"); return _m === "fr" ? "fr" : _m === "com" ? "en" : "ro"; })() });
   const [editingBlogPost, setEditingBlogPost] = useState(null);
   const [previewBlogPost, setPreviewBlogPost] = useState(null);
   const [blogEditForm, setBlogEditForm] = useState({ title: "", excerpt: "", content: "", imageUrl: "", category: "", published: true });
@@ -398,16 +398,21 @@ function AdminDashboard({ token, admin, onLogout }) {
   useEffect(() => {
     sessionStorage.setItem("adminMarketTab", selectedMarketTab);
     setMarketFilter(selectedMarketTab);
+    var _bLang = selectedMarketTab === "fr" ? "fr" : selectedMarketTab === "com" ? "en" : "ro";
+    setBlogGenerateForm(function(_bf) { return __spreadProps(__spreadValues({}, _bf), { language: _bLang }); });
     if (activeView === "users") fetchUsers();
     else if (activeView === "products") fetchProducts();
     else if (activeView === "categories") fetchCategories();
     else if (activeView === "suppliers") fetchSuppliers();
     else if (activeView === "vouchers") fetchVouchers();
     else if (activeView === "company-settings") fetchCompanySettings();
+    else if (activeView === "blog") fetchBlogPosts();
   }, [selectedMarketTab]);
   useEffect(() => {
     if (activeView === "orders") {
       fetchOrders(marketFilter);
+    } else if (activeView === "blog") {
+      fetchBlogPosts();
     }
   }, [marketFilter, activeView]);
   useEffect(() => {
@@ -590,7 +595,9 @@ function AdminDashboard({ token, admin, onLogout }) {
   };
   const fetchBlogPosts = async () => {
     try {
-      const response = await fetch("/admin/api/blog/posts", {
+      var _bMkt = sessionStorage.getItem("adminMarketTab");
+      var _bMktQ = _bMkt && _bMkt !== "all" ? "?market=" + _bMkt : "";
+      const response = await fetch("/admin/api/blog/posts" + _bMktQ, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
@@ -3257,7 +3264,9 @@ This action cannot be undone.`)) {
           {
             value: blogGenerateForm.language,
             onChange: (e) => setBlogGenerateForm(__spreadProps(__spreadValues({}, blogGenerateForm), { language: e.target.value })),
-            style: { width: "100%", padding: "8px 12px", border: "1px solid #ced4da", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" }
+            disabled: !adminIsSuperAdmin,
+            title: !adminIsSuperAdmin ? (window.ADMIN_LANG === "fr" ? "Langue fix\xE9e par votre march\xE9" : window.ADMIN_LANG === "en" ? "Language locked to your market" : "Limba este fix\u0103 pentru marketplace-ul t\u0103u") : "",
+            style: { width: "100%", padding: "8px 12px", border: "1px solid #ced4da", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box", opacity: adminIsSuperAdmin ? 1 : 0.75, cursor: adminIsSuperAdmin ? "auto" : "not-allowed" }
           },
           /* @__PURE__ */ React.createElement("option", { value: "ro" }, "\u{1F1F7}\u{1F1F4} Rom\xE2n\u0103 (RO)"),
           /* @__PURE__ */ React.createElement("option", { value: "fr" }, "\u{1F1EB}\u{1F1F7} Francez\u0103 (FR)"),

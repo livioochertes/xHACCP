@@ -495,6 +495,166 @@
     }, 20000);
   </script>
 
+  <!-- Admin i18n: detect language from hostname/localStorage, translate blog section -->
+  <script>
+  (function() {
+    var host = window.location.hostname;
+    var saved = (typeof localStorage !== 'undefined') ? localStorage.getItem('adminLang') : null;
+    var autoLang = host.indexOf('.fr') !== -1 ? 'fr' : (host.indexOf('xhaccp.com') !== -1 ? 'en' : 'ro');
+    window.ADMIN_LANG = saved || autoLang;
+    window.ADMIN_MARKET = host.indexOf('.fr') !== -1 ? 'fr' : (host.indexOf('xhaccp.com') !== -1 ? 'com' : 'ro');
+    window.ADMIN_MARKET_LANG = {ro:'ro',fr:'fr',com:'en'}[window.ADMIN_MARKET] || 'ro';
+
+    var T = {
+      ro: {},
+      fr: {
+        'Generează articol nou': 'Générer un article',
+        'Titlu (opțional)': 'Titre (optionnel)',
+        'Lasă gol pentru temă automată': 'Laisser vide pour sujet automatique',
+        'Categorie': 'Catégorie',
+        'Limbă': 'Langue',
+        '✨ Generează': '✨ Générer',
+        '⏳ Generez...': '⏳ Génération...',
+        '⏰ Generare automată': '⏰ Génération automatique',
+        'Încarcă configurație': 'Charger configuration',
+        'Activat': 'Activé',
+        'La fiecare (zile)': 'Tous les (jours)',
+        'Ora (0-23, Bucharest)': 'Heure (0-23, Bucarest)',
+        '💾 Salvează': '💾 Sauvegarder',
+        'Generare săptămânală pe piață': 'Génération hebdomadaire par marché',
+        'Generează un articol din subiectele predefinite pentru:': 'Générer un article pour:',
+        '⏳ Generez (~30s)...': '⏳ Génération (~30s)...',
+        '🔄 Reîncarcă': '🔄 Actualiser',
+        'Titlu': 'Titre',
+        'Data': 'Date',
+        'Acțiuni': 'Actions',
+        'Publicat': 'Publié',
+        'Draft': 'Brouillon',
+        'dezactivat': 'désactivé',
+        'Se încarcă...': 'Chargement...',
+        'Dashboard': 'Tableau de bord',
+        'Produse': 'Produits',
+        'Categorii': 'Catégories',
+        'Comenzi': 'Commandes',
+        'Clienți': 'Clients',
+        'Furnizori': 'Fournisseurs',
+        'Voucher-e': 'Bons de réduction',
+        'Piețe': 'Marchés',
+        'Blog': 'Blog',
+        'Setări': 'Paramètres',
+        'Deconectare': 'Déconnexion'
+      },
+      en: {
+        'Generează articol nou': 'Generate new article',
+        'Titlu (opțional)': 'Title (optional)',
+        'Lasă gol pentru temă automată': 'Leave empty for automatic topic',
+        'Categorie': 'Category',
+        'Limbă': 'Language',
+        '✨ Generează': '✨ Generate',
+        '⏳ Generez...': '⏳ Generating...',
+        '⏰ Generare automată': '⏰ Automatic generation',
+        'Încarcă configurație': 'Load configuration',
+        'Activat': 'Enabled',
+        'La fiecare (zile)': 'Every (days)',
+        'Ora (0-23, Bucharest)': 'Hour (0-23, Bucharest)',
+        '💾 Salvează': '💾 Save',
+        'Generare săptămânală pe piață': 'Weekly generation by market',
+        'Generează un articol din subiectele predefinite pentru:': 'Generate article for:',
+        '⏳ Generez (~30s)...': '⏳ Generating (~30s)...',
+        '🔄 Reîncarcă': '🔄 Reload',
+        'Titlu': 'Title',
+        'Data': 'Date',
+        'Acțiuni': 'Actions',
+        'Publicat': 'Published',
+        'Draft': 'Draft',
+        'dezactivat': 'disabled',
+        'Se încarcă...': 'Loading...',
+        'Dashboard': 'Dashboard',
+        'Produse': 'Products',
+        'Categorii': 'Categories',
+        'Comenzi': 'Orders',
+        'Clienți': 'Customers',
+        'Furnizori': 'Suppliers',
+        'Voucher-e': 'Vouchers',
+        'Piețe': 'Markets',
+        'Blog': 'Blog',
+        'Setări': 'Settings',
+        'Deconectare': 'Logout'
+      }
+    };
+
+    window.AT = function(txt) {
+      var dict = T[window.ADMIN_LANG];
+      if (!dict) return txt;
+      return dict[txt] !== undefined ? dict[txt] : txt;
+    };
+
+    // Apply text translations via MutationObserver when React renders
+    if (window.ADMIN_LANG && window.ADMIN_LANG !== 'ro') {
+      document.addEventListener('DOMContentLoaded', function() {
+        var dict = T[window.ADMIN_LANG] || {};
+        var keys = Object.keys(dict);
+        if (!keys.length) return;
+
+        var translating = false;
+        function translateNode(node) {
+          if (node.nodeType === 3) {
+            var val = node.nodeValue;
+            if (val && val.trim()) {
+              var key = val.trim();
+              if (dict[key] !== undefined && dict[key] !== key) {
+                node.nodeValue = val.replace(key, dict[key]);
+              }
+            }
+          } else if (node.childNodes && node.nodeType === 1) {
+            for (var i = 0; i < node.childNodes.length; i++) {
+              translateNode(node.childNodes[i]);
+            }
+          }
+        }
+
+        function schedTranslate() {
+          if (translating) return;
+          translating = true;
+          requestAnimationFrame(function() {
+            translating = false;
+            translateNode(document.body);
+          });
+        }
+
+        var obs = new MutationObserver(schedTranslate);
+        obs.observe(document.body, { childList: true, subtree: true });
+      });
+    }
+
+    window.setAdminLang = function(lang) {
+      localStorage.setItem('adminLang', lang);
+      location.reload();
+    };
+  })();
+  </script>
+
   <script src="/admin/vendor/admin-bundle.js"></script>
+
+  <!-- Language switcher: floating buttons bottom-right -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var sw = document.createElement('div');
+    sw.id = 'admin-lang-switcher';
+    sw.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:6px;align-items:center;';
+    sw.title = 'Switch language / Schimbă limba / Changer de langue';
+    var langs = [{l:'ro',flag:'🇷🇴',name:'RO'},{l:'fr',flag:'🇫🇷',name:'FR'},{l:'en',flag:'🇬🇧',name:'EN'}];
+    langs.forEach(function(x) {
+      var active = window.ADMIN_LANG === x.l;
+      var btn = document.createElement('button');
+      btn.onclick = function() { window.setAdminLang(x.l); };
+      btn.title = x.name;
+      btn.style.cssText = 'background:' + (active ? '#667eea' : 'white') + ';color:' + (active ? 'white' : '#667eea') + ';border:2px solid #667eea;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(102,126,234,0.4);transition:all 0.2s;';
+      btn.textContent = x.flag;
+      sw.appendChild(btn);
+    });
+    document.body.appendChild(sw);
+  });
+  </script>
 </body>
 </html>

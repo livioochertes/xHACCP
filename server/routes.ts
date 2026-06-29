@@ -4056,7 +4056,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (postMarket !== market) {
         return res.status(404).json({ message: "Blog post not found" });
       }
-      res.json(post);
+      const translations = await storage.getBlogPostTranslations(post.id);
+      res.json({ ...post, translations });
     } catch (error) {
       console.error("Get blog post error:", error);
       res.status(500).json({ message: "Failed to fetch blog post" });
@@ -4092,7 +4093,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (postMarket !== market) {
         return res.status(404).json({ message: "Blog post not found" });
       }
-      res.json(post);
+      const translations = await storage.getBlogPostTranslations(post.id);
+      res.json({ ...post, translations });
     } catch (error) {
       console.error("Get blog post error:", error);
       res.status(500).json({ message: "Failed to fetch blog post" });
@@ -4102,7 +4104,19 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   // Admin: list all posts (including unpublished)
   app.get("/api/admin/blog/posts", authenticateToken, requireAdmin, async (req, res) => {
     try {
-      const posts = await storage.getBlogPosts();
+      const market = req.query.market as string | undefined;
+      const adminUser = (req as any).user;
+      const adminMarkets: string[] = adminUser?.adminMarkets || [];
+      const isSuperAdmin = adminMarkets.length === 0;
+
+      let options: { marketCode?: string } | undefined;
+      if (market && market !== "all") {
+        options = { marketCode: market };
+      } else if (!isSuperAdmin && adminMarkets.length > 0) {
+        options = { marketCode: adminMarkets[0] };
+      }
+
+      const posts = await storage.getBlogPosts(options);
       res.json(posts);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch blog posts" });

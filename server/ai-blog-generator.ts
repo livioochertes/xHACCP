@@ -518,5 +518,66 @@ async function generateBlogPostForTopic(topic: BlogTopicData): Promise<number> {
 
   const created = await storage.createBlogPost(post);
   console.log(`[Blog Generator] Post created: "${created.title}" (ID: ${created.id}, lang: ${topic.language})`);
+
+  // Fire-and-forget: generate translations for the other 2 languages
+  generateTranslationsForPost(created.id, post.title, post.excerpt, post.content, topic.language, marketCode).catch(err => {
+    console.error("[Blog Generator] Auto-translation error:", err);
+  });
+
   return created.id;
+}
+
+// ── Multilingual translation ──────────────────────────────────────────────
+
+const LANG_NAMES: Record<string, string> = { ro: "Romanian", fr: "French", en: "English" };
+
+const MARKET_OTHER_LANGS: Record<string, string[]> = {
+  ro:  ["en", "fr"],
+  fr:  ["ro", "en"],
+  com: ["ro", "fr"],
+};
+
+async function translateField(text: string, toLang: string, role: string): Promise<string> {
+  const langName = LANG_NAMES[toLang] || toLang;
+  const instruction =
+    role === "title"   ? `Translate this blog post title to ${langName}. Reply ONLY with the translation, nothing else.` :
+    role === "excerpt" ? `Translate this SEO excerpt (2-3 sentences) to ${langName}. Reply ONLY with the translation.` :
+                         `Translate this blog article to ${langName}. Preserve ALL Markdown formatting (## headings, **bold**, bullet lists, etc.). Reply ONLY with the translated content.`;
+
+  const resp = await client.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: role === "content" ? 3000 : 200,
+    messages: [{ role: "user", content: `${instruction}\n\n${text}` }],
+  });
+  const block = resp.content[0];
+  return block.type === "text" ? block.text.trim() : text;
+}
+
+export async function generateTranslationsForPost(
+  postId: number,
+  title: string,
+  excerpt: string,
+  content: string,
+  srcLang: string,
+  marketCode: string
+): Promise<void> {
+  const targets = MARKET_OTHER_LANGS[marketCode] ?? ["en", "fr"];
+  for (const toLang of targets) {
+    try {
+      console.log(`[Blog Generator] Translating post ${postId} → ${toLang}…`);
+      const [tTitle, tExcerpt, tContent] = await Promise.all([
+        translateField(title,   toLang, "title"),
+        translateField(excerpt, toLang, "excerpt"),
+        translateField(content, toLang, "content"),
+      ]);
+      await storage.upsertBlogPostTranslation(postId, toLang, {
+        title: tTitle,
+        excerpt: tExcerpt.substring(0, 500),
+        content: tContent,
+      });
+      console.log(`[Blog Generator] Translation ${toLang} done for post ${postId}`);
+    } catch (err) {
+      console.error(`[Blog Generator] Translation ${toLang} failed for post ${postId}:`, err);
+    }
+  }
 }
