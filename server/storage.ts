@@ -143,9 +143,9 @@ export interface IStorage {
 
   // Admin stats operations
   getTotalUsers(): Promise<number>;
-  getTotalOrders(): Promise<number>;
+  getTotalOrders(markets?: string[]): Promise<number>;
   getTotalProducts(): Promise<number>;
-  getRecentOrders(limit: number): Promise<OrderWithItems[]>;
+  getRecentOrders(limit: number, markets?: string[]): Promise<OrderWithItems[]>;
 
   // Company settings operations
   getCompanySettings(): Promise<CompanySettings | undefined>;
@@ -1064,7 +1064,11 @@ export class DatabaseStorage implements IStorage {
     return result.count;
   }
 
-  async getTotalOrders(): Promise<number> {
+  async getTotalOrders(markets?: string[]): Promise<number> {
+    if (markets && markets.length > 0) {
+      const [result] = await db.select({ count: sql<number>`count(*)` }).from(orders).where(inArray(orders.market, markets));
+      return result.count;
+    }
     const [result] = await db.select({ count: sql<number>`count(*)` }).from(orders);
     return result.count;
   }
@@ -1074,8 +1078,8 @@ export class DatabaseStorage implements IStorage {
     return result.count;
   }
 
-  async getRecentOrders(limit: number): Promise<OrderWithItems[]> {
-    const ordersWithItems = await db.select({
+  async getRecentOrders(limit: number, markets?: string[]): Promise<OrderWithItems[]> {
+    const baseQuery = db.select({
       id: orders.id,
       userId: orders.userId,
       market: orders.market,
@@ -1089,9 +1093,11 @@ export class DatabaseStorage implements IStorage {
       notes: orders.notes,
       createdAt: orders.createdAt,
       updatedAt: orders.updatedAt,
-    }).from(orders)
-      .orderBy(desc(orders.createdAt))
-      .limit(limit);
+    }).from(orders);
+
+    const ordersWithItems = await (markets && markets.length > 0
+      ? baseQuery.where(inArray(orders.market, markets)).orderBy(desc(orders.createdAt)).limit(limit)
+      : baseQuery.orderBy(desc(orders.createdAt)).limit(limit));
 
     const result: OrderWithItems[] = [];
     for (const order of ordersWithItems) {
