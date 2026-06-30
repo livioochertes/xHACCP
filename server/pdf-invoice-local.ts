@@ -12,6 +12,7 @@ if (!fs.existsSync(PDF_DIR)) {
 
 export interface PdfInvoiceData {
   invoiceNumber: string;
+  documentType?: string; // e.g. 'FACTURE / INVOICE' or 'DEVIS / PRO-FORMA'
   issueDate: Date;
   dueDate?: Date;
   market: string;
@@ -94,7 +95,7 @@ export async function generateInvoicePdf(data: PdfInvoiceData): Promise<string> 
 
       doc.fontSize(10)
         .font('Helvetica')
-        .text('FACTURE / INVOICE', 50, 50, { width: 300 });
+        .text(data.documentType || 'FACTURE / INVOICE', 50, 50, { width: 300 });
 
       // Invoice number & date block (top right)
       const invBoxX = 370;

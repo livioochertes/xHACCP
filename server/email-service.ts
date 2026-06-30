@@ -1358,6 +1358,52 @@ export async function sendCustomerShipmentEmail(
   }
 }
 
+export async function sendManualInvoiceEmail(params: {
+  pdfBuffer: Buffer;
+  invoiceNumber: string;
+  toEmail: string;
+  customMessage: string;
+  sellerName: string;
+  market: string;
+}): Promise<boolean> {
+  const { pdfBuffer, invoiceNumber, toEmail, customMessage, sellerName } = params;
+  const isProforma = invoiceNumber.startsWith('PRO-');
+  const docType = isProforma ? 'Devis / Proformă' : 'Facture / Factură';
+  const subject = `${docType} N° ${invoiceNumber} — ${sellerName}`;
+  const filename = `${isProforma ? 'Proforma' : 'Factura'}_${invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+  const safeMessage = customMessage.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto;">
+      <div style="background: #1a4f8a; color: white; padding: 20px 28px; border-radius: 6px 6px 0 0;">
+        <h2 style="margin:0; font-size:18px;">📄 ${docType}</h2>
+        <p style="margin:4px 0 0; font-size:13px; opacity:0.85;">N° ${invoiceNumber} — ${sellerName}</p>
+      </div>
+      <div style="padding: 24px 28px; background: white; border: 1px solid #e9ecef; border-top: none;">
+        <p style="color:#333; line-height:1.6;">${safeMessage}</p>
+        <hr style="border:none; border-top:1px solid #eee; margin:20px 0;">
+        <p style="color:#666; font-size:12px;">📎 Le document est joint à cet email en format PDF.<br>Documentul este atașat acestui email în format PDF.</p>
+      </div>
+      <div style="background:#f8f9fa; padding:12px 28px; border:1px solid #e9ecef; border-top:none; font-size:11px; color:#6c757d; text-align:center; border-radius:0 0 6px 6px;">
+        ${sellerName} · Document généré par xHACCP
+      </div>
+    </div>`;
+
+  const fromEmail = (await getCompanyEmailFromSettings()) || 'noreply@xhaccp.ro';
+  return await sendEmail({
+    from: fromEmail,
+    to: toEmail,
+    subject,
+    html: htmlContent,
+    attachments: [{
+      content: pdfBuffer.toString('base64'),
+      filename,
+      type: 'application/pdf',
+      disposition: 'attachment',
+    }]
+  });
+}
+
 async function getCompanyEmailFromSettings(): Promise<string | null> {
   try {
     const { pool } = await import('./db.js');

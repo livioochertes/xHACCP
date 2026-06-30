@@ -12190,6 +12190,8 @@
     const [invoiceMarketFilter, setInvoiceMarketFilter] = (0, import_react13.useState)("all");
     const [invoiceDetailModal, setInvoiceDetailModal] = (0, import_react13.useState)(null);
     const [invoiceDetailLoading, setInvoiceDetailLoading] = (0, import_react13.useState)(false);
+    const [showManualInvoiceModal, setShowManualInvoiceModal] = (0, import_react13.useState)(false);
+    const [sendInvoiceEmailModal, setSendInvoiceEmailModal] = (0, import_react13.useState)(null);
     const [vouchers, setVouchers] = (0, import_react13.useState)([]);
     const [showAddVoucherModal, setShowAddVoucherModal] = (0, import_react13.useState)(false);
     const [editingVoucher, setEditingVoucher] = (0, import_react13.useState)(null);
@@ -15996,7 +15998,8 @@ This action cannot be undone.`)) {
                 }, children: [
                   "\u{1F504} ",
                   t2("common.refresh")
-                ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { className: "btn", style: { background: "#1a4f8a", width: "auto", padding: "6px 14px", fontWeight: "600" }, onClick: () => setShowManualInvoiceModal(true), children: "\u270F\uFE0F Emite Factur\u0103 / Proform\u0103" })
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", marginBottom: "20px", fontSize: "13px" }, children: t2("invoices.description") }),
@@ -16178,6 +16181,15 @@ This action cannot be undone.`)) {
                           ]
                         }
                       ),
+                      hasPdf && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          onClick: () => setSendInvoiceEmailModal({ id: inv.id, invoiceNumber: inv.invoiceNumber, userEmail: inv.userEmail || "" }),
+                          title: "Trimite pe email",
+                          style: { background: "#0066cc", color: "white", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px" },
+                          children: "\u2709\uFE0F Email"
+                        }
+                      ),
                       !hasPdf && !isSmartbill && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#adb5bd", fontSize: "11px" }, children: "\u2014" })
                     ] }) })
                   ] }, inv.id);
@@ -16190,6 +16202,21 @@ This action cannot be undone.`)) {
                 " total"
               ] })
             ] }),
+            showManualInvoiceModal && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              ManualInvoiceModal,
+              {
+                onClose: () => setShowManualInvoiceModal(false),
+                onCreated: () => {
+                }
+              }
+            ),
+            sendInvoiceEmailModal && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              SendInvoiceEmailModal,
+              {
+                invoice: sendInvoiceEmailModal,
+                onClose: () => setSendInvoiceEmailModal(null)
+              }
+            ),
             invoiceDetailModal && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "div",
               {
@@ -17510,6 +17537,323 @@ This action cannot be undone.`)) {
           }
         ) })
       ] });
+    };
+    const _inputSt = { width: "100%", padding: "7px 10px", border: "1px solid #ced4da", borderRadius: "6px", fontSize: "13px", boxSizing: "border-box" };
+    const _labelSt = { display: "block", marginBottom: "4px", fontSize: "12px", fontWeight: "600", color: "#495057" };
+    const ManualInvoiceModal = ({ onClose, onCreated }) => {
+      const defaultItem = () => ({ desc: "", qty: 1, unitPrice: 0, vatRate: market === "ro" ? 19 : 20, lineTotal: 0 });
+      const initMarket = !adminIsSuperAdmin && admin?.adminMarkets?.length > 0 ? admin.adminMarkets[0] : selectedMarketTab !== "all" ? selectedMarketTab : "fr";
+      const [type, setType] = (0, import_react13.useState)("invoice");
+      const [market, setMarket] = (0, import_react13.useState)(initMarket);
+      const [currency, setCurrency] = (0, import_react13.useState)(initMarket === "ro" ? "RON" : "EUR");
+      const [buyer, setBuyer] = (0, import_react13.useState)({ name: "", company: "", address: "", city: "", zip: "", country: initMarket === "ro" ? "Rom\xE2nia" : initMarket === "fr" ? "France" : "", email: "", vat: "" });
+      const [items, setItems] = (0, import_react13.useState)([{ desc: "", qty: 1, unitPrice: 0, vatRate: initMarket === "ro" ? 19 : 20 }]);
+      const [dueDate, setDueDate] = (0, import_react13.useState)("");
+      const [paymentMethod, setPaymentMethod] = (0, import_react13.useState)("wire_transfer");
+      const [notes, setNotes] = (0, import_react13.useState)("");
+      const [creating, setCreating] = (0, import_react13.useState)(false);
+      const setBuyerField = (k, v) => setBuyer((b) => ({ ...b, [k]: v }));
+      const setItemField = (i, k, v) => setItems((prev) => {
+        const upd = prev.map((it, idx) => idx === i ? { ...it, [k]: v } : it);
+        return upd;
+      });
+      const getLineTotal = (it) => parseFloat(it.qty || 0) * parseFloat(it.unitPrice || 0);
+      const subtotal = items.reduce((s, it) => s + getLineTotal(it), 0);
+      const vatAmount = items.reduce((s, it) => s + getLineTotal(it) * (parseFloat(it.vatRate || 0) / 100), 0);
+      const totalAmount = subtotal + vatAmount;
+      const marketOptions = adminIsSuperAdmin ? ["ro", "fr", "com"] : admin?.adminMarkets || [];
+      const submit = async () => {
+        if (!buyer.name.trim()) {
+          alert("Completa\u021Bi numele clientului");
+          return;
+        }
+        if (!buyer.email.trim()) {
+          alert("Completa\u021Bi email-ul clientului");
+          return;
+        }
+        if (items.some((it) => !it.desc.trim() || parseFloat(it.qty) <= 0)) {
+          alert("Completa\u021Bi toate liniile (descriere + cantitate)");
+          return;
+        }
+        setCreating(true);
+        try {
+          const resp = await fetch("/admin/api/invoices/manual", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type,
+              market,
+              currency,
+              buyer: { name: buyer.name, companyName: buyer.company, address: buyer.address, city: buyer.city, zipCode: buyer.zip, country: buyer.country, email: buyer.email, vatNumber: buyer.vat },
+              items: items.map((it) => ({ productName: it.desc, quantity: parseFloat(it.qty), unitPrice: parseFloat(it.unitPrice), vatRate: parseFloat(it.vatRate || 0) })),
+              dueDate: dueDate || null,
+              paymentMethod,
+              notes
+            })
+          });
+          const data = await resp.json();
+          if (resp.ok) {
+            fetchInvoices();
+            onCreated && onCreated(data);
+            onClose();
+            alert(`\u2705 ${type === "proforma" ? "Proform\u0103" : "Factur\u0103"} ${data.invoiceNumber} creat\u0103 cu succes!
+Po\u021Bi desc\u0103rca PDF-ul sau trimite pe email din list\u0103.`);
+          } else {
+            alert("\u274C Eroare: " + (data.message || "Necunoscut\u0103"));
+          }
+        } catch (e2) {
+          alert("\u274C Eroare re\u021Bea: " + e2.message);
+        }
+        setCreating(false);
+      };
+      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        "div",
+        {
+          style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", zIndex: 9500, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "30px", overflowY: "auto" },
+          onClick: (e2) => {
+            if (e2.target === e2.currentTarget) onClose();
+          },
+          children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", borderRadius: "8px", width: "820px", maxWidth: "96vw", boxShadow: "0 8px 40px rgba(0,0,0,0.28)", marginBottom: "40px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#1a4f8a", color: "white", padding: "18px 24px", borderRadius: "8px 8px 0 0", display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { margin: 0, fontSize: "17px" }, children: "\u{1F9FE} Emitere Factur\u0103 / Proform\u0103" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: onClose, style: { background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: "4px", padding: "4px 12px", cursor: "pointer", fontSize: "16px" }, children: "\u2715" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "24px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", gap: "8px", marginBottom: "20px" }, children: [["invoice", "\u{1F4C4} Factur\u0103 (Invoice)"], ["proforma", "\u{1F4DD} Proform\u0103 (Devis)"]].map(([v, l]) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "button",
+                {
+                  onClick: () => setType(v),
+                  style: { padding: "8px 22px", borderRadius: "6px", border: type === v ? "2px solid #1a4f8a" : "1px solid #ced4da", background: type === v ? "#1a4f8a" : "white", color: type === v ? "white" : "#333", cursor: "pointer", fontWeight: type === v ? "600" : "400", fontSize: "14px" },
+                  children: l
+                },
+                v
+              )) }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Marketplace *" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("select", { value: market, onChange: (e2) => {
+                    setMarket(e2.target.value);
+                    setCurrency(e2.target.value === "ro" ? "RON" : "EUR");
+                  }, style: _inputSt, children: marketOptions.map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: m, children: m === "ro" ? "\u{1F1F7}\u{1F1F4} Rom\xE2nia (.ro)" : m === "fr" ? "\u{1F1EB}\u{1F1F7} France (.fr)" : "\u{1F30D} International (.com)" }, m)) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Moned\u0103" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "text", value: currency, onChange: (e2) => setCurrency(e2.target.value), style: _inputSt, placeholder: "EUR / RON" })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", borderRadius: "6px", padding: "16px", marginBottom: "20px", border: "1px solid #dee2e6" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 12px", color: "#333", fontSize: "14px" }, children: "\u{1F464} Client / Destinataire" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Nume *" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: _inputSt, value: buyer.name, onChange: (e2) => setBuyerField("name", e2.target.value), placeholder: "Jean Dupont" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Societate / Soci\xE9t\xE9" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: _inputSt, value: buyer.company, onChange: (e2) => setBuyerField("company", e2.target.value), placeholder: "SARL Example" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Email *" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "email", style: _inputSt, value: buyer.email, onChange: (e2) => setBuyerField("email", e2.target.value), placeholder: "client@example.com" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "TVA / SIRET / CUI" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: _inputSt, value: buyer.vat, onChange: (e2) => setBuyerField("vat", e2.target.value), placeholder: "FR 12 345678901" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Adres\u0103" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: _inputSt, value: buyer.address, onChange: (e2) => setBuyerField("address", e2.target.value), placeholder: "12 Rue de la Paix" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "90px 1fr", gap: "8px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Cod po\u0219tal" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: _inputSt, value: buyer.zip, onChange: (e2) => setBuyerField("zip", e2.target.value), placeholder: "75001" })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Ora\u0219 / Ville" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: _inputSt, value: buyer.city, onChange: (e2) => setBuyerField("city", e2.target.value), placeholder: "Paris" })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "\u021Aar\u0103 / Pays" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: _inputSt, value: buyer.country, onChange: (e2) => setBuyerField("country", e2.target.value), placeholder: "France" })
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: 0, color: "#333", fontSize: "14px" }, children: "\u{1F4CB} Articole / Lignes" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "button",
+                    {
+                      onClick: () => setItems((prev) => [...prev, { desc: "", qty: 1, unitPrice: 0, vatRate: market === "ro" ? 19 : 20 }]),
+                      style: { background: "#28a745", color: "white", border: "none", borderRadius: "4px", padding: "5px 14px", cursor: "pointer", fontSize: "13px" },
+                      children: "+ Adaug\u0103 linie"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "13px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { background: "#1a4f8a", color: "white" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 10px", textAlign: "left" }, children: "Descriere *" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "right", width: "55px" }, children: "Qty" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "right", width: "110px" }, children: "P.U. HT" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "right", width: "70px" }, children: "TVA%" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "right", width: "110px" }, children: "Total HT" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", width: "28px" } })
+                  ] }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: items.map((item, i) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #dee2e6", background: i % 2 === 0 ? "white" : "#f8f9fa" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "4px 6px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: { ..._inputSt, margin: 0 }, value: item.desc, onChange: (e2) => setItemField(i, "desc", e2.target.value), placeholder: "Produit / Serviciu" }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "4px 6px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "number", min: "0.01", step: "0.01", style: { ..._inputSt, margin: 0, textAlign: "right" }, value: item.qty, onChange: (e2) => setItemField(i, "qty", e2.target.value) }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "4px 6px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "number", min: "0", step: "0.01", style: { ..._inputSt, margin: 0, textAlign: "right" }, value: item.unitPrice, onChange: (e2) => setItemField(i, "unitPrice", e2.target.value) }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "4px 6px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "number", min: "0", max: "100", step: "0.01", style: { ..._inputSt, margin: 0, textAlign: "right" }, value: item.vatRate, onChange: (e2) => setItemField(i, "vatRate", e2.target.value) }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "4px 8px", textAlign: "right", fontWeight: "600" }, children: getLineTotal(item).toFixed(2) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "4px 6px", textAlign: "center" }, children: items.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setItems((prev) => prev.filter((_, j) => j !== i)), style: { background: "#dc3545", color: "white", border: "none", borderRadius: "3px", padding: "2px 6px", cursor: "pointer", fontSize: "11px" }, children: "\u2715" }) })
+                  ] }, i)) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { minWidth: "290px", background: "#f0f8ff", border: "1px solid #bee5eb", borderRadius: "6px", padding: "14px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px", color: "#555" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "Sous-total HT:" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
+                      subtotal.toFixed(2),
+                      " ",
+                      currency
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "13px", color: "#555" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "TVA:" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
+                      vatAmount.toFixed(2),
+                      " ",
+                      currency
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", borderTop: "2px solid #1a4f8a", paddingTop: "8px", fontSize: "15px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "TOTAL TTC:" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#1a4f8a" }, children: [
+                      totalAmount.toFixed(2),
+                      " ",
+                      currency
+                    ] })
+                  ] })
+                ] }) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 2fr", gap: "16px", marginBottom: "20px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Scaden\u021B\u0103 / \xC9ch\xE9ance" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "date", style: _inputSt, value: dueDate, onChange: (e2) => setDueDate(e2.target.value) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Mod plat\u0103" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { style: _inputSt, value: paymentMethod, onChange: (e2) => setPaymentMethod(e2.target.value), children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "wire_transfer", children: "Virement / Transfer bancar" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "card", children: "Carte / Card" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "cash", children: "Esp\xE8ces / Numerar" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "cash_on_delivery", children: "Ramburs / COD" })
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Note / Mentions" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: _inputSt, value: notes, onChange: (e2) => setNotes(e2.target.value), placeholder: "Men\u021Biuni legale, banc\u0103..." })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "flex-end", gap: "12px", borderTop: "1px solid #dee2e6", paddingTop: "16px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: onClose, style: { background: "#6c757d", color: "white", border: "none", borderRadius: "6px", padding: "10px 24px", cursor: "pointer", fontSize: "14px" }, children: "Anuleaz\u0103" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "button",
+                  {
+                    onClick: submit,
+                    disabled: creating,
+                    style: { background: creating ? "#6c757d" : "#1a4f8a", color: "white", border: "none", borderRadius: "6px", padding: "10px 26px", cursor: creating ? "not-allowed" : "pointer", fontSize: "14px", fontWeight: "600" },
+                    children: creating ? "\u23F3 Se creeaz\u0103..." : `\u2705 Emite ${type === "proforma" ? "Proform\u0103" : "Factur\u0103"}`
+                  }
+                )
+              ] })
+            ] })
+          ] })
+        }
+      );
+    };
+    const SendInvoiceEmailModal = ({ invoice, onClose }) => {
+      const [email, setEmail] = (0, import_react13.useState)(invoice.userEmail || "");
+      const [message, setMessage] = (0, import_react13.useState)(
+        `Bonjour,
+
+Veuillez trouver en pi\xE8ce jointe votre document N\xB0 ${invoice.invoiceNumber}.
+
+Nous restons \xE0 votre disposition pour toute question.
+
+Cordialement,`
+      );
+      const [sending, setSending] = (0, import_react13.useState)(false);
+      const send = async () => {
+        if (!email.trim()) {
+          alert("Introduce\u021Bi adresa de email");
+          return;
+        }
+        setSending(true);
+        try {
+          const resp = await fetch(`/admin/api/invoices/${invoice.id}/send-email`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ email, message })
+          });
+          const data = await resp.json();
+          if (resp.ok) {
+            alert(`\u2705 Email trimis cu succes la ${email}`);
+            onClose();
+          } else {
+            alert("\u274C Eroare: " + (data.message || "Necunoscut\u0103"));
+          }
+        } catch (e2) {
+          alert("\u274C Eroare re\u021Bea: " + e2.message);
+        }
+        setSending(false);
+      };
+      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        "div",
+        {
+          style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center" },
+          onClick: (e2) => {
+            if (e2.target === e2.currentTarget) onClose();
+          },
+          children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", borderRadius: "8px", width: "520px", maxWidth: "95vw", boxShadow: "0 8px 40px rgba(0,0,0,0.25)" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#0066cc", color: "white", padding: "16px 22px", borderRadius: "8px 8px 0 0", display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { margin: 0, fontSize: "15px" }, children: [
+                "\u2709\uFE0F Trimite pe email \u2014 ",
+                invoice.invoiceNumber
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: onClose, style: { background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: "4px", padding: "4px 10px", cursor: "pointer", fontSize: "15px" }, children: "\u2715" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "14px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Adres\u0103 email destinatar *" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "email", style: _inputSt, value: email, onChange: (e2) => setEmail(e2.target.value), placeholder: "client@example.com" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "14px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: _labelSt, children: "Mesaj / Message" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("textarea", { style: { ..._inputSt, height: "130px", resize: "vertical" }, value: message, onChange: (e2) => setMessage(e2.target.value) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#e8f4f8", borderRadius: "4px", padding: "10px", fontSize: "12px", color: "#0066cc", marginBottom: "16px" }, children: [
+                "\u{1F4CE} Documentul ",
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: invoice.invoiceNumber }),
+                " va fi ata\u0219at automat ca PDF."
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "flex-end", gap: "10px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: onClose, style: { background: "#6c757d", color: "white", border: "none", borderRadius: "6px", padding: "9px 20px", cursor: "pointer", fontSize: "13px" }, children: "Anuleaz\u0103" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "button",
+                  {
+                    onClick: send,
+                    disabled: sending,
+                    style: { background: sending ? "#6c757d" : "#0066cc", color: "white", border: "none", borderRadius: "6px", padding: "9px 22px", cursor: sending ? "not-allowed" : "pointer", fontSize: "13px", fontWeight: "600" },
+                    children: sending ? "\u23F3 Se trimite..." : "\u{1F4E7} Trimite email"
+                  }
+                )
+              ] })
+            ] })
+          ] })
+        }
+      );
     };
     const MarketPricesSection = ({ editingProduct: editingProduct2, editingProductMarkets: editingProductMarkets2, token: token2, fetchProductMarkets: fetchProductMarkets2 }) => {
       const emptyRow = () => ({ isActive: true, price: "", compareAtPrice: "" });

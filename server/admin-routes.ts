@@ -5284,6 +5284,173 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // POST /admin/api/invoices/manual — create a manual invoice or pro-forma from admin
+  app.post("/admin/api/invoices/manual", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const { type, market, currency, buyer, items, subtotal, vatAmount, totalAmount, dueDate, paymentMethod, notes } = req.body;
+      if (!market || !['ro','fr','com'].includes(market)) return res.status(400).json({ message: 'Invalid market' });
+      if (!buyer?.name || !buyer?.email) return res.status(400).json({ message: 'Buyer name and email are required' });
+      if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ message: 'At least one line item is required' });
+      if (!canAccessMarket(req as AdminAuthRequest, market)) return res.status(403).json({ message: 'Access denied for this market' });
+
+      // Compute totals server-side for accuracy
+      const computedSubtotal = items.reduce((s: number, it: any) => s + (parseFloat(it.quantity) * parseFloat(it.unitPrice)), 0);
+      const computedVat = items.reduce((s: number, it: any) => s + (parseFloat(it.quantity) * parseFloat(it.unitPrice) * (parseFloat(it.vatRate || 0) / 100)), 0);
+      const computedTotal = computedSubtotal + computedVat;
+
+      // Get seller info from company_settings for this market
+      const csResult = await pool.query(
+        `SELECT name, address, city, zip_code, country, vat_number, registration_number, email, phone, iban, bank_name
+         FROM company_settings WHERE market_code = $1 LIMIT 1`,
+        [market]
+      );
+      const cs = csResult.rows[0] || {};
+
+      // Generate invoice number
+      let invoiceNumber: string;
+      let invoiceSeries: string | undefined;
+      const isProforma = type === 'proforma';
+
+      if (isProforma) {
+        const yr = new Date().getFullYear();
+        const rand = Math.floor(Math.random() * 9000) + 1000;
+        invoiceNumber = `PRO-${market.toUpperCase()}-${yr}-${rand}`;
+      } else {
+        const { getNextInvoiceNumber } = await import('./invoice-counter.js');
+        const counter = await getNextInvoiceNumber(market);
+        invoiceNumber = counter.formatted;
+        invoiceSeries = counter.series;
+      }
+
+      // Generate PDF
+      const { generateInvoicePdf } = await import('./pdf-invoice-local.js');
+      const pdfData = {
+        invoiceNumber,
+        documentType: isProforma ? 'DEVIS / PRO-FORMA' : 'FACTURE / INVOICE',
+        issueDate: new Date(),
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        market,
+        currency: currency || (market === 'ro' ? 'RON' : 'EUR'),
+        seller: {
+          name: cs.name || 'xHACCP',
+          address: cs.address,
+          city: cs.city,
+          zipCode: cs.zip_code,
+          country: cs.country,
+          vatNumber: cs.vat_number,
+          registrationNumber: cs.registration_number,
+          email: cs.email,
+          phone: cs.phone,
+          iban: cs.iban,
+          bankName: cs.bank_name,
+        },
+        buyer: {
+          name: buyer.name,
+          companyName: buyer.companyName,
+          address: buyer.address,
+          city: buyer.city,
+          zipCode: buyer.zipCode,
+          country: buyer.country,
+          vatNumber: buyer.vatNumber,
+          email: buyer.email,
+        },
+        items: items.map((it: any) => ({
+          productName: it.productName,
+          productCode: it.productCode,
+          quantity: parseFloat(it.quantity),
+          unitPrice: parseFloat(it.unitPrice),
+          vatRate: parseFloat(it.vatRate || 0),
+          lineTotal: parseFloat(it.quantity) * parseFloat(it.unitPrice),
+        })),
+        subtotal: computedSubtotal,
+        vatAmount: computedVat,
+        totalAmount: computedTotal,
+        notes,
+        paymentMethod,
+      };
+
+      const pdfPath = await generateInvoicePdf(pdfData);
+
+      // Save to DB
+      const invoice = await storage.createInvoice({
+        invoiceNumber,
+        market,
+        currency: pdfData.currency,
+        status: isProforma ? 'pending' : 'issued',
+        subtotal: computedSubtotal.toFixed(2) as any,
+        vatAmount: computedVat.toFixed(2) as any,
+        totalAmount: computedTotal.toFixed(2) as any,
+        pdfPath,
+        notes: notes || null,
+        paymentMethod: paymentMethod || null,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        issueDate: new Date(),
+      } as any, items.map((it: any) => ({
+        productName: it.productName,
+        productCode: it.productCode || null,
+        quantity: parseInt(it.quantity),
+        unitPrice: parseFloat(it.unitPrice).toFixed(2) as any,
+        vatRate: parseFloat(it.vatRate || 0).toFixed(2) as any,
+        lineTotal: (parseFloat(it.quantity) * parseFloat(it.unitPrice)).toFixed(2) as any,
+      })));
+
+      res.json({ id: invoice.id, invoiceNumber: invoice.invoiceNumber, pdfPath });
+    } catch (error) {
+      console.error('Error creating manual invoice:', error);
+      res.status(500).json({ message: 'Failed to create invoice', detail: String(error) });
+    }
+  });
+
+  // POST /admin/api/invoices/:id/send-email — send invoice PDF to an email address
+  app.post("/admin/api/invoices/:id/send-email", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { email, message } = req.body;
+      if (!email) return res.status(400).json({ message: 'Email address is required' });
+
+      const invoice = await storage.getInvoice(id);
+      if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+      const invoiceMarket = (invoice as any).market || 'ro';
+      if (!canAccessMarket(req as AdminAuthRequest, invoiceMarket)) {
+        return res.status(403).json({ message: 'Access denied for this invoice market' });
+      }
+
+      // Get PDF buffer
+      const { createInvoiceService } = await import('./invoice-service.js');
+      const invoiceService = await createInvoiceService();
+      const pdfBuffer = await invoiceService.getInvoicePdf(id);
+      if (!pdfBuffer) return res.status(404).json({ message: 'PDF not available for this invoice' });
+
+      // Get seller name from company settings
+      const csResult = await pool.query(
+        `SELECT name FROM company_settings WHERE market_code = $1 LIMIT 1`,
+        [invoiceMarket]
+      );
+      const sellerName = csResult.rows[0]?.name || 'xHACCP';
+
+      const { sendManualInvoiceEmail } = await import('./email-service.js');
+      const defaultMsg = `Bonjour,\n\nVeuillez trouver en pièce jointe votre document N° ${(invoice as any).invoiceNumber}.\n\nMerci pour votre confiance.\n\nCordialement,\n${sellerName}`;
+      const sent = await sendManualInvoiceEmail({
+        pdfBuffer,
+        invoiceNumber: (invoice as any).invoiceNumber,
+        toEmail: email,
+        customMessage: message || defaultMsg,
+        sellerName,
+        market: invoiceMarket,
+      });
+
+      if (sent) {
+        res.json({ success: true, message: `Email sent to ${email}` });
+      } else {
+        res.status(500).json({ message: 'Email delivery failed — check SendGrid configuration' });
+      }
+    } catch (error) {
+      console.error('Error sending invoice email:', error);
+      res.status(500).json({ message: 'Failed to send email', detail: String(error) });
+    }
+  });
+
   // GET /admin/api/market-products?market=ro — list product market rows for a given market
   // When ?market= is omitted, returns rows for ALL markets (ro + fr + com combined)
   app.get("/admin/api/market-products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {

@@ -420,6 +420,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [invoiceMarketFilter, setInvoiceMarketFilter] = useState('all');
       const [invoiceDetailModal, setInvoiceDetailModal] = useState(null);
       const [invoiceDetailLoading, setInvoiceDetailLoading] = useState(false);
+      const [showManualInvoiceModal, setShowManualInvoiceModal] = useState(false);
+      const [sendInvoiceEmailModal, setSendInvoiceEmailModal] = useState(null);
 
       // Voucher state
       const [vouchers, setVouchers] = useState([]);
@@ -4245,6 +4247,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     <button className="btn" style={{background: '#6c757d', width: 'auto', padding: '6px 12px'}} onClick={() => { fetchInvoices(); fetchInvoiceCounters(); }}>
                       🔄 {t('common.refresh')}
                     </button>
+                    <button className="btn" style={{background: '#1a4f8a', width: 'auto', padding: '6px 14px', fontWeight: '600'}} onClick={() => setShowManualInvoiceModal(true)}>
+                      ✏️ Emite Factură / Proformă
+                    </button>
                   </div>
                 </div>
 
@@ -4417,6 +4422,16 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                   >
                                     🔍 {t('common.view') || 'View'}
                                   </button>
+                                  {/* Send invoice by email */}
+                                  {hasPdf && (
+                                    <button
+                                      onClick={() => setSendInvoiceEmailModal({ id: inv.id, invoiceNumber: inv.invoiceNumber, userEmail: inv.userEmail || '' })}
+                                      title="Trimite pe email"
+                                      style={{background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px'}}
+                                    >
+                                      ✉️ Email
+                                    </button>
+                                  )}
                                   {!hasPdf && !isSmartbill && <span style={{color: '#adb5bd', fontSize: '11px'}}>—</span>}
                                 </div>
                               </td>
@@ -4427,6 +4442,22 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     </table>
                     <p style={{color: '#666', fontSize: '12px', marginTop: '10px'}}>{adminInvoices.length} {t('invoices.title').toLowerCase()} total</p>
                   </div>
+                )}
+
+                {/* Manual Invoice / Proforma Modal */}
+                {showManualInvoiceModal && (
+                  <ManualInvoiceModal
+                    onClose={() => setShowManualInvoiceModal(false)}
+                    onCreated={() => {}}
+                  />
+                )}
+
+                {/* Send Invoice Email Modal */}
+                {sendInvoiceEmailModal && (
+                  <SendInvoiceEmailModal
+                    invoice={sendInvoiceEmailModal}
+                    onClose={() => setSendInvoiceEmailModal(null)}
+                  />
                 )}
 
                 {/* Invoice Detail Modal */}
@@ -5690,6 +5721,266 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               >
                 💾 Salvează {flag}
               </button>
+            </div>
+          </div>
+        );
+      };
+
+      // Shared styles for invoice modals
+      const _inputSt = {width:'100%',padding:'7px 10px',border:'1px solid #ced4da',borderRadius:'6px',fontSize:'13px',boxSizing:'border-box'};
+      const _labelSt = {display:'block',marginBottom:'4px',fontSize:'12px',fontWeight:'600',color:'#495057'};
+
+      // ManualInvoiceModal — create invoice or pro-forma from scratch
+      const ManualInvoiceModal = ({ onClose, onCreated }) => {
+        const defaultItem = () => ({ desc: '', qty: 1, unitPrice: 0, vatRate: market === 'ro' ? 19 : 20, lineTotal: 0 });
+        const initMarket = !adminIsSuperAdmin && admin?.adminMarkets?.length > 0
+          ? admin.adminMarkets[0]
+          : (selectedMarketTab !== 'all' ? selectedMarketTab : 'fr');
+        const [type, setType] = useState('invoice');
+        const [market, setMarket] = useState(initMarket);
+        const [currency, setCurrency] = useState(initMarket === 'ro' ? 'RON' : 'EUR');
+        const [buyer, setBuyer] = useState({ name:'', company:'', address:'', city:'', zip:'', country: initMarket === 'ro' ? 'România' : initMarket === 'fr' ? 'France' : '', email:'', vat:'' });
+        const [items, setItems] = useState([{ desc:'', qty:1, unitPrice:0, vatRate: initMarket === 'ro' ? 19 : 20 }]);
+        const [dueDate, setDueDate] = useState('');
+        const [paymentMethod, setPaymentMethod] = useState('wire_transfer');
+        const [notes, setNotes] = useState('');
+        const [creating, setCreating] = useState(false);
+
+        const setBuyerField = (k, v) => setBuyer(b => ({...b, [k]: v}));
+        const setItemField = (i, k, v) => setItems(prev => {
+          const upd = prev.map((it, idx) => idx === i ? {...it, [k]: v} : it);
+          return upd;
+        });
+
+        const getLineTotal = (it) => parseFloat(it.qty || 0) * parseFloat(it.unitPrice || 0);
+        const subtotal = items.reduce((s, it) => s + getLineTotal(it), 0);
+        const vatAmount = items.reduce((s, it) => s + getLineTotal(it) * (parseFloat(it.vatRate || 0) / 100), 0);
+        const totalAmount = subtotal + vatAmount;
+
+        const marketOptions = adminIsSuperAdmin ? ['ro','fr','com'] : (admin?.adminMarkets || []);
+
+        const submit = async () => {
+          if (!buyer.name.trim()) { alert('Completați numele clientului'); return; }
+          if (!buyer.email.trim()) { alert('Completați email-ul clientului'); return; }
+          if (items.some(it => !it.desc.trim() || parseFloat(it.qty) <= 0)) { alert('Completați toate liniile (descriere + cantitate)'); return; }
+          setCreating(true);
+          try {
+            const resp = await fetch('/admin/api/invoices/manual', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type, market, currency,
+                buyer: { name: buyer.name, companyName: buyer.company, address: buyer.address, city: buyer.city, zipCode: buyer.zip, country: buyer.country, email: buyer.email, vatNumber: buyer.vat },
+                items: items.map(it => ({ productName: it.desc, quantity: parseFloat(it.qty), unitPrice: parseFloat(it.unitPrice), vatRate: parseFloat(it.vatRate || 0) })),
+                dueDate: dueDate || null, paymentMethod, notes
+              })
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+              fetchInvoices();
+              onCreated && onCreated(data);
+              onClose();
+              alert(`✅ ${type === 'proforma' ? 'Proformă' : 'Factură'} ${data.invoiceNumber} creată cu succes!\nPoți descărca PDF-ul sau trimite pe email din listă.`);
+            } else {
+              alert('❌ Eroare: ' + (data.message || 'Necunoscută'));
+            }
+          } catch(e) { alert('❌ Eroare rețea: ' + e.message); }
+          setCreating(false);
+        };
+
+        return (
+          <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',zIndex:9500,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:'30px',overflowY:'auto'}}
+            onClick={e => { if(e.target===e.currentTarget) onClose(); }}>
+            <div style={{background:'white',borderRadius:'8px',width:'820px',maxWidth:'96vw',boxShadow:'0 8px 40px rgba(0,0,0,0.28)',marginBottom:'40px'}}>
+              {/* Header */}
+              <div style={{background:'#1a4f8a',color:'white',padding:'18px 24px',borderRadius:'8px 8px 0 0',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <h3 style={{margin:0,fontSize:'17px'}}>🧾 Emitere Factură / Proformă</h3>
+                <button onClick={onClose} style={{background:'rgba(255,255,255,0.2)',border:'none',color:'white',borderRadius:'4px',padding:'4px 12px',cursor:'pointer',fontSize:'16px'}}>✕</button>
+              </div>
+              <div style={{padding:'24px'}}>
+                {/* Type toggle */}
+                <div style={{display:'flex',gap:'8px',marginBottom:'20px'}}>
+                  {[['invoice','📄 Factură (Invoice)'],['proforma','📝 Proformă (Devis)']].map(([v,l]) => (
+                    <button key={v} onClick={() => setType(v)}
+                      style={{padding:'8px 22px',borderRadius:'6px',border:type===v?'2px solid #1a4f8a':'1px solid #ced4da',background:type===v?'#1a4f8a':'white',color:type===v?'white':'#333',cursor:'pointer',fontWeight:type===v?'600':'400',fontSize:'14px'}}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Market + Currency */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',marginBottom:'20px'}}>
+                  <div>
+                    <label style={_labelSt}>Marketplace *</label>
+                    <select value={market} onChange={e => { setMarket(e.target.value); setCurrency(e.target.value==='ro'?'RON':'EUR'); }} style={_inputSt}>
+                      {marketOptions.map(m => (
+                        <option key={m} value={m}>{m==='ro'?'🇷🇴 România (.ro)':m==='fr'?'🇫🇷 France (.fr)':'🌍 International (.com)'}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={_labelSt}>Monedă</label>
+                    <input type="text" value={currency} onChange={e => setCurrency(e.target.value)} style={_inputSt} placeholder="EUR / RON" />
+                  </div>
+                </div>
+
+                {/* Buyer */}
+                <div style={{background:'#f8f9fa',borderRadius:'6px',padding:'16px',marginBottom:'20px',border:'1px solid #dee2e6'}}>
+                  <h4 style={{margin:'0 0 12px',color:'#333',fontSize:'14px'}}>👤 Client / Destinataire</h4>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                    <div><label style={_labelSt}>Nume *</label><input style={_inputSt} value={buyer.name} onChange={e=>setBuyerField('name',e.target.value)} placeholder="Jean Dupont" /></div>
+                    <div><label style={_labelSt}>Societate / Société</label><input style={_inputSt} value={buyer.company} onChange={e=>setBuyerField('company',e.target.value)} placeholder="SARL Example" /></div>
+                    <div><label style={_labelSt}>Email *</label><input type="email" style={_inputSt} value={buyer.email} onChange={e=>setBuyerField('email',e.target.value)} placeholder="client@example.com" /></div>
+                    <div><label style={_labelSt}>TVA / SIRET / CUI</label><input style={_inputSt} value={buyer.vat} onChange={e=>setBuyerField('vat',e.target.value)} placeholder="FR 12 345678901" /></div>
+                    <div><label style={_labelSt}>Adresă</label><input style={_inputSt} value={buyer.address} onChange={e=>setBuyerField('address',e.target.value)} placeholder="12 Rue de la Paix" /></div>
+                    <div style={{display:'grid',gridTemplateColumns:'90px 1fr',gap:'8px'}}>
+                      <div><label style={_labelSt}>Cod poștal</label><input style={_inputSt} value={buyer.zip} onChange={e=>setBuyerField('zip',e.target.value)} placeholder="75001" /></div>
+                      <div><label style={_labelSt}>Oraș / Ville</label><input style={_inputSt} value={buyer.city} onChange={e=>setBuyerField('city',e.target.value)} placeholder="Paris" /></div>
+                    </div>
+                    <div><label style={_labelSt}>Țară / Pays</label><input style={_inputSt} value={buyer.country} onChange={e=>setBuyerField('country',e.target.value)} placeholder="France" /></div>
+                  </div>
+                </div>
+
+                {/* Line items */}
+                <div style={{marginBottom:'20px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
+                    <h4 style={{margin:0,color:'#333',fontSize:'14px'}}>📋 Articole / Lignes</h4>
+                    <button onClick={() => setItems(prev => [...prev, {desc:'',qty:1,unitPrice:0,vatRate:market==='ro'?19:20}])}
+                      style={{background:'#28a745',color:'white',border:'none',borderRadius:'4px',padding:'5px 14px',cursor:'pointer',fontSize:'13px'}}>+ Adaugă linie</button>
+                  </div>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px'}}>
+                    <thead>
+                      <tr style={{background:'#1a4f8a',color:'white'}}>
+                        <th style={{padding:'8px 10px',textAlign:'left'}}>Descriere *</th>
+                        <th style={{padding:'8px',textAlign:'right',width:'55px'}}>Qty</th>
+                        <th style={{padding:'8px',textAlign:'right',width:'110px'}}>P.U. HT</th>
+                        <th style={{padding:'8px',textAlign:'right',width:'70px'}}>TVA%</th>
+                        <th style={{padding:'8px',textAlign:'right',width:'110px'}}>Total HT</th>
+                        <th style={{padding:'8px',width:'28px'}}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, i) => (
+                        <tr key={i} style={{borderBottom:'1px solid #dee2e6',background:i%2===0?'white':'#f8f9fa'}}>
+                          <td style={{padding:'4px 6px'}}><input style={{..._inputSt,margin:0}} value={item.desc} onChange={e=>setItemField(i,'desc',e.target.value)} placeholder="Produit / Serviciu" /></td>
+                          <td style={{padding:'4px 6px'}}><input type="number" min="0.01" step="0.01" style={{..._inputSt,margin:0,textAlign:'right'}} value={item.qty} onChange={e=>setItemField(i,'qty',e.target.value)} /></td>
+                          <td style={{padding:'4px 6px'}}><input type="number" min="0" step="0.01" style={{..._inputSt,margin:0,textAlign:'right'}} value={item.unitPrice} onChange={e=>setItemField(i,'unitPrice',e.target.value)} /></td>
+                          <td style={{padding:'4px 6px'}}><input type="number" min="0" max="100" step="0.01" style={{..._inputSt,margin:0,textAlign:'right'}} value={item.vatRate} onChange={e=>setItemField(i,'vatRate',e.target.value)} /></td>
+                          <td style={{padding:'4px 8px',textAlign:'right',fontWeight:'600'}}>{getLineTotal(item).toFixed(2)}</td>
+                          <td style={{padding:'4px 6px',textAlign:'center'}}>
+                            {items.length > 1 && <button onClick={() => setItems(prev => prev.filter((_,j)=>j!==i))} style={{background:'#dc3545',color:'white',border:'none',borderRadius:'3px',padding:'2px 6px',cursor:'pointer',fontSize:'11px'}}>✕</button>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {/* Totals */}
+                  <div style={{display:'flex',justifyContent:'flex-end',marginTop:'12px'}}>
+                    <div style={{minWidth:'290px',background:'#f0f8ff',border:'1px solid #bee5eb',borderRadius:'6px',padding:'14px'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:'6px',fontSize:'13px',color:'#555'}}>
+                        <span>Sous-total HT:</span><strong>{subtotal.toFixed(2)} {currency}</strong>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:'8px',fontSize:'13px',color:'#555'}}>
+                        <span>TVA:</span><strong>{vatAmount.toFixed(2)} {currency}</strong>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',borderTop:'2px solid #1a4f8a',paddingTop:'8px',fontSize:'15px'}}>
+                        <strong>TOTAL TTC:</strong><strong style={{color:'#1a4f8a'}}>{totalAmount.toFixed(2)} {currency}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer fields */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 2fr',gap:'16px',marginBottom:'20px'}}>
+                  <div>
+                    <label style={_labelSt}>Scadență / Échéance</label>
+                    <input type="date" style={_inputSt} value={dueDate} onChange={e=>setDueDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={_labelSt}>Mod plată</label>
+                    <select style={_inputSt} value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}>
+                      <option value="wire_transfer">Virement / Transfer bancar</option>
+                      <option value="card">Carte / Card</option>
+                      <option value="cash">Espèces / Numerar</option>
+                      <option value="cash_on_delivery">Ramburs / COD</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={_labelSt}>Note / Mentions</label>
+                    <input style={_inputSt} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Mențiuni legale, bancă..." />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div style={{display:'flex',justifyContent:'flex-end',gap:'12px',borderTop:'1px solid #dee2e6',paddingTop:'16px'}}>
+                  <button onClick={onClose} style={{background:'#6c757d',color:'white',border:'none',borderRadius:'6px',padding:'10px 24px',cursor:'pointer',fontSize:'14px'}}>Anulează</button>
+                  <button onClick={submit} disabled={creating}
+                    style={{background:creating?'#6c757d':'#1a4f8a',color:'white',border:'none',borderRadius:'6px',padding:'10px 26px',cursor:creating?'not-allowed':'pointer',fontSize:'14px',fontWeight:'600'}}>
+                    {creating ? '⏳ Se creează...' : `✅ Emite ${type==='proforma'?'Proformă':'Factură'}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // SendInvoiceEmailModal — send existing invoice PDF to an email address
+      const SendInvoiceEmailModal = ({ invoice, onClose }) => {
+        const [email, setEmail] = useState(invoice.userEmail || '');
+        const [message, setMessage] = useState(
+          `Bonjour,\n\nVeuillez trouver en pièce jointe votre document N° ${invoice.invoiceNumber}.\n\nNous restons à votre disposition pour toute question.\n\nCordialement,`
+        );
+        const [sending, setSending] = useState(false);
+
+        const send = async () => {
+          if (!email.trim()) { alert('Introduceți adresa de email'); return; }
+          setSending(true);
+          try {
+            const resp = await fetch(`/admin/api/invoices/${invoice.id}/send-email`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, message })
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+              alert(`✅ Email trimis cu succes la ${email}`);
+              onClose();
+            } else {
+              alert('❌ Eroare: ' + (data.message || 'Necunoscută'));
+            }
+          } catch(e) { alert('❌ Eroare rețea: ' + e.message); }
+          setSending(false);
+        };
+
+        return (
+          <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',zIndex:9500,display:'flex',alignItems:'center',justifyContent:'center'}}
+            onClick={e => { if(e.target===e.currentTarget) onClose(); }}>
+            <div style={{background:'white',borderRadius:'8px',width:'520px',maxWidth:'95vw',boxShadow:'0 8px 40px rgba(0,0,0,0.25)'}}>
+              <div style={{background:'#0066cc',color:'white',padding:'16px 22px',borderRadius:'8px 8px 0 0',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <h3 style={{margin:0,fontSize:'15px'}}>✉️ Trimite pe email — {invoice.invoiceNumber}</h3>
+                <button onClick={onClose} style={{background:'rgba(255,255,255,0.2)',border:'none',color:'white',borderRadius:'4px',padding:'4px 10px',cursor:'pointer',fontSize:'15px'}}>✕</button>
+              </div>
+              <div style={{padding:'20px'}}>
+                <div style={{marginBottom:'14px'}}>
+                  <label style={_labelSt}>Adresă email destinatar *</label>
+                  <input type="email" style={_inputSt} value={email} onChange={e=>setEmail(e.target.value)} placeholder="client@example.com" />
+                </div>
+                <div style={{marginBottom:'14px'}}>
+                  <label style={_labelSt}>Mesaj / Message</label>
+                  <textarea style={{..._inputSt,height:'130px',resize:'vertical'}} value={message} onChange={e=>setMessage(e.target.value)} />
+                </div>
+                <div style={{background:'#e8f4f8',borderRadius:'4px',padding:'10px',fontSize:'12px',color:'#0066cc',marginBottom:'16px'}}>
+                  📎 Documentul <strong>{invoice.invoiceNumber}</strong> va fi atașat automat ca PDF.
+                </div>
+                <div style={{display:'flex',justifyContent:'flex-end',gap:'10px'}}>
+                  <button onClick={onClose} style={{background:'#6c757d',color:'white',border:'none',borderRadius:'6px',padding:'9px 20px',cursor:'pointer',fontSize:'13px'}}>Anulează</button>
+                  <button onClick={send} disabled={sending}
+                    style={{background:sending?'#6c757d':'#0066cc',color:'white',border:'none',borderRadius:'6px',padding:'9px 22px',cursor:sending?'not-allowed':'pointer',fontSize:'13px',fontWeight:'600'}}>
+                    {sending ? '⏳ Se trimite...' : '📧 Trimite email'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         );
