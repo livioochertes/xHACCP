@@ -136,21 +136,32 @@ function processImagesArray(images: any[]): string[] {
 }
 
 // Rate limiting for admin login attempts
+// keyGenerator includes the host so xhaccp.ro and xhaccp.fr have separate counters
 const adminLoginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
+  max: 20, // limit each IP+domain to 20 requests per windowMs
   message: { message: "Too many login attempts, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    const ip = (req.headers['x-forwarded-for'] as string || req.ip || '').split(',')[0].trim();
+    const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || 'unknown';
+    return `${ip}::${host}`;
+  },
 });
 
 // Rate limiting for 2FA attempts
 const twoFactorLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 3, // limit each IP to 3 requests per windowMs
+  max: 10, // limit each IP+domain to 10 requests per windowMs
   message: { message: "Too many 2FA attempts, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    const ip = (req.headers['x-forwarded-for'] as string || req.ip || '').split(',')[0].trim();
+    const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || 'unknown';
+    return `${ip}::${host}`;
+  },
 });
 
 interface AdminAuthRequest extends Request {
