@@ -12331,6 +12331,7 @@
     (0, import_react13.useEffect)(() => {
       sessionStorage.setItem("adminMarketTab", selectedMarketTab);
       setMarketFilter(selectedMarketTab);
+      fetchStats(selectedMarketTab);
       if (activeView === "users") fetchUsers();
       else if (activeView === "products") fetchProducts();
       else if (activeView === "categories") fetchCategories();
@@ -12395,9 +12396,11 @@
         filteredProducts: filtered.length
       });
     }, [products, productSearchTerm, productCategoryFilter, productStatusFilter]);
-    const fetchStats = async () => {
+    const fetchStats = async (market) => {
+      const mkt = market !== void 0 ? market : selectedMarketTab;
+      const marketParam = mkt && mkt !== "all" ? `?market=${mkt}` : "";
       try {
-        const response = await fetch("/admin/api/stats", {
+        const response = await fetch(`/admin/api/stats${marketParam}`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }

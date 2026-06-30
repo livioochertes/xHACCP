@@ -906,7 +906,16 @@ export async function registerAdminRoutes(app: Express) {
     try {
       console.log("Admin stats endpoint called");
       // Restricted admins only see data for their markets; superadmins see all
-      const markets = req.isSuperAdmin ? undefined : (req.adminMarkets || []);
+      // Superadmins can also pass ?market=xx to filter dashboard by selected tab
+      let markets: string[] | undefined;
+      if (!req.isSuperAdmin) {
+        markets = req.adminMarkets || [];
+      } else {
+        const marketParam = req.query.market as string | undefined;
+        if (marketParam && marketParam !== 'all') {
+          markets = [marketParam];
+        }
+      }
 
       const totalUsers = await storage.getTotalUsers();
       const totalOrders = await storage.getTotalOrders(markets);

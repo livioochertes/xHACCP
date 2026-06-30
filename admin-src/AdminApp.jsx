@@ -594,6 +594,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       useEffect(() => {
         sessionStorage.setItem('adminMarketTab', selectedMarketTab);
         setMarketFilter(selectedMarketTab);
+        fetchStats(selectedMarketTab);
         if (activeView === 'users') fetchUsers();
         else if (activeView === 'products') fetchProducts();
         else if (activeView === 'categories') fetchCategories();
@@ -673,9 +674,11 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         });
       }, [products, productSearchTerm, productCategoryFilter, productStatusFilter]);
       
-      const fetchStats = async () => {
+      const fetchStats = async (market) => {
+        const mkt = market !== undefined ? market : selectedMarketTab;
+        const marketParam = mkt && mkt !== 'all' ? `?market=${mkt}` : '';
         try {
-          const response = await fetch('/admin/api/stats', {
+          const response = await fetch(`/admin/api/stats${marketParam}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
