@@ -1279,24 +1279,15 @@ Sitemap: https://${domain}/sitemap.xml
         return res.status(403).json({ message: "Not authorized to access this invoice" });
       }
 
-      if (!invoice.smartbillSeries || !invoice.smartbillNumber) {
-        return res.status(404).json({ message: "SmartBill PDF not available for this invoice" });
+      const { createInvoiceService } = await import('./invoice-service.js');
+      const invoiceService = await createInvoiceService();
+      const pdfBuffer = await invoiceService.getInvoicePdf(invoiceId);
+
+      if (!pdfBuffer) {
+        return res.status(404).json({ message: "PDF not available for this invoice" });
       }
 
-      const { SmartbillAPI } = await import('./smartbill-api.js');
-      const smartbillApi = new SmartbillAPI({
-        username: process.env.SMARTBILL_USERNAME || '',
-        token: process.env.SMARTBILL_TOKEN || '',
-        companyVat: process.env.SMARTBILL_COMPANY_VAT || '',
-      });
-
-      const pdfBuffer = await smartbillApi.getInvoicePdf(
-        process.env.SMARTBILL_COMPANY_VAT || '',
-        invoice.smartbillSeries,
-        invoice.smartbillNumber
-      );
-
-      const filename = `Factura_${invoice.smartbillSeries}_${invoice.smartbillNumber}.pdf`;
+      const filename = `Factura_${(invoice as any).invoiceNumber?.replace(/[^a-zA-Z0-9]/g, '_') || invoiceId}.pdf`;
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(pdfBuffer);

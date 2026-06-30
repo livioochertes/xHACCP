@@ -418,6 +418,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [invoiceCounters, setInvoiceCounters] = useState([]);
       const [invoicesLoading, setInvoicesLoading] = useState(false);
       const [invoiceMarketFilter, setInvoiceMarketFilter] = useState('all');
+      const [invoiceDetailModal, setInvoiceDetailModal] = useState(null);
+      const [invoiceDetailLoading, setInvoiceDetailLoading] = useState(false);
 
       // Voucher state
       const [vouchers, setVouchers] = useState([]);
@@ -872,6 +874,27 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         } catch (err) {
           console.error('Error downloading PDF:', err);
           alert('Error downloading PDF.');
+        }
+      };
+
+      const openInvoiceDetail = async (invoiceId) => {
+        setInvoiceDetailLoading(true);
+        setInvoiceDetailModal({ id: invoiceId, loading: true });
+        try {
+          const response = await fetch(`/admin/api/invoices/${invoiceId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setInvoiceDetailModal(data);
+          } else {
+            setInvoiceDetailModal(null);
+            alert('Failed to load invoice details.');
+          }
+        } catch (err) {
+          setInvoiceDetailModal(null);
+        } finally {
+          setInvoiceDetailLoading(false);
         }
       };
 
@@ -4093,16 +4116,67 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         { market: 'com', label: t('invoiceSettings.com'), badge: '#6c757d', desc: 'PDF local + ext. API (stub)' }
                       ].map(({market: mkt, label, badge, desc}) => {
                         const counter = invoiceCounters.find(c => c.market === mkt) || {};
+                        const settingsKey = `inv-settings-${mkt}`;
                         return (
                           <div key={mkt} style={{background: 'white', border: `1px solid ${badge}30`, borderRadius: '6px', padding: '14px'}}>
-                            <div style={{display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px'}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px'}}>
                               <span style={{background: badge, color: 'white', borderRadius: '4px', padding: '1px 7px', fontSize: '11px', fontWeight: '600'}}>{mkt.toUpperCase()}</span>
                               <span style={{fontSize: '12px', color: '#6c757d'}}>{desc}</span>
                             </div>
-                            <div style={{fontSize: '12px', color: '#495057', marginBottom: '6px'}}>
-                              {t('invoices.counterSeries')}: <strong>{counter.series || '—'}</strong> &nbsp;|&nbsp; {t('invoices.counterCurrent')}: <strong>{counter.currentNumber ?? '—'}</strong>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '6px'}}>
+                              <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                                <label style={{fontSize: '11px', color: '#6c757d', minWidth: '50px'}}>{t('invoices.counterSeries')}:</label>
+                                <input
+                                  type="text"
+                                  id={`inv-series-cs-${mkt}`}
+                                  defaultValue={counter.series || (mkt === 'fr' ? 'FACT' : mkt === 'com' ? 'INV' : 'KTO')}
+                                  placeholder="e.g. FACT"
+                                  style={{flex: 1, padding: '3px 6px', border: '1px solid #ced4da', borderRadius: '3px', fontSize: '12px'}}
+                                />
+                              </div>
+                              <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                                <label style={{fontSize: '11px', color: '#6c757d', minWidth: '50px'}}>Format:</label>
+                                <input
+                                  type="text"
+                                  id={`inv-fmt-cs-${mkt}`}
+                                  defaultValue={'YYYY-NNNNNN'}
+                                  placeholder="{SERIES}-{YEAR}-{NNNNNN}"
+                                  style={{flex: 1, padding: '3px 6px', border: '1px solid #ced4da', borderRadius: '3px', fontSize: '12px'}}
+                                />
+                              </div>
+                              <div style={{fontSize: '11px', color: '#6c757d', marginTop: '2px'}}>
+                                {t('invoices.counterCurrent')}: <strong>{counter.currentNumber ?? '—'}</strong>
+                              </div>
+                              <button
+                                style={{background: badge, color: 'white', border: 'none', borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', fontSize: '11px', marginTop: '4px'}}
+                                onClick={async () => {
+                                  const series = document.getElementById(`inv-series-cs-${mkt}`)?.value;
+                                  const fmt = document.getElementById(`inv-fmt-cs-${mkt}`)?.value;
+                                  // Save to company_settings for this market
+                                  const cs = companySettings || {};
+                                  const resp = await fetch(`/admin/api/company-settings?market=${mkt}`, {
+                                    method: 'PUT',
+                                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      name: cs.name || 'xHACCP',
+                                      email: cs.email || 'contact@xhaccp.ro',
+                                      invoiceSeries: series,
+                                      invoiceNumberFormat: fmt,
+                                    })
+                                  });
+                                  if (resp.ok) {
+                                    alert(`✅ Invoice series "${series}" saved for .${mkt}`);
+                                    fetchInvoiceCounters();
+                                  } else {
+                                    const d = await resp.json();
+                                    alert(`Error: ${d.message}`);
+                                  }
+                                }}
+                              >
+                                💾 Save
+                              </button>
                             </div>
-                            <div style={{fontSize: '11px', color: '#6c757d'}}>{label}</div>
+                            <div style={{fontSize: '11px', color: '#6c757d', marginTop: '8px'}}>{label}</div>
                           </div>
                         );
                       })}
@@ -4311,6 +4385,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                       📤 Ext.
                                     </button>
                                   )}
+                                  {/* View details */}
+                                  <button
+                                    onClick={() => openInvoiceDetail(inv.id)}
+                                    title={t('invoices.viewDetails') || 'View Details'}
+                                    style={{background: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px'}}
+                                  >
+                                    🔍 {t('common.view') || 'View'}
+                                  </button>
                                   {!hasPdf && !isSmartbill && <span style={{color: '#adb5bd', fontSize: '11px'}}>—</span>}
                                 </div>
                               </td>
@@ -4320,6 +4402,145 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       </tbody>
                     </table>
                     <p style={{color: '#666', fontSize: '12px', marginTop: '10px'}}>{adminInvoices.length} {t('invoices.title').toLowerCase()} total</p>
+                  </div>
+                )}
+
+                {/* Invoice Detail Modal */}
+                {invoiceDetailModal && (
+                  <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.55)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                    onClick={e => { if (e.target === e.currentTarget) setInvoiceDetailModal(null); }}
+                  >
+                    <div style={{background: 'white', borderRadius: '10px', width: '700px', maxWidth: '95vw', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.25)'}}>
+                      {/* Header */}
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid #dee2e6', background: '#f8f9fa'}}>
+                        <div>
+                          <h4 style={{margin: 0, color: '#333'}}>🧾 {t('invoices.details') || 'Invoice Details'}</h4>
+                          {!invoiceDetailModal.loading && (
+                            <div style={{fontSize: '12px', color: '#6c757d', marginTop: '2px'}}>
+                              {invoiceDetailModal.invoiceNumber} &nbsp;·&nbsp; {invoiceDetailModal.market?.toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <button onClick={() => setInvoiceDetailModal(null)} style={{background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#6c757d', lineHeight: '1'}}>×</button>
+                      </div>
+
+                      {invoiceDetailModal.loading ? (
+                        <div style={{padding: '40px', textAlign: 'center', color: '#6c757d'}}>⏳ Loading...</div>
+                      ) : (
+                        <div style={{padding: '24px'}}>
+                          {/* Status row */}
+                          <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px'}}>
+                            <span style={{background: invoiceDetailModal.status === 'issued' ? '#198754' : invoiceDetailModal.status === 'cancelled' ? '#dc3545' : '#ffc107', color: 'white', padding: '3px 10px', borderRadius: '10px', fontSize: '12px', fontWeight: '600'}}>
+                              {invoiceDetailModal.status === 'issued' ? t('invoices.issued') : invoiceDetailModal.status === 'cancelled' ? t('invoices.cancelled') : t('invoices.pending')}
+                            </span>
+                            <span style={{background: '#e9ecef', color: '#495057', padding: '3px 10px', borderRadius: '10px', fontSize: '12px'}}>
+                              📅 {invoiceDetailModal.issueDate ? new Date(invoiceDetailModal.issueDate).toLocaleDateString() : '-'}
+                            </span>
+                            {invoiceDetailModal.dueDate && (
+                              <span style={{background: '#fff3cd', color: '#856404', padding: '3px 10px', borderRadius: '10px', fontSize: '12px'}}>
+                                ⏳ Due: {new Date(invoiceDetailModal.dueDate).toLocaleDateString()}
+                              </span>
+                            )}
+                            <span style={{background: '#cfe2ff', color: '#0d6efd', padding: '3px 10px', borderRadius: '10px', fontSize: '12px'}}>
+                              🛒 Order #{invoiceDetailModal.orderId || '-'}
+                            </span>
+                          </div>
+
+                          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
+                            {/* Buyer */}
+                            <div style={{background: '#f8f9fa', borderRadius: '6px', padding: '14px'}}>
+                              <div style={{fontWeight: '600', color: '#333', marginBottom: '8px', fontSize: '13px'}}>👤 {t('invoices.buyer') || 'Buyer'}</div>
+                              <div style={{fontSize: '13px', color: '#495057', lineHeight: '1.6'}}>
+                                <div>{invoiceDetailModal.buyerName || `${invoiceDetailModal.userFirstName || ''} ${invoiceDetailModal.userLastName || ''}`.trim() || '—'}</div>
+                                <div style={{color: '#6c757d'}}>{invoiceDetailModal.buyerEmail || invoiceDetailModal.userEmail || ''}</div>
+                                {invoiceDetailModal.buyerVatCode && <div style={{color: '#6c757d', fontSize: '11px'}}>VAT: {invoiceDetailModal.buyerVatCode}</div>}
+                                {invoiceDetailModal.buyerAddress && <div style={{color: '#6c757d', fontSize: '11px'}}>{invoiceDetailModal.buyerAddress}</div>}
+                              </div>
+                            </div>
+
+                            {/* Payment */}
+                            <div style={{background: '#f8f9fa', borderRadius: '6px', padding: '14px'}}>
+                              <div style={{fontWeight: '600', color: '#333', marginBottom: '8px', fontSize: '13px'}}>💳 {t('invoices.payment') || 'Payment'}</div>
+                              <div style={{fontSize: '13px', color: '#495057', lineHeight: '1.6'}}>
+                                <div>{invoiceDetailModal.paymentMethod || '—'}</div>
+                                {invoiceDetailModal.paymentStatus && <div style={{color: '#6c757d'}}>{invoiceDetailModal.paymentStatus}</div>}
+                                {invoiceDetailModal.externalRef && <div style={{fontSize: '11px', color: '#6c757d'}}>Ext ref: {invoiceDetailModal.externalRef}</div>}
+                                {invoiceDetailModal.efacturaRef && <div style={{fontSize: '11px', color: '#6c757d'}}>e-Fact: {invoiceDetailModal.efacturaRef}</div>}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Line items */}
+                          {invoiceDetailModal.items && invoiceDetailModal.items.length > 0 && (
+                            <div style={{marginBottom: '20px'}}>
+                              <div style={{fontWeight: '600', color: '#333', marginBottom: '8px', fontSize: '13px'}}>📦 {t('invoices.lineItems') || 'Line Items'}</div>
+                              <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                                <thead>
+                                  <tr style={{background: '#f8f9fa'}}>
+                                    <th style={{padding: '7px 10px', textAlign: 'left', borderBottom: '2px solid #dee2e6', color: '#333'}}>{t('orders.product') || 'Product'}</th>
+                                    <th style={{padding: '7px 10px', textAlign: 'center', borderBottom: '2px solid #dee2e6', color: '#333'}}>{t('orders.qty') || 'Qty'}</th>
+                                    <th style={{padding: '7px 10px', textAlign: 'right', borderBottom: '2px solid #dee2e6', color: '#333'}}>{t('invoices.unitPrice') || 'Unit Price'}</th>
+                                    <th style={{padding: '7px 10px', textAlign: 'right', borderBottom: '2px solid #dee2e6', color: '#333'}}>{t('invoices.vatRate') || 'VAT%'}</th>
+                                    <th style={{padding: '7px 10px', textAlign: 'right', borderBottom: '2px solid #dee2e6', color: '#333'}}>{t('orders.total') || 'Total'}</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {invoiceDetailModal.items.map((item, idx) => (
+                                    <tr key={idx} style={{borderBottom: '1px solid #f0f0f0', background: idx % 2 === 0 ? 'white' : '#fafafa'}}>
+                                      <td style={{padding: '7px 10px'}}>{item.name || item.productName || '-'}</td>
+                                      <td style={{padding: '7px 10px', textAlign: 'center'}}>{item.quantity || item.qty || 1}</td>
+                                      <td style={{padding: '7px 10px', textAlign: 'right'}}>{parseFloat(item.price || item.unitPrice || 0).toFixed(2)}</td>
+                                      <td style={{padding: '7px 10px', textAlign: 'right'}}>{item.vatRate || item.taxRate || '19'}%</td>
+                                      <td style={{padding: '7px 10px', textAlign: 'right', fontWeight: '600'}}>{parseFloat(item.total || ((item.price || 0) * (item.quantity || 1))).toFixed(2)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          {/* Totals */}
+                          <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: '20px'}}>
+                            <div style={{background: '#f8f9fa', borderRadius: '6px', padding: '14px', minWidth: '220px'}}>
+                              {invoiceDetailModal.subtotal != null && (
+                                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px', color: '#6c757d'}}>
+                                  <span>{t('orders.subtotal') || 'Subtotal'}:</span>
+                                  <span>{parseFloat(invoiceDetailModal.subtotal).toFixed(2)} {invoiceDetailModal.currency}</span>
+                                </div>
+                              )}
+                              {invoiceDetailModal.taxAmount != null && (
+                                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px', color: '#6c757d'}}>
+                                  <span>TVA / VAT:</span>
+                                  <span>{parseFloat(invoiceDetailModal.taxAmount).toFixed(2)} {invoiceDetailModal.currency}</span>
+                                </div>
+                              )}
+                              <div style={{display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #dee2e6', paddingTop: '8px', fontWeight: '700', fontSize: '15px', color: '#333'}}>
+                                <span>Total:</span>
+                                <span>{parseFloat(invoiceDetailModal.totalAmount || 0).toFixed(2)} {invoiceDetailModal.currency}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div style={{display: 'flex', justifyContent: 'flex-end', gap: '8px'}}>
+                            {(invoiceDetailModal.pdfPath || invoiceDetailModal.source === 'smartbill') && (
+                              <button
+                                onClick={() => downloadAdminInvoicePdf(invoiceDetailModal.id, invoiceDetailModal.invoiceNumber)}
+                                style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px'}}
+                              >
+                                📥 Download PDF
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setInvoiceDetailModal(null)}
+                              style={{background: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px'}}
+                            >
+                              {t('common.close') || 'Close'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

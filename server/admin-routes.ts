@@ -3809,7 +3809,8 @@ export async function registerAdminRoutes(app: Express) {
       const { 
         name, email, logisticsEmail, phone, address, city, state, zipCode, country, 
         contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,
-        defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost
+        defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost,
+        invoiceSeries, invoiceNumberFormat, invoiceCurrentNumber
       } = req.body;
       
       console.log('Updating company settings, market:', market, 'currency:', defaultCurrency);
@@ -3832,23 +3833,39 @@ export async function registerAdminRoutes(app: Express) {
                 bank_name=$14, iban=$15, description=$16,
                 default_currency=$17, default_vat_percentage=$18, reverse_charge_vat=$19,
                 free_shipping_threshold=$20, standard_shipping_cost=$21,
+                invoice_series=COALESCE($23, invoice_series),
+                invoice_number_format=COALESCE($24, invoice_number_format),
+                invoice_current_number=COALESCE($25, invoice_current_number),
                 updated_at=CURRENT_TIMESTAMP
             WHERE market_code=$22
           `, [name, email, logisticsEmail, phone, address, city, state, zipCode, country,
               contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,
               defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost,
-              market]);
+              market,
+              invoiceSeries || null, invoiceNumberFormat || null, invoiceCurrentNumber != null ? parseInt(invoiceCurrentNumber) : null]);
         } else {
           await pool.query(`
             INSERT INTO company_settings (
               market_code, name, email, logistics_email, phone, address, city, state, zip_code, country,
               contact_person, website, vat_number, registration_number, bank_name, iban, description,
-              default_currency, default_vat_percentage, reverse_charge_vat, free_shipping_threshold, standard_shipping_cost
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+              default_currency, default_vat_percentage, reverse_charge_vat, free_shipping_threshold, standard_shipping_cost,
+              invoice_series, invoice_number_format, invoice_current_number
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
           `, [market, name, email, logisticsEmail, phone, address, city, state, zipCode, country,
               contactPerson, website, vatNumber, registrationNumber, bankName, iban, description,
-              defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost]);
+              defaultCurrency, defaultVatPercentage, reverseChargeVat, freeShippingThreshold, standardShippingCost,
+              invoiceSeries || 'FACT', invoiceNumberFormat || 'YYYY-NNNNNN', invoiceCurrentNumber != null ? parseInt(invoiceCurrentNumber) : 0]);
         }
+
+        // Sync invoice series to invoice_counters for this market (keep in lockstep)
+        if (invoiceSeries && market && market !== 'all') {
+          await pool.query(
+            `INSERT INTO invoice_counters (market, series, current_number) VALUES ($1, $2, 0)
+             ON CONFLICT (market) DO UPDATE SET series = $2, updated_at = NOW()`,
+            [market, invoiceSeries]
+          );
+        }
+
         return res.json({ message: "Market company settings updated successfully" });
       }
 
@@ -5044,9 +5061,15 @@ export async function registerAdminRoutes(app: Express) {
       const params: any[] = [];
 
       if (!isSuperAdmin && allowedMarkets.length > 0) {
-        const effectiveMarket = (market && market !== 'all') ? market : allowedMarkets[0];
-        query += ` WHERE i.market = $${params.length + 1}`;
-        params.push(effectiveMarket);
+        if (market && market !== 'all') {
+          // Specific market requested — already validated above
+          query += ` WHERE i.market = $${params.length + 1}`;
+          params.push(market);
+        } else {
+          // Show all markets the admin has access to
+          query += ` WHERE i.market = ANY($${params.length + 1})`;
+          params.push(allowedMarkets);
+        }
       } else if (market && market !== 'all') {
         query += ` WHERE i.market = $${params.length + 1}`;
         params.push(market);
@@ -5061,7 +5084,7 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // GET /admin/api/invoices/:id - get single invoice details
+  // GET /admin/api/invoices/:id - get single invoice details (enriched)
   app.get("/admin/api/invoices/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -5076,7 +5099,42 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(403).json({ message: 'Access denied for this invoice market' });
       }
 
-      res.json(invoice);
+      // Enrich with order items and user info
+      const enriched: any = { ...invoice };
+
+      if ((invoice as any).orderId) {
+        try {
+          const order = await storage.getOrder((invoice as any).orderId);
+          if (order) {
+            enriched.items = (order.items as any[]) || [];
+            enriched.subtotal = order.subtotalAmount ?? order.totalAmount;
+            enriched.taxAmount = (order as any).taxAmount ?? null;
+            enriched.paymentMethod = order.paymentMethod;
+            enriched.paymentStatus = order.paymentStatus;
+            const shippingAddr = order.shippingAddress as any;
+            const billingAddr = order.billingAddress as any;
+            enriched.buyerName = billingAddr?.companyName ||
+              `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() ||
+              `${billingAddr?.firstName || ''} ${billingAddr?.lastName || ''}`.trim();
+            enriched.buyerEmail = shippingAddr?.email || billingAddr?.email || '';
+            enriched.buyerAddress = [shippingAddr?.address, shippingAddr?.city, shippingAddr?.country].filter(Boolean).join(', ');
+            enriched.buyerVatCode = billingAddr?.vatNumber || billingAddr?.cui || null;
+          }
+        } catch { /* ignore enrichment errors */ }
+      }
+
+      if ((invoice as any).userId && !enriched.buyerEmail) {
+        try {
+          const user = await storage.getUser((invoice as any).userId);
+          if (user) {
+            enriched.userFirstName = user.firstName;
+            enriched.userLastName = user.lastName;
+            enriched.userEmail = user.email;
+          }
+        } catch { /* ignore */ }
+      }
+
+      res.json(enriched);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch invoice' });
     }

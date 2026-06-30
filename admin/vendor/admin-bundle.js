@@ -12167,6 +12167,8 @@
     const [invoiceCounters, setInvoiceCounters] = (0, import_react13.useState)([]);
     const [invoicesLoading, setInvoicesLoading] = (0, import_react13.useState)(false);
     const [invoiceMarketFilter, setInvoiceMarketFilter] = (0, import_react13.useState)("all");
+    const [invoiceDetailModal, setInvoiceDetailModal] = (0, import_react13.useState)(null);
+    const [invoiceDetailLoading, setInvoiceDetailLoading] = (0, import_react13.useState)(false);
     const [vouchers, setVouchers] = (0, import_react13.useState)([]);
     const [showAddVoucherModal, setShowAddVoucherModal] = (0, import_react13.useState)(false);
     const [editingVoucher, setEditingVoucher] = (0, import_react13.useState)(null);
@@ -12548,6 +12550,26 @@
       } catch (err) {
         console.error("Error downloading PDF:", err);
         alert("Error downloading PDF.");
+      }
+    };
+    const openInvoiceDetail = async (invoiceId) => {
+      setInvoiceDetailLoading(true);
+      setInvoiceDetailModal({ id: invoiceId, loading: true });
+      try {
+        const response = await fetch(`/admin/api/invoices/${invoiceId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setInvoiceDetailModal(data);
+        } else {
+          setInvoiceDetailModal(null);
+          alert("Failed to load invoice details.");
+        }
+      } catch (err) {
+        setInvoiceDetailModal(null);
+      } finally {
+        setInvoiceDetailLoading(false);
       }
     };
     const fetchBlogPosts = async () => {
@@ -15784,21 +15806,78 @@ This action cannot be undone.`)) {
                   { market: "com", label: t2("invoiceSettings.com"), badge: "#6c757d", desc: "PDF local + ext. API (stub)" }
                 ].map(({ market: mkt, label, badge, desc }) => {
                   const counter = invoiceCounters.find((c) => c.market === mkt) || {};
+                  const settingsKey = `inv-settings-${mkt}`;
                   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", border: `1px solid ${badge}30`, borderRadius: "6px", padding: "14px" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { background: badge, color: "white", borderRadius: "4px", padding: "1px 7px", fontSize: "11px", fontWeight: "600" }, children: mkt.toUpperCase() }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: desc })
                     ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "12px", color: "#495057", marginBottom: "6px" }, children: [
-                      t2("invoices.counterSeries"),
-                      ": ",
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: counter.series || "\u2014" }),
-                      " \xA0|\xA0 ",
-                      t2("invoices.counterCurrent"),
-                      ": ",
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: counter.currentNumber ?? "\u2014" })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "6px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "11px", color: "#6c757d", minWidth: "50px" }, children: [
+                          t2("invoices.counterSeries"),
+                          ":"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                          "input",
+                          {
+                            type: "text",
+                            id: `inv-series-cs-${mkt}`,
+                            defaultValue: counter.series || (mkt === "fr" ? "FACT" : mkt === "com" ? "INV" : "KTO"),
+                            placeholder: "e.g. FACT",
+                            style: { flex: 1, padding: "3px 6px", border: "1px solid #ced4da", borderRadius: "3px", fontSize: "12px" }
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { fontSize: "11px", color: "#6c757d", minWidth: "50px" }, children: "Format:" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                          "input",
+                          {
+                            type: "text",
+                            id: `inv-fmt-cs-${mkt}`,
+                            defaultValue: "YYYY-NNNNNN",
+                            placeholder: "{SERIES}-{YEAR}-{NNNNNN}",
+                            style: { flex: 1, padding: "3px 6px", border: "1px solid #ced4da", borderRadius: "3px", fontSize: "12px" }
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "11px", color: "#6c757d", marginTop: "2px" }, children: [
+                        t2("invoices.counterCurrent"),
+                        ": ",
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: counter.currentNumber ?? "\u2014" })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          style: { background: badge, color: "white", border: "none", borderRadius: "4px", padding: "5px 10px", cursor: "pointer", fontSize: "11px", marginTop: "4px" },
+                          onClick: async () => {
+                            const series = document.getElementById(`inv-series-cs-${mkt}`)?.value;
+                            const fmt = document.getElementById(`inv-fmt-cs-${mkt}`)?.value;
+                            const cs = companySettings || {};
+                            const resp = await fetch(`/admin/api/company-settings?market=${mkt}`, {
+                              method: "PUT",
+                              headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                name: cs.name || "xHACCP",
+                                email: cs.email || "contact@xhaccp.ro",
+                                invoiceSeries: series,
+                                invoiceNumberFormat: fmt
+                              })
+                            });
+                            if (resp.ok) {
+                              alert(`\u2705 Invoice series "${series}" saved for .${mkt}`);
+                              fetchInvoiceCounters();
+                            } else {
+                              const d = await resp.json();
+                              alert(`Error: ${d.message}`);
+                            }
+                          },
+                          children: "\u{1F4BE} Save"
+                        }
+                      )
                     ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "11px", color: "#6c757d" }, children: label })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "11px", color: "#6c757d", marginTop: "8px" }, children: label })
                   ] }, mkt);
                 }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { fontSize: "11px", color: "#856404", marginTop: "12px", margin: "12px 0 0" }, children: [
@@ -16033,6 +16112,18 @@ This action cannot be undone.`)) {
                           children: "\u{1F4E4} Ext."
                         }
                       ),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                        "button",
+                        {
+                          onClick: () => openInvoiceDetail(inv.id),
+                          title: t2("invoices.viewDetails") || "View Details",
+                          style: { background: "#17a2b8", color: "white", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px" },
+                          children: [
+                            "\u{1F50D} ",
+                            t2("common.view") || "View"
+                          ]
+                        }
+                      ),
                       !hasPdf && !isSmartbill && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#adb5bd", fontSize: "11px" }, children: "\u2014" })
                     ] }) })
                   ] }, inv.id);
@@ -16044,7 +16135,156 @@ This action cannot be undone.`)) {
                 t2("invoices.title").toLowerCase(),
                 " total"
               ] })
-            ] })
+            ] }),
+            invoiceDetailModal && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "div",
+              {
+                style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.55)", zIndex: 9e3, display: "flex", alignItems: "center", justifyContent: "center" },
+                onClick: (e2) => {
+                  if (e2.target === e2.currentTarget) setInvoiceDetailModal(null);
+                },
+                children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", borderRadius: "10px", width: "700px", maxWidth: "95vw", maxHeight: "90vh", overflow: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.25)" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: "1px solid #dee2e6", background: "#f8f9fa" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: 0, color: "#333" }, children: [
+                        "\u{1F9FE} ",
+                        t2("invoices.details") || "Invoice Details"
+                      ] }),
+                      !invoiceDetailModal.loading && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "12px", color: "#6c757d", marginTop: "2px" }, children: [
+                        invoiceDetailModal.invoiceNumber,
+                        " \xA0\xB7\xA0 ",
+                        invoiceDetailModal.market?.toUpperCase()
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setInvoiceDetailModal(null), style: { background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#6c757d", lineHeight: "1" }, children: "\xD7" })
+                  ] }),
+                  invoiceDetailModal.loading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "40px", textAlign: "center", color: "#6c757d" }, children: "\u23F3 Loading..." }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "24px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "20px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { background: invoiceDetailModal.status === "issued" ? "#198754" : invoiceDetailModal.status === "cancelled" ? "#dc3545" : "#ffc107", color: "white", padding: "3px 10px", borderRadius: "10px", fontSize: "12px", fontWeight: "600" }, children: invoiceDetailModal.status === "issued" ? t2("invoices.issued") : invoiceDetailModal.status === "cancelled" ? t2("invoices.cancelled") : t2("invoices.pending") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { background: "#e9ecef", color: "#495057", padding: "3px 10px", borderRadius: "10px", fontSize: "12px" }, children: [
+                        "\u{1F4C5} ",
+                        invoiceDetailModal.issueDate ? new Date(invoiceDetailModal.issueDate).toLocaleDateString() : "-"
+                      ] }),
+                      invoiceDetailModal.dueDate && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { background: "#fff3cd", color: "#856404", padding: "3px 10px", borderRadius: "10px", fontSize: "12px" }, children: [
+                        "\u23F3 Due: ",
+                        new Date(invoiceDetailModal.dueDate).toLocaleDateString()
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { background: "#cfe2ff", color: "#0d6efd", padding: "3px 10px", borderRadius: "10px", fontSize: "12px" }, children: [
+                        "\u{1F6D2} Order #",
+                        invoiceDetailModal.orderId || "-"
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", borderRadius: "6px", padding: "14px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontWeight: "600", color: "#333", marginBottom: "8px", fontSize: "13px" }, children: [
+                          "\u{1F464} ",
+                          t2("invoices.buyer") || "Buyer"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "13px", color: "#495057", lineHeight: "1.6" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { children: invoiceDetailModal.buyerName || `${invoiceDetailModal.userFirstName || ""} ${invoiceDetailModal.userLastName || ""}`.trim() || "\u2014" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { color: "#6c757d" }, children: invoiceDetailModal.buyerEmail || invoiceDetailModal.userEmail || "" }),
+                          invoiceDetailModal.buyerVatCode && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { color: "#6c757d", fontSize: "11px" }, children: [
+                            "VAT: ",
+                            invoiceDetailModal.buyerVatCode
+                          ] }),
+                          invoiceDetailModal.buyerAddress && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { color: "#6c757d", fontSize: "11px" }, children: invoiceDetailModal.buyerAddress })
+                        ] })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", borderRadius: "6px", padding: "14px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontWeight: "600", color: "#333", marginBottom: "8px", fontSize: "13px" }, children: [
+                          "\u{1F4B3} ",
+                          t2("invoices.payment") || "Payment"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "13px", color: "#495057", lineHeight: "1.6" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { children: invoiceDetailModal.paymentMethod || "\u2014" }),
+                          invoiceDetailModal.paymentStatus && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { color: "#6c757d" }, children: invoiceDetailModal.paymentStatus }),
+                          invoiceDetailModal.externalRef && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "11px", color: "#6c757d" }, children: [
+                            "Ext ref: ",
+                            invoiceDetailModal.externalRef
+                          ] }),
+                          invoiceDetailModal.efacturaRef && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "11px", color: "#6c757d" }, children: [
+                            "e-Fact: ",
+                            invoiceDetailModal.efacturaRef
+                          ] })
+                        ] })
+                      ] })
+                    ] }),
+                    invoiceDetailModal.items && invoiceDetailModal.items.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontWeight: "600", color: "#333", marginBottom: "8px", fontSize: "13px" }, children: [
+                        "\u{1F4E6} ",
+                        t2("invoices.lineItems") || "Line Items"
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "12px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { background: "#f8f9fa" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "7px 10px", textAlign: "left", borderBottom: "2px solid #dee2e6", color: "#333" }, children: t2("orders.product") || "Product" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "7px 10px", textAlign: "center", borderBottom: "2px solid #dee2e6", color: "#333" }, children: t2("orders.qty") || "Qty" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "7px 10px", textAlign: "right", borderBottom: "2px solid #dee2e6", color: "#333" }, children: t2("invoices.unitPrice") || "Unit Price" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "7px 10px", textAlign: "right", borderBottom: "2px solid #dee2e6", color: "#333" }, children: t2("invoices.vatRate") || "VAT%" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "7px 10px", textAlign: "right", borderBottom: "2px solid #dee2e6", color: "#333" }, children: t2("orders.total") || "Total" })
+                        ] }) }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: invoiceDetailModal.items.map((item, idx) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #f0f0f0", background: idx % 2 === 0 ? "white" : "#fafafa" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "7px 10px" }, children: item.name || item.productName || "-" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "7px 10px", textAlign: "center" }, children: item.quantity || item.qty || 1 }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "7px 10px", textAlign: "right" }, children: parseFloat(item.price || item.unitPrice || 0).toFixed(2) }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "7px 10px", textAlign: "right" }, children: [
+                            item.vatRate || item.taxRate || "19",
+                            "%"
+                          ] }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "7px 10px", textAlign: "right", fontWeight: "600" }, children: parseFloat(item.total || (item.price || 0) * (item.quantity || 1)).toFixed(2) })
+                        ] }, idx)) })
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: "20px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", borderRadius: "6px", padding: "14px", minWidth: "220px" }, children: [
+                      invoiceDetailModal.subtotal != null && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px", color: "#6c757d" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                          t2("orders.subtotal") || "Subtotal",
+                          ":"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                          parseFloat(invoiceDetailModal.subtotal).toFixed(2),
+                          " ",
+                          invoiceDetailModal.currency
+                        ] })
+                      ] }),
+                      invoiceDetailModal.taxAmount != null && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px", color: "#6c757d" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "TVA / VAT:" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                          parseFloat(invoiceDetailModal.taxAmount).toFixed(2),
+                          " ",
+                          invoiceDetailModal.currency
+                        ] })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", borderTop: "2px solid #dee2e6", paddingTop: "8px", fontWeight: "700", fontSize: "15px", color: "#333" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "Total:" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                          parseFloat(invoiceDetailModal.totalAmount || 0).toFixed(2),
+                          " ",
+                          invoiceDetailModal.currency
+                        ] })
+                      ] })
+                    ] }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "flex-end", gap: "8px" }, children: [
+                      (invoiceDetailModal.pdfPath || invoiceDetailModal.source === "smartbill") && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          onClick: () => downloadAdminInvoicePdf(invoiceDetailModal.id, invoiceDetailModal.invoiceNumber),
+                          style: { background: "#dc3545", color: "white", border: "none", borderRadius: "6px", padding: "8px 16px", cursor: "pointer", fontSize: "13px" },
+                          children: "\u{1F4E5} Download PDF"
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          onClick: () => setInvoiceDetailModal(null),
+                          style: { background: "#6c757d", color: "white", border: "none", borderRadius: "6px", padding: "8px 16px", cursor: "pointer", fontSize: "13px" },
+                          children: t2("common.close") || "Close"
+                        }
+                      )
+                    ] })
+                  ] })
+                ] })
+              }
+            )
           ] });
         case "vouchers":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [

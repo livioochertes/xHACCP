@@ -16,6 +16,13 @@ if (!SENDGRID_API_KEY) {
   console.log(`Email service initialized with verified sender: ${VERIFIED_SENDER}`);
 }
 
+interface EmailAttachment {
+  content: string; // base64
+  filename: string;
+  type: string;
+  disposition: 'attachment' | 'inline';
+}
+
 interface EmailParams {
   to: string;
   from: string;
@@ -23,6 +30,7 @@ interface EmailParams {
   text?: string;
   html?: string;
   replyTo?: string;
+  attachments?: EmailAttachment[];
 }
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
@@ -43,6 +51,10 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     
     if (params.replyTo) {
       emailData.replyTo = params.replyTo;
+    }
+
+    if (params.attachments && params.attachments.length > 0) {
+      emailData.attachments = params.attachments;
     }
     
     await mailService.send(emailData);
@@ -69,7 +81,9 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
 export async function sendOrderConfirmationEmail(
   order: OrderWithItems,
   user: User,
-  paymentMethod?: string
+  paymentMethod?: string,
+  invoicePdfBuffer?: Buffer,
+  invoiceNumber?: string
 ): Promise<boolean> {
   const shippingAddress = order.shippingAddress as any;
   const billingAddress = order.billingAddress as any;
@@ -241,13 +255,27 @@ export async function sendOrderConfirmationEmail(
     Thank you for choosing xHACCP!
   `;
 
-  return await sendEmail({
+  const emailParams: Parameters<typeof sendEmail>[0] = {
     to: user.email,
     from: VERIFIED_SENDER,
     subject: `Order Confirmation #${order.id} - xHACCP`,
     text: textContent,
     html: html,
-  });
+  };
+
+  // Attach invoice PDF for fr/com market local invoices
+  if (invoicePdfBuffer && invoicePdfBuffer.length > 0) {
+    const fname = invoiceNumber ? `Factura_${invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_')}.pdf` : `Factura_${order.id}.pdf`;
+    emailParams.attachments = [{
+      content: invoicePdfBuffer.toString('base64'),
+      filename: fname,
+      type: 'application/pdf',
+      disposition: 'attachment',
+    }];
+    console.log(`📎 Attaching invoice PDF (${invoicePdfBuffer.length} bytes) to order confirmation email for order #${order.id}`);
+  }
+
+  return await sendEmail(emailParams);
 }
 
 export async function sendNewOrderNotificationEmail(
