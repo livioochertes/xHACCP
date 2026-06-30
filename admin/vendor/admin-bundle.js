@@ -15986,17 +15986,55 @@ This action cannot be undone.`)) {
                         inv.efacturaStatus
                       ] })
                     ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", textAlign: "center" }, children: hasPdf ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                      "button",
-                      {
-                        onClick: () => downloadAdminInvoicePdf(inv.id, inv.invoiceNumber),
-                        style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "4px 10px", cursor: "pointer", fontSize: "11px" },
-                        children: [
-                          "\u{1F4E5} ",
-                          t2("invoices.download")
-                        ]
-                      }
-                    ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#adb5bd", fontSize: "11px" }, children: "\u2014" }) })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "4px", justifyContent: "center", flexWrap: "wrap" }, children: [
+                      hasPdf && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          onClick: () => downloadAdminInvoicePdf(inv.id, inv.invoiceNumber),
+                          title: t2("invoices.download"),
+                          style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px" },
+                          children: "\u{1F4E5} PDF"
+                        }
+                      ),
+                      isSmartbill && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "a",
+                        {
+                          href: inv.smartbillUrl || `https://app.smartbill.ro/`,
+                          target: "_blank",
+                          rel: "noopener noreferrer",
+                          title: "Open in Smartbill",
+                          style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px", textDecoration: "none", display: "inline-flex", alignItems: "center" },
+                          children: "\u{1F517} Smartbill"
+                        }
+                      ),
+                      inv.market === "ro" && !isSmartbill && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          onClick: async () => {
+                            const resp = await fetch(`/admin/api/invoices/${inv.id}/submit-efactura`, { method: "POST", headers: { "Authorization": `Bearer ${token}` } });
+                            const data = await resp.json();
+                            alert(`e-Factura: ${data.message}`);
+                          },
+                          title: "Submit to e-Factura (stub)",
+                          style: { background: "#6610f2", color: "white", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px" },
+                          children: "\u{1F4E4} e-Fact"
+                        }
+                      ),
+                      inv.market === "com" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          onClick: async () => {
+                            const resp = await fetch(`/admin/api/invoices/${inv.id}/submit-external`, { method: "POST", headers: { "Authorization": `Bearer ${token}` } });
+                            const data = await resp.json();
+                            alert(`External API: ${data.message}`);
+                          },
+                          title: "Submit to external API (stub)",
+                          style: { background: "#6c757d", color: "white", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px" },
+                          children: "\u{1F4E4} Ext."
+                        }
+                      ),
+                      !hasPdf && !isSmartbill && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#adb5bd", fontSize: "11px" }, children: "\u2014" })
+                    ] }) })
                   ] }, inv.id);
                 }) })
               ] }),

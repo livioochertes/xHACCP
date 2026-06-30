@@ -5033,7 +5033,9 @@ export async function registerAdminRoutes(app: Express) {
           i.id, i.invoice_number as "invoiceNumber", i.order_id as "orderId", i.user_id as "userId",
           i.issue_date as "issueDate", i.status, i.total_amount as "totalAmount", i.currency,
           i.market, i.pdf_path as "pdfPath", i.efactura_status as "efacturaStatus",
+          i.efactura_ref as "efacturaRef", i.external_ref as "externalRef",
           i.smartbill_series as "smartbillSeries", i.smartbill_number as "smartbillNumber",
+          i.smartbill_url as "smartbillUrl",
           i.payment_method as "paymentMethod", i.created_at as "createdAt",
           u.first_name as "userFirstName", u.last_name as "userLastName", u.email as "userEmail"
         FROM invoices i
@@ -5065,6 +5067,15 @@ export async function registerAdminRoutes(app: Express) {
       const id = parseInt(req.params.id);
       const invoice = await storage.getInvoice(id);
       if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+      // Market-scope access control
+      const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+      const invoiceMarket = (invoice as any).market || 'ro';
+      if (!isSuperAdmin && !allowedMarkets.includes(invoiceMarket)) {
+        return res.status(403).json({ message: 'Access denied for this invoice market' });
+      }
+
       res.json(invoice);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch invoice' });
@@ -5075,6 +5086,17 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/admin/api/invoices/:id/pdf", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      const invoice = await storage.getInvoice(id);
+      if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+      // Market-scope access control
+      const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+      const invoiceMarket = (invoice as any).market || 'ro';
+      if (!isSuperAdmin && !allowedMarkets.includes(invoiceMarket)) {
+        return res.status(403).json({ message: 'Access denied for this invoice market' });
+      }
+
       const { createInvoiceService } = await import('./invoice-service.js');
       const invoiceService = await createInvoiceService();
       const pdfBuffer = await invoiceService.getInvoicePdf(id);
@@ -5083,8 +5105,7 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(404).json({ message: 'PDF not available for this invoice' });
       }
 
-      const invoice = await storage.getInvoice(id);
-      const filename = `factura_${invoice?.invoiceNumber?.replace(/[^a-zA-Z0-9]/g, '_') || id}.pdf`;
+      const filename = `factura_${(invoice as any).invoiceNumber?.replace(/[^a-zA-Z0-9]/g, '_') || id}.pdf`;
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -5095,21 +5116,32 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // GET /admin/api/invoice-counters - list all market counters
+  // GET /admin/api/invoice-counters - list all market counters (superadmin only)
   app.get("/admin/api/invoice-counters", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const { getAllInvoiceCounters } = await import('./invoice-counter.js');
-      const counters = await getAllInvoiceCounters();
+      const allCounters = await getAllInvoiceCounters();
+
+      // Non-superadmins see only counters for their allowed markets
+      const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+      const counters = isSuperAdmin ? allCounters : allCounters.filter(c => allowedMarkets.includes(c.market));
       res.json(counters);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch invoice counters' });
     }
   });
 
-  // PUT /admin/api/invoice-counters/:market - update series or current number
+  // PUT /admin/api/invoice-counters/:market - update series or current number (superadmin only)
   app.put("/admin/api/invoice-counters/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const market = req.params.market;
+
+      // Only superadmin may reset counters
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ message: 'Only superadmins can modify invoice counters' });
+      }
+
       const { series, currentNumber } = req.body;
       const { setInvoiceSeries, setInvoiceCurrentNumber, getAllInvoiceCounters } = await import('./invoice-counter.js');
       if (series) await setInvoiceSeries(market, series);
@@ -5118,6 +5150,45 @@ export async function registerAdminRoutes(app: Express) {
       res.json(counters.find(c => c.market === market) || {});
     } catch (error) {
       res.status(500).json({ message: 'Failed to update invoice counter' });
+    }
+  });
+
+  // POST /admin/api/invoices/:id/submit-efactura — stub: submit .ro invoice to ANAF e-Factura
+  app.post("/admin/api/invoices/:id/submit-efactura", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const invoice = await storage.getInvoice(id);
+      if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+      const invoiceMarket = (invoice as any).market || 'ro';
+      // Market-scope check
+      if (!req.isSuperAdmin && !(req.adminMarkets || []).includes(invoiceMarket)) {
+        return res.status(403).json({ message: 'Access denied for this invoice market' });
+      }
+      const { createInvoiceService } = await import('./invoice-service.js');
+      const svc = await createInvoiceService();
+      const result = await svc.submitToEfactura(id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to submit to e-Factura' });
+    }
+  });
+
+  // POST /admin/api/invoices/:id/submit-external — stub: submit .com invoice to external API
+  app.post("/admin/api/invoices/:id/submit-external", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const invoice = await storage.getInvoice(id);
+      if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+      const invoiceMarket = (invoice as any).market || 'ro';
+      if (!req.isSuperAdmin && !(req.adminMarkets || []).includes(invoiceMarket)) {
+        return res.status(403).json({ message: 'Access denied for this invoice market' });
+      }
+      const { createInvoiceService } = await import('./invoice-service.js');
+      const svc = await createInvoiceService();
+      const result = await svc.submitToExternalApi(id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to submit to external API' });
     }
   });
 

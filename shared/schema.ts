@@ -244,6 +244,7 @@ export const invoices = pgTable("invoices", {
   pdfPath: text("pdf_path"), // local PDF file path for fr/com
   efacturaStatus: varchar("efactura_status", { length: 50 }), // stub: pending, submitted, accepted
   efacturaRef: text("efactura_ref"), // stub: e-factura reference number
+  externalRef: text("external_ref"), // external API reference (.com integrations, Chorus Pro tx ID, etc.)
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -523,6 +524,16 @@ export const insertSupplierSchema = createInsertSchema(suppliers).omit({
   createdAt: true,
   updatedAt: true,
 });
+
+// Invoice counters — per-market sequential numbering (fr, com; ro uses Smartbill)
+export const invoiceCounters = pgTable("invoice_counters", {
+  id: serial("id").primaryKey(),
+  market: varchar("market", { length: 10 }).notNull().unique(), // ro, fr, com
+  series: varchar("series", { length: 20 }).notNull().default("FACT"),
+  currentNumber: integer("current_number").notNull().default(0),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+export type InvoiceCounter = typeof invoiceCounters.$inferSelect;
 
 export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   id: true,

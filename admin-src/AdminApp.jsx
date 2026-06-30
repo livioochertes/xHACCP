@@ -4260,16 +4260,59 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 {inv.efacturaStatus && <span style={{marginLeft: '4px', fontSize: '10px', color: '#6c757d'}}>e-fact: {inv.efacturaStatus}</span>}
                               </td>
                               <td style={{padding: '10px 12px', textAlign: 'center'}}>
-                                {hasPdf ? (
-                                  <button
-                                    onClick={() => downloadAdminInvoicePdf(inv.id, inv.invoiceNumber)}
-                                    style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '11px'}}
-                                  >
-                                    📥 {t('invoices.download')}
-                                  </button>
-                                ) : (
-                                  <span style={{color: '#adb5bd', fontSize: '11px'}}>—</span>
-                                )}
+                                <div style={{display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap'}}>
+                                  {/* PDF download — local PDF or Smartbill PDF */}
+                                  {hasPdf && (
+                                    <button
+                                      onClick={() => downloadAdminInvoicePdf(inv.id, inv.invoiceNumber)}
+                                      title={t('invoices.download')}
+                                      style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px'}}
+                                    >
+                                      📥 PDF
+                                    </button>
+                                  )}
+                                  {/* Open in Smartbill link for .ro invoices */}
+                                  {isSmartbill && (
+                                    <a
+                                      href={inv.smartbillUrl || `https://app.smartbill.ro/`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title="Open in Smartbill"
+                                      style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center'}}
+                                    >
+                                      🔗 Smartbill
+                                    </a>
+                                  )}
+                                  {/* e-Factura submit stub for .ro non-Smartbill invoices */}
+                                  {inv.market === 'ro' && !isSmartbill && (
+                                    <button
+                                      onClick={async () => {
+                                        const resp = await fetch(`/admin/api/invoices/${inv.id}/submit-efactura`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                                        const data = await resp.json();
+                                        alert(`e-Factura: ${data.message}`);
+                                      }}
+                                      title="Submit to e-Factura (stub)"
+                                      style={{background: '#6610f2', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px'}}
+                                    >
+                                      📤 e-Fact
+                                    </button>
+                                  )}
+                                  {/* External API submit stub for .com invoices */}
+                                  {inv.market === 'com' && (
+                                    <button
+                                      onClick={async () => {
+                                        const resp = await fetch(`/admin/api/invoices/${inv.id}/submit-external`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                                        const data = await resp.json();
+                                        alert(`External API: ${data.message}`);
+                                      }}
+                                      title="Submit to external API (stub)"
+                                      style={{background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px'}}
+                                    >
+                                      📤 Ext.
+                                    </button>
+                                  )}
+                                  {!hasPdf && !isSmartbill && <span style={{color: '#adb5bd', fontSize: '11px'}}>—</span>}
+                                </div>
                               </td>
                             </tr>
                           );

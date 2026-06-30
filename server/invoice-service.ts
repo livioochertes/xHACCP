@@ -641,6 +641,42 @@ export class InvoiceService {
       return false;
     }
   }
+
+  /**
+   * Stub: Submit invoice to e-Factura (Romanian ANAF e-invoicing system) — .ro market
+   * Will be wired to ANAF SPV API when credentials are available.
+   */
+  async submitToEfactura(invoiceId: number): Promise<{ status: string; ref?: string; message: string }> {
+    const invoice = await storage.getInvoice(invoiceId);
+    if (!invoice) return { status: 'error', message: 'Invoice not found' };
+    const market = (invoice as any).market || 'ro';
+    if (market !== 'ro') return { status: 'error', message: 'e-Factura only applies to .ro market' };
+
+    console.log(`[e-Factura STUB] Would submit invoice ${(invoice as any).invoiceNumber} (id=${invoiceId}) to ANAF SPV`);
+    // STUB: Update status to 'pending' to track submission attempt
+    try {
+      await storage.updateInvoice(invoiceId, { efacturaStatus: 'pending' } as any);
+    } catch (_) { /* field may not exist yet in DB */ }
+    return { status: 'pending', message: 'e-Factura submission stub — ANAF SPV integration pending' };
+  }
+
+  /**
+   * Stub: Submit invoice to an external accounting API — .com market (e.g. Chorus Pro, Peppol)
+   * Will be wired when .com market external API credentials are configured.
+   */
+  async submitToExternalApi(invoiceId: number): Promise<{ status: string; ref?: string; message: string }> {
+    const invoice = await storage.getInvoice(invoiceId);
+    if (!invoice) return { status: 'error', message: 'Invoice not found' };
+    const market = (invoice as any).market || 'ro';
+    if (market !== 'com') return { status: 'error', message: 'External API submission applies to .com market only' };
+
+    console.log(`[External API STUB] Would submit invoice ${(invoice as any).invoiceNumber} (id=${invoiceId}) to external API`);
+    // STUB: store external ref placeholder
+    try {
+      await storage.updateInvoice(invoiceId, { externalRef: `EXT-STUB-${invoiceId}` } as any);
+    } catch (_) { /* field may not exist yet in DB */ }
+    return { status: 'stub', ref: `EXT-STUB-${invoiceId}`, message: 'External API submission stub — endpoint not yet configured' };
+  }
 }
 
 // Initialize invoice service with configuration
