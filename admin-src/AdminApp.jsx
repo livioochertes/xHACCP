@@ -4111,9 +4111,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   {/* Invoice Numbering Settings */}
                   <div style={{background: '#fff8e1', padding: '20px', borderRadius: '6px', border: '1px solid #ffc107', gridColumn: 'span 2'}}>
                     <h4 style={{color: '#856404', marginBottom: '15px', borderBottom: '2px solid #ffc107', paddingBottom: '5px'}}>🧾 {t('invoiceSettings.title')}</h4>
-                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
+                    <div style={{display: 'grid', gridTemplateColumns: selectedMarketTab === 'all' ? 'repeat(3, 1fr)' : '1fr', gap: '16px'}}>
                       {/* .ro: Smartbill managed — read-only counter display */}
-                      {(() => {
+                      {(selectedMarketTab === 'all' || selectedMarketTab === 'ro') && (() => {
                         const roCounter = invoiceCounters.find(c => c.market === 'ro') || {};
                         return (
                           <div style={{background: 'white', border: '1px solid #0d6efd30', borderRadius: '6px', padding: '14px'}}>
@@ -4136,7 +4136,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       {[
                         { market: 'fr', label: t('invoiceSettings.fr'), badge: '#198754', desc: 'PDF local + Chorus Pro (stub)' },
                         { market: 'com', label: t('invoiceSettings.com'), badge: '#6c757d', desc: 'PDF local + ext. API (stub)' }
-                      ].map(({market: mkt, label, badge, desc}) => {
+                      ].filter(({market: mkt}) => selectedMarketTab === 'all' || selectedMarketTab === mkt)
+                      .map(({market: mkt, label, badge, desc}) => {
                         const counter = invoiceCounters.find(c => c.market === mkt) || {};
                         return (
                           <div key={mkt} style={{background: 'white', border: `1px solid ${badge}30`, borderRadius: '6px', padding: '14px'}}>

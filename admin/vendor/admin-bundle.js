@@ -15823,8 +15823,8 @@ This action cannot be undone.`)) {
                   "\u{1F9FE} ",
                   t2("invoiceSettings.title")
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }, children: [
-                  (() => {
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: selectedMarketTab === "all" ? "repeat(3, 1fr)" : "1fr", gap: "16px" }, children: [
+                  (selectedMarketTab === "all" || selectedMarketTab === "ro") && (() => {
                     const roCounter = invoiceCounters.find((c) => c.market === "ro") || {};
                     return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", border: "1px solid #0d6efd30", borderRadius: "6px", padding: "14px" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }, children: [
@@ -15849,7 +15849,7 @@ This action cannot be undone.`)) {
                   [
                     { market: "fr", label: t2("invoiceSettings.fr"), badge: "#198754", desc: "PDF local + Chorus Pro (stub)" },
                     { market: "com", label: t2("invoiceSettings.com"), badge: "#6c757d", desc: "PDF local + ext. API (stub)" }
-                  ].map(({ market: mkt, label, badge, desc }) => {
+                  ].filter(({ market: mkt }) => selectedMarketTab === "all" || selectedMarketTab === mkt).map(({ market: mkt, label, badge, desc }) => {
                     const counter = invoiceCounters.find((c) => c.market === mkt) || {};
                     return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", border: `1px solid ${badge}30`, borderRadius: "6px", padding: "14px" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }, children: [
