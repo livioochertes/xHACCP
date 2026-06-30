@@ -413,6 +413,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [scheduleConfig, setScheduleConfig] = useState({ enabled: true, intervalDays: 7, hour: 8 });
       const [scheduleLoaded, setScheduleLoaded] = useState(false);
 
+      // Invoices state
+      const [adminInvoices, setAdminInvoices] = useState([]);
+      const [invoiceCounters, setInvoiceCounters] = useState([]);
+      const [invoicesLoading, setInvoicesLoading] = useState(false);
+      const [invoiceMarketFilter, setInvoiceMarketFilter] = useState('all');
+
       // Voucher state
       const [vouchers, setVouchers] = useState([]);
       const [showAddVoucherModal, setShowAddVoucherModal] = useState(false);
@@ -589,7 +595,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         else if (activeView === 'categories') fetchCategories();
         else if (activeView === 'suppliers') fetchSuppliers();
         else if (activeView === 'vouchers') fetchVouchers();
-        else if (activeView === 'company-settings') fetchCompanySettings();
+        else if (activeView === 'invoices') { fetchInvoices(); fetchInvoiceCounters(); }
+        else if (activeView === 'company-settings') { fetchCompanySettings(); fetchInvoiceCounters(); }
       }, [selectedMarketTab]);
 
       // Refetch orders from server when market filter changes (server-side filtering)
@@ -808,6 +815,63 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           }
         } catch (err) {
           console.error('Network error fetching vouchers:', err);
+        }
+      };
+
+      const fetchInvoices = async (mktFilter) => {
+        setInvoicesLoading(true);
+        try {
+          const mkt = mktFilter || invoiceMarketFilter;
+          const mktParam = mkt && mkt !== 'all' ? `?market=${mkt}` : '';
+          const response = await fetch(`/admin/api/invoices${mktParam}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setAdminInvoices(data);
+          }
+        } catch (err) {
+          console.error('Error fetching invoices:', err);
+        } finally {
+          setInvoicesLoading(false);
+        }
+      };
+
+      const fetchInvoiceCounters = async () => {
+        try {
+          const response = await fetch('/admin/api/invoice-counters', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setInvoiceCounters(data);
+          }
+        } catch (err) {
+          console.error('Error fetching invoice counters:', err);
+        }
+      };
+
+      const downloadAdminInvoicePdf = async (invoiceId, invoiceNumber) => {
+        try {
+          const response = await fetch(`/admin/api/invoices/${invoiceId}/pdf`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!response.ok) {
+            alert('PDF not available for this invoice.');
+            return;
+          }
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `factura_${(invoiceNumber || invoiceId).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        } catch (err) {
+          console.error('Error downloading PDF:', err);
+          alert('Error downloading PDF.');
         }
       };
 
@@ -4018,6 +4082,38 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       {companySettings.description || t('companySettings.noDescription')}
                     </p>
                   </div>
+                  
+                  {/* Invoice Numbering Settings */}
+                  <div style={{background: '#fff8e1', padding: '20px', borderRadius: '6px', border: '1px solid #ffc107', gridColumn: 'span 2'}}>
+                    <h4 style={{color: '#856404', marginBottom: '15px', borderBottom: '2px solid #ffc107', paddingBottom: '5px'}}>🧾 {t('invoiceSettings.title')}</h4>
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
+                      {[
+                        { market: 'ro', label: t('invoiceSettings.ro'), badge: '#0d6efd', desc: 'Smartbill API' },
+                        { market: 'fr', label: t('invoiceSettings.fr'), badge: '#198754', desc: 'PDF local + Chorus Pro (stub)' },
+                        { market: 'com', label: t('invoiceSettings.com'), badge: '#6c757d', desc: 'PDF local + ext. API (stub)' }
+                      ].map(({market: mkt, label, badge, desc}) => {
+                        const counter = invoiceCounters.find(c => c.market === mkt) || {};
+                        return (
+                          <div key={mkt} style={{background: 'white', border: `1px solid ${badge}30`, borderRadius: '6px', padding: '14px'}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px'}}>
+                              <span style={{background: badge, color: 'white', borderRadius: '4px', padding: '1px 7px', fontSize: '11px', fontWeight: '600'}}>{mkt.toUpperCase()}</span>
+                              <span style={{fontSize: '12px', color: '#6c757d'}}>{desc}</span>
+                            </div>
+                            <div style={{fontSize: '12px', color: '#495057', marginBottom: '6px'}}>
+                              {t('invoices.counterSeries')}: <strong>{counter.series || '—'}</strong> &nbsp;|&nbsp; {t('invoices.counterCurrent')}: <strong>{counter.currentNumber ?? '—'}</strong>
+                            </div>
+                            <div style={{fontSize: '11px', color: '#6c757d'}}>{label}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p style={{fontSize: '11px', color: '#856404', marginTop: '12px', margin: '12px 0 0'}}>
+                      ℹ️ {t('invoiceSettings.efacturaStub')} &nbsp;|&nbsp; {t('invoiceSettings.externalApiStub')}. {' '}
+                      <button onClick={() => { handleViewChange('invoices'); fetchInvoices(); fetchInvoiceCounters(); }} style={{background: 'none', border: 'none', color: '#0d6efd', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', padding: '0'}}>
+                        → {t('invoices.title')}
+                      </button>
+                    </p>
+                  </div>
                 </div>
                 
                 <div style={{marginTop: '30px', padding: '20px', background: '#e8f4f8', borderRadius: '6px', border: '1px solid #bee5eb'}}>
@@ -4032,6 +4128,160 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               </div>
             );
           
+          case 'invoices':
+            return (
+              <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                  <h3 style={{color: '#333', margin: '0'}}>🧾 {t('invoices.title')}</h3>
+                  <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                    <select
+                      value={invoiceMarketFilter}
+                      onChange={e => { setInvoiceMarketFilter(e.target.value); fetchInvoices(e.target.value); }}
+                      style={{padding: '6px 10px', borderRadius: '4px', border: '1px solid #ced4da', fontSize: '13px'}}
+                    >
+                      <option value="all">{t('invoices.filterAll')}</option>
+                      <option value="ro">🇷🇴 România (.ro)</option>
+                      <option value="fr">🇫🇷 France (.fr)</option>
+                      <option value="com">🌍 International (.com)</option>
+                    </select>
+                    <button className="btn" style={{background: '#6c757d', width: 'auto', padding: '6px 12px'}} onClick={() => { fetchInvoices(); fetchInvoiceCounters(); }}>
+                      🔄 {t('common.refresh')}
+                    </button>
+                  </div>
+                </div>
+
+                <p style={{color: '#666', marginBottom: '20px', fontSize: '13px'}}>{t('invoices.description')}</p>
+
+                {/* Invoice Counters Card */}
+                {invoiceCounters.length > 0 && (
+                  <div style={{background: '#f0f8ff', border: '1px solid #007bff', borderRadius: '6px', padding: '16px', marginBottom: '24px'}}>
+                    <h4 style={{color: '#007bff', margin: '0 0 12px', fontSize: '14px'}}>📊 {t('invoices.counters')}</h4>
+                    <div style={{display: 'flex', gap: '16px', flexWrap: 'wrap'}}>
+                      {invoiceCounters.map(counter => (
+                        <div key={counter.market} style={{background: 'white', border: '1px solid #bee5eb', borderRadius: '6px', padding: '12px', minWidth: '180px'}}>
+                          <div style={{fontWeight: '600', color: '#333', marginBottom: '6px'}}>
+                            {counter.market === 'ro' ? '🇷🇴 .ro (Smartbill)' : counter.market === 'fr' ? '🇫🇷 .fr (PDF)' : '🌍 .com (PDF)'}
+                          </div>
+                          <div style={{fontSize: '12px', color: '#666', marginBottom: '8px'}}>
+                            {t('invoices.counterSeries')}: <strong>{counter.series}</strong> &nbsp;|&nbsp; {t('invoices.counterCurrent')}: <strong>{counter.currentNumber}</strong>
+                          </div>
+                          <div style={{display: 'flex', gap: '6px'}}>
+                            <input
+                              type="text"
+                              placeholder={t('invoices.counterSeries')}
+                              defaultValue={counter.series}
+                              id={`series-${counter.market}`}
+                              style={{width: '60px', padding: '3px 6px', border: '1px solid #ced4da', borderRadius: '3px', fontSize: '11px'}}
+                            />
+                            <input
+                              type="number"
+                              placeholder="#"
+                              defaultValue={counter.currentNumber}
+                              id={`num-${counter.market}`}
+                              style={{width: '60px', padding: '3px 6px', border: '1px solid #ced4da', borderRadius: '3px', fontSize: '11px'}}
+                            />
+                            <button
+                              style={{background: '#007bff', color: 'white', border: 'none', borderRadius: '3px', padding: '3px 8px', cursor: 'pointer', fontSize: '11px'}}
+                              onClick={async () => {
+                                const series = document.getElementById(`series-${counter.market}`)?.value;
+                                const num = document.getElementById(`num-${counter.market}`)?.value;
+                                const resp = await fetch(`/admin/api/invoice-counters/${counter.market}`, {
+                                  method: 'PUT',
+                                  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ series, currentNumber: parseInt(num) })
+                                });
+                                if (resp.ok) { fetchInvoiceCounters(); alert(t('invoices.counterUpdated')); }
+                              }}
+                            >
+                              {t('invoices.updateCounter')}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* e-Factura stub notes */}
+                    <div style={{marginTop: '12px', padding: '10px', background: '#fff3cd', borderRadius: '4px', fontSize: '12px', color: '#856404'}}>
+                      🇫🇷 {t('invoiceSettings.efacturaStub')} &nbsp;|&nbsp; 🌍 {t('invoiceSettings.externalApiStub')}
+                    </div>
+                  </div>
+                )}
+
+                {/* Invoices Table */}
+                {invoicesLoading ? (
+                  <div style={{textAlign: 'center', padding: '40px', color: '#666'}}>{t('common.loading')}</div>
+                ) : adminInvoices.length === 0 ? (
+                  <div style={{textAlign: 'center', padding: '40px', color: '#999', background: '#f8f9fa', borderRadius: '6px'}}>
+                    📄 {t('invoices.noInvoices')}
+                  </div>
+                ) : (
+                  <div style={{overflowX: 'auto'}}>
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                      <thead>
+                        <tr style={{background: '#f8f9fa', borderBottom: '2px solid #dee2e6'}}>
+                          <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>{t('invoices.id')}</th>
+                          <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>{t('invoices.number')}</th>
+                          <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>{t('invoices.order')}</th>
+                          <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>{t('invoices.customer')}</th>
+                          <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>{t('invoices.market')}</th>
+                          <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>{t('invoices.source')}</th>
+                          <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>{t('invoices.date')}</th>
+                          <th style={{padding: '10px 12px', textAlign: 'right', color: '#495057'}}>{t('invoices.total')}</th>
+                          <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>{t('invoices.status')}</th>
+                          <th style={{padding: '10px 12px', textAlign: 'center', color: '#495057'}}>{t('invoices.actions')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminInvoices.map((inv, idx) => {
+                          const isSmartbill = !!(inv.smartbillSeries && inv.smartbillNumber);
+                          const hasPdf = !!(inv.pdfPath) || isSmartbill;
+                          const sourceLabel = isSmartbill ? t('invoices.smartbill') : inv.efacturaStatus ? t('invoices.efactura') : t('invoices.local');
+                          const sourceColor = isSmartbill ? '#0d6efd' : inv.efacturaStatus ? '#6610f2' : '#198754';
+                          const statusColor = inv.status === 'issued' ? '#198754' : inv.status === 'cancelled' ? '#dc3545' : '#ffc107';
+                          const marketFlag = inv.market === 'ro' ? '🇷🇴' : inv.market === 'fr' ? '🇫🇷' : '🌍';
+                          const customerName = inv.userFirstName ? `${inv.userFirstName} ${inv.userLastName || ''}`.trim() : inv.userEmail || '-';
+                          const issueDate = inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : '-';
+                          return (
+                            <tr key={inv.id} style={{borderBottom: '1px solid #dee2e6', background: idx % 2 === 0 ? 'white' : '#f8f9fa'}}>
+                              <td style={{padding: '10px 12px', color: '#6c757d', fontSize: '12px'}}>{inv.id}</td>
+                              <td style={{padding: '10px 12px', fontFamily: 'monospace', fontWeight: '600', fontSize: '12px'}}>{inv.invoiceNumber}</td>
+                              <td style={{padding: '10px 12px', color: '#6c757d'}}>#{inv.orderId || '-'}</td>
+                              <td style={{padding: '10px 12px', fontSize: '12px'}}>{customerName}</td>
+                              <td style={{padding: '10px 12px'}}>{marketFlag} {inv.market?.toUpperCase() || 'RO'}</td>
+                              <td style={{padding: '10px 12px'}}>
+                                <span style={{background: sourceColor, color: 'white', padding: '2px 7px', borderRadius: '10px', fontSize: '11px'}}>{sourceLabel}</span>
+                              </td>
+                              <td style={{padding: '10px 12px', color: '#6c757d', fontSize: '12px'}}>{issueDate}</td>
+                              <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600'}}>{parseFloat(inv.totalAmount || 0).toFixed(2)} {inv.currency}</td>
+                              <td style={{padding: '10px 12px'}}>
+                                <span style={{background: statusColor, color: 'white', padding: '2px 7px', borderRadius: '10px', fontSize: '11px'}}>
+                                  {inv.status === 'issued' ? t('invoices.issued') : inv.status === 'cancelled' ? t('invoices.cancelled') : t('invoices.pending')}
+                                </span>
+                                {inv.efacturaStatus && <span style={{marginLeft: '4px', fontSize: '10px', color: '#6c757d'}}>e-fact: {inv.efacturaStatus}</span>}
+                              </td>
+                              <td style={{padding: '10px 12px', textAlign: 'center'}}>
+                                {hasPdf ? (
+                                  <button
+                                    onClick={() => downloadAdminInvoicePdf(inv.id, inv.invoiceNumber)}
+                                    style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '11px'}}
+                                  >
+                                    📥 {t('invoices.download')}
+                                  </button>
+                                ) : (
+                                  <span style={{color: '#adb5bd', fontSize: '11px'}}>—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    <p style={{color: '#666', fontSize: '12px', marginTop: '10px'}}>{adminInvoices.length} {t('invoices.title').toLowerCase()} total</p>
+                  </div>
+                )}
+              </div>
+            );
+
           case 'vouchers':
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
@@ -9967,6 +10217,13 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
             >
               <span style={{fontSize: '18px'}}>🌍</span>
               <span style={{fontSize: '12px'}}>{t('nav.markets')}</span>
+            </button>
+            <button 
+              className={`nav-tab ${activeView === 'invoices' ? 'active' : ''}`}
+              onClick={() => { handleViewChange('invoices'); fetchInvoices(); fetchInvoiceCounters(); }}
+            >
+              <span style={{fontSize: '18px'}}>🧾</span>
+              <span style={{fontSize: '12px'}}>{t('nav.invoices')}</span>
             </button>
           </div>
           

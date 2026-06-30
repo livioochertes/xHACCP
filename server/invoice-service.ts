@@ -1,5 +1,7 @@
 import { SmartbillAPI, SmartbillConfig, orderToSmartbillInvoice } from './smartbill-api.js';
 import { storage } from './storage.js';
+import { getNextInvoiceNumber } from './invoice-counter.js';
+import { generateInvoicePdf, getInvoicePdfBuffer, pdfExists, type PdfInvoiceData } from './pdf-invoice-local.js';
 
 export interface InvoiceServiceConfig {
   smartbill: SmartbillConfig;
@@ -102,11 +104,14 @@ export class InvoiceService {
 
       let invoice;
 
-      if (this.config.enableSmartbill) {
-        // Generate invoice via Smartbill API — pass resolvedCompanyInfo so no shared state is mutated
+      if (orderMarket === 'fr' || orderMarket === 'com') {
+        // fr/com: use local PDF generation with per-market counter (not Smartbill)
+        invoice = await this.generateLocalInvoiceForMarket(order, user, paymentData, resolvedCompanyInfo, orderMarket);
+      } else if (this.config.enableSmartbill) {
+        // ro: Generate invoice via Smartbill API
         invoice = await this.generateSmartbillInvoice(order, user, paymentData, resolvedCompanyInfo);
       } else {
-        // Fallback to local invoice generation
+        // ro fallback: local invoice generation
         invoice = await this.generateLocalInvoice(order, user, paymentData, resolvedCompanyInfo);
       }
 
@@ -182,7 +187,10 @@ export class InvoiceService {
         status: 'manual_creation'
       };
 
-      if (this.config.enableSmartbill) {
+      if (orderMarket === 'fr' || orderMarket === 'com') {
+        console.log(`📋 ✅ USING LOCAL PDF INVOICE for market '${orderMarket}'`);
+        return await this.generateLocalInvoiceForMarket(order, user, paymentData, resolvedCompanyInfo, orderMarket);
+      } else if (this.config.enableSmartbill) {
         console.log(`📋 ✅ ATTEMPTING SMARTBILL INVOICE CREATION - Series: ${this.config.defaultSeries}`);
         return await this.generateSmartbillInvoice(order, user, paymentData, resolvedCompanyInfo);
       } else {
@@ -408,6 +416,140 @@ export class InvoiceService {
   }
 
   /**
+   * Generate a local PDF invoice for fr/com markets with per-market sequential numbering
+   */
+  private async generateLocalInvoiceForMarket(order: any, user: any, paymentData: any, companyInfo?: any, market: string = 'fr'): Promise<any> {
+    try {
+      // Get next sequential number for this market
+      const { formatted: invoiceNumber } = await getNextInvoiceNumber(market);
+      console.log(`📋 [${market.toUpperCase()}] Generating local PDF invoice: ${invoiceNumber}`);
+
+      const currency = order.currency || (market === 'ro' ? 'RON' : 'EUR');
+      const vatRate = market === 'fr' ? 20 : market === 'ro' ? 19 : 0;
+      const totalAmount = parseFloat(order.totalAmount);
+      const vatAmount = (totalAmount * vatRate) / (100 + vatRate);
+      const subtotalWithoutVat = totalAmount - vatAmount;
+
+      // Build invoice items
+      const items: any[] = (order.items || []).map((item: any) => ({
+        productId: item.productId,
+        productName: item.product?.name || item.productName || 'Product',
+        productCode: item.product?.productCode || null,
+        quantity: item.quantity,
+        unitPrice: parseFloat(item.price),
+        vatRate: vatRate.toFixed(2),
+        lineTotal: parseFloat(item.totalPrice),
+      }));
+
+      // Add discount if present
+      const discountAmount = parseFloat(order.discountAmount || '0') ||
+        (() => { const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)\s*\(-?([\d.]+)\)/); return m ? parseFloat(m[2]) : 0; })();
+      const voucherCode = order.voucherCode ||
+        (() => { const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)/); return m ? m[1] : ''; })();
+      if (discountAmount > 0) {
+        items.push({
+          productId: null,
+          productName: `Remise${voucherCode ? ' ' + voucherCode : ''}`,
+          productCode: 'DISCOUNT',
+          quantity: 1,
+          unitPrice: (-Math.abs(discountAmount)).toFixed(2),
+          vatRate: vatRate.toFixed(2),
+          lineTotal: (-Math.abs(discountAmount)).toFixed(2),
+        });
+      }
+
+      // Resolve buyer info from order
+      const billing = (order.billingAddress as any) || {};
+      const shipping = (order.shippingAddress as any) || {};
+      const buyerName = `${billing.firstName || shipping.firstName || user?.firstName || ''} ${billing.lastName || shipping.lastName || user?.lastName || ''}`.trim();
+
+      // Build PDF data
+      const pdfData: PdfInvoiceData = {
+        invoiceNumber,
+        issueDate: new Date(),
+        market,
+        currency,
+        seller: {
+          name: companyInfo?.name || 'xHACCP',
+          address: companyInfo?.address,
+          city: companyInfo?.city,
+          zipCode: companyInfo?.zipCode,
+          country: companyInfo?.country,
+          vatNumber: companyInfo?.vatNumber,
+          registrationNumber: companyInfo?.registrationNumber,
+          email: companyInfo?.email,
+          phone: companyInfo?.phone,
+          iban: companyInfo?.iban,
+          bankName: companyInfo?.bankName,
+        },
+        buyer: {
+          name: buyerName,
+          companyName: billing.companyName || user?.companyName || '',
+          address: billing.address || shipping.address || user?.companyAddress || '',
+          city: billing.city || shipping.city || user?.companyCity || '',
+          zipCode: billing.zipCode || shipping.zipCode || user?.companyZip || '',
+          country: billing.country || shipping.country || user?.companyCountry || '',
+          vatNumber: billing.vatNumber || user?.vatNumber || '',
+          email: billing.email || shipping.email || user?.email || '',
+        },
+        items: items.map(it => ({
+          productName: it.productName,
+          productCode: it.productCode,
+          quantity: it.quantity,
+          unitPrice: parseFloat(it.unitPrice),
+          vatRate: parseFloat(it.vatRate),
+          lineTotal: parseFloat(it.lineTotal),
+        })),
+        subtotal: subtotalWithoutVat,
+        vatAmount,
+        totalAmount,
+        notes: order.notes || undefined,
+        paymentMethod: paymentData.paymentMethod || order.paymentMethod || '',
+      };
+
+      // Generate PDF file
+      const pdfPath = await generateInvoicePdf(pdfData);
+      console.log(`✅ [${market.toUpperCase()}] PDF generated: ${pdfPath}`);
+
+      // Store in DB with market + pdfPath
+      const invoiceRecord = {
+        invoiceNumber,
+        orderId: order.id,
+        userId: order.userId || undefined,
+        issueDate: new Date(),
+        supplyDate: new Date(),
+        subtotal: subtotalWithoutVat.toFixed(2),
+        vatAmount: vatAmount.toFixed(2),
+        totalAmount: totalAmount.toFixed(2),
+        currency,
+        paymentMethod: paymentData.paymentMethod || 'card',
+        notes: market === 'fr' ? 'Facture locale — dépôt Chorus Pro en attente' : 'Local invoice',
+        status: 'issued',
+        market,
+        pdfPath,
+        efacturaStatus: market === 'fr' ? 'pending' : undefined,
+      };
+
+      const invoice = await storage.createInvoice(invoiceRecord, items.map(it => ({
+        productId: it.productId,
+        productName: it.productName,
+        productCode: it.productCode,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        vatRate: it.vatRate,
+        lineTotal: it.lineTotal,
+      })));
+
+      const fullInvoice = await storage.getInvoice(invoice.id);
+      return fullInvoice;
+
+    } catch (error) {
+      console.error(`[${market.toUpperCase()}] Local PDF invoice generation failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get invoice PDF (from Smartbill if available)
    */
   async getInvoicePdf(invoiceId: number): Promise<Buffer | null> {
@@ -415,6 +557,11 @@ export class InvoiceService {
       const invoice = await storage.getInvoice(invoiceId);
       if (!invoice) {
         throw new Error('Invoice not found');
+      }
+
+      // If invoice has a local PDF path, return from disk
+      if ((invoice as any).pdfPath && pdfExists((invoice as any).pdfPath)) {
+        return await getInvoicePdfBuffer((invoice as any).pdfPath);
       }
 
       // If invoice has Smartbill data, get PDF from Smartbill
@@ -426,7 +573,7 @@ export class InvoiceService {
         );
       }
 
-      // Otherwise return null (local invoice handling would need separate PDF generation)
+      // Otherwise return null
       return null;
 
     } catch (error) {

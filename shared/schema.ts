@@ -239,6 +239,11 @@ export const invoices = pgTable("invoices", {
   smartbillNumber: varchar("smartbill_number", { length: 50 }), // Smartbill document number
   smartbillId: varchar("smartbill_id", { length: 100 }), // Smartbill internal ID
   smartbillUrl: text("smartbill_url"), // Direct link to Smartbill invoice
+  // Multi-market & local PDF fields
+  market: varchar("market", { length: 10 }).default("ro"), // ro, fr, com
+  pdfPath: text("pdf_path"), // local PDF file path for fr/com
+  efacturaStatus: varchar("efactura_status", { length: 50 }), // stub: pending, submitted, accepted
+  efacturaRef: text("efactura_ref"), // stub: e-factura reference number
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -306,6 +311,10 @@ export const companySettings = pgTable("company_settings", {
   // Shipping settings
   freeShippingThreshold: decimal("free_shipping_threshold", { precision: 10, scale: 2 }).default("500.00"),
   standardShippingCost: decimal("standard_shipping_cost", { precision: 10, scale: 2 }).default("25.00"),
+  // Invoice numbering settings (per-market row)
+  invoiceSeries: varchar("invoice_series", { length: 20 }).default("FACT"),
+  invoiceNumberFormat: varchar("invoice_number_format", { length: 50 }).default("YYYY-NNNNNN"),
+  invoiceCurrentNumber: integer("invoice_current_number").default(0),
   // Per-market contact data (ro / fr / com)
   marketContacts: jsonb("market_contacts").$type<{
     ro?: { name?: string; address?: string; city?: string; zipCode?: string; country?: string; phone?: string; email?: string; vatNumber?: string; registrationNumber?: string; };

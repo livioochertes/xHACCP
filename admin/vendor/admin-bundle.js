@@ -10435,6 +10435,7 @@
       suppliers: "Suppliers",
       companySettings: "Company Settings",
       vouchers: "Vouchers",
+      invoices: "Invoices",
       blog: "Blog AI",
       markets: "Markets",
       logistics: "Logistics"
@@ -10795,6 +10796,50 @@
       published: "Published",
       translate: "Translate"
     },
+    invoices: {
+      title: "Invoices",
+      tabTitle: "Invoice Management",
+      description: "View and download invoices issued across all markets.",
+      id: "ID",
+      number: "Invoice #",
+      order: "Order",
+      customer: "Customer",
+      market: "Market",
+      date: "Issue Date",
+      total: "Total",
+      status: "Status",
+      actions: "Actions",
+      download: "Download PDF",
+      noInvoices: "No invoices found.",
+      source: "Source",
+      smartbill: "Smartbill",
+      local: "Local PDF",
+      efactura: "e-Invoice",
+      issued: "Issued",
+      pending: "Pending",
+      cancelled: "Cancelled",
+      filterAll: "All markets",
+      counters: "Numbering counters",
+      counterSeries: "Series",
+      counterCurrent: "Current #",
+      updateCounter: "Update",
+      counterUpdated: "Counter updated",
+      settingsCard: "Invoice numbering settings"
+    },
+    invoiceSettings: {
+      title: "Invoice Settings",
+      series: "Invoice series",
+      numberFormat: "Number format",
+      currentNumber: "Current number",
+      market: "Market",
+      ro: "Romania (.ro) \u2014 Smartbill",
+      fr: "France (.fr) \u2014 Local PDF",
+      com: "International (.com) \u2014 Local PDF",
+      save: "Save",
+      saved: "Saved!",
+      efacturaStub: "e-Invoice integration (Chorus Pro) \u2014 coming soon",
+      externalApiStub: "External API integration .com \u2014 coming soon"
+    },
     settings: {
       title: "Company Settings",
       company_name: "Company Name",
@@ -10817,6 +10862,7 @@
       suppliers: "Furnizori",
       companySettings: "Set\u0103ri firm\u0103",
       vouchers: "Vouchere",
+      invoices: "Facturi",
       blog: "Blog AI",
       markets: "Pie\u021Be",
       logistics: "Logistic\u0103"
@@ -11185,6 +11231,50 @@
       phone: "Telefon",
       email: "Email",
       save: "Salveaz\u0103 set\u0103rile"
+    },
+    invoices: {
+      title: "Facturi",
+      tabTitle: "Gestiune Facturi",
+      description: "Vizualiza\u021Bi \u0219i desc\u0103rca\u021Bi facturile emise pe toate pie\u021Bele.",
+      id: "ID",
+      number: "Num\u0103r factur\u0103",
+      order: "Comand\u0103",
+      customer: "Client",
+      market: "Pia\u021B\u0103",
+      date: "Dat\u0103 emitere",
+      total: "Total",
+      status: "Status",
+      actions: "Ac\u021Biuni",
+      download: "Descarc\u0103 PDF",
+      noInvoices: "Nu exist\u0103 facturi.",
+      source: "Surs\u0103",
+      smartbill: "Smartbill",
+      local: "Local PDF",
+      efactura: "e-Factura",
+      issued: "Emis\u0103",
+      pending: "Pendinte",
+      cancelled: "Anulat\u0103",
+      filterAll: "Toate pie\u021Bele",
+      counters: "Contoare numerotare",
+      counterSeries: "Serie",
+      counterCurrent: "Nr. curent",
+      updateCounter: "Actualizeaz\u0103",
+      counterUpdated: "Contor actualizat",
+      settingsCard: "Set\u0103ri numerotare facturi"
+    },
+    invoiceSettings: {
+      title: "Set\u0103ri Facturare",
+      series: "Serie factur\u0103",
+      numberFormat: "Format num\u0103r",
+      currentNumber: "Num\u0103r curent",
+      market: "Pia\u021B\u0103",
+      ro: "Rom\xE2nia (.ro) \u2014 Smartbill",
+      fr: "Fran\u021Ba (.fr) \u2014 PDF local",
+      com: "International (.com) \u2014 PDF local",
+      save: "Salveaz\u0103",
+      saved: "Salvat!",
+      efacturaStub: "Integrare e-Factura (Chorus Pro) \u2014 \xEEn preg\u0103tire",
+      externalApiStub: "Integrare API extern .com \u2014 \xEEn preg\u0103tire"
     }
   };
 
@@ -11199,6 +11289,7 @@
       suppliers: "Fournisseurs",
       companySettings: "Param\xE8tres soci\xE9t\xE9",
       vouchers: "Bons de r\xE9duction",
+      invoices: "Factures",
       blog: "Blog IA",
       markets: "March\xE9s",
       logistics: "Logistique"
@@ -11558,6 +11649,50 @@
       draft: "Brouillon",
       published: "Publi\xE9",
       translate: "Traduire"
+    },
+    invoices: {
+      title: "Factures",
+      tabTitle: "Gestion des factures",
+      description: "Consultez et t\xE9l\xE9chargez les factures \xE9mises sur tous les march\xE9s.",
+      id: "ID",
+      number: "N\xB0 Facture",
+      order: "Commande",
+      customer: "Client",
+      market: "March\xE9",
+      date: "Date d'\xE9mission",
+      total: "Total",
+      status: "Statut",
+      actions: "Actions",
+      download: "T\xE9l\xE9charger PDF",
+      noInvoices: "Aucune facture trouv\xE9e.",
+      source: "Source",
+      smartbill: "Smartbill",
+      local: "PDF local",
+      efactura: "e-Facture",
+      issued: "\xC9mise",
+      pending: "En attente",
+      cancelled: "Annul\xE9e",
+      filterAll: "Tous les march\xE9s",
+      counters: "Compteurs de num\xE9rotation",
+      counterSeries: "S\xE9rie",
+      counterCurrent: "N\xB0 actuel",
+      updateCounter: "Mettre \xE0 jour",
+      counterUpdated: "Compteur mis \xE0 jour",
+      settingsCard: "Param\xE8tres de num\xE9rotation des factures"
+    },
+    invoiceSettings: {
+      title: "Param\xE8tres de facturation",
+      series: "S\xE9rie de facture",
+      numberFormat: "Format du num\xE9ro",
+      currentNumber: "Num\xE9ro actuel",
+      market: "March\xE9",
+      ro: "Roumanie (.ro) \u2014 Smartbill",
+      fr: "France (.fr) \u2014 PDF local",
+      com: "International (.com) \u2014 PDF local",
+      save: "Enregistrer",
+      saved: "Enregistr\xE9 !",
+      efacturaStub: "Int\xE9gration e-Facture (Chorus Pro) \u2014 \xE0 venir",
+      externalApiStub: "Int\xE9gration API externe .com \u2014 \xE0 venir"
     },
     settings: {
       title: "Param\xE8tres soci\xE9t\xE9",
@@ -12028,6 +12163,10 @@
     const [blogEditForm, setBlogEditForm] = (0, import_react13.useState)({ title: "", excerpt: "", content: "", imageUrl: "", category: "", published: true });
     const [scheduleConfig, setScheduleConfig] = (0, import_react13.useState)({ enabled: true, intervalDays: 7, hour: 8 });
     const [scheduleLoaded, setScheduleLoaded] = (0, import_react13.useState)(false);
+    const [adminInvoices, setAdminInvoices] = (0, import_react13.useState)([]);
+    const [invoiceCounters, setInvoiceCounters] = (0, import_react13.useState)([]);
+    const [invoicesLoading, setInvoicesLoading] = (0, import_react13.useState)(false);
+    const [invoiceMarketFilter, setInvoiceMarketFilter] = (0, import_react13.useState)("all");
     const [vouchers, setVouchers] = (0, import_react13.useState)([]);
     const [showAddVoucherModal, setShowAddVoucherModal] = (0, import_react13.useState)(false);
     const [editingVoucher, setEditingVoucher] = (0, import_react13.useState)(null);
@@ -12172,7 +12311,13 @@
       else if (activeView === "categories") fetchCategories();
       else if (activeView === "suppliers") fetchSuppliers();
       else if (activeView === "vouchers") fetchVouchers();
-      else if (activeView === "company-settings") fetchCompanySettings();
+      else if (activeView === "invoices") {
+        fetchInvoices();
+        fetchInvoiceCounters();
+      } else if (activeView === "company-settings") {
+        fetchCompanySettings();
+        fetchInvoiceCounters();
+      }
     }, [selectedMarketTab]);
     (0, import_react13.useEffect)(() => {
       if (activeView === "orders") {
@@ -12349,6 +12494,60 @@
         }
       } catch (err) {
         console.error("Network error fetching vouchers:", err);
+      }
+    };
+    const fetchInvoices = async (mktFilter) => {
+      setInvoicesLoading(true);
+      try {
+        const mkt = mktFilter || invoiceMarketFilter;
+        const mktParam = mkt && mkt !== "all" ? `?market=${mkt}` : "";
+        const response = await fetch(`/admin/api/invoices${mktParam}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAdminInvoices(data);
+        }
+      } catch (err) {
+        console.error("Error fetching invoices:", err);
+      } finally {
+        setInvoicesLoading(false);
+      }
+    };
+    const fetchInvoiceCounters = async () => {
+      try {
+        const response = await fetch("/admin/api/invoice-counters", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setInvoiceCounters(data);
+        }
+      } catch (err) {
+        console.error("Error fetching invoice counters:", err);
+      }
+    };
+    const downloadAdminInvoicePdf = async (invoiceId, invoiceNumber) => {
+      try {
+        const response = await fetch(`/admin/api/invoices/${invoiceId}/pdf`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!response.ok) {
+          alert("PDF not available for this invoice.");
+          return;
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `factura_${(invoiceNumber || invoiceId).replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("Error downloading PDF:", err);
+        alert("Error downloading PDF.");
       }
     };
     const fetchBlogPosts = async () => {
@@ -15573,6 +15772,51 @@ This action cannot be undone.`)) {
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px", borderBottom: "2px solid #dc3545", paddingBottom: "5px" }, children: t2("companySettings.description") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "0", color: "#6c757d", lineHeight: "1.6" }, children: companySettings.description || t2("companySettings.noDescription") })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#fff8e1", padding: "20px", borderRadius: "6px", border: "1px solid #ffc107", gridColumn: "span 2" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#856404", marginBottom: "15px", borderBottom: "2px solid #ffc107", paddingBottom: "5px" }, children: [
+                  "\u{1F9FE} ",
+                  t2("invoiceSettings.title")
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }, children: [
+                  { market: "ro", label: t2("invoiceSettings.ro"), badge: "#0d6efd", desc: "Smartbill API" },
+                  { market: "fr", label: t2("invoiceSettings.fr"), badge: "#198754", desc: "PDF local + Chorus Pro (stub)" },
+                  { market: "com", label: t2("invoiceSettings.com"), badge: "#6c757d", desc: "PDF local + ext. API (stub)" }
+                ].map(({ market: mkt, label, badge, desc }) => {
+                  const counter = invoiceCounters.find((c) => c.market === mkt) || {};
+                  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", border: `1px solid ${badge}30`, borderRadius: "6px", padding: "14px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { background: badge, color: "white", borderRadius: "4px", padding: "1px 7px", fontSize: "11px", fontWeight: "600" }, children: mkt.toUpperCase() }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: desc })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "12px", color: "#495057", marginBottom: "6px" }, children: [
+                      t2("invoices.counterSeries"),
+                      ": ",
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: counter.series || "\u2014" }),
+                      " \xA0|\xA0 ",
+                      t2("invoices.counterCurrent"),
+                      ": ",
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: counter.currentNumber ?? "\u2014" })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "11px", color: "#6c757d" }, children: label })
+                  ] }, mkt);
+                }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { fontSize: "11px", color: "#856404", marginTop: "12px", margin: "12px 0 0" }, children: [
+                  "\u2139\uFE0F ",
+                  t2("invoiceSettings.efacturaStub"),
+                  " \xA0|\xA0 ",
+                  t2("invoiceSettings.externalApiStub"),
+                  ". ",
+                  " ",
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { onClick: () => {
+                    handleViewChange("invoices");
+                    fetchInvoices();
+                    fetchInvoiceCounters();
+                  }, style: { background: "none", border: "none", color: "#0d6efd", cursor: "pointer", fontSize: "11px", textDecoration: "underline", padding: "0" }, children: [
+                    "\u2192 ",
+                    t2("invoices.title")
+                  ] })
+                ] })
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "30px", padding: "20px", background: "#e8f4f8", borderRadius: "6px", border: "1px solid #bee5eb" }, children: [
@@ -15585,6 +15829,182 @@ This action cannot be undone.`)) {
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { style: { marginBottom: "5px" }, children: t2("companySettings.note2") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { style: { marginBottom: "5px" }, children: t2("companySettings.note3") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { children: t2("companySettings.note4") })
+              ] })
+            ] })
+          ] });
+        case "invoices":
+          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0" }, children: [
+                "\u{1F9FE} ",
+                t2("invoices.title")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", alignItems: "center" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  "select",
+                  {
+                    value: invoiceMarketFilter,
+                    onChange: (e2) => {
+                      setInvoiceMarketFilter(e2.target.value);
+                      fetchInvoices(e2.target.value);
+                    },
+                    style: { padding: "6px 10px", borderRadius: "4px", border: "1px solid #ced4da", fontSize: "13px" },
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: t2("invoices.filterAll") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "ro", children: "\u{1F1F7}\u{1F1F4} Rom\xE2nia (.ro)" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "fr", children: "\u{1F1EB}\u{1F1F7} France (.fr)" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "com", children: "\u{1F30D} International (.com)" })
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { className: "btn", style: { background: "#6c757d", width: "auto", padding: "6px 12px" }, onClick: () => {
+                  fetchInvoices();
+                  fetchInvoiceCounters();
+                }, children: [
+                  "\u{1F504} ",
+                  t2("common.refresh")
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", marginBottom: "20px", fontSize: "13px" }, children: t2("invoices.description") }),
+            invoiceCounters.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f0f8ff", border: "1px solid #007bff", borderRadius: "6px", padding: "16px", marginBottom: "24px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#007bff", margin: "0 0 12px", fontSize: "14px" }, children: [
+                "\u{1F4CA} ",
+                t2("invoices.counters")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", gap: "16px", flexWrap: "wrap" }, children: invoiceCounters.map((counter) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", border: "1px solid #bee5eb", borderRadius: "6px", padding: "12px", minWidth: "180px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontWeight: "600", color: "#333", marginBottom: "6px" }, children: counter.market === "ro" ? "\u{1F1F7}\u{1F1F4} .ro (Smartbill)" : counter.market === "fr" ? "\u{1F1EB}\u{1F1F7} .fr (PDF)" : "\u{1F30D} .com (PDF)" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "12px", color: "#666", marginBottom: "8px" }, children: [
+                  t2("invoices.counterSeries"),
+                  ": ",
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: counter.series }),
+                  " \xA0|\xA0 ",
+                  t2("invoices.counterCurrent"),
+                  ": ",
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: counter.currentNumber })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "6px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      placeholder: t2("invoices.counterSeries"),
+                      defaultValue: counter.series,
+                      id: `series-${counter.market}`,
+                      style: { width: "60px", padding: "3px 6px", border: "1px solid #ced4da", borderRadius: "3px", fontSize: "11px" }
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "number",
+                      placeholder: "#",
+                      defaultValue: counter.currentNumber,
+                      id: `num-${counter.market}`,
+                      style: { width: "60px", padding: "3px 6px", border: "1px solid #ced4da", borderRadius: "3px", fontSize: "11px" }
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "button",
+                    {
+                      style: { background: "#007bff", color: "white", border: "none", borderRadius: "3px", padding: "3px 8px", cursor: "pointer", fontSize: "11px" },
+                      onClick: async () => {
+                        const series = document.getElementById(`series-${counter.market}`)?.value;
+                        const num = document.getElementById(`num-${counter.market}`)?.value;
+                        const resp = await fetch(`/admin/api/invoice-counters/${counter.market}`, {
+                          method: "PUT",
+                          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                          body: JSON.stringify({ series, currentNumber: parseInt(num) })
+                        });
+                        if (resp.ok) {
+                          fetchInvoiceCounters();
+                          alert(t2("invoices.counterUpdated"));
+                        }
+                      },
+                      children: t2("invoices.updateCounter")
+                    }
+                  )
+                ] })
+              ] }, counter.market)) }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "12px", padding: "10px", background: "#fff3cd", borderRadius: "4px", fontSize: "12px", color: "#856404" }, children: [
+                "\u{1F1EB}\u{1F1F7} ",
+                t2("invoiceSettings.efacturaStub"),
+                " \xA0|\xA0 \u{1F30D} ",
+                t2("invoiceSettings.externalApiStub")
+              ] })
+            ] }),
+            invoicesLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { textAlign: "center", padding: "40px", color: "#666" }, children: t2("common.loading") }) : adminInvoices.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { textAlign: "center", padding: "40px", color: "#999", background: "#f8f9fa", borderRadius: "6px" }, children: [
+              "\u{1F4C4} ",
+              t2("invoices.noInvoices")
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { overflowX: "auto" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "13px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { background: "#f8f9fa", borderBottom: "2px solid #dee2e6" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: t2("invoices.id") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: t2("invoices.number") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: t2("invoices.order") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: t2("invoices.customer") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: t2("invoices.market") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: t2("invoices.source") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: t2("invoices.date") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "right", color: "#495057" }, children: t2("invoices.total") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: t2("invoices.status") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "center", color: "#495057" }, children: t2("invoices.actions") })
+                ] }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: adminInvoices.map((inv, idx) => {
+                  const isSmartbill = !!(inv.smartbillSeries && inv.smartbillNumber);
+                  const hasPdf = !!inv.pdfPath || isSmartbill;
+                  const sourceLabel = isSmartbill ? t2("invoices.smartbill") : inv.efacturaStatus ? t2("invoices.efactura") : t2("invoices.local");
+                  const sourceColor = isSmartbill ? "#0d6efd" : inv.efacturaStatus ? "#6610f2" : "#198754";
+                  const statusColor = inv.status === "issued" ? "#198754" : inv.status === "cancelled" ? "#dc3545" : "#ffc107";
+                  const marketFlag = inv.market === "ro" ? "\u{1F1F7}\u{1F1F4}" : inv.market === "fr" ? "\u{1F1EB}\u{1F1F7}" : "\u{1F30D}";
+                  const customerName = inv.userFirstName ? `${inv.userFirstName} ${inv.userLastName || ""}`.trim() : inv.userEmail || "-";
+                  const issueDate = inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : "-";
+                  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #dee2e6", background: idx % 2 === 0 ? "white" : "#f8f9fa" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", color: "#6c757d", fontSize: "12px" }, children: inv.id }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", fontFamily: "monospace", fontWeight: "600", fontSize: "12px" }, children: inv.invoiceNumber }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "10px 12px", color: "#6c757d" }, children: [
+                      "#",
+                      inv.orderId || "-"
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", fontSize: "12px" }, children: customerName }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "10px 12px" }, children: [
+                      marketFlag,
+                      " ",
+                      inv.market?.toUpperCase() || "RO"
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { background: sourceColor, color: "white", padding: "2px 7px", borderRadius: "10px", fontSize: "11px" }, children: sourceLabel }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", color: "#6c757d", fontSize: "12px" }, children: issueDate }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "10px 12px", textAlign: "right", fontWeight: "600" }, children: [
+                      parseFloat(inv.totalAmount || 0).toFixed(2),
+                      " ",
+                      inv.currency
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "10px 12px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { background: statusColor, color: "white", padding: "2px 7px", borderRadius: "10px", fontSize: "11px" }, children: inv.status === "issued" ? t2("invoices.issued") : inv.status === "cancelled" ? t2("invoices.cancelled") : t2("invoices.pending") }),
+                      inv.efacturaStatus && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { marginLeft: "4px", fontSize: "10px", color: "#6c757d" }, children: [
+                        "e-fact: ",
+                        inv.efacturaStatus
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", textAlign: "center" }, children: hasPdf ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                      "button",
+                      {
+                        onClick: () => downloadAdminInvoicePdf(inv.id, inv.invoiceNumber),
+                        style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "4px 10px", cursor: "pointer", fontSize: "11px" },
+                        children: [
+                          "\u{1F4E5} ",
+                          t2("invoices.download")
+                        ]
+                      }
+                    ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#adb5bd", fontSize: "11px" }, children: "\u2014" }) })
+                  ] }, inv.id);
+                }) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { color: "#666", fontSize: "12px", marginTop: "10px" }, children: [
+                adminInvoices.length,
+                " ",
+                t2("invoices.title").toLowerCase(),
+                " total"
               ] })
             ] })
           ] });
@@ -21681,6 +22101,21 @@ ${selectedOrders.map((id) => {
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F30D}" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.markets") })
+            ]
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+          "button",
+          {
+            className: `nav-tab ${activeView === "invoices" ? "active" : ""}`,
+            onClick: () => {
+              handleViewChange("invoices");
+              fetchInvoices();
+              fetchInvoiceCounters();
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F9FE}" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.invoices") })
             ]
           }
         )

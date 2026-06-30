@@ -5014,6 +5014,113 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // ==================== Invoice Admin Routes ====================
+
+  // GET /admin/api/invoices - list all invoices with optional market filter
+  app.get("/admin/api/invoices", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const { pool } = await import('./db.js');
+      let market = req.query.market as string | undefined;
+      const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+
+      if (market && market !== 'all' && !isSuperAdmin && !allowedMarkets.includes(market)) {
+        return res.status(403).json({ message: 'Access denied for this market' });
+      }
+
+      let query = `
+        SELECT 
+          i.id, i.invoice_number as "invoiceNumber", i.order_id as "orderId", i.user_id as "userId",
+          i.issue_date as "issueDate", i.status, i.total_amount as "totalAmount", i.currency,
+          i.market, i.pdf_path as "pdfPath", i.efactura_status as "efacturaStatus",
+          i.smartbill_series as "smartbillSeries", i.smartbill_number as "smartbillNumber",
+          i.payment_method as "paymentMethod", i.created_at as "createdAt",
+          u.first_name as "userFirstName", u.last_name as "userLastName", u.email as "userEmail"
+        FROM invoices i
+        LEFT JOIN users u ON u.id = i.user_id
+      `;
+      const params: any[] = [];
+
+      if (!isSuperAdmin && allowedMarkets.length > 0) {
+        const effectiveMarket = (market && market !== 'all') ? market : allowedMarkets[0];
+        query += ` WHERE i.market = $${params.length + 1}`;
+        params.push(effectiveMarket);
+      } else if (market && market !== 'all') {
+        query += ` WHERE i.market = $${params.length + 1}`;
+        params.push(market);
+      }
+
+      query += ' ORDER BY i.created_at DESC LIMIT 500';
+      const result = await pool.query(query, params);
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Error fetching admin invoices:', error);
+      res.status(500).json({ message: 'Failed to fetch invoices' });
+    }
+  });
+
+  // GET /admin/api/invoices/:id - get single invoice details
+  app.get("/admin/api/invoices/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const invoice = await storage.getInvoice(id);
+      if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+      res.json(invoice);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch invoice' });
+    }
+  });
+
+  // GET /admin/api/invoices/:id/pdf - download invoice PDF
+  app.get("/admin/api/invoices/:id/pdf", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { createInvoiceService } = await import('./invoice-service.js');
+      const invoiceService = await createInvoiceService();
+      const pdfBuffer = await invoiceService.getInvoicePdf(id);
+
+      if (!pdfBuffer) {
+        return res.status(404).json({ message: 'PDF not available for this invoice' });
+      }
+
+      const invoice = await storage.getInvoice(id);
+      const filename = `factura_${invoice?.invoiceNumber?.replace(/[^a-zA-Z0-9]/g, '_') || id}.pdf`;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('Error downloading invoice PDF:', error);
+      res.status(500).json({ message: 'Failed to download PDF' });
+    }
+  });
+
+  // GET /admin/api/invoice-counters - list all market counters
+  app.get("/admin/api/invoice-counters", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const { getAllInvoiceCounters } = await import('./invoice-counter.js');
+      const counters = await getAllInvoiceCounters();
+      res.json(counters);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch invoice counters' });
+    }
+  });
+
+  // PUT /admin/api/invoice-counters/:market - update series or current number
+  app.put("/admin/api/invoice-counters/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const market = req.params.market;
+      const { series, currentNumber } = req.body;
+      const { setInvoiceSeries, setInvoiceCurrentNumber, getAllInvoiceCounters } = await import('./invoice-counter.js');
+      if (series) await setInvoiceSeries(market, series);
+      if (currentNumber !== undefined) await setInvoiceCurrentNumber(market, parseInt(currentNumber));
+      const counters = await getAllInvoiceCounters();
+      res.json(counters.find(c => c.market === market) || {});
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to update invoice counter' });
+    }
+  });
+
   // GET /admin/api/market-products?market=ro — list product market rows for a given market
   // When ?market= is omitted, returns rows for ALL markets (ro + fr + com combined)
   app.get("/admin/api/market-products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
