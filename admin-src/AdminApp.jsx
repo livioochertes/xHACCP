@@ -597,7 +597,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         else if (activeView === 'categories') fetchCategories();
         else if (activeView === 'suppliers') fetchSuppliers();
         else if (activeView === 'vouchers') fetchVouchers();
-        else if (activeView === 'invoices') { fetchInvoices(); fetchInvoiceCounters(); }
+        else if (activeView === 'invoices') { setInvoiceMarketFilter('all'); fetchInvoices(selectedMarketTab); fetchInvoiceCounters(); }
         else if (activeView === 'company-settings') { fetchCompanySettings(); fetchInvoiceCounters(); }
       }, [selectedMarketTab]);
 
@@ -824,7 +824,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         setInvoicesLoading(true);
         try {
           const mkt = mktFilter || invoiceMarketFilter;
-          const mktParam = mkt && mkt !== 'all' ? `?market=${mkt}` : '';
+          // Always scope to the active market tab — a .fr admin must never see .ro invoices
+          const effectiveMkt = (mkt && mkt !== 'all') ? mkt : selectedMarketTab;
+          const mktParam = effectiveMkt && effectiveMkt !== 'all' ? `?market=${effectiveMkt}` : '';
           const response = await fetch(`/admin/api/invoices${mktParam}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });

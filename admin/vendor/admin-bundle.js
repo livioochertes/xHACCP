@@ -12335,7 +12335,8 @@
       else if (activeView === "suppliers") fetchSuppliers();
       else if (activeView === "vouchers") fetchVouchers();
       else if (activeView === "invoices") {
-        fetchInvoices();
+        setInvoiceMarketFilter("all");
+        fetchInvoices(selectedMarketTab);
         fetchInvoiceCounters();
       } else if (activeView === "company-settings") {
         fetchCompanySettings();
@@ -12523,7 +12524,8 @@
       setInvoicesLoading(true);
       try {
         const mkt = mktFilter || invoiceMarketFilter;
-        const mktParam = mkt && mkt !== "all" ? `?market=${mkt}` : "";
+        const effectiveMkt = mkt && mkt !== "all" ? mkt : selectedMarketTab;
+        const mktParam = effectiveMkt && effectiveMkt !== "all" ? `?market=${effectiveMkt}` : "";
         const response = await fetch(`/admin/api/invoices${mktParam}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
