@@ -2406,7 +2406,42 @@ Sitemap: https://${domain}/sitemap.xml
                 }
               }
             } else {
-              console.log(`⚠️ No AWB generated for order #${orderId}, skipping supplier/customer emails`);
+              // No AWB — but still send invoice confirmation email for fr/com markets (PDF attached)
+              // and a plain confirmation for .ro orders that couldn't generate AWB
+              console.log(`⚠️ No AWB generated for order #${orderId} — sending invoice confirmation email instead`);
+              if (invoiceGenerated && invoiceId && customerEmail) {
+                try {
+                  const { sendOrderConfirmationEmail } = await import('./email-service.js');
+                  let invoicePdfBuffer: Buffer | null = null;
+                  try {
+                    const { createInvoiceService } = await import('./invoice-service.js');
+                    const invoiceSvc = await createInvoiceService();
+                    invoicePdfBuffer = await invoiceSvc.getInvoicePdf(invoiceId);
+                  } catch (pdfErr) {
+                    console.error(`❌ Invoice PDF not available for no-AWB email on order #${orderId}:`, pdfErr);
+                  }
+                  const latestOrder = await storage.getOrder(orderId);
+                  if (latestOrder) {
+                    const user = fullOrder.userId ? await storage.getUser(fullOrder.userId) : null;
+                    const guestUser = user || {
+                      id: 0,
+                      email: customerEmail,
+                      firstName: (fullOrder.shippingAddress as any)?.firstName || 'Customer',
+                      lastName: (fullOrder.shippingAddress as any)?.lastName || '',
+                    };
+                    await sendOrderConfirmationEmail(
+                      latestOrder,
+                      guestUser as any,
+                      fullOrder.paymentMethod || undefined,
+                      invoicePdfBuffer || undefined,
+                      invoiceNumber
+                    );
+                    console.log(`✅ Invoice confirmation email sent to ${customerEmail} for order #${orderId} (no AWB)`);
+                  }
+                } catch (noAwbEmailErr) {
+                  console.error(`❌ Failed to send invoice confirmation email for order #${orderId}:`, noAwbEmailErr);
+                }
+              }
             }
 
             console.log(`✅ Acceptance flow completed for order #${orderId}`);

@@ -15800,86 +15800,111 @@ This action cannot be undone.`)) {
                   "\u{1F9FE} ",
                   t2("invoiceSettings.title")
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }, children: [
-                  { market: "ro", label: t2("invoiceSettings.ro"), badge: "#0d6efd", desc: "Smartbill API" },
-                  { market: "fr", label: t2("invoiceSettings.fr"), badge: "#198754", desc: "PDF local + Chorus Pro (stub)" },
-                  { market: "com", label: t2("invoiceSettings.com"), badge: "#6c757d", desc: "PDF local + ext. API (stub)" }
-                ].map(({ market: mkt, label, badge, desc }) => {
-                  const counter = invoiceCounters.find((c) => c.market === mkt) || {};
-                  const settingsKey = `inv-settings-${mkt}`;
-                  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", border: `1px solid ${badge}30`, borderRadius: "6px", padding: "14px" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { background: badge, color: "white", borderRadius: "4px", padding: "1px 7px", fontSize: "11px", fontWeight: "600" }, children: mkt.toUpperCase() }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: desc })
-                    ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "6px" }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "11px", color: "#6c757d", minWidth: "50px" }, children: [
-                          t2("invoices.counterSeries"),
-                          ":"
-                        ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                          "input",
-                          {
-                            type: "text",
-                            id: `inv-series-cs-${mkt}`,
-                            defaultValue: counter.series || (mkt === "fr" ? "FACT" : mkt === "com" ? "INV" : "KTO"),
-                            placeholder: "e.g. FACT",
-                            style: { flex: 1, padding: "3px 6px", border: "1px solid #ced4da", borderRadius: "3px", fontSize: "12px" }
-                          }
-                        )
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }, children: [
+                  (() => {
+                    const roCounter = invoiceCounters.find((c) => c.market === "ro") || {};
+                    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", border: "1px solid #0d6efd30", borderRadius: "6px", padding: "14px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { background: "#0d6efd", color: "white", borderRadius: "4px", padding: "1px 7px", fontSize: "11px", fontWeight: "600" }, children: "RO" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: "Smartbill API" })
                       ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { fontSize: "11px", color: "#6c757d", minWidth: "50px" }, children: "Format:" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                          "input",
-                          {
-                            type: "text",
-                            id: `inv-fmt-cs-${mkt}`,
-                            defaultValue: "YYYY-NNNNNN",
-                            placeholder: "{SERIES}-{YEAR}-{NNNNNN}",
-                            style: { flex: 1, padding: "3px 6px", border: "1px solid #ced4da", borderRadius: "3px", fontSize: "12px" }
-                          }
-                        )
-                      ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "11px", color: "#6c757d", marginTop: "2px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "12px", color: "#495057", marginBottom: "6px" }, children: [
+                        t2("invoices.counterSeries"),
+                        ": ",
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: roCounter.series || "KTO" }),
+                        "\xA0|\xA0 ",
                         t2("invoices.counterCurrent"),
                         ": ",
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: counter.currentNumber ?? "\u2014" })
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: roCounter.currentNumber ?? "\u2014" })
                       ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                        "button",
-                        {
-                          style: { background: badge, color: "white", border: "none", borderRadius: "4px", padding: "5px 10px", cursor: "pointer", fontSize: "11px", marginTop: "4px" },
-                          onClick: async () => {
-                            const series = document.getElementById(`inv-series-cs-${mkt}`)?.value;
-                            const fmt = document.getElementById(`inv-fmt-cs-${mkt}`)?.value;
-                            const cs = companySettings || {};
-                            const resp = await fetch(`/admin/api/company-settings?market=${mkt}`, {
-                              method: "PUT",
-                              headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                name: cs.name || "xHACCP",
-                                email: cs.email || "contact@xhaccp.ro",
-                                invoiceSeries: series,
-                                invoiceNumberFormat: fmt
-                              })
-                            });
-                            if (resp.ok) {
-                              alert(`\u2705 Invoice series "${series}" saved for .${mkt}`);
-                              fetchInvoiceCounters();
-                            } else {
-                              const d = await resp.json();
-                              alert(`Error: ${d.message}`);
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "11px", color: "#6c757d", background: "#f8f9fa", padding: "6px 8px", borderRadius: "4px" }, children: [
+                        "\u{1F517} ",
+                        t2("invoiceSettings.ro")
+                      ] })
+                    ] });
+                  })(),
+                  [
+                    { market: "fr", label: t2("invoiceSettings.fr"), badge: "#198754", desc: "PDF local + Chorus Pro (stub)" },
+                    { market: "com", label: t2("invoiceSettings.com"), badge: "#6c757d", desc: "PDF local + ext. API (stub)" }
+                  ].map(({ market: mkt, label, badge, desc }) => {
+                    const counter = invoiceCounters.find((c) => c.market === mkt) || {};
+                    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", border: `1px solid ${badge}30`, borderRadius: "6px", padding: "14px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { background: badge, color: "white", borderRadius: "4px", padding: "1px 7px", fontSize: "11px", fontWeight: "600" }, children: mkt.toUpperCase() }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: desc })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "6px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "11px", color: "#6c757d", minWidth: "50px" }, children: [
+                            t2("invoices.counterSeries"),
+                            ":"
+                          ] }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                            "input",
+                            {
+                              type: "text",
+                              id: `inv-series-cs-${mkt}`,
+                              defaultValue: counter.series || (mkt === "fr" ? "FACT" : "INV"),
+                              placeholder: mkt === "fr" ? "FACT" : "INV",
+                              style: { flex: 1, padding: "3px 6px", border: "1px solid #ced4da", borderRadius: "3px", fontSize: "12px" }
                             }
-                          },
-                          children: "\u{1F4BE} Save"
-                        }
-                      )
-                    ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "11px", color: "#6c757d", marginTop: "8px" }, children: label })
-                  ] }, mkt);
-                }) }),
+                          )
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { fontSize: "11px", color: "#6c757d", minWidth: "50px" }, children: "Format:" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                            "input",
+                            {
+                              type: "text",
+                              id: `inv-fmt-cs-${mkt}`,
+                              defaultValue: "YYYY-NNNNNN",
+                              placeholder: "{SERIES}-{YEAR}-{NNNNNN}",
+                              style: { flex: 1, padding: "3px 6px", border: "1px solid #ced4da", borderRadius: "3px", fontSize: "12px" }
+                            }
+                          )
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "11px", color: "#6c757d", marginTop: "2px" }, children: [
+                          t2("invoices.counterCurrent"),
+                          ": ",
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: counter.currentNumber ?? "\u2014" })
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                          "button",
+                          {
+                            style: { background: badge, color: "white", border: "none", borderRadius: "4px", padding: "5px 10px", cursor: "pointer", fontSize: "11px", marginTop: "4px" },
+                            onClick: async () => {
+                              const series = document.getElementById(`inv-series-cs-${mkt}`)?.value;
+                              const fmt = document.getElementById(`inv-fmt-cs-${mkt}`)?.value;
+                              const cs = companySettings || {};
+                              const resp = await fetch(`/admin/api/company-settings?market=${mkt}`, {
+                                method: "PUT",
+                                headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  name: cs.name || "xHACCP",
+                                  email: cs.email || "contact@xhaccp.ro",
+                                  invoiceSeries: series,
+                                  invoiceNumberFormat: fmt
+                                })
+                              });
+                              if (resp.ok) {
+                                alert(`\u2705 ${t2("invoices.counterSeries")} "${series}" ${t2("common.saved") || "saved"} (.${mkt})`);
+                                fetchInvoiceCounters();
+                              } else {
+                                const d = await resp.json();
+                                alert(`Error: ${d.message}`);
+                              }
+                            },
+                            children: [
+                              "\u{1F4BE} ",
+                              t2("common.save") || "Save"
+                            ]
+                          }
+                        )
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "11px", color: "#6c757d", marginTop: "8px" }, children: label })
+                    ] }, mkt);
+                  })
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { fontSize: "11px", color: "#856404", marginTop: "12px", margin: "12px 0 0" }, children: [
                   "\u2139\uFE0F ",
                   t2("invoiceSettings.efacturaStub"),

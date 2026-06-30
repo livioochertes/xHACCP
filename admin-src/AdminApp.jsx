@@ -4110,13 +4110,32 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   <div style={{background: '#fff8e1', padding: '20px', borderRadius: '6px', border: '1px solid #ffc107', gridColumn: 'span 2'}}>
                     <h4 style={{color: '#856404', marginBottom: '15px', borderBottom: '2px solid #ffc107', paddingBottom: '5px'}}>🧾 {t('invoiceSettings.title')}</h4>
                     <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
+                      {/* .ro: Smartbill managed — read-only counter display */}
+                      {(() => {
+                        const roCounter = invoiceCounters.find(c => c.market === 'ro') || {};
+                        return (
+                          <div style={{background: 'white', border: '1px solid #0d6efd30', borderRadius: '6px', padding: '14px'}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px'}}>
+                              <span style={{background: '#0d6efd', color: 'white', borderRadius: '4px', padding: '1px 7px', fontSize: '11px', fontWeight: '600'}}>RO</span>
+                              <span style={{fontSize: '12px', color: '#6c757d'}}>Smartbill API</span>
+                            </div>
+                            <div style={{fontSize: '12px', color: '#495057', marginBottom: '6px'}}>
+                              {t('invoices.counterSeries')}: <strong>{roCounter.series || 'KTO'}</strong>
+                              &nbsp;|&nbsp; {t('invoices.counterCurrent')}: <strong>{roCounter.currentNumber ?? '—'}</strong>
+                            </div>
+                            <div style={{fontSize: '11px', color: '#6c757d', background: '#f8f9fa', padding: '6px 8px', borderRadius: '4px'}}>
+                              🔗 {t('invoiceSettings.ro')}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* .fr and .com: Local PDF — editable series + format */}
                       {[
-                        { market: 'ro', label: t('invoiceSettings.ro'), badge: '#0d6efd', desc: 'Smartbill API' },
                         { market: 'fr', label: t('invoiceSettings.fr'), badge: '#198754', desc: 'PDF local + Chorus Pro (stub)' },
                         { market: 'com', label: t('invoiceSettings.com'), badge: '#6c757d', desc: 'PDF local + ext. API (stub)' }
                       ].map(({market: mkt, label, badge, desc}) => {
                         const counter = invoiceCounters.find(c => c.market === mkt) || {};
-                        const settingsKey = `inv-settings-${mkt}`;
                         return (
                           <div key={mkt} style={{background: 'white', border: `1px solid ${badge}30`, borderRadius: '6px', padding: '14px'}}>
                             <div style={{display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px'}}>
@@ -4129,8 +4148,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 <input
                                   type="text"
                                   id={`inv-series-cs-${mkt}`}
-                                  defaultValue={counter.series || (mkt === 'fr' ? 'FACT' : mkt === 'com' ? 'INV' : 'KTO')}
-                                  placeholder="e.g. FACT"
+                                  defaultValue={counter.series || (mkt === 'fr' ? 'FACT' : 'INV')}
+                                  placeholder={mkt === 'fr' ? 'FACT' : 'INV'}
                                   style={{flex: 1, padding: '3px 6px', border: '1px solid #ced4da', borderRadius: '3px', fontSize: '12px'}}
                                 />
                               </div>
@@ -4152,7 +4171,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 onClick={async () => {
                                   const series = document.getElementById(`inv-series-cs-${mkt}`)?.value;
                                   const fmt = document.getElementById(`inv-fmt-cs-${mkt}`)?.value;
-                                  // Save to company_settings for this market
                                   const cs = companySettings || {};
                                   const resp = await fetch(`/admin/api/company-settings?market=${mkt}`, {
                                     method: 'PUT',
@@ -4165,7 +4183,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                     })
                                   });
                                   if (resp.ok) {
-                                    alert(`✅ Invoice series "${series}" saved for .${mkt}`);
+                                    alert(`✅ ${t('invoices.counterSeries')} "${series}" ${t('common.saved') || 'saved'} (.${mkt})`);
                                     fetchInvoiceCounters();
                                   } else {
                                     const d = await resp.json();
@@ -4173,7 +4191,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                   }
                                 }}
                               >
-                                💾 Save
+                                💾 {t('common.save') || 'Save'}
                               </button>
                             </div>
                             <div style={{fontSize: '11px', color: '#6c757d', marginTop: '8px'}}>{label}</div>

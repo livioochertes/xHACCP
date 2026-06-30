@@ -1007,7 +1007,34 @@ export default function Account() {
                               onClick={() => navigate(`/invoice/${invoice.invoiceNumber}`)}
                             >
                               <Eye className="h-4 w-4 mr-1" />
-                              View
+                              {t('account.viewDetails') || 'View'}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+                                  const resp = await fetch(`/api/invoices/${invoice.id}/pdf`, {
+                                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                                  });
+                                  if (!resp.ok) throw new Error('PDF not available');
+                                  const blob = await resp.blob();
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `factura_${invoice.invoiceNumber?.replace(/[^a-zA-Z0-9]/g, '_') || invoice.id}.pdf`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  URL.revokeObjectURL(url);
+                                } catch {
+                                  alert(t('account.pdfNotAvailable') || 'PDF not yet available for this invoice.');
+                                }
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              {t('account.downloadPdf') || 'PDF'}
                             </Button>
                             {invoice.paymentLink && (
                               <Button 

@@ -540,6 +540,13 @@ export class InvoiceService {
         lineTotal: it.lineTotal,
       })));
 
+      // Fire-and-forget: submit to fr-specific Chorus Pro hook (stub) after creation
+      if (market === 'fr') {
+        this.submitToChorusPro(invoice.id).catch(err =>
+          console.error(`[FR] Chorus Pro submission failed for invoice ${invoice.id}:`, err)
+        );
+      }
+
       const fullInvoice = await storage.getInvoice(invoice.id);
       return fullInvoice;
 
@@ -643,26 +650,45 @@ export class InvoiceService {
   }
 
   /**
-   * Stub: Submit invoice to e-Factura (Romanian ANAF e-invoicing system) — .ro market
+   * Stub: Submit invoice to e-Factura (Romanian ANAF e-invoicing system) — .ro market only.
    * Will be wired to ANAF SPV API when credentials are available.
+   * Only accepts .ro invoices — admin-triggered from UI.
    */
   async submitToEfactura(invoiceId: number): Promise<{ status: string; ref?: string; message: string }> {
     const invoice = await storage.getInvoice(invoiceId);
     if (!invoice) return { status: 'error', message: 'Invoice not found' };
     const market = (invoice as any).market || 'ro';
-    if (market !== 'ro') return { status: 'error', message: 'e-Factura only applies to .ro market' };
+    if (market !== 'ro') return { status: 'error', message: 'e-Factura (ANAF SPV) only applies to .ro market' };
 
     console.log(`[e-Factura STUB] Would submit invoice ${(invoice as any).invoiceNumber} (id=${invoiceId}) to ANAF SPV`);
-    // STUB: Update status to 'pending' to track submission attempt
     try {
       await storage.updateInvoice(invoiceId, { efacturaStatus: 'pending' } as any);
-    } catch (_) { /* field may not exist yet in DB */ }
+    } catch (_) { /* ignore */ }
     return { status: 'pending', message: 'e-Factura submission stub — ANAF SPV integration pending' };
   }
 
   /**
-   * Stub: Submit invoice to an external accounting API — .com market (e.g. Chorus Pro, Peppol)
-   * Will be wired when .com market external API credentials are configured.
+   * Stub: Submit .fr invoice to Chorus Pro (French government e-invoicing portal).
+   * Fires automatically after local PDF generation for fr market (fire-and-forget).
+   * Will be wired to Chorus Pro API when credentials are available.
+   */
+  async submitToChorusPro(invoiceId: number): Promise<{ status: string; ref?: string; message: string }> {
+    const invoice = await storage.getInvoice(invoiceId);
+    if (!invoice) return { status: 'error', message: 'Invoice not found' };
+    const market = (invoice as any).market || 'fr';
+    if (market !== 'fr') return { status: 'error', message: 'Chorus Pro only applies to .fr market' };
+
+    console.log(`[Chorus Pro STUB] Would submit invoice ${(invoice as any).invoiceNumber} (id=${invoiceId}) to Chorus Pro`);
+    try {
+      // Mark efactura_status as 'submitted' to track the background hook fired
+      await storage.updateInvoice(invoiceId, { efacturaStatus: 'submitted' } as any);
+    } catch (_) { /* ignore */ }
+    return { status: 'submitted', message: 'Chorus Pro submission stub — awaiting API credentials' };
+  }
+
+  /**
+   * Stub: Submit invoice to an external accounting API — .com market (e.g. Peppol, HMRC).
+   * Admin-triggered from UI.
    */
   async submitToExternalApi(invoiceId: number): Promise<{ status: string; ref?: string; message: string }> {
     const invoice = await storage.getInvoice(invoiceId);
@@ -671,10 +697,9 @@ export class InvoiceService {
     if (market !== 'com') return { status: 'error', message: 'External API submission applies to .com market only' };
 
     console.log(`[External API STUB] Would submit invoice ${(invoice as any).invoiceNumber} (id=${invoiceId}) to external API`);
-    // STUB: store external ref placeholder
     try {
       await storage.updateInvoice(invoiceId, { externalRef: `EXT-STUB-${invoiceId}` } as any);
-    } catch (_) { /* field may not exist yet in DB */ }
+    } catch (_) { /* ignore */ }
     return { status: 'stub', ref: `EXT-STUB-${invoiceId}`, message: 'External API submission stub — endpoint not yet configured' };
   }
 }
