@@ -10433,13 +10433,6 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
               <span style={{fontSize: '12px'}}>{t('nav.orders')}</span>
             </button>
             <button 
-              className={`nav-tab ${activeView === 'users' ? 'active' : ''}`}
-              onClick={() => handleViewChange('users')}
-            >
-              <span style={{fontSize: '18px'}}>👥</span>
-              <span style={{fontSize: '12px'}}>{t('nav.users')}</span>
-            </button>
-            <button 
               className={`nav-tab ${activeView === 'products' ? 'active' : ''}`}
               onClick={() => handleViewChange('products')}
             >
@@ -10461,13 +10454,6 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
               <span style={{fontSize: '12px'}}>{t('nav.suppliers')}</span>
             </button>
             <button 
-              className={`nav-tab ${activeView === 'company-settings' ? 'active' : ''}`}
-              onClick={() => handleViewChange('company-settings')}
-            >
-              <span style={{fontSize: '18px'}}>⚙️</span>
-              <span style={{fontSize: '12px'}}>{t('nav.companySettings')}</span>
-            </button>
-            <button 
               className={`nav-tab ${activeView === 'vouchers' ? 'active' : ''}`}
               onClick={() => handleViewChange('vouchers')}
             >
@@ -10487,6 +10473,20 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
             >
               <span style={{fontSize: '18px'}}>🧾</span>
               <span style={{fontSize: '12px'}}>{t('nav.invoices')}</span>
+            </button>
+            <button 
+              className={`nav-tab ${activeView === 'users' ? 'active' : ''}`}
+              onClick={() => handleViewChange('users')}
+            >
+              <span style={{fontSize: '18px'}}>👥</span>
+              <span style={{fontSize: '12px'}}>{t('nav.users')}</span>
+            </button>
+            <button 
+              className={`nav-tab ${activeView === 'company-settings' ? 'active' : ''}`}
+              onClick={() => handleViewChange('company-settings')}
+            >
+              <span style={{fontSize: '18px'}}>⚙️</span>
+              <span style={{fontSize: '12px'}}>{t('nav.companySettings')}</span>
             </button>
           </div>
           

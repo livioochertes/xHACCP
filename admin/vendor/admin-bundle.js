@@ -22335,17 +22335,6 @@ ${selectedOrders.map((id) => {
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
           "button",
           {
-            className: `nav-tab ${activeView === "users" ? "active" : ""}`,
-            onClick: () => handleViewChange("users"),
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F465}" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.users") })
-            ]
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-          "button",
-          {
             className: `nav-tab ${activeView === "products" ? "active" : ""}`,
             onClick: () => handleViewChange("products"),
             children: [
@@ -22373,17 +22362,6 @@ ${selectedOrders.map((id) => {
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F3E2}" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.suppliers") })
-            ]
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-          "button",
-          {
-            className: `nav-tab ${activeView === "company-settings" ? "active" : ""}`,
-            onClick: () => handleViewChange("company-settings"),
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u2699\uFE0F" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.companySettings") })
             ]
           }
         ),
@@ -22421,6 +22399,28 @@ ${selectedOrders.map((id) => {
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F9FE}" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.invoices") })
+            ]
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+          "button",
+          {
+            className: `nav-tab ${activeView === "users" ? "active" : ""}`,
+            onClick: () => handleViewChange("users"),
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F465}" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.users") })
+            ]
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+          "button",
+          {
+            className: `nav-tab ${activeView === "company-settings" ? "active" : ""}`,
+            onClick: () => handleViewChange("company-settings"),
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u2699\uFE0F" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.companySettings") })
             ]
           }
         )
