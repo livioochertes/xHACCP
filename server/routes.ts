@@ -1313,8 +1313,22 @@ Sitemap: https://${domain}/sitemap.xml
         return res.status(404).json({ message: "Invoice not found" });
       }
 
+      // Check direct ownership; also allow if the invoice belongs to one of the user's orders (covers guest-linked invoices)
       if (invoice.userId !== req.userId && !req.isAdmin) {
-        return res.status(403).json({ message: "Not authorized to access this invoice" });
+        let allowed = false;
+        if (invoice.orderId) {
+          const userOrder = await db.select({ id: orders.id }).from(orders)
+            .where(and(eq(orders.id, invoice.orderId), eq(orders.userId, req.userId!)))
+            .limit(1);
+          if (userOrder.length > 0) {
+            allowed = true;
+            // Link the invoice to this user so future checks pass instantly
+            await db.update(invoices).set({ userId: req.userId! }).where(eq(invoices.id, invoiceId));
+          }
+        }
+        if (!allowed) {
+          return res.status(403).json({ message: "Not authorized to access this invoice" });
+        }
       }
 
       const { createInvoiceService } = await import('./invoice-service.js');
