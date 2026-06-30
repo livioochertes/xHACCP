@@ -4171,16 +4171,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 onClick={async () => {
                                   const series = document.getElementById(`inv-series-cs-${mkt}`)?.value;
                                   const fmt = document.getElementById(`inv-fmt-cs-${mkt}`)?.value;
-                                  const cs = companySettings || {};
-                                  const resp = await fetch(`/admin/api/company-settings?market=${mkt}`, {
+                                  const resp = await fetch(`/admin/api/invoice-settings/${mkt}`, {
                                     method: 'PUT',
                                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      name: cs.name || 'xHACCP',
-                                      email: cs.email || 'contact@xhaccp.ro',
-                                      invoiceSeries: series,
-                                      invoiceNumberFormat: fmt,
-                                    })
+                                    body: JSON.stringify({ invoiceSeries: series, invoiceNumberFormat: fmt })
                                   });
                                   if (resp.ok) {
                                     alert(`✅ ${t('invoices.counterSeries')} "${series}" ${t('common.saved') || 'saved'} (.${mkt})`);

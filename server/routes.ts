@@ -1219,6 +1219,44 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
+  // Customer-facing account invoice endpoints (spec-compliant paths)
+  app.get("/api/account/invoices", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.userId!;
+      const invoiceList = await storage.getInvoices(userId);
+      const enriched = await Promise.all(invoiceList.map(async (inv) => {
+        const items = await db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, inv.id));
+        return { ...inv, itemCount: items.length };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error("Error fetching account invoices:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
+
+  app.get("/api/account/invoices/:id/pdf", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const invoiceId = parseInt(req.params.id);
+      const invoice = await storage.getInvoice(invoiceId);
+      if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+      if (invoice.userId !== req.userId && !req.isAdmin) {
+        return res.status(403).json({ message: "Not authorized to access this invoice" });
+      }
+      const { createInvoiceService } = await import('./invoice-service.js');
+      const invoiceService = await createInvoiceService();
+      const pdfBuffer = await invoiceService.getInvoicePdf(invoiceId);
+      if (!pdfBuffer) return res.status(404).json({ message: "PDF not available for this invoice" });
+      const filename = `Factura_${(invoice as any).invoiceNumber?.replace(/[^a-zA-Z0-9]/g, '_') || invoiceId}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error downloading account invoice PDF:", error);
+      res.status(500).json({ message: "Failed to download invoice PDF" });
+    }
+  });
+
   app.get("/api/invoices/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const invoiceId = parseInt(req.params.id);

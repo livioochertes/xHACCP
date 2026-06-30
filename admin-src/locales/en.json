@@ -397,7 +397,14 @@
     "counterCurrent": "Current #",
     "updateCounter": "Update",
     "counterUpdated": "Counter updated",
-    "settingsCard": "Invoice numbering settings"
+    "settingsCard": "Invoice numbering settings",
+    "details": "Invoice Details",
+    "buyer": "Buyer",
+    "payment": "Payment",
+    "lineItems": "Line Items",
+    "unitPrice": "Unit Price",
+    "vatRate": "VAT %",
+    "viewDetails": "View Details"
   },
   "invoiceSettings": {
     "title": "Invoice Settings",

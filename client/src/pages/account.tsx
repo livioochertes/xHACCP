@@ -416,7 +416,7 @@ export default function Account() {
       const existingInvoice = invoices.find(inv => inv.orderId === orderId);
       
       if (existingInvoice) {
-        const pdfResponse = await fetch(`/api/invoices/${existingInvoice.id}/pdf`, {
+        const pdfResponse = await fetch(`/api/account/invoices/${existingInvoice.id}/pdf`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'X-Market': getMarketFromHostname() }
         });
         
@@ -452,7 +452,7 @@ export default function Account() {
         const invoiceData = await response.json();
         
         if (invoiceData && invoiceData.invoiceNumber) {
-          const pdfResponse = await fetch(`/api/invoices/${invoiceData.id}/pdf`, {
+          const pdfResponse = await fetch(`/api/account/invoices/${invoiceData.id}/pdf`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'X-Market': getMarketFromHostname() }
           });
           

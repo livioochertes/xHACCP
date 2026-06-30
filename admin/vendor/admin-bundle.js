@@ -10824,7 +10824,14 @@
       counterCurrent: "Current #",
       updateCounter: "Update",
       counterUpdated: "Counter updated",
-      settingsCard: "Invoice numbering settings"
+      settingsCard: "Invoice numbering settings",
+      details: "Invoice Details",
+      buyer: "Buyer",
+      payment: "Payment",
+      lineItems: "Line Items",
+      unitPrice: "Unit Price",
+      vatRate: "VAT %",
+      viewDetails: "View Details"
     },
     invoiceSettings: {
       title: "Invoice Settings",
@@ -11260,7 +11267,14 @@
       counterCurrent: "Nr. curent",
       updateCounter: "Actualizeaz\u0103",
       counterUpdated: "Contor actualizat",
-      settingsCard: "Set\u0103ri numerotare facturi"
+      settingsCard: "Set\u0103ri numerotare facturi",
+      details: "Detalii factur\u0103",
+      buyer: "Cump\u0103r\u0103tor",
+      payment: "Plat\u0103",
+      lineItems: "Linii factur\u0103",
+      unitPrice: "Pre\u021B unitar",
+      vatRate: "TVA %",
+      viewDetails: "Detalii"
     },
     invoiceSettings: {
       title: "Set\u0103ri Facturare",
@@ -11678,7 +11692,14 @@
       counterCurrent: "N\xB0 actuel",
       updateCounter: "Mettre \xE0 jour",
       counterUpdated: "Compteur mis \xE0 jour",
-      settingsCard: "Param\xE8tres de num\xE9rotation des factures"
+      settingsCard: "Param\xE8tres de num\xE9rotation des factures",
+      details: "D\xE9tails de la facture",
+      buyer: "Acheteur",
+      payment: "Paiement",
+      lineItems: "Lignes de facturation",
+      unitPrice: "Prix unitaire",
+      vatRate: "TVA %",
+      viewDetails: "Voir les d\xE9tails"
     },
     invoiceSettings: {
       title: "Param\xE8tres de facturation",
@@ -15875,16 +15896,10 @@ This action cannot be undone.`)) {
                             onClick: async () => {
                               const series = document.getElementById(`inv-series-cs-${mkt}`)?.value;
                               const fmt = document.getElementById(`inv-fmt-cs-${mkt}`)?.value;
-                              const cs = companySettings || {};
-                              const resp = await fetch(`/admin/api/company-settings?market=${mkt}`, {
+                              const resp = await fetch(`/admin/api/invoice-settings/${mkt}`, {
                                 method: "PUT",
                                 headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  name: cs.name || "xHACCP",
-                                  email: cs.email || "contact@xhaccp.ro",
-                                  invoiceSeries: series,
-                                  invoiceNumberFormat: fmt
-                                })
+                                body: JSON.stringify({ invoiceSeries: series, invoiceNumberFormat: fmt })
                               });
                               if (resp.ok) {
                                 alert(`\u2705 ${t2("invoices.counterSeries")} "${series}" ${t2("common.saved") || "saved"} (.${mkt})`);

@@ -406,7 +406,14 @@
     "counterCurrent": "Nr. curent",
     "updateCounter": "Actualizează",
     "counterUpdated": "Contor actualizat",
-    "settingsCard": "Setări numerotare facturi"
+    "settingsCard": "Setări numerotare facturi",
+    "details": "Detalii factură",
+    "buyer": "Cumpărător",
+    "payment": "Plată",
+    "lineItems": "Linii factură",
+    "unitPrice": "Preț unitar",
+    "vatRate": "TVA %",
+    "viewDetails": "Detalii"
   },
   "invoiceSettings": {
     "title": "Setări Facturare",

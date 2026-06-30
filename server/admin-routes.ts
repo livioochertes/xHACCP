@@ -5190,6 +5190,40 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // PUT /admin/api/invoice-settings/:market - update ONLY invoice_series and invoice_number_format
+  // Safe: never touches company name/email/address — no cross-market data overwrite risk
+  app.put("/admin/api/invoice-settings/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const market = req.params.market;
+      if (!['ro', 'fr', 'com'].includes(market)) {
+        return res.status(400).json({ message: 'Invalid market' });
+      }
+      if (!canAccessMarket(req as AdminAuthRequest, market)) {
+        return res.status(403).json({ message: 'Access denied for this market' });
+      }
+      const { invoiceSeries, invoiceNumberFormat } = req.body;
+      if (!invoiceSeries && !invoiceNumberFormat) {
+        return res.status(400).json({ message: 'At least one of invoiceSeries or invoiceNumberFormat is required' });
+      }
+      // Only touch invoice fields — never name/email/address
+      await pool.query(`
+        UPDATE company_settings
+        SET invoice_series = COALESCE($1, invoice_series),
+            invoice_number_format = COALESCE($2, invoice_number_format),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE market_code = $3
+      `, [invoiceSeries || null, invoiceNumberFormat || null, market]);
+      const result = await pool.query(
+        `SELECT id, market_code, invoice_series, invoice_number_format, invoice_current_number FROM company_settings WHERE market_code = $1 LIMIT 1`,
+        [market]
+      );
+      res.json(result.rows[0] || { market_code: market, invoiceSeries, invoiceNumberFormat });
+    } catch (error) {
+      console.error('Failed to update invoice settings:', error);
+      res.status(500).json({ message: 'Failed to update invoice settings' });
+    }
+  });
+
   // PUT /admin/api/invoice-counters/:market - update series or current number (superadmin only)
   app.put("/admin/api/invoice-counters/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {

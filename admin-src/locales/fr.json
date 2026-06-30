@@ -397,7 +397,14 @@
     "counterCurrent": "N° actuel",
     "updateCounter": "Mettre à jour",
     "counterUpdated": "Compteur mis à jour",
-    "settingsCard": "Paramètres de numérotation des factures"
+    "settingsCard": "Paramètres de numérotation des factures",
+    "details": "Détails de la facture",
+    "buyer": "Acheteur",
+    "payment": "Paiement",
+    "lineItems": "Lignes de facturation",
+    "unitPrice": "Prix unitaire",
+    "vatRate": "TVA %",
+    "viewDetails": "Voir les détails"
   },
   "invoiceSettings": {
     "title": "Paramètres de facturation",
