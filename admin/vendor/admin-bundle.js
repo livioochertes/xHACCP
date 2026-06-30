@@ -12340,6 +12340,7 @@
         fetchInvoiceCounters();
       } else if (activeView === "company-settings") {
         fetchCompanySettings();
+        fetchMarkets();
         fetchInvoiceCounters();
       }
     }, [selectedMarketTab]);
@@ -13722,12 +13723,11 @@ Failed: ${result.failed}`);
         fetchSuppliers();
       } else if (view === "company-settings") {
         fetchCompanySettings();
+        fetchMarkets();
       } else if (view === "vouchers") {
         fetchVouchers();
       } else if (view === "blog") {
         fetchBlogPosts();
-      } else if (view === "markets") {
-        fetchMarkets();
       }
     };
     const handleLogout = async () => {
@@ -15940,6 +15940,18 @@ This action cannot be undone.`)) {
                 ] })
               ] })
             ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "30px", background: "#f0fff4", padding: "20px", borderRadius: "6px", border: "1px solid #28a74540" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#155724", marginBottom: "16px", borderBottom: "2px solid #28a745", paddingBottom: "5px" }, children: [
+                "\u{1F30D} ",
+                t2("nav.markets")
+              ] }),
+              marketsLoading && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { color: "#666", fontSize: "13px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "loading" }),
+                " ",
+                t2("common.loading")
+              ] }),
+              ["ro", "fr", "com"].filter((m) => selectedMarketTab === "all" || selectedMarketTab === m).map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(MarketSettingCard, { market: m, marketsData, saveMarket }, m))
+            ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "30px", padding: "20px", background: "#e8f4f8", borderRadius: "6px", border: "1px solid #bee5eb" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#333", marginBottom: "10px" }, children: [
                 "\u{1F4DD} ",
@@ -16670,22 +16682,6 @@ This action cannot be undone.`)) {
                 )
               ] })
             ] }) })
-          ] });
-        case "markets":
-          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", marginTop: 0 }, children: "\u{1F30D} Gestiune Pie\u021Be / Market Settings" }),
-            marketsLoading && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { color: "#666", marginBottom: "16px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "loading" }),
-              " Se \xEEncarc\u0103..."
-            ] }),
-            (() => {
-              const myMarkets = admin?.adminMarkets || [];
-              const canSee = (m) => adminIsSuperAdmin || myMarkets.includes(m);
-              const showTab = selectedMarketTab === "all";
-              return ["ro", "fr", "com"].map(
-                (m) => canSee(m) && (showTab || selectedMarketTab === m) ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(MarketSettingCard, { market: m, marketsData, saveMarket }, m) : null
-              );
-            })()
           ] });
         case "blog":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
@@ -22410,17 +22406,6 @@ ${selectedOrders.map((id) => {
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F4DD}" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.blog") })
-            ]
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-          "button",
-          {
-            className: `nav-tab ${activeView === "markets" ? "active" : ""}`,
-            onClick: () => handleViewChange("markets"),
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F30D}" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.markets") })
             ]
           }
         ),

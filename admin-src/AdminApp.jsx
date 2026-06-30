@@ -598,7 +598,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         else if (activeView === 'suppliers') fetchSuppliers();
         else if (activeView === 'vouchers') fetchVouchers();
         else if (activeView === 'invoices') { setInvoiceMarketFilter('all'); fetchInvoices(selectedMarketTab); fetchInvoiceCounters(); }
-        else if (activeView === 'company-settings') { fetchCompanySettings(); fetchInvoiceCounters(); }
+        else if (activeView === 'company-settings') { fetchCompanySettings(); fetchMarkets(); fetchInvoiceCounters(); }
       }, [selectedMarketTab]);
 
       // Refetch orders from server when market filter changes (server-side filtering)
@@ -2172,12 +2172,11 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           fetchSuppliers();
         } else if (view === 'company-settings') {
           fetchCompanySettings();
+          fetchMarkets();
         } else if (view === 'vouchers') {
           fetchVouchers();
         } else if (view === 'blog') {
           fetchBlogPosts();
-        } else if (view === 'markets') {
-          fetchMarkets();
         }
       };
       
@@ -4205,6 +4204,16 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   </div>
                 </div>
                 
+                {/* Market Settings Card — shown per active marketplace */}
+                <div style={{marginTop: '30px', background: '#f0fff4', padding: '20px', borderRadius: '6px', border: '1px solid #28a74540'}}>
+                  <h4 style={{color: '#155724', marginBottom: '16px', borderBottom: '2px solid #28a745', paddingBottom: '5px'}}>🌍 {t('nav.markets')}</h4>
+                  {marketsLoading && <div style={{color: '#666', fontSize: '13px'}}><span className="loading"></span> {t('common.loading')}</div>}
+                  {['ro', 'fr', 'com']
+                    .filter(m => selectedMarketTab === 'all' || selectedMarketTab === m)
+                    .map(m => <MarketSettingCard key={m} market={m} marketsData={marketsData} saveMarket={saveMarket} />)
+                  }
+                </div>
+
                 <div style={{marginTop: '30px', padding: '20px', background: '#e8f4f8', borderRadius: '6px', border: '1px solid #bee5eb'}}>
                   <h4 style={{color: '#333', marginBottom: '10px'}}>📝 {t('companySettings.importantNotes')}</h4>
                   <ul style={{margin: '0', paddingLeft: '20px', color: '#495057'}}>
@@ -4908,24 +4917,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               </div>
             );
           
-          case 'markets':
-            return (
-              <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
-                <h3 style={{color: '#333', marginTop: 0}}>🌍 Gestiune Piețe / Market Settings</h3>
-                {marketsLoading && <div style={{color: '#666', marginBottom: '16px'}}><span className="loading"></span> Se încarcă...</div>}
-                {(() => {
-                  const myMarkets = admin?.adminMarkets || [];
-                  const canSee = (m) => adminIsSuperAdmin || myMarkets.includes(m);
-                  const showTab = selectedMarketTab === 'all';
-                  return ['ro', 'fr', 'com'].map(m =>
-                    canSee(m) && (showTab || selectedMarketTab === m)
-                      ? <MarketSettingCard key={m} market={m} marketsData={marketsData} saveMarket={saveMarket} />
-                      : null
-                  );
-                })()}
-              </div>
-            );
-
           case 'blog':
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
@@ -10489,13 +10480,6 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
             >
               <span style={{fontSize: '18px'}}>📝</span>
               <span style={{fontSize: '12px'}}>{t('nav.blog')}</span>
-            </button>
-            <button 
-              className={`nav-tab ${activeView === 'markets' ? 'active' : ''}`}
-              onClick={() => handleViewChange('markets')}
-            >
-              <span style={{fontSize: '18px'}}>🌍</span>
-              <span style={{fontSize: '12px'}}>{t('nav.markets')}</span>
             </button>
             <button 
               className={`nav-tab ${activeView === 'invoices' ? 'active' : ''}`}
