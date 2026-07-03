@@ -2229,6 +2229,27 @@ Sitemap: https://${domain}/sitemap.xml
         }).catch((err: any) => console.error('Failed to get company email:', err));
       }
       
+      // KitOff integration: for COD orders notify immediately at placement
+      if (fullOrder && (paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash')) {
+        const codEmail = (req.userId
+          ? ((await storage.getUser(req.userId))?.email || guestEmail)
+          : guestEmail);
+        if (codEmail && fullOrder.items) {
+          (async () => {
+            try {
+              const { maybeNotifyKitoff } = await import('./kitoff-webhook.js');
+              const kitoffItems = fullOrder.items.map((item: any) => ({
+                productName: item.product?.name || '',
+                quantity: item.quantity,
+              }));
+              await maybeNotifyKitoff(codEmail, fullOrder.id, kitoffItems);
+            } catch (kitoffErr) {
+              console.error(`[KitOff] COD notification failed for order #${fullOrder.id}:`, kitoffErr);
+            }
+          })();
+        }
+      }
+
       res.json(order);
     } catch (error: any) {
       console.error("Create order error:", error);
@@ -3924,6 +3945,18 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                       } catch (err) {
                         console.error(`❌ Failed to send customer shipment email via webhook for order #${orderId}:`, err);
                       }
+                    }
+
+                    // KitOff integration: notify if order contains >= 4 label sets
+                    try {
+                      const { maybeNotifyKitoff } = await import('./kitoff-webhook.js');
+                      const kitoffItems = latestOrder.items.map(item => ({
+                        productName: item.product?.name || '',
+                        quantity: item.quantity,
+                      }));
+                      await maybeNotifyKitoff(customerEmail, orderId, kitoffItems);
+                    } catch (kitoffError) {
+                      console.error(`[KitOff] Failed to notify for order #${orderId}:`, kitoffError);
                     }
                   }
                 } catch (emailError) {
