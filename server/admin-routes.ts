@@ -2049,7 +2049,8 @@ export async function registerAdminRoutes(app: Express) {
         height: safeDecimalString(productData.height),
         piecesPerPackage: safeParseInt(productData.piecesPerPackage),
         // Priority field for product display order (1 = highest, 0 = default)
-        priority: safeParseInt(productData.priority) ?? 0
+        priority: safeParseInt(productData.priority) ?? 0,
+        isService: productData.isService === true || productData.isService === 'true'
       });
       
       console.log('Updated product result:', updatedProduct);

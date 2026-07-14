@@ -97,6 +97,7 @@ export const products = pgTable("products", {
   productQuantity: text("product_quantity"), // Net content / quantity e.g. "5L", "500g", "1 set"
   specs: jsonb("specs").default([]), // Flexible product specs: [{label, value}, ...]
   volumeDiscounts: jsonb("volume_discounts").default([]), // Volume discount tiers: [{minQty, discountPercent}, ...]
+  isService: boolean("is_service").default(false), // True for service/subscription products — hides volume discounts on storefront
   descriptionHtml: text("description_html"), // AI-formatted HTML description (generated once, stored permanently)
   priority: integer("priority").default(0), // Display priority: 1 = highest, 2, 3 = lower priorities, 0 = default order
   createdAt: timestamp("created_at").defaultNow(),

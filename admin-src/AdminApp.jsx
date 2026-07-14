@@ -7550,7 +7550,23 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       )}
                     </div>
 
+                    {/* Service / Subscription flag */}
+                    <div style={{marginTop: '16px', padding: '10px 14px', backgroundColor: '#f0f4ff', borderRadius: '6px', border: '1px solid #c7d2fe', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                      <input
+                        type="checkbox"
+                        id="isService"
+                        checked={!!productFormData.isService}
+                        onChange={(e) => setProductFormData({...productFormData, isService: e.target.checked})}
+                        style={{width: '16px', height: '16px', cursor: 'pointer', flexShrink: 0}}
+                      />
+                      <label htmlFor="isService" style={{margin: 0, cursor: 'pointer', fontSize: '13px', color: '#3730a3', fontWeight: '600'}}>
+                        🔧 Este serviciu / abonament
+                        <span style={{fontWeight: 'normal', color: '#6b7280', marginLeft: '6px'}}>— ascunde "Cumperi mai mult, plătești mai puțin" pe pagina produsului</span>
+                      </label>
+                    </div>
+
                     {/* Volume Discounts Section */}
+                    {!productFormData.isService && (
                     <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#fff8e1', borderRadius: '6px', border: '1px solid #ffd54f'}}>
                       <h5 style={{color: '#333', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px'}}>
                         🏷️ Cumperi mai mult, plătești mai puțin
@@ -7617,6 +7633,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         </div>
                       )}
                     </div>
+                    )}
 
                     {/* Market Prices Section - Show only for editing existing products */}
                     {editingProduct && (

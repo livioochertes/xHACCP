@@ -523,7 +523,7 @@ export default function ProductDetails() {
             {/* Volume discount tiers — immediately above Add to Cart */}
             {(() => {
               const tiers = getSortedTiers((product as any).volumeDiscounts);
-              if (tiers.length === 0) return null;
+              if (tiers.length === 0 || (product as any).isService) return null;
               const activeTier = getActiveTier(quantity, (product as any).volumeDiscounts);
               const effectiveUnitPrice = getVolumePrice(product.price, quantity, (product as any).volumeDiscounts);
               const cartTotal = (effectiveUnitPrice * quantity).toFixed(2);

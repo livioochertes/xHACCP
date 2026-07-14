@@ -19362,7 +19362,23 @@ Cordialement,`
               ] }),
               (productFormData.specs || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "8px", fontSize: "12px", color: "#999" }, children: "Nicio specifica\u021Bie ad\u0103ugat\u0103. Exemplu: Dimensiunea etichetei \u2192 38\xD758 mm" })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#fff8e1", borderRadius: "6px", border: "1px solid #ffd54f" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "16px", padding: "10px 14px", backgroundColor: "#f0f4ff", borderRadius: "6px", border: "1px solid #c7d2fe", display: "flex", alignItems: "center", gap: "10px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "input",
+                {
+                  type: "checkbox",
+                  id: "isService",
+                  checked: !!productFormData.isService,
+                  onChange: (e2) => setProductFormData({ ...productFormData, isService: e2.target.checked }),
+                  style: { width: "16px", height: "16px", cursor: "pointer", flexShrink: 0 }
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { htmlFor: "isService", style: { margin: 0, cursor: "pointer", fontSize: "13px", color: "#3730a3", fontWeight: "600" }, children: [
+                "\u{1F527} Este serviciu / abonament",
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontWeight: "normal", color: "#6b7280", marginLeft: "6px" }, children: '\u2014 ascunde "Cumperi mai mult, pl\u0103te\u0219ti mai pu\u021Bin" pe pagina produsului' })
+              ] })
+            ] }),
+            !productFormData.isService && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#fff8e1", borderRadius: "6px", border: "1px solid #ffd54f" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }, children: [
                 "\u{1F3F7}\uFE0F Cumperi mai mult, pl\u0103te\u0219ti mai pu\u021Bin",
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: "normal", color: "#666" }, children: "\u2014 discount automat pe cantitate" })
