@@ -248,7 +248,15 @@
     "active": "Active",
     "featured": "Featured",
     "bulk_import": "Bulk Import",
-    "export_excel": "Export Excel"
+    "export_excel": "Export Excel",
+    "isServiceLabel": "Is a service / subscription",
+    "isServiceHint": "hides the volume discount section on the product page",
+    "volumeDiscountTitle": "Buy more, pay less",
+    "volumeDiscountSubtitle": "automatic volume discount",
+    "volumeDiscountMinQty": "Minimum quantity (pcs)",
+    "volumeDiscountPercent": "Discount (%)",
+    "volumeDiscountAddTier": "Add discount tier",
+    "volumeDiscountEmpty": "No tiers defined. Example: from 5 pcs → 10% discount, from 10 pcs → 20% discount"
   },
   "categories": {
     "title": "Category Management",

@@ -10675,7 +10675,15 @@
       active: "Active",
       featured: "Featured",
       bulk_import: "Bulk Import",
-      export_excel: "Export Excel"
+      export_excel: "Export Excel",
+      isServiceLabel: "Is a service / subscription",
+      isServiceHint: "hides the volume discount section on the product page",
+      volumeDiscountTitle: "Buy more, pay less",
+      volumeDiscountSubtitle: "automatic volume discount",
+      volumeDiscountMinQty: "Minimum quantity (pcs)",
+      volumeDiscountPercent: "Discount (%)",
+      volumeDiscountAddTier: "Add discount tier",
+      volumeDiscountEmpty: "No tiers defined. Example: from 5 pcs \u2192 10% discount, from 10 pcs \u2192 20% discount"
     },
     categories: {
       title: "Category Management",
@@ -11109,7 +11117,15 @@
       active: "Activ",
       featured: "Recomandat",
       bulk_import: "Import \xEEn mas\u0103",
-      export_excel: "Export Excel"
+      export_excel: "Export Excel",
+      isServiceLabel: "Este serviciu / abonament",
+      isServiceHint: "ascunde sec\u021Biunea de discount pe volum pe pagina produsului",
+      volumeDiscountTitle: "Cumperi mai mult, pl\u0103te\u0219ti mai pu\u021Bin",
+      volumeDiscountSubtitle: "discount automat pe cantitate",
+      volumeDiscountMinQty: "Cantitate minim\u0103 (buc)",
+      volumeDiscountPercent: "Discount (%)",
+      volumeDiscountAddTier: "Adaug\u0103 treapt\u0103 discount",
+      volumeDiscountEmpty: "Nicio treapt\u0103 definit\u0103. Exemplu: de la 5 buc \u2192 10% discount, de la 10 buc \u2192 20% discount"
     },
     categories: {
       title: "Gestionare Categorii",
@@ -11543,7 +11559,15 @@
       active: "Actif",
       featured: "En vedette",
       bulk_import: "Import en masse",
-      export_excel: "Exporter Excel"
+      export_excel: "Exporter Excel",
+      isServiceLabel: "Est un service / abonnement",
+      isServiceHint: "masque la section de remise sur volume sur la page produit",
+      volumeDiscountTitle: "Achetez plus, payez moins",
+      volumeDiscountSubtitle: "remise automatique sur la quantit\xE9",
+      volumeDiscountMinQty: "Quantit\xE9 minimale (pcs)",
+      volumeDiscountPercent: "Remise (%)",
+      volumeDiscountAddTier: "Ajouter un palier de remise",
+      volumeDiscountEmpty: "Aucun palier d\xE9fini. Exemple : d\xE8s 5 pcs \u2192 10% de remise, d\xE8s 10 pcs \u2192 20% de remise"
     },
     categories: {
       title: "Gestion des cat\xE9gories",
@@ -19378,19 +19402,27 @@ Cordialement,`
                 }
               ),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { htmlFor: "isService", style: { margin: 0, cursor: "pointer", fontSize: "13px", color: "#3730a3", fontWeight: "600" }, children: [
-                "\u{1F527} Este serviciu / abonament",
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontWeight: "normal", color: "#6b7280", marginLeft: "6px" }, children: '\u2014 ascunde "Cumperi mai mult, pl\u0103te\u0219ti mai pu\u021Bin" pe pagina produsului' })
+                "\u{1F527} ",
+                t2("products.isServiceLabel"),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontWeight: "normal", color: "#6b7280", marginLeft: "6px" }, children: [
+                  "\u2014 ",
+                  t2("products.isServiceHint")
+                ] })
               ] })
             ] }),
             !productFormData.isService && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#fff8e1", borderRadius: "6px", border: "1px solid #ffd54f" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }, children: [
-                "\u{1F3F7}\uFE0F Cumperi mai mult, pl\u0103te\u0219ti mai pu\u021Bin",
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: "normal", color: "#666" }, children: "\u2014 discount automat pe cantitate" })
+                "\u{1F3F7}\uFE0F ",
+                t2("products.volumeDiscountTitle"),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", fontWeight: "normal", color: "#666" }, children: [
+                  "\u2014 ",
+                  t2("products.volumeDiscountSubtitle")
+                ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "8px", marginBottom: "6px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#666", fontWeight: "600", paddingLeft: "2px" }, children: "Cantitate minim\u0103 (buc)" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#666", fontWeight: "600", paddingLeft: "2px" }, children: "Discount (%)" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#666", fontWeight: "600", paddingLeft: "2px" }, children: t2("products.volumeDiscountMinQty") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#666", fontWeight: "600", paddingLeft: "2px" }, children: t2("products.volumeDiscountPercent") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", {})
                 ] }),
                 (productFormData.volumeDiscounts || []).map((tier, idx) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "8px", marginBottom: "8px", alignItems: "center" }, children: [
@@ -19441,7 +19473,7 @@ Cordialement,`
                     }
                   )
                 ] }, idx)),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     type: "button",
@@ -19450,11 +19482,14 @@ Cordialement,`
                       setProductFormData({ ...productFormData, volumeDiscounts: newTiers });
                     },
                     style: { marginTop: "4px", padding: "6px 14px", backgroundColor: "#e6a817", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "13px" },
-                    children: "+ Adaug\u0103 treapt\u0103 discount"
+                    children: [
+                      "+ ",
+                      t2("products.volumeDiscountAddTier")
+                    ]
                   }
                 )
               ] }),
-              (productFormData.volumeDiscounts || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "8px", fontSize: "12px", color: "#999" }, children: "Nicio treapt\u0103 definit\u0103. Exemplu: de la 5 buc \u2192 10% discount, de la 10 buc \u2192 20% discount" })
+              (productFormData.volumeDiscounts || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "8px", fontSize: "12px", color: "#999" }, children: t2("products.volumeDiscountEmpty") })
             ] }),
             editingProduct && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               MarketPricesSection,

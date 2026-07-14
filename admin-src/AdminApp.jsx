@@ -7563,8 +7563,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         style={{width: '16px', height: '16px', cursor: 'pointer', flexShrink: 0}}
                       />
                       <label htmlFor="isService" style={{margin: 0, cursor: 'pointer', fontSize: '13px', color: '#3730a3', fontWeight: '600'}}>
-                        🔧 Este serviciu / abonament
-                        <span style={{fontWeight: 'normal', color: '#6b7280', marginLeft: '6px'}}>— ascunde "Cumperi mai mult, plătești mai puțin" pe pagina produsului</span>
+                        🔧 {t('products.isServiceLabel')}
+                        <span style={{fontWeight: 'normal', color: '#6b7280', marginLeft: '6px'}}>— {t('products.isServiceHint')}</span>
                       </label>
                     </div>
 
@@ -7572,13 +7572,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     {!productFormData.isService && (
                     <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#fff8e1', borderRadius: '6px', border: '1px solid #ffd54f'}}>
                       <h5 style={{color: '#333', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        🏷️ Cumperi mai mult, plătești mai puțin
-                        <span style={{fontSize: '12px', fontWeight: 'normal', color: '#666'}}>— discount automat pe cantitate</span>
+                        🏷️ {t('products.volumeDiscountTitle')}
+                        <span style={{fontSize: '12px', fontWeight: 'normal', color: '#666'}}>— {t('products.volumeDiscountSubtitle')}</span>
                       </h5>
                       <div>
                         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', marginBottom: '6px'}}>
-                          <span style={{fontSize: '11px', color: '#666', fontWeight: '600', paddingLeft: '2px'}}>Cantitate minimă (buc)</span>
-                          <span style={{fontSize: '11px', color: '#666', fontWeight: '600', paddingLeft: '2px'}}>Discount (%)</span>
+                          <span style={{fontSize: '11px', color: '#666', fontWeight: '600', paddingLeft: '2px'}}>{t('products.volumeDiscountMinQty')}</span>
+                          <span style={{fontSize: '11px', color: '#666', fontWeight: '600', paddingLeft: '2px'}}>{t('products.volumeDiscountPercent')}</span>
                           <span></span>
                         </div>
                         {(productFormData.volumeDiscounts || []).map((tier, idx) => (
@@ -7628,11 +7628,11 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             setProductFormData({...productFormData, volumeDiscounts: newTiers});
                           }}
                           style={{marginTop: '4px', padding: '6px 14px', backgroundColor: '#e6a817', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}
-                        >+ Adaugă treaptă discount</button>
+                        >+ {t('products.volumeDiscountAddTier')}</button>
                       </div>
                       {(productFormData.volumeDiscounts || []).length === 0 && (
                         <div style={{marginTop: '8px', fontSize: '12px', color: '#999'}}>
-                          Nicio treaptă definită. Exemplu: de la 5 buc → 10% discount, de la 10 buc → 20% discount
+                          {t('products.volumeDiscountEmpty')}
                         </div>
                       )}
                     </div>

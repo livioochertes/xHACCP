@@ -248,7 +248,15 @@
     "active": "Activ",
     "featured": "Recomandat",
     "bulk_import": "Import în masă",
-    "export_excel": "Export Excel"
+    "export_excel": "Export Excel",
+    "isServiceLabel": "Este serviciu / abonament",
+    "isServiceHint": "ascunde secțiunea de discount pe volum pe pagina produsului",
+    "volumeDiscountTitle": "Cumperi mai mult, plătești mai puțin",
+    "volumeDiscountSubtitle": "discount automat pe cantitate",
+    "volumeDiscountMinQty": "Cantitate minimă (buc)",
+    "volumeDiscountPercent": "Discount (%)",
+    "volumeDiscountAddTier": "Adaugă treaptă discount",
+    "volumeDiscountEmpty": "Nicio treaptă definită. Exemplu: de la 5 buc → 10% discount, de la 10 buc → 20% discount"
   },
   "categories": {
     "title": "Gestionare Categorii",
