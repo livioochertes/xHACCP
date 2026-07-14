@@ -1983,7 +1983,8 @@ export async function registerAdminRoutes(app: Express) {
         width: productData.width && String(productData.width).trim() !== '' ? parseFloat(String(productData.width)) : null,
         height: productData.height && String(productData.height).trim() !== '' ? parseFloat(String(productData.height)) : null,
         // Priority field for product display order (1 = highest, 0 = default)
-        priority: productData.priority !== undefined ? parseInt(String(productData.priority)) || 0 : 0
+        priority: productData.priority !== undefined ? parseInt(String(productData.priority)) || 0 : 0,
+        isService: productData.isService === true || productData.isService === 'true'
       });
 
       // Refresh memory cache so site shows new product immediately
