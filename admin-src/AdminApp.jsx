@@ -525,7 +525,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             productQuantity: editingProduct.productQuantity || '',
             specs: Array.isArray(editingProduct.specs) ? editingProduct.specs : [],
             volumeDiscounts: Array.isArray(editingProduct.volumeDiscounts) ? editingProduct.volumeDiscounts : [],
-            priority: editingProduct.priority || 0
+            priority: editingProduct.priority || 0,
+            isService: editingProduct.isService || false
           };
           
           // Trigger ModalsComponent to load the data
@@ -2799,7 +2800,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             productQuantity: '',
                             specs: [],
                             volumeDiscounts: [],
-                            priority: 0
+                            priority: 0,
+                            isService: false
                           };
                           
                           // Trigger ModalsComponent to load the data
@@ -6138,7 +6140,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           productQuantity: '',
           specs: [],
           volumeDiscounts: [],
-          priority: 0
+          priority: 0,
+          isService: false
         });
         const [uploadedImages, setUploadedImages] = useState([]);
         
@@ -6532,7 +6535,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               featured: false, vatValue: '', vatPercentage: '21.00', currency: 'EUR',
               productCode: '', ncCode: '', cpvCode: '', status: 'active', images: [],
               weight: '', length: '', width: '', height: '', piecesPerPackage: '',
-              productQuantity: '', specs: [], volumeDiscounts: [], priority: 0
+              productQuantity: '', specs: [], volumeDiscounts: [], priority: 0, isService: false
             });
             setUploadedImages([]);
             setImportUrl('');
@@ -7871,7 +7874,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             productQuantity: '',
                             specs: [],
                             volumeDiscounts: [],
-                            priority: 0
+                            priority: 0,
+                            isService: false
                           });
                           setUploadedImages([]);
                           // Reset import from URL state

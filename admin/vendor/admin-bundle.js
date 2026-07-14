@@ -12273,7 +12273,8 @@
           productQuantity: editingProduct.productQuantity || "",
           specs: Array.isArray(editingProduct.specs) ? editingProduct.specs : [],
           volumeDiscounts: Array.isArray(editingProduct.volumeDiscounts) ? editingProduct.volumeDiscounts : [],
-          priority: editingProduct.priority || 0
+          priority: editingProduct.priority || 0,
+          isService: editingProduct.isService || false
         };
         setProductLoadTrigger((prev) => prev + 1);
         setShowAddProductModal(true);
@@ -14357,7 +14358,8 @@ This action cannot be undone.`)) {
                           productQuantity: "",
                           specs: [],
                           volumeDiscounts: [],
-                          priority: 0
+                          priority: 0,
+                          isService: false
                         };
                         setProductLoadTrigger((prev) => prev + 1);
                         setProductTranslations([]);
@@ -17991,7 +17993,8 @@ Cordialement,`
         productQuantity: "",
         specs: [],
         volumeDiscounts: [],
-        priority: 0
+        priority: 0,
+        isService: false
       });
       const [uploadedImages, setUploadedImages] = (0, import_react13.useState)([]);
       const [newTranslation, setNewTranslation] = (0, import_react13.useState)({ language: "", name: "", description: "", sourceUrl: "" });
@@ -18326,7 +18329,8 @@ Cordialement,`
             productQuantity: "",
             specs: [],
             volumeDiscounts: [],
-            priority: 0
+            priority: 0,
+            isService: false
           });
           setUploadedImages([]);
           setImportUrl("");
@@ -19677,7 +19681,8 @@ Cordialement,`
                       productQuantity: "",
                       specs: [],
                       volumeDiscounts: [],
-                      priority: 0
+                      priority: 0,
+                      isService: false
                     });
                     setUploadedImages([]);
                     setImportUrl("");

@@ -2050,7 +2050,7 @@ export async function registerAdminRoutes(app: Express) {
         piecesPerPackage: safeParseInt(productData.piecesPerPackage),
         // Priority field for product display order (1 = highest, 0 = default)
         priority: safeParseInt(productData.priority) ?? 0,
-        isService: productData.isService === true || productData.isService === 'true'
+        ...(productData.isService !== undefined && { isService: productData.isService === true || productData.isService === 'true' })
       });
       
       console.log('Updated product result:', updatedProduct);
