@@ -4,7 +4,7 @@ import { usePageSeo } from "@/lib/use-page-seo";
 import { toSeoText, truncateDesc } from "@/lib/seo-utils";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute } from "wouter";
-import { Star, ShoppingCart, Truck, Shield, ArrowLeft, Plus, Minus, Package, Phone, FileText, CheckCircle } from "lucide-react";
+import { Star, ShoppingCart, Truck, Shield, ArrowLeft, Plus, Minus, Package, Phone, FileText, CheckCircle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
+import ContactModal from "@/components/contact-modal";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { formatPrice } from "@/lib/utils";
@@ -419,14 +420,15 @@ export default function ProductDetails() {
 
             {/* Reference + Stock + Specs */}
             {(() => {
-              const l = product.length ? parseFloat(product.length as string) : null;
-              const w = product.width ? parseFloat(product.width as string) : null;
-              const h = product.height ? parseFloat(product.height as string) : null;
+              const isService = !!(product as any).isService;
+              const l = !isService && product.length ? parseFloat(product.length as string) : null;
+              const w = !isService && product.width ? parseFloat(product.width as string) : null;
+              const h = !isService && product.height ? parseFloat(product.height as string) : null;
               const dimParts = [l, w, h].filter(Boolean);
               const dimStr = dimParts.length >= 2 ? dimParts.join(' × ') + ' cm' : null;
-              const wt = product.weight ? parseFloat(product.weight as string) : null;
-              const ppu = product.piecesPerPackage && product.piecesPerPackage > 0 ? product.piecesPerPackage : null;
-              const qty = (product as any).productQuantity || null;
+              const wt = !isService && product.weight ? parseFloat(product.weight as string) : null;
+              const ppu = !isService && product.piecesPerPackage && product.piecesPerPackage > 0 ? product.piecesPerPackage : null;
+              const qty = !isService ? ((product as any).productQuantity || null) : null;
               const hasSpecs = !!(dimStr || ppu || qty || wt);
 
               return (
@@ -439,7 +441,7 @@ export default function ProductDetails() {
                       <span className="font-mono text-gray-500">KP-{product.id}</span>
                     </div>
 
-                    {product.inStock ? (
+                    {!isService && (product.inStock ? (
                       <div className="flex items-center gap-2 text-green-700">
                         <CheckCircle className="h-4 w-4 flex-shrink-0" />
                         <span className="font-medium">{t('products.inStock') || 'En stock'}</span>
@@ -454,9 +456,9 @@ export default function ProductDetails() {
                         <div className="w-4 h-4 flex-shrink-0 rounded-full border-2 border-red-400" />
                         <span className="font-medium">{t('products.outOfStock') || 'Stoc epuizat'}</span>
                       </div>
-                    )}
+                    ))}
 
-                    {product.inStock && (
+                    {!isService && product.inStock && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Truck className="h-4 w-4 flex-shrink-0" />
                         <span>{t('products.estimatedDelivery') || '1-3 zile lucrătoare'}</span>
@@ -464,7 +466,7 @@ export default function ProductDetails() {
                     )}
                   </div>
 
-                  {/* Right: Technical specs (only if at least one value set) */}
+                  {/* Right: Technical specs (only if at least one value set, hidden for services) */}
                   {hasSpecs && (
                     <div className="space-y-2 border-l border-gray-200 pl-4">
                       {dimStr && (
@@ -586,41 +588,55 @@ export default function ProductDetails() {
               );
             })()}
 
-            {/* Quantity selector + Add to cart */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-4">
-                {/* Qty */}
-                <div className="flex items-center border rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    className="px-3 py-2 hover:bg-gray-100 transition-colors text-gray-600"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="px-4 py-2 font-semibold text-center min-w-[3rem] border-x text-gray-900">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() => setQuantity(q => q + 1)}
-                    className="px-3 py-2 hover:bg-gray-100 transition-colors text-gray-600"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <Button
-                  size="lg"
-                  className="flex-1 kitchen-pro-secondary"
-                  onClick={handleAddToCart}
-                  disabled={!product.inStock}
-                >
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  {t('products.addToCart')}
-                </Button>
+            {/* Quantity selector + Add to cart / Service CTA */}
+            {(product as any).isService ? (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-3">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {t('products.serviceCtaDesc')}
+                </p>
+                <ContactModal>
+                  <Button size="lg" className="w-full kitchen-pro-secondary">
+                    <Mail className="h-5 w-5 mr-2" />
+                    {t('products.requestQuote')}
+                  </Button>
+                </ContactModal>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-4">
+                  {/* Qty */}
+                  <div className="flex items-center border rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                      className="px-3 py-2 hover:bg-gray-100 transition-colors text-gray-600"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span className="px-4 py-2 font-semibold text-center min-w-[3rem] border-x text-gray-900">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => setQuantity(q => q + 1)}
+                      className="px-3 py-2 hover:bg-gray-100 transition-colors text-gray-600"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <Button
+                    size="lg"
+                    className="flex-1 kitchen-pro-secondary"
+                    onClick={handleAddToCart}
+                    disabled={!product.inStock}
+                  >
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    {t('products.addToCart')}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Trust badges */}
             <div className="rounded-xl border bg-white p-4 space-y-3 text-sm">
