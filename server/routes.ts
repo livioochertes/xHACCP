@@ -56,6 +56,20 @@ function generateAppleClientSecret(): string {
   });
 }
 
+// Volume discount: returns the effective unit price after applying quantity-based discount tiers
+// Mirrors client/src/lib/volume-price.ts — must stay in sync
+function applyVolumeDiscount(basePrice: number, quantity: number, volumeDiscounts: unknown): number {
+  if (!Array.isArray(volumeDiscounts) || volumeDiscounts.length === 0) return basePrice;
+  let activeTierDiscount = 0;
+  for (const tier of volumeDiscounts as Array<{ minQty: number; discountPercent: number }>) {
+    if (tier && tier.minQty > 0 && tier.discountPercent > 0 && quantity >= tier.minQty) {
+      activeTierDiscount = tier.discountPercent;
+    }
+  }
+  if (activeTierDiscount === 0) return basePrice;
+  return parseFloat((basePrice * (1 - activeTierDiscount / 100)).toFixed(2));
+}
+
 // Authentication interfaces
 interface AuthRequest extends Request {
   userId?: number;
@@ -2098,15 +2112,22 @@ Sitemap: https://${domain}/sitemap.xml
           throw new Error(`Product is not available in this market: ${product.name}`);
         }
         
+        // Apply volume discount tiers on top of effective market price
+        const unitPrice = applyVolumeDiscount(
+          parseFloat(effectiveProduct.price),
+          quantity,
+          (product as any).volumeDiscounts
+        );
+
         return {
           productId: item.productId,
           quantity: quantity,
-          price: effectiveProduct.price, // Use effective market price (may differ from base price)
-          totalPrice: (parseFloat(effectiveProduct.price) * quantity).toFixed(2),
+          price: unitPrice.toFixed(2), // Effective price after volume discount
+          totalPrice: (unitPrice * quantity).toFixed(2),
         };
       }));
       
-      // Calculate subtotal from validated items (using server-side prices)
+      // Calculate subtotal from validated items (using server-side prices with volume discounts)
       const subtotal = validatedItems.reduce((sum: number, item: any) => sum + parseFloat(item.price) * item.quantity, 0);
       
       // Get shipping settings — prefer per-market thresholds/costs, fall back to companySettings
@@ -3179,6 +3200,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       let subtotal = 0;
       const vivaMarket = getMarketFromRequest(req);
+      const validatedVivaItems: Array<{ productId: number; quantity: number; price: string; totalPrice: string }> = [];
       for (const item of cartItems) {
         const quantity = parseInt(item.quantity);
         if (!Number.isInteger(quantity) || quantity < 1 || quantity > 9999) {
@@ -3199,8 +3221,20 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         if (effectiveProduct === null) {
           return res.status(400).json({ message: `Product is not available in this market: ${product.name}` });
         }
-        
-        subtotal += parseFloat(effectiveProduct.price) * quantity;
+
+        // Apply volume discount tiers on top of effective market price
+        const unitPrice = applyVolumeDiscount(
+          parseFloat(effectiveProduct.price),
+          quantity,
+          (product as any).volumeDiscounts
+        );
+        subtotal += unitPrice * quantity;
+        validatedVivaItems.push({
+          productId: item.productId,
+          quantity,
+          price: unitPrice.toFixed(2),
+          totalPrice: (unitPrice * quantity).toFixed(2),
+        });
       }
 
       const companySettings = await storage.getCompanySettings();
@@ -3257,12 +3291,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         } catch (e) { }
       }
 
-      const orderItems = orderData.items || cartItems.map((item: any) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price || "0",
-        totalPrice: (parseFloat(item.price || "0") * item.quantity).toString(),
-      }));
+      // Use server-validated items (with volume discounts applied) for order storage
+      const orderItems = validatedVivaItems;
 
       let dbOrderId: number;
       try {
