@@ -29,6 +29,7 @@ export interface TranslationKeys {
   'products.price': string;
   'products.compare': string;
   'products.save': string;
+  'products.viewDetails': string;
   'products.details': string;
   'products.description': string;
   'products.specifications': string;
@@ -656,6 +657,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.price': 'Price',
     'products.compare': 'Compare at',
     'products.save': 'Save',
+    'products.viewDetails': 'View Details',
     'products.details': 'Details',
     'products.description': 'Description',
     'products.specifications': 'Specifications',
@@ -1339,6 +1341,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.price': 'Precio',
     'products.compare': 'Comparar en',
     'products.save': 'Ahorrar',
+    'products.viewDetails': 'Ver Detalles',
     'products.details': 'Detalles',
     'products.description': 'Descripción',
     'products.specifications': 'Especificaciones',
@@ -1804,6 +1807,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.freeShippingOver': 'Livraison gratuite à partir de {amount}',
     'products.compare': 'Comparer à',
     'products.save': 'Économiser',
+    'products.viewDetails': 'Voir les détails',
     'products.details': 'Détails',
     'products.description': 'Description',
     'products.specifications': 'Spécifications',
@@ -2299,6 +2303,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.price': 'Preis',
     'products.compare': 'Vergleichen bei',
     'products.save': 'Sparen',
+    'products.viewDetails': 'Details anzeigen',
     'products.details': 'Details',
     'products.description': 'Beschreibung',
     'products.specifications': 'Spezifikationen',
@@ -2792,6 +2797,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.price': 'Preț',
     'products.compare': 'Compară la',
     'products.save': 'Economisește',
+    'products.viewDetails': 'Vezi detalii',
     'products.details': 'Detalii',
     'products.description': 'Descriere',
     'products.specifications': 'Specificații',
@@ -3302,6 +3308,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.price': 'Prezzo',
     'products.compare': 'Confronta a',
     'products.save': 'Risparmia',
+    'products.viewDetails': 'Vedi dettagli',
     'products.details': 'Dettagli',
     'products.description': 'Descrizione',
     'products.specifications': 'Specifiche',
@@ -3614,6 +3621,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.price': 'Preço',
     'products.compare': 'Comparar em',
     'products.save': 'Economizar',
+    'products.viewDetails': 'Ver detalhes',
     'products.details': 'Detalhes',
     'products.description': 'Descrição',
     'products.specifications': 'Especificações',
@@ -3926,6 +3934,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.price': '价格',
     'products.compare': '比较价格',
     'products.save': '节省',
+    'products.viewDetails': '查看详情',
     'products.details': '详情',
     'products.description': '描述',
     'products.specifications': '规格',
@@ -4238,6 +4247,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.price': '価格',
     'products.compare': '比較価格',
     'products.save': '節約',
+    'products.viewDetails': '詳細を見る',
     'products.details': '詳細',
     'products.description': '説明',
     'products.specifications': '仕様',
@@ -4550,6 +4560,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.price': '가격',
     'products.compare': '가격 비교',
     'products.save': '절약',
+    'products.viewDetails': '자세히 보기',
     'products.details': '상세정보',
     'products.description': '설명',
     'products.specifications': '사양',
@@ -4864,6 +4875,7 @@ const translations: Record<Language, TranslationKeys> = {
     'products.price': 'السعر',
     'products.compare': 'مقارنة السعر',
     'products.save': 'وفر',
+    'products.viewDetails': 'عرض التفاصيل',
     'products.details': 'التفاصيل',
     'products.description': 'الوصف',
     'products.specifications': 'المواصفات',
