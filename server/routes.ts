@@ -600,6 +600,44 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
+  // ── Admin API URL rewrite middleware ──────────────────────────────────────
+  // The compiled admin bundle calls /admin/api/* but the server exposes routes
+  // at /api/* and /api/admin/*. This middleware rewrites the URL in-process so
+  // all existing route handlers are reused without duplication.
+  app.use("/admin/api", (req, _res, next) => {
+    const sub = req.path; // e.g. "/login", "/orders", "/blog/posts"
+
+    // Special auth mappings
+    if (sub === "/login")           { req.url = "/api/auth/login";           return next("router"); }
+    if (sub === "/forgot-password") { req.url = "/api/auth/forgot-password"; return next("router"); }
+    if (sub === "/logout")          { req.url = "/api/auth/logout";          return next("router"); }
+
+    // Routes that live under /api/admin/
+    if (sub.startsWith("/orders")   ||
+        sub.startsWith("/blog")     ||
+        sub.startsWith("/invoices") ||
+        sub.startsWith("/invoice-counters") ||
+        sub.startsWith("/stats")    ||
+        sub.startsWith("/users")    ||
+        sub.startsWith("/suppliers")||
+        sub.startsWith("/vouchers") ||
+        sub.startsWith("/markets")  ||
+        sub.startsWith("/market-products") ||
+        sub.startsWith("/products") ||
+        sub.startsWith("/categories")||
+        sub.startsWith("/upload-images") ||
+        sub.startsWith("/delete-image-by-url") ||
+        sub.startsWith("/company-settings") ||
+        sub.startsWith("/shipping-settings")) {
+      req.url = "/api" + sub + (req.url.includes("?") ? "?" + req.url.split("?")[1] : "");
+      return next("router");
+    }
+
+    // Generic fallback: /admin/api/X → /api/X
+    req.url = "/api" + sub + (req.url.includes("?") ? "?" + req.url.split("?")[1] : "");
+    next("router");
+  });
+
   // Admin interface route (original flow preserved)
   app.get("/admin", (req, res) => {
     try {
