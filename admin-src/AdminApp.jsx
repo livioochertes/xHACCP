@@ -10379,8 +10379,9 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                             <option value="0.00">0% (Reverse Charge)</option>
                             <option value="5.00">5% (Reduced VAT)</option>
                             <option value="9.00">9% (Reduced VAT)</option>
+                            <option value="19.00">19% (TVA România)</option>
+                            <option value="20.00">20% (TVA France)</option>
                             <option value="21.00">21% (Standard VAT)</option>
-                            <option value="21.00">21% (Standard VAT - from 01.08.2025)</option>
                             <option value="24.00">24% (Luxury VAT)</option>
                           </select>
                         </div>
