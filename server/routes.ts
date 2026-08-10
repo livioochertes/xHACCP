@@ -3725,26 +3725,29 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                 }
 
                 try {
-                  const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service.js');
-
-                  let awbPdfBuffer: Buffer | undefined;
-                  if (awbNumber) {
-                    try {
-                      const { createSamedayAPI } = await import('./sameday-api');
-                      const samedayAPI = createSamedayAPI();
-                      if (samedayAPI) {
-                        awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
-                        console.log(`📄 AWB PDF retrieved for Viva order #${orderId}`);
-                      }
-                    } catch (pdfError) {
-                      console.error(`❌ AWB PDF retrieval failed for Viva order #${orderId}:`, pdfError);
-                    }
-                  } else {
-                    console.log(`⚠️ No AWB generated for Viva order #${orderId}, emails will be sent without AWB`);
-                  }
+                  const { sendSupplierOrderEmail, sendCustomerShipmentEmail, sendInvoiceEmailFr } = await import('./email-service.js');
 
                   const latestOrder = await storage.getOrder(orderId);
                   if (latestOrder) {
+                    const orderMarket = (latestOrder.market as string) || 'ro';
+
+                    // AWB only for .ro (Sameday courier); .fr has no courier AWB
+                    let awbPdfBuffer: Buffer | undefined;
+                    if (orderMarket !== 'fr' && awbNumber) {
+                      try {
+                        const { createSamedayAPI } = await import('./sameday-api');
+                        const samedayAPI = createSamedayAPI();
+                        if (samedayAPI) {
+                          awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
+                          console.log(`📄 AWB PDF retrieved for Viva order #${orderId}`);
+                        }
+                      } catch (pdfError) {
+                        console.error(`❌ AWB PDF retrieval failed for Viva order #${orderId}:`, pdfError);
+                      }
+                    } else if (orderMarket !== 'fr') {
+                      console.log(`⚠️ No AWB generated for Viva order #${orderId}, emails will be sent without AWB`);
+                    }
+
                     const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
 
                     for (const item of latestOrder.items) {
@@ -3764,8 +3767,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                           }
                         }
                         if (!supplierInfo) {
-                          const latestOrderMkt2 = (latestOrder.market as string) || "ro";
-                                                                                     const companySettings = await storage.getCompanySettingsByMarket(latestOrderMkt2);
+                          const companySettings = await storage.getCompanySettingsByMarket(orderMarket);
                           const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
                           supplierInfo = {
                             supplierName: companySettings?.name || 'xHACCP',
@@ -3818,10 +3820,16 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
                     if (customerEmail) {
                       try {
-                        await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber || '', invoicePdfBuffer, invoiceNumber);
-                        console.log(`✅ Customer shipment email sent to ${customerEmail} for Viva order #${orderId}`);
+                        if (orderMarket === 'fr') {
+                          // .fr: send dedicated French invoice email (no AWB/courier)
+                          await sendInvoiceEmailFr(customerEmail, latestOrder, invoicePdfBuffer, invoiceNumber);
+                          console.log(`✅ FR invoice email sent to ${customerEmail} for Viva order #${orderId}`);
+                        } else {
+                          await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber || '', invoicePdfBuffer, invoiceNumber);
+                          console.log(`✅ Customer shipment email sent to ${customerEmail} for Viva order #${orderId}`);
+                        }
                       } catch (err) {
-                        console.error(`❌ Failed to send customer shipment email for Viva order #${orderId}:`, err);
+                        console.error(`❌ Failed to send customer email for Viva order #${orderId}:`, err);
                       }
                     }
                   }
@@ -3917,25 +3925,28 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                 }
 
                 try {
-                  const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service.js');
-
-                  let awbPdfBuffer: Buffer | undefined;
-                  if (awbNumber) {
-                    try {
-                      const { createSamedayAPI } = await import('./sameday-api');
-                      const samedayAPI = createSamedayAPI();
-                      if (samedayAPI) {
-                        awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
-                      }
-                    } catch (pdfError) {
-                      console.error(`❌ AWB PDF retrieval failed for webhook order #${orderId}:`, pdfError);
-                    }
-                  } else {
-                    console.log(`⚠️ No AWB generated via webhook for order #${orderId}, emails will be sent without AWB`);
-                  }
+                  const { sendSupplierOrderEmail, sendCustomerShipmentEmail, sendInvoiceEmailFr } = await import('./email-service.js');
 
                   const latestOrder = await storage.getOrder(orderId);
                   if (latestOrder) {
+                    const orderMarket = (latestOrder.market as string) || 'ro';
+
+                    // AWB only for .ro (Sameday courier); .fr has no courier AWB
+                    let awbPdfBuffer: Buffer | undefined;
+                    if (orderMarket !== 'fr' && awbNumber) {
+                      try {
+                        const { createSamedayAPI } = await import('./sameday-api');
+                        const samedayAPI = createSamedayAPI();
+                        if (samedayAPI) {
+                          awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
+                        }
+                      } catch (pdfError) {
+                        console.error(`❌ AWB PDF retrieval failed for webhook order #${orderId}:`, pdfError);
+                      }
+                    } else if (orderMarket !== 'fr') {
+                      console.log(`⚠️ No AWB generated via webhook for order #${orderId}, emails will be sent without AWB`);
+                    }
+
                     const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
 
                     for (const item of latestOrder.items) {
@@ -3955,8 +3966,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                           }
                         }
                         if (!supplierInfo) {
-                          const latestOrderMkt2 = (latestOrder.market as string) || "ro";
-                                                                                     const companySettings = await storage.getCompanySettingsByMarket(latestOrderMkt2);
+                          const companySettings = await storage.getCompanySettingsByMarket(orderMarket);
                           const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
                           supplierInfo = {
                             supplierName: companySettings?.name || 'xHACCP',
@@ -4008,10 +4018,16 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
                     if (customerEmail) {
                       try {
-                        await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber || '', invoicePdfBuffer, invoiceNumber);
-                        console.log(`✅ Customer shipment email sent via webhook for order #${orderId}`);
+                        if (orderMarket === 'fr') {
+                          // .fr: dedicated French invoice email (no AWB/courier)
+                          await sendInvoiceEmailFr(customerEmail, latestOrder, invoicePdfBuffer, invoiceNumber);
+                          console.log(`✅ FR invoice email sent via webhook to ${customerEmail} for order #${orderId}`);
+                        } else {
+                          await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber || '', invoicePdfBuffer, invoiceNumber);
+                          console.log(`✅ Customer shipment email sent via webhook for order #${orderId}`);
+                        }
                       } catch (err) {
-                        console.error(`❌ Failed to send customer shipment email via webhook for order #${orderId}:`, err);
+                        console.error(`❌ Failed to send customer email via webhook for order #${orderId}:`, err);
                       }
                     }
 

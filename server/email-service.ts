@@ -1358,6 +1358,154 @@ export async function sendCustomerShipmentEmail(
   }
 }
 
+/**
+ * Dedicated French invoice email sent immediately after Viva payment success
+ * for orders on the .fr market (no AWB/courier — invoice email is the only
+ * post-payment communication the customer receives).
+ */
+export async function sendInvoiceEmailFr(
+  customerEmail: string,
+  order: OrderWithItems,
+  invoicePdfBuffer: Buffer | null,
+  invoiceNumber: string | undefined
+): Promise<boolean> {
+  if (!mailService || !VERIFIED_SENDER) {
+    console.warn('Email service not configured. Skipping FR invoice email.');
+    return false;
+  }
+
+  const billingAddr  = order.billingAddress  as any || {};
+  const shippingAddr = order.shippingAddress as any || {};
+  const firstName    = billingAddr.firstName  || shippingAddr.firstName  || 'Client';
+  const lastName     = billingAddr.lastName   || shippingAddr.lastName   || '';
+  const customerName = `${firstName} ${lastName}`.trim();
+  const currency     = order.currency || 'EUR';
+  const totalAmount  = parseFloat(order.totalAmount);
+  const vatRate      = 20; // France standard VAT
+  const vatAmount    = (totalAmount * vatRate) / (100 + vatRate);
+  const subtotalHT   = totalAmount - vatAmount;
+
+  const orderItemsHtml = order.items.map(item => `
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;">${item.product.name}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${parseFloat(item.price).toFixed(2)} ${currency}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${parseFloat(item.totalPrice).toFixed(2)} ${currency}</td>
+    </tr>
+  `).join('');
+
+  const discountAmt = parseFloat((order as any).discountAmount || '0');
+  const discountRow = discountAmt > 0 ? `
+    <tr>
+      <td style="padding:8px 10px;color:#27ae60;" colspan="3">Remise${(order as any).voucherCode ? ' ' + (order as any).voucherCode : ''}</td>
+      <td style="padding:8px 10px;text-align:right;color:#27ae60;">-${discountAmt.toFixed(2)} ${currency}</td>
+    </tr>` : '';
+
+  const shippingCost = parseFloat(order.shippingCost || '0');
+  const shippingRow  = shippingCost > 0 ? `
+    <tr>
+      <td style="padding:8px 10px;" colspan="3">Frais de port</td>
+      <td style="padding:8px 10px;text-align:right;">${shippingCost.toFixed(2)} ${currency}</td>
+    </tr>` : '';
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>Votre facture xHACCP</title></head>
+<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:620px;margin:0 auto;padding:20px;">
+  <div style="background:#1a4f8a;color:white;padding:24px 28px;border-radius:8px 8px 0 0;text-align:center;">
+    <h1 style="margin:0;font-size:22px;">✅ Commande confirmée &amp; Facture</h1>
+    <p style="margin:6px 0 0;font-size:14px;opacity:0.9;">Commande n° ${order.id}${invoiceNumber ? ' · Facture ' + invoiceNumber : ''}</p>
+  </div>
+
+  <div style="background:#f8f9fa;padding:24px 28px;border:1px solid #e9ecef;border-top:none;">
+    <p>Bonjour ${customerName},</p>
+    <p>Nous vous remercions pour votre commande sur <strong>xhaccp.fr</strong>. Votre paiement a bien été reçu et votre commande est en cours de traitement.</p>
+    ${invoiceNumber ? `
+    <div style="background:#e8f4fd;padding:14px 18px;border-radius:6px;margin:16px 0;border-left:4px solid #1a4f8a;">
+      <p style="margin:0;font-weight:bold;">📄 Facture N° ${invoiceNumber}</p>
+      ${invoicePdfBuffer ? '<p style="margin:4px 0 0;font-size:13px;color:#555;">Votre facture est jointe à cet email en format PDF.</p>' : ''}
+    </div>` : ''}
+
+    <h3 style="color:#2c3e50;border-bottom:2px solid #eee;padding-bottom:8px;">Récapitulatif de commande</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <thead>
+        <tr style="background:#e9ecef;">
+          <th style="padding:8px 10px;text-align:left;">Produit</th>
+          <th style="padding:8px 10px;text-align:center;">Qté</th>
+          <th style="padding:8px 10px;text-align:right;">Prix unit. TTC</th>
+          <th style="padding:8px 10px;text-align:right;">Total TTC</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${orderItemsHtml}
+        ${discountRow}
+        ${shippingRow}
+        <tr style="border-top:2px solid #dee2e6;color:#555;">
+          <td style="padding:8px 10px;" colspan="3">Sous-total HT</td>
+          <td style="padding:8px 10px;text-align:right;">${subtotalHT.toFixed(2)} ${currency}</td>
+        </tr>
+        <tr style="color:#555;">
+          <td style="padding:8px 10px;" colspan="3">TVA (${vatRate}%)</td>
+          <td style="padding:8px 10px;text-align:right;">${vatAmount.toFixed(2)} ${currency}</td>
+        </tr>
+        <tr style="font-weight:bold;background:#f0f4f8;font-size:15px;">
+          <td style="padding:10px;" colspan="3">Total TTC</td>
+          <td style="padding:10px;text-align:right;">${totalAmount.toFixed(2)} ${currency}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="background:white;padding:16px 18px;border-radius:8px;margin-top:20px;border:1px solid #e0e0e0;">
+      <h3 style="color:#2c3e50;margin-top:0;font-size:15px;">Adresse de livraison</h3>
+      <p style="margin:0;line-height:1.8;font-size:14px;">
+        ${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}<br>
+        ${shippingAddr.address || shippingAddr.streetAddress || ''}<br>
+        ${shippingAddr.zipCode || ''} ${shippingAddr.city || ''}<br>
+        ${shippingAddr.country || 'France'}<br>
+        ${shippingAddr.phone ? 'Tél : ' + shippingAddr.phone : ''}
+      </p>
+    </div>
+  </div>
+
+  <div style="background:#e8f5e9;padding:16px 28px;border-radius:0 0 8px 8px;border:1px solid #e9ecef;border-top:none;text-align:center;">
+    <p style="margin:0;font-size:13px;color:#555;">Pour toute question, contactez-nous à <a href="mailto:contact@xhaccp.fr" style="color:#1a4f8a;">contact@xhaccp.fr</a></p>
+    <p style="margin:6px 0 0;font-size:11px;color:#999;">xHACCP · Votre partenaire en hygiène alimentaire</p>
+  </div>
+</body>
+</html>`;
+
+  const emailData: any = {
+    to: customerEmail,
+    from: VERIFIED_SENDER,
+    subject: invoiceNumber
+      ? `Votre facture xHACCP N° ${invoiceNumber} – Commande #${order.id}`
+      : `Confirmation de commande xHACCP #${order.id}`,
+    text: `Bonjour ${customerName},\n\nMerci pour votre commande #${order.id} sur xhaccp.fr.\nMontant total TTC : ${totalAmount.toFixed(2)} ${currency}\n${invoiceNumber ? `Facture N° ${invoiceNumber}\n` : ''}${invoicePdfBuffer ? 'Votre facture est jointe en PDF.\n' : ''}\nCordialement,\nL'équipe xHACCP`,
+    html,
+  };
+
+  if (invoicePdfBuffer && invoicePdfBuffer.length > 0) {
+    emailData.attachments = [{
+      content: invoicePdfBuffer.toString('base64'),
+      filename: `Facture_xHACCP_${(invoiceNumber || order.id.toString()).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+      type: 'application/pdf',
+      disposition: 'attachment',
+    }];
+  }
+
+  try {
+    await mailService.send(emailData);
+    console.log(`✅ FR invoice email sent to ${customerEmail} for order #${order.id} (invoice: ${invoiceNumber})`);
+    return true;
+  } catch (error: any) {
+    console.error(`❌ Failed to send FR invoice email to ${customerEmail}:`, error.message);
+    if (error.response?.body?.errors) {
+      console.error('SendGrid error details:', error.response.body.errors);
+    }
+    return false;
+  }
+}
+
 export async function sendManualInvoiceEmail(params: {
   pdfBuffer: Buffer;
   invoiceNumber: string;
