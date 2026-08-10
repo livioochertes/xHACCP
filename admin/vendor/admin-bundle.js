@@ -22335,7 +22335,6 @@ ${selectedOrders.map((id) => {
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "0.00", children: "0% (Reverse Charge)" }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "5.00", children: "5% (Reduced VAT)" }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "9.00", children: "9% (Reduced VAT)" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "19.00", children: "19% (TVA Rom\xE2nia)" }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "20.00", children: "20% (TVA France)" }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "21.00", children: "21% (Standard VAT)" }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "24.00", children: "24% (Luxury VAT)" })
