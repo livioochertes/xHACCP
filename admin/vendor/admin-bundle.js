@@ -10683,7 +10683,110 @@
       volumeDiscountMinQty: "Minimum quantity (pcs)",
       volumeDiscountPercent: "Discount (%)",
       volumeDiscountAddTier: "Add discount tier",
-      volumeDiscountEmpty: "No tiers defined. Example: from 5 pcs \u2192 10% discount, from 10 pcs \u2192 20% discount"
+      volumeDiscountEmpty: "No tiers defined. Example: from 5 pcs \u2192 10% discount, from 10 pcs \u2192 20% discount",
+      modal: {
+        editTitle: "Edit Product",
+        addTitle: "Add New Product",
+        importTitle: "Import from URL (optional)",
+        importDesc: "Automatically extract title, description and image from an existing product page.",
+        importFetch: "Fetch",
+        importSuccess: "Data extracted successfully!",
+        importTitleLabel: "Title",
+        importDescLabel: "Description",
+        importRights: "I confirm I have the right to use this data and images",
+        baseLangTitle: "Base language: English",
+        baseLangDesc: 'Fill in the product information in English. For other languages, use the "Translations" section below.',
+        basicTitle: "Basic Information",
+        basicDesc: "The name and description shown on the product page in the store.",
+        nameLabel: "Product Name (English)",
+        namePh: "Enter product name in English",
+        descLabel: "Description (English)",
+        descPh: "Enter product description in English",
+        pricingTitle: "Pricing & Tax",
+        pricingDesc: "Selling price, compare-at price (to display the discount) and applied VAT rate.",
+        priceLabel: "Price",
+        comparePriceLabel: "Compare At Price",
+        vatLabel: "VAT Rate (%)",
+        currencyLabel: "Currency",
+        vatValueLabel: "VAT Value (%)",
+        organizeTitle: "Organization",
+        organizeDesc: "The category determines where the product appears in the store; the supplier is emailed on new orders.",
+        categoryLabel: "Category",
+        selectCategory: "Select Category",
+        supplierLabel: "Supplier",
+        selectSupplier: "Select Supplier",
+        imagesTitle: "Product Images",
+        imagesDesc: "The first image is the main one, shown in listings and on the product page.",
+        legacyUrlLabel: "Image URL (Legacy - Optional)",
+        uploadClick: "Click to upload images or drag and drop",
+        uploading: "Uploading...",
+        uploadLimits: "Maximum 10 images, 5MB each. Formats: JPG, PNG, GIF, WebP",
+        uploadedCount: "({{count}}/10 images uploaded)",
+        mainBadge: "MAIN",
+        setAsMain: "Set as Main",
+        inventoryTitle: "Stock & Identification",
+        inventoryDesc: "Available quantity and the codes used on invoices and reports.",
+        stockLabel: "Stock Quantity",
+        productCodeLabel: "Product Code",
+        ncCodeLabel: "NC Code",
+        cpvCodeLabel: "CPV Code",
+        statusTitle: "Visibility",
+        statusDesc: "Status controls whether the product appears in the store; featured products show on the homepage.",
+        statusLabel: "Status",
+        featuredLabel: "Featured Product",
+        priorityLabel: "Display Priority",
+        priorityHint: "1 = highest priority (shown first), 2, 3 = lower priorities, 0 = default order",
+        logisticsTitle: "Logistics Details",
+        logisticsDesc: 'Used for AWB generation and shipping calculations. "Quantity" is displayed on the product page.',
+        weightLabel: "Weight (kg)",
+        weightHint: "Min: 1kg, increment: 1kg",
+        lengthLabel: "Length (cm)",
+        widthLabel: "Width (cm)",
+        heightLabel: "Height (cm)",
+        piecesLabel: "Pieces per Package",
+        piecesHint: "Max items per package",
+        quantityLabel: "Quantity (free text)",
+        quantityHint: "e.g. 5L, 500g, 1 set",
+        specsTitle: "Product Specifications",
+        specsDesc: "Technical characteristics shown as a table on the product page (e.g. size, material).",
+        specNamePh: "Name (e.g. Label size)",
+        specValuePh: "Value (e.g. 38\xD758 mm)",
+        addSpec: "Add specification",
+        deleteSpec: "Delete specification",
+        specsEmpty: "No specifications added. Example: Label size \u2192 38\xD758 mm",
+        deleteTier: "Delete tier",
+        translationsTitle: "Product Translations",
+        translationsDesc: "Name and description in other languages, shown to visitors based on the site language.",
+        saveFirst: "Save the product first to be able to add translations.",
+        addTranslation: "Add translation",
+        translationLangPh: "Language",
+        translationNamePh: "Translated product name",
+        translationDescPh: "Translated description (optional)",
+        translationUrlPh: "Source URL (optional)",
+        translationAdd: "Add",
+        translationSave: "Save",
+        translationCancel: "Cancel",
+        cancelBtn: "Cancel",
+        updateBtn: "Update Product",
+        createBtn: "Create Product",
+        translationEditNamePh: "Name",
+        translationEditDescPh: "Description",
+        vatReverse: "0% (Reverse Charge)",
+        vatReduced: "Reduced VAT",
+        vatStandard: "Standard VAT",
+        vatStandardNew: "Standard VAT - from 01.08.2025",
+        vatLuxury: "Luxury VAT",
+        importUrlPh: "https://example.com/product-page",
+        legacyUrlPh: "/r2/products/image.jpg or https://example.com/image.jpg",
+        weightPh: "e.g. 1, 2, 3...",
+        lengthPh: "e.g. 30.00",
+        widthPh: "e.g. 20.00",
+        heightPh: "e.g. 15.00",
+        piecesPh: "e.g. 6",
+        quantityPh: "e.g. 5L, 500g, 1 set",
+        tierQtyPh: "e.g. 5",
+        tierPercentPh: "e.g. 10"
+      }
     },
     categories: {
       title: "Category Management",
@@ -11125,7 +11228,110 @@
       volumeDiscountMinQty: "Cantitate minim\u0103 (buc)",
       volumeDiscountPercent: "Discount (%)",
       volumeDiscountAddTier: "Adaug\u0103 treapt\u0103 discount",
-      volumeDiscountEmpty: "Nicio treapt\u0103 definit\u0103. Exemplu: de la 5 buc \u2192 10% discount, de la 10 buc \u2192 20% discount"
+      volumeDiscountEmpty: "Nicio treapt\u0103 definit\u0103. Exemplu: de la 5 buc \u2192 10% discount, de la 10 buc \u2192 20% discount",
+      modal: {
+        editTitle: "Editeaz\u0103 produs",
+        addTitle: "Adaug\u0103 produs nou",
+        importTitle: "Import din URL (op\u021Bional)",
+        importDesc: "Extrage automat titlul, descrierea \u0219i imaginea dintr-o pagin\u0103 de produs existent\u0103.",
+        importFetch: "Preia",
+        importSuccess: "Date extrase cu succes!",
+        importTitleLabel: "Titlu",
+        importDescLabel: "Descriere",
+        importRights: "Confirm c\u0103 am dreptul de utilizare a acestor date \u0219i imagini",
+        baseLangTitle: "Limba de baz\u0103: Englez\u0103",
+        baseLangDesc: "Completa\u021Bi informa\u021Biile produsului \xEEn englez\u0103. Pentru alte limbi, folosi\u021Bi sec\u021Biunea \u201ETraduceri\u201D de mai jos.",
+        basicTitle: "Informa\u021Bii de baz\u0103",
+        basicDesc: "Numele \u0219i descrierea afi\u0219ate pe pagina produsului \xEEn magazin.",
+        nameLabel: "Nume produs (englez\u0103)",
+        namePh: "Introduce\u021Bi numele produsului \xEEn englez\u0103",
+        descLabel: "Descriere (englez\u0103)",
+        descPh: "Introduce\u021Bi descrierea produsului \xEEn englez\u0103",
+        pricingTitle: "Pre\u021Buri \u0219i taxe",
+        pricingDesc: "Pre\u021Bul de v\xE2nzare, pre\u021Bul barat (pentru afi\u0219area reducerii) \u0219i cota TVA aplicat\u0103.",
+        priceLabel: "Pre\u021B",
+        comparePriceLabel: "Pre\u021B barat (\xEEnainte de reducere)",
+        vatLabel: "Cot\u0103 TVA (%)",
+        currencyLabel: "Moned\u0103",
+        vatValueLabel: "Valoare TVA (%)",
+        organizeTitle: "Organizare",
+        organizeDesc: "Categoria determin\u0103 unde apare produsul \xEEn magazin; furnizorul prime\u0219te email la comand\u0103.",
+        categoryLabel: "Categorie",
+        selectCategory: "Selecteaz\u0103 categoria",
+        supplierLabel: "Furnizor",
+        selectSupplier: "Selecteaz\u0103 furnizorul",
+        imagesTitle: "Imagini produs",
+        imagesDesc: "Prima imagine este cea principal\u0103, afi\u0219at\u0103 \xEEn list\u0103 \u0219i pe pagina produsului.",
+        legacyUrlLabel: "URL imagine (vechi - op\u021Bional)",
+        uploadClick: "Click pentru \xEEnc\u0103rcare sau trage imaginile aici",
+        uploading: "Se \xEEncarc\u0103...",
+        uploadLimits: "Maxim 10 imagini, 5MB fiecare. Formate: JPG, PNG, GIF, WebP",
+        uploadedCount: "({{count}}/10 imagini \xEEnc\u0103rcate)",
+        mainBadge: "PRINCIPAL\u0102",
+        setAsMain: "Seteaz\u0103 ca principal\u0103",
+        inventoryTitle: "Stoc \u0219i identificare",
+        inventoryDesc: "Cantitatea disponibil\u0103 \u0219i codurile folosite pe facturi \u0219i \xEEn rapoarte.",
+        stockLabel: "Cantitate \xEEn stoc",
+        productCodeLabel: "Cod produs",
+        ncCodeLabel: "Cod NC",
+        cpvCodeLabel: "Cod CPV",
+        statusTitle: "Vizibilitate",
+        statusDesc: "Statusul controleaz\u0103 dac\u0103 produsul apare \xEEn magazin; produsele promovate apar pe prima pagin\u0103.",
+        statusLabel: "Status",
+        featuredLabel: "Produs promovat",
+        priorityLabel: "Prioritate afi\u0219are",
+        priorityHint: "1 = prioritate maxim\u0103 (afi\u0219at primul), 2, 3 = priorit\u0103\u021Bi mai mici, 0 = ordine implicit\u0103",
+        logisticsTitle: "Detalii logistice",
+        logisticsDesc: "Folosite la generarea AWB \u0219i calculul transportului. \u201ECantitate\u201D apare pe pagina produsului.",
+        weightLabel: "Greutate (kg)",
+        weightHint: "Min: 1kg, increment: 1kg",
+        lengthLabel: "Lungime (cm)",
+        widthLabel: "L\u0103\u021Bime (cm)",
+        heightLabel: "\xCEn\u0103l\u021Bime (cm)",
+        piecesLabel: "Buc\u0103\u021Bi per colet",
+        piecesHint: "Maxim de buc\u0103\u021Bi \xEEntr-un colet",
+        quantityLabel: "Cantitate (text liber)",
+        quantityHint: "ex: 5L, 500g, 1 set",
+        specsTitle: "Specifica\u021Bii produs",
+        specsDesc: "Caracteristici tehnice afi\u0219ate \xEEn tabel pe pagina produsului (ex: dimensiune, material).",
+        specNamePh: "Denumire (ex: Dimensiunea etichetei)",
+        specValuePh: "Valoare (ex: 38\xD758 mm)",
+        addSpec: "Adaug\u0103 specifica\u021Bie",
+        deleteSpec: "\u0218terge specifica\u021Bie",
+        specsEmpty: "Nicio specifica\u021Bie ad\u0103ugat\u0103. Exemplu: Dimensiunea etichetei \u2192 38\xD758 mm",
+        deleteTier: "\u0218terge treapt\u0103",
+        translationsTitle: "Traduceri produs",
+        translationsDesc: "Numele \u0219i descrierea \xEEn alte limbi, afi\u0219ate vizitatorilor \xEEn func\u021Bie de limba site-ului.",
+        saveFirst: "Salveaz\u0103 produsul mai \xEEnt\xE2i pentru a putea ad\u0103uga traduceri.",
+        addTranslation: "Adaug\u0103 traducere",
+        translationLangPh: "Limb\u0103",
+        translationNamePh: "Nume produs tradus",
+        translationDescPh: "Descriere tradus\u0103 (op\u021Bional)",
+        translationUrlPh: "URL surs\u0103 (op\u021Bional)",
+        translationAdd: "Adaug\u0103",
+        translationSave: "Salveaz\u0103",
+        translationCancel: "Anuleaz\u0103",
+        cancelBtn: "Anuleaz\u0103",
+        updateBtn: "Actualizeaz\u0103 produsul",
+        createBtn: "Creeaz\u0103 produsul",
+        translationEditNamePh: "Nume",
+        translationEditDescPh: "Descriere",
+        vatReverse: "0% (Taxare invers\u0103)",
+        vatReduced: "TVA redus",
+        vatStandard: "TVA standard",
+        vatStandardNew: "TVA standard - din 01.08.2025",
+        vatLuxury: "TVA lux",
+        importUrlPh: "https://exemplu.com/pagina-produs",
+        legacyUrlPh: "/r2/products/imagine.jpg sau https://exemplu.com/imagine.jpg",
+        weightPh: "ex: 1, 2, 3...",
+        lengthPh: "ex: 30.00",
+        widthPh: "ex: 20.00",
+        heightPh: "ex: 15.00",
+        piecesPh: "ex: 6",
+        quantityPh: "ex: 5L, 500g, 1 set",
+        tierQtyPh: "ex: 5",
+        tierPercentPh: "ex: 10"
+      }
     },
     categories: {
       title: "Gestionare Categorii",
@@ -11567,7 +11773,110 @@
       volumeDiscountMinQty: "Quantit\xE9 minimale (pcs)",
       volumeDiscountPercent: "Remise (%)",
       volumeDiscountAddTier: "Ajouter un palier de remise",
-      volumeDiscountEmpty: "Aucun palier d\xE9fini. Exemple : d\xE8s 5 pcs \u2192 10% de remise, d\xE8s 10 pcs \u2192 20% de remise"
+      volumeDiscountEmpty: "Aucun palier d\xE9fini. Exemple : d\xE8s 5 pcs \u2192 10% de remise, d\xE8s 10 pcs \u2192 20% de remise",
+      modal: {
+        editTitle: "Modifier le produit",
+        addTitle: "Ajouter un nouveau produit",
+        importTitle: "Importer depuis une URL (optionnel)",
+        importDesc: "Extraire automatiquement le titre, la description et l'image d'une page produit existante.",
+        importFetch: "R\xE9cup\xE9rer",
+        importSuccess: "Donn\xE9es extraites avec succ\xE8s !",
+        importTitleLabel: "Titre",
+        importDescLabel: "Description",
+        importRights: "Je confirme avoir le droit d'utiliser ces donn\xE9es et images",
+        baseLangTitle: "Langue de base : anglais",
+        baseLangDesc: "Remplissez les informations du produit en anglais. Pour les autres langues, utilisez la section \xAB Traductions \xBB ci-dessous.",
+        basicTitle: "Informations de base",
+        basicDesc: "Le nom et la description affich\xE9s sur la page produit de la boutique.",
+        nameLabel: "Nom du produit (anglais)",
+        namePh: "Saisissez le nom du produit en anglais",
+        descLabel: "Description (anglais)",
+        descPh: "Saisissez la description du produit en anglais",
+        pricingTitle: "Prix et taxes",
+        pricingDesc: "Prix de vente, prix barr\xE9 (pour afficher la remise) et taux de TVA appliqu\xE9.",
+        priceLabel: "Prix",
+        comparePriceLabel: "Prix barr\xE9",
+        vatLabel: "Taux de TVA (%)",
+        currencyLabel: "Devise",
+        vatValueLabel: "Valeur TVA (%)",
+        organizeTitle: "Organisation",
+        organizeDesc: "La cat\xE9gorie d\xE9termine o\xF9 le produit appara\xEEt dans la boutique ; le fournisseur re\xE7oit un email \xE0 chaque commande.",
+        categoryLabel: "Cat\xE9gorie",
+        selectCategory: "S\xE9lectionner la cat\xE9gorie",
+        supplierLabel: "Fournisseur",
+        selectSupplier: "S\xE9lectionner le fournisseur",
+        imagesTitle: "Images du produit",
+        imagesDesc: "La premi\xE8re image est l'image principale, affich\xE9e dans les listes et sur la page produit.",
+        legacyUrlLabel: "URL de l'image (ancien - optionnel)",
+        uploadClick: "Cliquez pour t\xE9l\xE9charger ou glissez-d\xE9posez les images",
+        uploading: "T\xE9l\xE9chargement...",
+        uploadLimits: "Maximum 10 images, 5 Mo chacune. Formats : JPG, PNG, GIF, WebP",
+        uploadedCount: "({{count}}/10 images t\xE9l\xE9charg\xE9es)",
+        mainBadge: "PRINCIPALE",
+        setAsMain: "D\xE9finir comme principale",
+        inventoryTitle: "Stock et identification",
+        inventoryDesc: "Quantit\xE9 disponible et codes utilis\xE9s sur les factures et rapports.",
+        stockLabel: "Quantit\xE9 en stock",
+        productCodeLabel: "Code produit",
+        ncCodeLabel: "Code NC",
+        cpvCodeLabel: "Code CPV",
+        statusTitle: "Visibilit\xE9",
+        statusDesc: "Le statut contr\xF4le si le produit appara\xEEt dans la boutique ; les produits mis en avant s'affichent sur la page d'accueil.",
+        statusLabel: "Statut",
+        featuredLabel: "Produit mis en avant",
+        priorityLabel: "Priorit\xE9 d'affichage",
+        priorityHint: "1 = priorit\xE9 maximale (affich\xE9 en premier), 2, 3 = priorit\xE9s inf\xE9rieures, 0 = ordre par d\xE9faut",
+        logisticsTitle: "D\xE9tails logistiques",
+        logisticsDesc: "Utilis\xE9s pour la g\xE9n\xE9ration d'AWB et le calcul des frais de port. \xAB Quantit\xE9 \xBB s'affiche sur la page produit.",
+        weightLabel: "Poids (kg)",
+        weightHint: "Min : 1 kg, incr\xE9ment : 1 kg",
+        lengthLabel: "Longueur (cm)",
+        widthLabel: "Largeur (cm)",
+        heightLabel: "Hauteur (cm)",
+        piecesLabel: "Pi\xE8ces par colis",
+        piecesHint: "Max d'articles par colis",
+        quantityLabel: "Quantit\xE9 (texte libre)",
+        quantityHint: "ex : 5L, 500g, 1 set",
+        specsTitle: "Sp\xE9cifications du produit",
+        specsDesc: "Caract\xE9ristiques techniques affich\xE9es en tableau sur la page produit (ex : dimension, mat\xE9riau).",
+        specNamePh: "Nom (ex : Dimension de l'\xE9tiquette)",
+        specValuePh: "Valeur (ex : 38\xD758 mm)",
+        addSpec: "Ajouter une sp\xE9cification",
+        deleteSpec: "Supprimer la sp\xE9cification",
+        specsEmpty: "Aucune sp\xE9cification ajout\xE9e. Exemple : Dimension de l'\xE9tiquette \u2192 38\xD758 mm",
+        deleteTier: "Supprimer le palier",
+        translationsTitle: "Traductions du produit",
+        translationsDesc: "Nom et description dans d'autres langues, affich\xE9s aux visiteurs selon la langue du site.",
+        saveFirst: "Enregistrez d'abord le produit pour pouvoir ajouter des traductions.",
+        addTranslation: "Ajouter une traduction",
+        translationLangPh: "Langue",
+        translationNamePh: "Nom du produit traduit",
+        translationDescPh: "Description traduite (optionnel)",
+        translationUrlPh: "URL source (optionnel)",
+        translationAdd: "Ajouter",
+        translationSave: "Enregistrer",
+        translationCancel: "Annuler",
+        cancelBtn: "Annuler",
+        updateBtn: "Mettre \xE0 jour le produit",
+        createBtn: "Cr\xE9er le produit",
+        translationEditNamePh: "Nom",
+        translationEditDescPh: "Description",
+        vatReverse: "0% (Autoliquidation)",
+        vatReduced: "TVA r\xE9duite",
+        vatStandard: "TVA standard",
+        vatStandardNew: "TVA standard - \xE0 partir du 01.08.2025",
+        vatLuxury: "TVA de luxe",
+        importUrlPh: "https://exemple.com/page-produit",
+        legacyUrlPh: "/r2/products/image.jpg ou https://exemple.com/image.jpg",
+        weightPh: "ex : 1, 2, 3...",
+        lengthPh: "ex : 30.00",
+        widthPh: "ex : 20.00",
+        heightPh: "ex : 15.00",
+        piecesPh: "ex : 6",
+        quantityPh: "ex : 5L, 500g, 1 set",
+        tierQtyPh: "ex : 5",
+        tierPercentPh: "ex : 10"
+      }
     },
     categories: {
       title: "Gestion des cat\xE9gories",
@@ -18658,12 +18967,12 @@ Cordialement,`
           backgroundColor: "white",
           padding: "30px",
           borderRadius: "8px",
-          width: "90%",
-          maxWidth: "600px",
-          maxHeight: "80vh",
+          width: "95%",
+          maxWidth: "1000px",
+          maxHeight: "92vh",
           overflow: "auto"
         }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { marginBottom: "20px", color: "#333" }, children: editingProduct ? "Edit Product" : "Add New Product" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { marginBottom: "20px", color: "#333" }, children: editingProduct ? t2("products.modal.editTitle") : t2("products.modal.addTitle") }),
           !editingProduct && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
             backgroundColor: "#f8f9fa",
             padding: "15px",
@@ -18671,14 +18980,18 @@ Cordialement,`
             marginBottom: "20px",
             border: "1px solid #e9ecef"
           }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057", fontSize: "14px" }, children: "\u{1F517} Import din URL (Op\u021Bional)" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { marginBottom: "4px", color: "#495057", fontSize: "14px" }, children: [
+              "\u{1F517} ",
+              t2("products.modal.importTitle")
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "10px" }, children: t2("products.modal.importDesc") }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", marginBottom: "10px", flexWrap: "wrap" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                 "input",
                 {
                   type: "url",
                   className: "form-input",
-                  placeholder: "https://example.com/product-page",
+                  placeholder: t2("products.modal.importUrlPh"),
                   value: importUrl,
                   onChange: (e2) => setImportUrl(e2.target.value),
                   style: { flex: "1 1 300px", minWidth: "250px", padding: "10px", fontSize: "14px" }
@@ -18715,7 +19028,8 @@ Cordialement,`
                   },
                   children: [
                     importLoading ? "\u23F3" : "\u{1F4E5}",
-                    " Fetch"
+                    " ",
+                    t2("products.modal.importFetch")
                   ]
                 }
               )
@@ -18727,7 +19041,10 @@ Cordialement,`
               marginTop: "10px",
               fontSize: "13px"
             }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontWeight: "bold", marginBottom: "5px", color: "#155724" }, children: "\u2705 Date extrase cu succes!" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontWeight: "bold", marginBottom: "5px", color: "#155724" }, children: [
+                "\u2705 ",
+                t2("products.modal.importSuccess")
+              ] }),
               importedData.imageUrl && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginBottom: "8px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                 "img",
                 {
@@ -18743,13 +19060,19 @@ Cordialement,`
                 }
               ) }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Titlu:" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
+                  t2("products.modal.importTitleLabel"),
+                  ":"
+                ] }),
                 " ",
                 importedData.title?.substring(0, 50),
                 "..."
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Descriere:" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
+                  t2("products.modal.importDescLabel"),
+                  ":"
+                ] }),
                 " ",
                 importedData.description?.substring(0, 80),
                 "..."
@@ -18763,7 +19086,10 @@ Cordialement,`
                     onChange: (e2) => setUsageRightsConfirmed(e2.target.checked)
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#856404" }, children: "\u26A0\uFE0F Confirm c\u0103 am dreptul de utilizare a acestor date \u0219i imagini" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", color: "#856404" }, children: [
+                  "\u26A0\uFE0F ",
+                  t2("products.modal.importRights")
+                ] })
               ] }) })
             ] })
           ] }),
@@ -18780,445 +19106,510 @@ Cordialement,`
             }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "20px" }, children: "\u{1F1EC}\u{1F1E7}" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "13px", color: "#1565c0" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Limba de baz\u0103: Englez\u0103" }),
-                ' - Completa\u021Bi informa\u021Biile produsului \xEEn englez\u0103. Pentru alte limbi, folosi\u021Bi sec\u021Biunea "Traduceri" de mai jos.'
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: t2("products.modal.baseLangTitle") }),
+                " \u2014 ",
+                t2("products.modal.baseLangDesc")
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Product Name (English)" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "input",
-                {
-                  type: "text",
-                  className: "form-input",
-                  value: productFormData.name,
-                  onChange: (e2) => setProductFormData({ ...productFormData, name: e2.target.value }),
-                  required: true,
-                  placeholder: "Enter product name in English"
-                }
-              )
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Description (English)" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "textarea",
-                {
-                  className: "form-input",
-                  value: productFormData.description,
-                  onChange: (e2) => setProductFormData({ ...productFormData, description: e2.target.value }),
-                  rows: "3",
-                  placeholder: "Enter product description in English"
-                }
-              )
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "10px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }, children: [
+                "\u{1F4DD} ",
+                t2("products.modal.basicTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.basicDesc") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Price" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.nameLabel") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                   "input",
                   {
-                    type: "number",
-                    step: "0.01",
+                    type: "text",
                     className: "form-input",
-                    value: productFormData.price,
-                    onChange: (e2) => setProductFormData({ ...productFormData, price: e2.target.value }),
-                    required: true
+                    value: productFormData.name,
+                    onChange: (e2) => setProductFormData({ ...productFormData, name: e2.target.value }),
+                    required: true,
+                    placeholder: t2("products.modal.namePh")
                   }
                 )
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Compare At Price" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.descLabel") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "input",
+                  "textarea",
                   {
-                    type: "number",
-                    step: "0.01",
                     className: "form-input",
-                    value: productFormData.compareAtPrice,
-                    onChange: (e2) => setProductFormData({ ...productFormData, compareAtPrice: e2.target.value })
+                    value: productFormData.description,
+                    onChange: (e2) => setProductFormData({ ...productFormData, description: e2.target.value }),
+                    rows: "3",
+                    placeholder: t2("products.modal.descPh")
                   }
                 )
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Category" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "select",
-                  {
-                    className: "form-input",
-                    value: productFormData.categoryId,
-                    onChange: (e2) => setProductFormData({ ...productFormData, categoryId: e2.target.value }),
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Select Category" }),
-                      categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: category.id, children: category.name }, category.id))
-                    ]
-                  }
-                )
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }, children: [
+                "\u{1F4B0} ",
+                t2("products.modal.pricingTitle")
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Supplier" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "select",
-                  {
-                    className: "form-input",
-                    value: productFormData.supplierId || "",
-                    onChange: (e2) => setProductFormData({ ...productFormData, supplierId: e2.target.value }),
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Select Supplier" }),
-                      suppliers.map((supplier) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: supplier.id, children: supplier.name }, supplier.id))
-                    ]
-                  }
-                )
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Image URL (Legacy - Optional)" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "input",
-                {
-                  type: "text",
-                  className: "form-input",
-                  value: productFormData.imageUrl,
-                  onChange: (e2) => setProductFormData({ ...productFormData, imageUrl: e2.target.value }),
-                  placeholder: "/r2/products/image.jpg or https://example.com/image.jpg"
-                }
-              )
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Product Images" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                "div",
-                {
-                  className: "image-upload-zone",
-                  style: {
-                    border: "2px dashed #ddd",
-                    borderRadius: "8px",
-                    padding: "20px",
-                    textAlign: "center",
-                    backgroundColor: "#f9f9f9",
-                    marginBottom: "15px"
-                  },
-                  onDragOver: (e2) => {
-                    e2.preventDefault();
-                    e2.currentTarget.style.borderColor = "#007bff";
-                    e2.currentTarget.style.backgroundColor = "#e3f2fd";
-                  },
-                  onDragLeave: (e2) => {
-                    e2.preventDefault();
-                    e2.currentTarget.style.borderColor = "#ddd";
-                    e2.currentTarget.style.backgroundColor = "#f9f9f9";
-                  },
-                  onDrop: (e2) => {
-                    e2.preventDefault();
-                    e2.currentTarget.style.borderColor = "#ddd";
-                    e2.currentTarget.style.backgroundColor = "#f9f9f9";
-                    const files = e2.dataTransfer.files;
-                    if (files && files.length > 0) {
-                      uploadImages(files);
-                    }
-                  },
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "input",
-                      {
-                        type: "file",
-                        multiple: true,
-                        accept: "image/*",
-                        onChange: (e2) => {
-                          if (e2.target.files && e2.target.files.length > 0) {
-                            uploadImages(e2.target.files);
-                          }
-                        },
-                        style: { display: "none" },
-                        id: "image-upload"
-                      }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "label",
-                      {
-                        htmlFor: "image-upload",
-                        style: {
-                          cursor: uploading ? "not-allowed" : "pointer",
-                          color: uploading ? "#666" : "#007bff",
-                          textDecoration: uploading ? "none" : "underline"
-                        },
-                        children: uploading ? "Uploading..." : "Click to upload images or drag and drop"
-                      }
-                    ),
-                    uploading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                      width: "100%",
-                      height: "4px",
-                      backgroundColor: "#e0e0e0",
-                      borderRadius: "2px",
-                      margin: "10px 0",
-                      overflow: "hidden"
-                    }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                      height: "100%",
-                      backgroundColor: "#007bff",
-                      width: "100%",
-                      animation: "pulse 1.5s ease-in-out infinite"
-                    } }) }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { color: "#666", fontSize: "14px", marginTop: "10px" }, children: [
-                      "Maximum 10 images, 5MB each. Supported formats: JPG, PNG, GIF, WebP",
-                      uploadedImages.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { display: "block", marginTop: "5px", color: "#28a745" }, children: [
-                        "(",
-                        uploadedImages.length,
-                        "/10 images uploaded)"
-                      ] })
-                    ] })
-                  ]
-                }
-              ),
-              uploadedImages.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-                gap: "10px",
-                marginTop: "15px"
-              }, children: uploadedImages.map((image, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "image-thumbnail", style: {
-                position: "relative",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                overflow: "hidden",
-                backgroundColor: "#fff"
-              }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "img",
-                  {
-                    src: getImageUrl(image),
-                    alt: `Product image ${index + 1}`,
-                    style: {
-                      width: "100%",
-                      height: "100px",
-                      objectFit: "cover",
-                      display: "block"
-                    }
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-                  position: "absolute",
-                  top: "5px",
-                  right: "5px",
-                  display: "flex",
-                  gap: "5px"
-                }, children: [
-                  index === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
-                    backgroundColor: "#28a745",
-                    color: "white",
-                    padding: "2px 6px",
-                    borderRadius: "3px",
-                    fontSize: "10px",
-                    fontWeight: "bold"
-                  }, children: "MAIN" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.pricingDesc") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.priceLabel") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                    "button",
+                    "input",
                     {
-                      type: "button",
-                      onClick: () => deleteImage(image, index),
-                      style: {
-                        backgroundColor: "#dc3545",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "3px",
-                        padding: "2px 6px",
-                        fontSize: "10px",
-                        cursor: "pointer"
-                      },
-                      children: "\xD7"
+                      type: "number",
+                      step: "0.01",
+                      className: "form-input",
+                      value: productFormData.price,
+                      onChange: (e2) => setProductFormData({ ...productFormData, price: e2.target.value }),
+                      required: true
                     }
                   )
                 ] }),
-                index !== 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                  position: "absolute",
-                  bottom: "25px",
-                  left: "5px",
-                  right: "5px"
-                }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: () => setAsMainImage(index),
-                    style: {
-                      backgroundColor: "#007bff",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "3px",
-                      padding: "3px 6px",
-                      fontSize: "10px",
-                      cursor: "pointer",
-                      width: "100%"
-                    },
-                    children: "Set as Main"
-                  }
-                ) }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                  padding: "5px",
-                  fontSize: "11px",
-                  color: "#666",
-                  textAlign: "center",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap"
-                }, children: typeof image === "string" ? image.split("/").pop() : image.originalName || image.filename || "Image" })
-              ] }, index)) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Stock Quantity" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "input",
-                {
-                  type: "number",
-                  className: "form-input",
-                  value: productFormData.stockQuantity,
-                  onChange: (e2) => setProductFormData({ ...productFormData, stockQuantity: e2.target.value })
-                }
-              )
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "VAT Percentage (%)" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "select",
-                  {
-                    className: "form-input",
-                    value: productFormData.vatPercentage || "21.00",
-                    onChange: (e2) => setProductFormData({ ...productFormData, vatPercentage: e2.target.value }),
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "0.00", children: "0% (Reverse Charge)" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "5.00", children: "5% (Reduced VAT)" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "9.00", children: "9% (Reduced VAT)" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "21.00", children: "21% (Standard VAT)" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "21.00", children: "21% (Standard VAT - from 01.08.2025)" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "24.00", children: "24% (Luxury VAT)" })
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Currency" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "select",
-                  {
-                    className: "form-input",
-                    value: productFormData.currency,
-                    onChange: (e2) => setProductFormData({ ...productFormData, currency: e2.target.value }),
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "EUR", children: "EUR (Euro)" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "RON", children: "RON (Romanian Leu)" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "USD", children: "USD (US Dollar)" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "GBP", children: "GBP (British Pound)" })
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "VAT Value (%)" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "input",
-                  {
-                    type: "number",
-                    step: "0.01",
-                    className: "form-input",
-                    value: productFormData.vatValue,
-                    onChange: (e2) => setProductFormData({ ...productFormData, vatValue: e2.target.value }),
-                    placeholder: "19.00"
-                  }
-                )
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.comparePriceLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "number",
+                      step: "0.01",
+                      className: "form-input",
+                      value: productFormData.compareAtPrice,
+                      onChange: (e2) => setProductFormData({ ...productFormData, compareAtPrice: e2.target.value })
+                    }
+                  )
+                ] })
               ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "1fr", gap: "15px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Product Code" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "input",
-                {
-                  type: "text",
-                  className: "form-input",
-                  value: productFormData.productCode,
-                  onChange: (e2) => setProductFormData({ ...productFormData, productCode: e2.target.value }),
-                  placeholder: "ABC-123-DEF"
-                }
-              )
-            ] }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "NC Code" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "input",
-                  {
-                    type: "text",
-                    className: "form-input",
-                    value: productFormData.ncCode,
-                    onChange: (e2) => setProductFormData({ ...productFormData, ncCode: e2.target.value }),
-                    placeholder: "1234.56.78"
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "CPV Code" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "input",
-                  {
-                    type: "text",
-                    className: "form-input",
-                    value: productFormData.cpvCode,
-                    onChange: (e2) => setProductFormData({ ...productFormData, cpvCode: e2.target.value }),
-                    placeholder: "39000000-0"
-                  }
-                )
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Status" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "select",
-                  {
-                    className: "form-input",
-                    value: productFormData.status,
-                    onChange: (e2) => setProductFormData({ ...productFormData, status: e2.target.value }),
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "active", children: t2("common.active") }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "inactive", children: t2("common.inactive") }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "draft", children: t2("common.draft") }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "discontinued", children: t2("common.discontinued") })
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "form-group", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "10px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "input",
-                  {
-                    type: "checkbox",
-                    checked: productFormData.featured,
-                    onChange: (e2) => setProductFormData({ ...productFormData, featured: e2.target.checked })
-                  }
-                ),
-                "Featured Product"
-              ] }) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Prioritate afi\u0219are" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "input",
-                {
-                  type: "number",
-                  min: "0",
-                  className: "form-input",
-                  value: productFormData.priority || 0,
-                  onChange: (e2) => setProductFormData({ ...productFormData, priority: parseInt(e2.target.value) || 0 }),
-                  placeholder: "0"
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("small", { style: { color: "#666", fontSize: "12px", marginTop: "4px", display: "block" }, children: "1 = prioritate maxim\u0103 (afi\u0219at primul), 2, 3 = priorit\u0103\u021Bi mai mici, 0 = ordine implicit\u0103" })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }, children: "\u{1F4E6} Logistics Details" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }, children: [
+                "\u{1F5C2}\uFE0F ",
+                t2("products.modal.organizeTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.organizeDesc") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.categoryLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "select",
+                    {
+                      className: "form-input",
+                      value: productFormData.categoryId,
+                      onChange: (e2) => setProductFormData({ ...productFormData, categoryId: e2.target.value }),
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("products.modal.selectCategory") }),
+                        categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: category.id, children: category.name }, category.id))
+                      ]
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.supplierLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "select",
+                    {
+                      className: "form-input",
+                      value: productFormData.supplierId || "",
+                      onChange: (e2) => setProductFormData({ ...productFormData, supplierId: e2.target.value }),
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("products.modal.selectSupplier") }),
+                        suppliers.map((supplier) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: supplier.id, children: supplier.name }, supplier.id))
+                      ]
+                    }
+                  )
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }, children: [
+                "\u{1F5BC}\uFE0F ",
+                t2("products.modal.imagesTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.imagesDesc") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.legacyUrlLabel") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "input",
+                  {
+                    type: "text",
+                    className: "form-input",
+                    value: productFormData.imageUrl,
+                    onChange: (e2) => setProductFormData({ ...productFormData, imageUrl: e2.target.value }),
+                    placeholder: t2("products.modal.legacyUrlPh")
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  "div",
+                  {
+                    className: "image-upload-zone",
+                    style: {
+                      border: "2px dashed #ddd",
+                      borderRadius: "8px",
+                      padding: "20px",
+                      textAlign: "center",
+                      backgroundColor: "#f9f9f9",
+                      marginBottom: "15px"
+                    },
+                    onDragOver: (e2) => {
+                      e2.preventDefault();
+                      e2.currentTarget.style.borderColor = "#007bff";
+                      e2.currentTarget.style.backgroundColor = "#e3f2fd";
+                    },
+                    onDragLeave: (e2) => {
+                      e2.preventDefault();
+                      e2.currentTarget.style.borderColor = "#ddd";
+                      e2.currentTarget.style.backgroundColor = "#f9f9f9";
+                    },
+                    onDrop: (e2) => {
+                      e2.preventDefault();
+                      e2.currentTarget.style.borderColor = "#ddd";
+                      e2.currentTarget.style.backgroundColor = "#f9f9f9";
+                      const files = e2.dataTransfer.files;
+                      if (files && files.length > 0) {
+                        uploadImages(files);
+                      }
+                    },
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "input",
+                        {
+                          type: "file",
+                          multiple: true,
+                          accept: "image/*",
+                          onChange: (e2) => {
+                            if (e2.target.files && e2.target.files.length > 0) {
+                              uploadImages(e2.target.files);
+                            }
+                          },
+                          style: { display: "none" },
+                          id: "image-upload"
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "label",
+                        {
+                          htmlFor: "image-upload",
+                          style: {
+                            cursor: uploading ? "not-allowed" : "pointer",
+                            color: uploading ? "#666" : "#007bff",
+                            textDecoration: uploading ? "none" : "underline"
+                          },
+                          children: uploading ? t2("products.modal.uploading") : t2("products.modal.uploadClick")
+                        }
+                      ),
+                      uploading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                        width: "100%",
+                        height: "4px",
+                        backgroundColor: "#e0e0e0",
+                        borderRadius: "2px",
+                        margin: "10px 0",
+                        overflow: "hidden"
+                      }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                        height: "100%",
+                        backgroundColor: "#007bff",
+                        width: "100%",
+                        animation: "pulse 1.5s ease-in-out infinite"
+                      } }) }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { color: "#666", fontSize: "14px", marginTop: "10px" }, children: [
+                        t2("products.modal.uploadLimits"),
+                        uploadedImages.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { display: "block", marginTop: "5px", color: "#28a745" }, children: t2("products.modal.uploadedCount", { count: uploadedImages.length }) })
+                      ] })
+                    ]
+                  }
+                ),
+                uploadedImages.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+                  gap: "10px",
+                  marginTop: "15px"
+                }, children: uploadedImages.map((image, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "image-thumbnail", style: {
+                  position: "relative",
+                  border: "1px solid #ddd",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  backgroundColor: "#fff"
+                }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "img",
+                    {
+                      src: getImageUrl(image),
+                      alt: `Product image ${index + 1}`,
+                      style: {
+                        width: "100%",
+                        height: "100px",
+                        objectFit: "cover",
+                        display: "block"
+                      }
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                    position: "absolute",
+                    top: "5px",
+                    right: "5px",
+                    display: "flex",
+                    gap: "5px"
+                  }, children: [
+                    index === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
+                      backgroundColor: "#28a745",
+                      color: "white",
+                      padding: "2px 6px",
+                      borderRadius: "3px",
+                      fontSize: "10px",
+                      fontWeight: "bold"
+                    }, children: t2("products.modal.mainBadge") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => deleteImage(image, index),
+                        style: {
+                          backgroundColor: "#dc3545",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "3px",
+                          padding: "2px 6px",
+                          fontSize: "10px",
+                          cursor: "pointer"
+                        },
+                        children: "\xD7"
+                      }
+                    )
+                  ] }),
+                  index !== 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                    position: "absolute",
+                    bottom: "25px",
+                    left: "5px",
+                    right: "5px"
+                  }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setAsMainImage(index),
+                      style: {
+                        backgroundColor: "#007bff",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "3px",
+                        padding: "3px 6px",
+                        fontSize: "10px",
+                        cursor: "pointer",
+                        width: "100%"
+                      },
+                      children: t2("products.modal.setAsMain")
+                    }
+                  ) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                    padding: "5px",
+                    fontSize: "11px",
+                    color: "#666",
+                    textAlign: "center",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }, children: typeof image === "string" ? image.split("/").pop() : image.originalName || image.filename || "Image" })
+                ] }, index)) })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }, children: [
+                "\u{1F4E6} ",
+                t2("products.modal.inventoryTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.inventoryDesc") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.stockLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "number",
+                      className: "form-input",
+                      value: productFormData.stockQuantity,
+                      onChange: (e2) => setProductFormData({ ...productFormData, stockQuantity: e2.target.value })
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.productCodeLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      className: "form-input",
+                      value: productFormData.productCode,
+                      onChange: (e2) => setProductFormData({ ...productFormData, productCode: e2.target.value }),
+                      placeholder: "ABC-123-DEF"
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.vatLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "select",
+                    {
+                      className: "form-input",
+                      value: productFormData.vatPercentage || "21.00",
+                      onChange: (e2) => setProductFormData({ ...productFormData, vatPercentage: e2.target.value }),
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "0.00", children: t2("products.modal.vatReverse") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "5.00", children: [
+                          "5% (",
+                          t2("products.modal.vatReduced"),
+                          ")"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "9.00", children: [
+                          "9% (",
+                          t2("products.modal.vatReduced"),
+                          ")"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "21.00", children: [
+                          "21% (",
+                          t2("products.modal.vatStandard"),
+                          ")"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "21.00", children: [
+                          "21% (",
+                          t2("products.modal.vatStandardNew"),
+                          ")"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "24.00", children: [
+                          "24% (",
+                          t2("products.modal.vatLuxury"),
+                          ")"
+                        ] })
+                      ]
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.currencyLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "select",
+                    {
+                      className: "form-input",
+                      value: productFormData.currency,
+                      onChange: (e2) => setProductFormData({ ...productFormData, currency: e2.target.value }),
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "EUR", children: "EUR (Euro)" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "RON", children: "RON (Romanian Leu)" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "USD", children: "USD (US Dollar)" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "GBP", children: "GBP (British Pound)" })
+                      ]
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.vatValueLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "number",
+                      step: "0.01",
+                      className: "form-input",
+                      value: productFormData.vatValue,
+                      onChange: (e2) => setProductFormData({ ...productFormData, vatValue: e2.target.value }),
+                      placeholder: "19.00"
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.ncCodeLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      className: "form-input",
+                      value: productFormData.ncCode,
+                      onChange: (e2) => setProductFormData({ ...productFormData, ncCode: e2.target.value }),
+                      placeholder: "1234.56.78"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.cpvCodeLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      className: "form-input",
+                      value: productFormData.cpvCode,
+                      onChange: (e2) => setProductFormData({ ...productFormData, cpvCode: e2.target.value }),
+                      placeholder: "39000000-0"
+                    }
+                  )
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }, children: [
+                "\u{1F441}\uFE0F ",
+                t2("products.modal.statusTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.statusDesc") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px", alignItems: "end" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.statusLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "select",
+                    {
+                      className: "form-input",
+                      value: productFormData.status,
+                      onChange: (e2) => setProductFormData({ ...productFormData, status: e2.target.value }),
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "active", children: t2("common.active") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "inactive", children: t2("common.inactive") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "draft", children: t2("common.draft") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "discontinued", children: t2("common.discontinued") })
+                      ]
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.priorityLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "number",
+                      min: "0",
+                      className: "form-input",
+                      value: productFormData.priority || 0,
+                      onChange: (e2) => setProductFormData({ ...productFormData, priority: parseInt(e2.target.value) || 0 }),
+                      placeholder: "0"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "form-group", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "checkbox",
+                      checked: productFormData.featured,
+                      onChange: (e2) => setProductFormData({ ...productFormData, featured: e2.target.checked })
+                    }
+                  ),
+                  "\u2B50 ",
+                  t2("products.modal.featuredLabel")
+                ] }) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("small", { style: { color: "#666", fontSize: "12px", display: "block" }, children: t2("products.modal.priorityHint") })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }, children: [
+                "\u{1F69A} ",
+                t2("products.modal.logisticsTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.logisticsDesc") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", style: { display: "flex", flexDirection: "column" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-label", style: { height: "40px", display: "flex", flexDirection: "column", justifyContent: "flex-start" }, children: [
-                    "Weight (kg)",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#666", fontWeight: "normal" }, children: "Min: 1kg, Increment: 1kg" })
+                    t2("products.modal.weightLabel"),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#666", fontWeight: "normal" }, children: t2("products.modal.weightHint") })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "input",
@@ -19229,13 +19620,13 @@ Cordialement,`
                       className: "form-input",
                       value: productFormData.weight || "",
                       onChange: (e2) => setProductFormData({ ...productFormData, weight: e2.target.value }),
-                      placeholder: "e.g. 1, 2, 3..."
+                      placeholder: t2("products.modal.weightPh")
                     }
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", style: { display: "flex", flexDirection: "column" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-label", style: { height: "40px", display: "flex", flexDirection: "column", justifyContent: "flex-start" }, children: [
-                    "Length (cm)",
+                    t2("products.modal.lengthLabel"),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "transparent", fontWeight: "normal" }, children: "placeholder" })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -19247,13 +19638,13 @@ Cordialement,`
                       className: "form-input",
                       value: productFormData.length || "",
                       onChange: (e2) => setProductFormData({ ...productFormData, length: e2.target.value }),
-                      placeholder: "e.g. 30.00"
+                      placeholder: t2("products.modal.lengthPh")
                     }
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", style: { display: "flex", flexDirection: "column" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-label", style: { height: "40px", display: "flex", flexDirection: "column", justifyContent: "flex-start" }, children: [
-                    "Width (cm)",
+                    t2("products.modal.widthLabel"),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "transparent", fontWeight: "normal" }, children: "placeholder" })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -19265,13 +19656,13 @@ Cordialement,`
                       className: "form-input",
                       value: productFormData.width || "",
                       onChange: (e2) => setProductFormData({ ...productFormData, width: e2.target.value }),
-                      placeholder: "e.g. 20.00"
+                      placeholder: t2("products.modal.widthPh")
                     }
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", style: { display: "flex", flexDirection: "column" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-label", style: { height: "40px", display: "flex", flexDirection: "column", justifyContent: "flex-start" }, children: [
-                    "Height (cm)",
+                    t2("products.modal.heightLabel"),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "transparent", fontWeight: "normal" }, children: "placeholder" })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -19283,14 +19674,14 @@ Cordialement,`
                       className: "form-input",
                       value: productFormData.height || "",
                       onChange: (e2) => setProductFormData({ ...productFormData, height: e2.target.value }),
-                      placeholder: "e.g. 15.00"
+                      placeholder: t2("products.modal.heightPh")
                     }
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", style: { display: "flex", flexDirection: "column" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-label", style: { height: "40px", display: "flex", flexDirection: "column", justifyContent: "flex-start" }, children: [
-                    "Pieces per Package",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#666", fontWeight: "normal" }, children: "Max items per package" })
+                    t2("products.modal.piecesLabel"),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#666", fontWeight: "normal" }, children: t2("products.modal.piecesHint") })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "input",
@@ -19301,14 +19692,14 @@ Cordialement,`
                       className: "form-input",
                       value: productFormData.piecesPerPackage || "",
                       onChange: (e2) => setProductFormData({ ...productFormData, piecesPerPackage: e2.target.value }),
-                      placeholder: "e.g. 6"
+                      placeholder: t2("products.modal.piecesPh")
                     }
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", style: { display: "flex", flexDirection: "column" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-label", style: { height: "40px", display: "flex", flexDirection: "column", justifyContent: "flex-start" }, children: [
-                    "Cantitate (text liber)",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#666", fontWeight: "normal" }, children: "ex: 5L, 500g, 1 set" })
+                    t2("products.modal.quantityLabel"),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#666", fontWeight: "normal" }, children: t2("products.modal.quantityHint") })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "input",
@@ -19317,17 +19708,20 @@ Cordialement,`
                       className: "form-input",
                       value: productFormData.productQuantity || "",
                       onChange: (e2) => setProductFormData({ ...productFormData, productQuantity: e2.target.value }),
-                      placeholder: "e.g. 5L, 500g, 1 set"
+                      placeholder: t2("products.modal.quantityPh")
                     }
                   )
                 ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "10px", fontSize: "12px", color: "#666" }, children: "These dimensions and pieces per package are used for AWB generation and shipping calculations. Cantitate is displayed on the product page." })
+              ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }, children: [
-                "\u{1F4CB} Specifica\u021Bii produs",
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: "normal", color: "#666" }, children: "\u2014 caracteristici tehnice afi\u0219ate pe pagina produsului" })
+                "\u{1F4CB} ",
+                t2("products.modal.specsTitle"),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", fontWeight: "normal", color: "#666" }, children: [
+                  "\u2014 ",
+                  t2("products.modal.specsDesc")
+                ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
                 (productFormData.specs || []).map((spec, idx) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" }, children: [
@@ -19343,7 +19737,7 @@ Cordialement,`
                         newSpecs[idx] = { ...newSpecs[idx], label: e2.target.value };
                         setProductFormData({ ...productFormData, specs: newSpecs });
                       },
-                      placeholder: "Denumire (ex: Dimensiunea etichetei)"
+                      placeholder: t2("products.modal.specNamePh")
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -19358,7 +19752,7 @@ Cordialement,`
                         newSpecs[idx] = { ...newSpecs[idx], value: e2.target.value };
                         setProductFormData({ ...productFormData, specs: newSpecs });
                       },
-                      placeholder: "Valoare (ex: 38\xD758 mm)"
+                      placeholder: t2("products.modal.specValuePh")
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -19370,12 +19764,12 @@ Cordialement,`
                         setProductFormData({ ...productFormData, specs: newSpecs });
                       },
                       style: { padding: "6px 12px", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", flexShrink: 0, fontSize: "16px", lineHeight: "1" },
-                      title: "\u0218terge specifica\u021Bie",
+                      title: t2("products.modal.deleteSpec"),
                       children: "\xD7"
                     }
                   )
                 ] }, idx)),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
                     type: "button",
@@ -19384,11 +19778,14 @@ Cordialement,`
                       setProductFormData({ ...productFormData, specs: newSpecs });
                     },
                     style: { marginTop: "4px", padding: "6px 14px", backgroundColor: "#0d6efd", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "13px" },
-                    children: "+ Adaug\u0103 specifica\u021Bie"
+                    children: [
+                      "+ ",
+                      t2("products.modal.addSpec")
+                    ]
                   }
                 )
               ] }),
-              (productFormData.specs || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "8px", fontSize: "12px", color: "#999" }, children: "Nicio specifica\u021Bie ad\u0103ugat\u0103. Exemplu: Dimensiunea etichetei \u2192 38\xD758 mm" })
+              (productFormData.specs || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "8px", fontSize: "12px", color: "#999" }, children: t2("products.modal.specsEmpty") })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "16px", padding: "10px 14px", backgroundColor: "#f0f4ff", borderRadius: "6px", border: "1px solid #c7d2fe", display: "flex", alignItems: "center", gap: "10px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -19439,7 +19836,7 @@ Cordialement,`
                         newTiers[idx] = { ...newTiers[idx], minQty: parseInt(e2.target.value) || 0 };
                         setProductFormData({ ...productFormData, volumeDiscounts: newTiers });
                       },
-                      placeholder: "ex: 5"
+                      placeholder: t2("products.modal.tierQtyPh")
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -19456,7 +19853,7 @@ Cordialement,`
                         newTiers[idx] = { ...newTiers[idx], discountPercent: parseFloat(e2.target.value) || 0 };
                         setProductFormData({ ...productFormData, volumeDiscounts: newTiers });
                       },
-                      placeholder: "ex: 10"
+                      placeholder: t2("products.modal.tierPercentPh")
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -19468,7 +19865,7 @@ Cordialement,`
                         setProductFormData({ ...productFormData, volumeDiscounts: newTiers });
                       },
                       style: { padding: "6px 12px", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "16px", lineHeight: "1" },
-                      title: "\u0218terge treapt\u0103",
+                      title: t2("products.modal.deleteTier"),
                       children: "\xD7"
                     }
                   )
@@ -19507,12 +19904,15 @@ Cordialement,`
               marginTop: "20px",
               border: "1px solid #b3d4fc"
             }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { marginBottom: "15px", color: "#1976d2", fontSize: "14px" }, children: [
-                "\u{1F30D} Traduceri Produs (",
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { marginBottom: "4px", color: "#1976d2", fontSize: "14px" }, children: [
+                "\u{1F30D} ",
+                t2("products.modal.translationsTitle"),
+                " (",
                 productTranslations.length,
                 ")"
               ] }),
-              !editingProduct && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.translationsDesc") }),
+              !editingProduct && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
                 backgroundColor: "#fff3cd",
                 border: "1px solid #ffc107",
                 borderRadius: "6px",
@@ -19520,7 +19920,10 @@ Cordialement,`
                 marginBottom: "15px",
                 fontSize: "13px",
                 color: "#856404"
-              }, children: "\u26A0\uFE0F Salveaz\u0103 produsul mai \xEEnt\xE2i pentru a putea ad\u0103uga traduceri." }),
+              }, children: [
+                "\u26A0\uFE0F ",
+                t2("products.modal.saveFirst")
+              ] }),
               editingProduct && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
                 productTranslations.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginBottom: "15px" }, children: productTranslations.map((translation) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
                   backgroundColor: "#fff",
@@ -19546,7 +19949,7 @@ Cordialement,`
                         value: editingTranslation.name,
                         onChange: (e2) => setEditingTranslation({ ...editingTranslation, name: e2.target.value }),
                         style: { flex: 1, fontSize: "13px" },
-                        placeholder: "Name"
+                        placeholder: t2("products.modal.translationEditNamePh")
                       }
                     )
                   ] }),
@@ -19558,12 +19961,18 @@ Cordialement,`
                       onChange: (e2) => setEditingTranslation({ ...editingTranslation, description: e2.target.value }),
                       rows: "2",
                       style: { marginBottom: "8px", fontSize: "13px" },
-                      placeholder: "Description"
+                      placeholder: t2("products.modal.translationEditDescPh")
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", className: "btn", onClick: handleUpdateTranslation, style: { backgroundColor: "#28a745", fontSize: "12px" }, children: "\u2713 Save" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", className: "btn", onClick: () => setEditingTranslation(null), style: { backgroundColor: "#6c757d", fontSize: "12px" }, children: "\u2715 Cancel" })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", className: "btn", onClick: handleUpdateTranslation, style: { backgroundColor: "#28a745", fontSize: "12px" }, children: [
+                      "\u2713 ",
+                      t2("products.modal.translationSave")
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", className: "btn", onClick: () => setEditingTranslation(null), style: { backgroundColor: "#6c757d", fontSize: "12px" }, children: [
+                      "\u2715 ",
+                      t2("products.modal.translationCancel")
+                    ] })
                   ] })
                 ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
@@ -19606,7 +20015,10 @@ Cordialement,`
                   borderRadius: "6px",
                   border: "1px dashed #1976d2"
                 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "13px", fontWeight: "bold", marginBottom: "10px", color: "#1976d2" }, children: "\u2795 Adaug\u0103 traducere" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "13px", fontWeight: "bold", marginBottom: "10px", color: "#1976d2" }, children: [
+                    "\u2795 ",
+                    t2("products.modal.addTranslation")
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "100px 1fr", gap: "10px", marginBottom: "10px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                       "select",
@@ -19616,7 +20028,7 @@ Cordialement,`
                         onChange: (e2) => setNewTranslation({ ...newTranslation, language: e2.target.value }),
                         style: { fontSize: "13px" },
                         children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Limb\u0103" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("products.modal.translationLangPh") }),
                           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "ro", children: "\u{1F1F7}\u{1F1F4} Rom\xE2n\u0103" }),
                           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "de", children: "\u{1F1E9}\u{1F1EA} Deutsch" }),
                           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "fr", children: "\u{1F1EB}\u{1F1F7} Fran\xE7ais" }),
@@ -19631,7 +20043,7 @@ Cordialement,`
                       {
                         type: "text",
                         className: "form-input",
-                        placeholder: "Nume produs tradus",
+                        placeholder: t2("products.modal.translationNamePh"),
                         value: newTranslation.name,
                         onChange: (e2) => setNewTranslation({ ...newTranslation, name: e2.target.value }),
                         style: { fontSize: "13px" }
@@ -19642,7 +20054,7 @@ Cordialement,`
                     "textarea",
                     {
                       className: "form-input",
-                      placeholder: "Descriere tradus\u0103 (op\u021Bional)",
+                      placeholder: t2("products.modal.translationDescPh"),
                       value: newTranslation.description,
                       onChange: (e2) => setNewTranslation({ ...newTranslation, description: e2.target.value }),
                       rows: "2",
@@ -19655,13 +20067,13 @@ Cordialement,`
                       {
                         type: "url",
                         className: "form-input",
-                        placeholder: "URL surs\u0103 (op\u021Bional)",
+                        placeholder: t2("products.modal.translationUrlPh"),
                         value: newTranslation.sourceUrl,
                         onChange: (e2) => setNewTranslation({ ...newTranslation, sourceUrl: e2.target.value }),
                         style: { flex: 1, fontSize: "13px" }
                       }
                     ),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                       "button",
                       {
                         type: "button",
@@ -19673,7 +20085,10 @@ Cordialement,`
                           whiteSpace: "nowrap",
                           fontSize: "13px"
                         },
-                        children: "\u2795 Adaug\u0103"
+                        children: [
+                          "\u2795 ",
+                          t2("products.modal.translationAdd")
+                        ]
                       }
                     )
                   ] })
@@ -19727,10 +20142,10 @@ Cordialement,`
                     setNewTranslation({ language: "", name: "", description: "", sourceUrl: "" });
                     setEditingTranslation(null);
                   },
-                  children: "Cancel"
+                  children: t2("products.modal.cancelBtn")
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "submit", className: "btn", style: { background: "#28a745" }, children: editingProduct ? "Update Product" : "Create Product" })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "submit", className: "btn", style: { background: "#28a745" }, children: editingProduct ? t2("products.modal.updateBtn") : t2("products.modal.createBtn") })
             ] })
           ] })
         ] }) }),
@@ -22332,12 +22747,32 @@ ${selectedOrders.map((id) => {
                         borderRadius: "4px"
                       },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "0.00", children: "0% (Reverse Charge)" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "5.00", children: "5% (Reduced VAT)" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "9.00", children: "9% (Reduced VAT)" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "20.00", children: "20% (TVA France)" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "21.00", children: "21% (Standard VAT)" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "24.00", children: "24% (Luxury VAT)" })
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "0.00", children: t2("products.modal.vatReverse") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "5.00", children: [
+                          "5% (",
+                          t2("products.modal.vatReduced"),
+                          ")"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "9.00", children: [
+                          "9% (",
+                          t2("products.modal.vatReduced"),
+                          ")"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "21.00", children: [
+                          "21% (",
+                          t2("products.modal.vatStandard"),
+                          ")"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "21.00", children: [
+                          "21% (",
+                          t2("products.modal.vatStandardNew"),
+                          ")"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "24.00", children: [
+                          "24% (",
+                          t2("products.modal.vatLuxury"),
+                          ")"
+                        ] })
                       ]
                     }
                   )

@@ -6875,13 +6875,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   backgroundColor: 'white',
                   padding: '30px',
                   borderRadius: '8px',
-                  width: '90%',
-                  maxWidth: '600px',
-                  maxHeight: '80vh',
+                  width: '95%',
+                  maxWidth: '1000px',
+                  maxHeight: '92vh',
                   overflow: 'auto'
                 }}>
                   <h3 style={{marginBottom: '20px', color: '#333'}}>
-                    {editingProduct ? 'Edit Product' : 'Add New Product'}
+                    {editingProduct ? t('products.modal.editTitle') : t('products.modal.addTitle')}
                   </h3>
                   
                   {/* Import from URL Section */}
@@ -6893,14 +6893,17 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       marginBottom: '20px',
                       border: '1px solid #e9ecef'
                     }}>
-                      <h4 style={{marginBottom: '10px', color: '#495057', fontSize: '14px'}}>
-                        🔗 Import din URL (Opțional)
+                      <h4 style={{marginBottom: '4px', color: '#495057', fontSize: '14px'}}>
+                        🔗 {t('products.modal.importTitle')}
                       </h4>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '10px'}}>
+                        {t('products.modal.importDesc')}
+                      </div>
                       <div style={{display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap'}}>
                         <input
                           type="url"
                           className="form-input"
-                          placeholder="https://example.com/product-page"
+                          placeholder={t('products.modal.importUrlPh')}
                           value={importUrl}
                           onChange={(e) => setImportUrl(e.target.value)}
                           style={{flex: '1 1 300px', minWidth: '250px', padding: '10px', fontSize: '14px'}}
@@ -6929,7 +6932,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          {importLoading ? '⏳' : '📥'} Fetch
+                          {importLoading ? '⏳' : '📥'} {t('products.modal.importFetch')}
                         </button>
                       </div>
                       
@@ -6942,7 +6945,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           fontSize: '13px'
                         }}>
                           <div style={{fontWeight: 'bold', marginBottom: '5px', color: '#155724'}}>
-                            ✅ Date extrase cu succes!
+                            ✅ {t('products.modal.importSuccess')}
                           </div>
                           {importedData.imageUrl && (
                             <div style={{marginBottom: '8px'}}>
@@ -6959,8 +6962,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                               />
                             </div>
                           )}
-                          <div><strong>Titlu:</strong> {importedData.title?.substring(0, 50)}...</div>
-                          <div><strong>Descriere:</strong> {importedData.description?.substring(0, 80)}...</div>
+                          <div><strong>{t('products.modal.importTitleLabel')}:</strong> {importedData.title?.substring(0, 50)}...</div>
+                          <div><strong>{t('products.modal.importDescLabel')}:</strong> {importedData.description?.substring(0, 80)}...</div>
                           
                           <div style={{marginTop: '10px', padding: '8px', backgroundColor: '#fff3cd', borderRadius: '4px'}}>
                             <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
@@ -6970,7 +6973,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 onChange={(e) => setUsageRightsConfirmed(e.target.checked)}
                               />
                               <span style={{fontSize: '12px', color: '#856404'}}>
-                                ⚠️ Confirm că am dreptul de utilizare a acestor date și imagini
+                                ⚠️ {t('products.modal.importRights')}
                               </span>
                             </label>
                           </div>
@@ -6993,96 +6996,132 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     }}>
                       <span style={{fontSize: '20px'}}>🇬🇧</span>
                       <div style={{fontSize: '13px', color: '#1565c0'}}>
-                        <strong>Limba de bază: Engleză</strong> - Completați informațiile produsului în engleză. 
-                        Pentru alte limbi, folosiți secțiunea "Traduceri" de mai jos.
+                        <strong>{t('products.modal.baseLangTitle')}</strong> — {t('products.modal.baseLangDesc')}
                       </div>
                     </div>
                     
-                    <div className="form-group">
-                      <label className="form-label">Product Name (English)</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={productFormData.name}
-                        onChange={(e) => setProductFormData({...productFormData, name: e.target.value})}
-                        required
-                        placeholder="Enter product name in English"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Description (English)</label>
-                      <textarea
-                        className="form-input"
-                        value={productFormData.description}
-                        onChange={(e) => setProductFormData({...productFormData, description: e.target.value})}
-                        rows="3"
-                        placeholder="Enter product description in English"
-                      />
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                    {/* Basic Information Section */}
+                    <div style={{marginTop: '10px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
+                      <h5 style={{color: '#333', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        📝 {t('products.modal.basicTitle')}
+                      </h5>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
+                        {t('products.modal.basicDesc')}
+                      </div>
                       <div className="form-group">
-                        <label className="form-label">Price</label>
+                        <label className="form-label">{t('products.modal.nameLabel')}</label>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
                           className="form-input"
-                          value={productFormData.price}
-                          onChange={(e) => setProductFormData({...productFormData, price: e.target.value})}
+                          value={productFormData.name}
+                          onChange={(e) => setProductFormData({...productFormData, name: e.target.value})}
                           required
+                          placeholder={t('products.modal.namePh')}
                         />
                       </div>
                       <div className="form-group">
-                        <label className="form-label">Compare At Price</label>
-                        <input
-                          type="number"
-                          step="0.01"
+                        <label className="form-label">{t('products.modal.descLabel')}</label>
+                        <textarea
                           className="form-input"
-                          value={productFormData.compareAtPrice}
-                          onChange={(e) => setProductFormData({...productFormData, compareAtPrice: e.target.value})}
+                          value={productFormData.description}
+                          onChange={(e) => setProductFormData({...productFormData, description: e.target.value})}
+                          rows="3"
+                          placeholder={t('products.modal.descPh')}
                         />
                       </div>
                     </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
-                      <div className="form-group">
-                        <label className="form-label">Category</label>
-                        <select
-                          className="form-input"
-                          value={productFormData.categoryId}
-                          onChange={(e) => setProductFormData({...productFormData, categoryId: e.target.value})}
-                        >
-                          <option value="">Select Category</option>
-                          {categories.map(category => (
-                            <option key={category.id} value={category.id}>{category.name}</option>
-                          ))}
-                        </select>
+
+                    {/* Pricing & Tax Section */}
+                    <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
+                      <h5 style={{color: '#333', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        💰 {t('products.modal.pricingTitle')}
+                      </h5>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
+                        {t('products.modal.pricingDesc')}
                       </div>
-                      <div className="form-group">
-                        <label className="form-label">Supplier</label>
-                        <select
-                          className="form-input"
-                          value={productFormData.supplierId || ''}
-                          onChange={(e) => setProductFormData({...productFormData, supplierId: e.target.value})}
-                        >
-                          <option value="">Select Supplier</option>
-                          {suppliers.map(supplier => (
-                            <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
-                          ))}
-                        </select>
+                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.priceLabel')}</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="form-input"
+                            value={productFormData.price}
+                            onChange={(e) => setProductFormData({...productFormData, price: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.comparePriceLabel')}</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="form-input"
+                            value={productFormData.compareAtPrice}
+                            onChange={(e) => setProductFormData({...productFormData, compareAtPrice: e.target.value})}
+                          />
+                        </div>
                       </div>
                     </div>
+
+                    {/* Organization Section */}
+                    <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
+                      <h5 style={{color: '#333', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        🗂️ {t('products.modal.organizeTitle')}
+                      </h5>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
+                        {t('products.modal.organizeDesc')}
+                      </div>
+                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.categoryLabel')}</label>
+                          <select
+                            className="form-input"
+                            value={productFormData.categoryId}
+                            onChange={(e) => setProductFormData({...productFormData, categoryId: e.target.value})}
+                          >
+                            <option value="">{t('products.modal.selectCategory')}</option>
+                            {categories.map(category => (
+                              <option key={category.id} value={category.id}>{category.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.supplierLabel')}</label>
+                          <select
+                            className="form-input"
+                            value={productFormData.supplierId || ''}
+                            onChange={(e) => setProductFormData({...productFormData, supplierId: e.target.value})}
+                          >
+                            <option value="">{t('products.modal.selectSupplier')}</option>
+                            {suppliers.map(supplier => (
+                              <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Images Section */}
+                    <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
+                      <h5 style={{color: '#333', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        🖼️ {t('products.modal.imagesTitle')}
+                      </h5>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
+                        {t('products.modal.imagesDesc')}
+                      </div>
                     <div className="form-group">
-                      <label className="form-label">Image URL (Legacy - Optional)</label>
+                      <label className="form-label">{t('products.modal.legacyUrlLabel')}</label>
                       <input
                         type="text"
                         className="form-input"
                         value={productFormData.imageUrl}
                         onChange={(e) => setProductFormData({...productFormData, imageUrl: e.target.value})}
-                        placeholder="/r2/products/image.jpg or https://example.com/image.jpg"
+                        placeholder={t('products.modal.legacyUrlPh')}
                       />
                     </div>
                     
                     <div className="form-group">
-                      <label className="form-label">Product Images</label>
                       <div 
                         className="image-upload-zone"
                         style={{
@@ -7134,7 +7173,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             textDecoration: uploading ? 'none' : 'underline'
                           }}
                         >
-                          {uploading ? 'Uploading...' : 'Click to upload images or drag and drop'}
+                          {uploading ? t('products.modal.uploading') : t('products.modal.uploadClick')}
                         </label>
                         
                         {uploading && (
@@ -7156,10 +7195,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         )}
                         
                         <p style={{color: '#666', fontSize: '14px', marginTop: '10px'}}>
-                          Maximum 10 images, 5MB each. Supported formats: JPG, PNG, GIF, WebP
+                          {t('products.modal.uploadLimits')}
                           {uploadedImages.length > 0 && (
                             <span style={{display: 'block', marginTop: '5px', color: '#28a745'}}>
-                              ({uploadedImages.length}/10 images uploaded)
+                              {t('products.modal.uploadedCount', { count: uploadedImages.length })}
                             </span>
                           )}
                         </p>
@@ -7206,7 +7245,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                     fontSize: '10px',
                                     fontWeight: 'bold'
                                   }}>
-                                    MAIN
+                                    {t('products.modal.mainBadge')}
                                   </span>
                                 )}
                                 <button
@@ -7247,7 +7286,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                       width: '100%'
                                     }}
                                   >
-                                    Set as Main
+                                    {t('products.modal.setAsMain')}
                                   </button>
                                 </div>
                               )}
@@ -7267,142 +7306,164 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         </div>
                       )}
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Stock Quantity</label>
-                      <input
-                        type="number"
-                        className="form-input"
-                        value={productFormData.stockQuantity}
-                        onChange={(e) => setProductFormData({...productFormData, stockQuantity: e.target.value})}
-                      />
                     </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px'}}>
-                      <div className="form-group">
-                        <label className="form-label">VAT Percentage (%)</label>
-                        <select
-                          className="form-input"
-                          value={productFormData.vatPercentage || '21.00'}
-                          onChange={(e) => setProductFormData({...productFormData, vatPercentage: e.target.value})}
-                        >
-                          <option value="0.00">0% (Reverse Charge)</option>
-                          <option value="5.00">5% (Reduced VAT)</option>
-                          <option value="9.00">9% (Reduced VAT)</option>
-                          <option value="21.00">21% (Standard VAT)</option>
-                          <option value="21.00">21% (Standard VAT - from 01.08.2025)</option>
-                          <option value="24.00">24% (Luxury VAT)</option>
-                        </select>
+
+                    {/* Stock & Identification Section */}
+                    <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
+                      <h5 style={{color: '#333', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        📦 {t('products.modal.inventoryTitle')}
+                      </h5>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
+                        {t('products.modal.inventoryDesc')}
                       </div>
-                      <div className="form-group">
-                        <label className="form-label">Currency</label>
-                        <select
-                          className="form-input"
-                          value={productFormData.currency}
-                          onChange={(e) => setProductFormData({...productFormData, currency: e.target.value})}
-                        >
-                          <option value="EUR">EUR (Euro)</option>
-                          <option value="RON">RON (Romanian Leu)</option>
-                          <option value="USD">USD (US Dollar)</option>
-                          <option value="GBP">GBP (British Pound)</option>
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">VAT Value (%)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="form-input"
-                          value={productFormData.vatValue}
-                          onChange={(e) => setProductFormData({...productFormData, vatValue: e.target.value})}
-                          placeholder="19.00"
-                        />
-                      </div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr', gap: '15px'}}>
-                      <div className="form-group">
-                        <label className="form-label">Product Code</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={productFormData.productCode}
-                          onChange={(e) => setProductFormData({...productFormData, productCode: e.target.value})}
-                          placeholder="ABC-123-DEF"
-                        />
-                      </div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
-                      <div className="form-group">
-                        <label className="form-label">NC Code</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={productFormData.ncCode}
-                          onChange={(e) => setProductFormData({...productFormData, ncCode: e.target.value})}
-                          placeholder="1234.56.78"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">CPV Code</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={productFormData.cpvCode}
-                          onChange={(e) => setProductFormData({...productFormData, cpvCode: e.target.value})}
-                          placeholder="39000000-0"
-                        />
-                      </div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
-                      <div className="form-group">
-                        <label className="form-label">Status</label>
-                        <select
-                          className="form-input"
-                          value={productFormData.status}
-                          onChange={(e) => setProductFormData({...productFormData, status: e.target.value})}
-                        >
-                          <option value="active">{t('common.active')}</option>
-                          <option value="inactive">{t('common.inactive')}</option>
-                          <option value="draft">{t('common.draft')}</option>
-                          <option value="discontinued">{t('common.discontinued')}</option>
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.stockLabel')}</label>
                           <input
-                            type="checkbox"
-                            checked={productFormData.featured}
-                            onChange={(e) => setProductFormData({...productFormData, featured: e.target.checked})}
+                            type="number"
+                            className="form-input"
+                            value={productFormData.stockQuantity}
+                            onChange={(e) => setProductFormData({...productFormData, stockQuantity: e.target.value})}
                           />
-                          Featured Product
-                        </label>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.productCodeLabel')}</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={productFormData.productCode}
+                            onChange={(e) => setProductFormData({...productFormData, productCode: e.target.value})}
+                            placeholder="ABC-123-DEF"
+                          />
+                        </div>
+                      </div>
+                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px'}}>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.vatLabel')}</label>
+                          <select
+                            className="form-input"
+                            value={productFormData.vatPercentage || '21.00'}
+                            onChange={(e) => setProductFormData({...productFormData, vatPercentage: e.target.value})}
+                          >
+                            <option value="0.00">{t('products.modal.vatReverse')}</option>
+                            <option value="5.00">5% ({t('products.modal.vatReduced')})</option>
+                            <option value="9.00">9% ({t('products.modal.vatReduced')})</option>
+                            <option value="21.00">21% ({t('products.modal.vatStandard')})</option>
+                            <option value="21.00">21% ({t('products.modal.vatStandardNew')})</option>
+                            <option value="24.00">24% ({t('products.modal.vatLuxury')})</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.currencyLabel')}</label>
+                          <select
+                            className="form-input"
+                            value={productFormData.currency}
+                            onChange={(e) => setProductFormData({...productFormData, currency: e.target.value})}
+                          >
+                            <option value="EUR">EUR (Euro)</option>
+                            <option value="RON">RON (Romanian Leu)</option>
+                            <option value="USD">USD (US Dollar)</option>
+                            <option value="GBP">GBP (British Pound)</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.vatValueLabel')}</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="form-input"
+                            value={productFormData.vatValue}
+                            onChange={(e) => setProductFormData({...productFormData, vatValue: e.target.value})}
+                            placeholder="19.00"
+                          />
+                        </div>
+                      </div>
+                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.ncCodeLabel')}</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={productFormData.ncCode}
+                            onChange={(e) => setProductFormData({...productFormData, ncCode: e.target.value})}
+                            placeholder="1234.56.78"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.cpvCodeLabel')}</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={productFormData.cpvCode}
+                            onChange={(e) => setProductFormData({...productFormData, cpvCode: e.target.value})}
+                            placeholder="39000000-0"
+                          />
+                        </div>
                       </div>
                     </div>
-                    
-                    {/* Priority Field */}
-                    <div className="form-group">
-                      <label className="form-label">Prioritate afișare</label>
-                      <input
-                        type="number"
-                        min="0"
-                        className="form-input"
-                        value={productFormData.priority || 0}
-                        onChange={(e) => setProductFormData({...productFormData, priority: parseInt(e.target.value) || 0})}
-                        placeholder="0"
-                      />
-                      <small style={{color: '#666', fontSize: '12px', marginTop: '4px', display: 'block'}}>
-                        1 = prioritate maximă (afișat primul), 2, 3 = priorități mai mici, 0 = ordine implicită
+
+                    {/* Visibility Section */}
+                    <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
+                      <h5 style={{color: '#333', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        👁️ {t('products.modal.statusTitle')}
+                      </h5>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
+                        {t('products.modal.statusDesc')}
+                      </div>
+                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', alignItems: 'end'}}>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.statusLabel')}</label>
+                          <select
+                            className="form-input"
+                            value={productFormData.status}
+                            onChange={(e) => setProductFormData({...productFormData, status: e.target.value})}
+                          >
+                            <option value="active">{t('common.active')}</option>
+                            <option value="inactive">{t('common.inactive')}</option>
+                            <option value="draft">{t('common.draft')}</option>
+                            <option value="discontinued">{t('common.discontinued')}</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.priorityLabel')}</label>
+                          <input
+                            type="number"
+                            min="0"
+                            className="form-input"
+                            value={productFormData.priority || 0}
+                            onChange={(e) => setProductFormData({...productFormData, priority: parseInt(e.target.value) || 0})}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px'}}>
+                            <input
+                              type="checkbox"
+                              checked={productFormData.featured}
+                              onChange={(e) => setProductFormData({...productFormData, featured: e.target.checked})}
+                            />
+                            ⭐ {t('products.modal.featuredLabel')}
+                          </label>
+                        </div>
+                      </div>
+                      <small style={{color: '#666', fontSize: '12px', display: 'block'}}>
+                        {t('products.modal.priorityHint')}
                       </small>
                     </div>
                     
                     {/* Logistics Details Section */}
                     <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                      <h5 style={{color: '#333', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        📦 Logistics Details
+                      <h5 style={{color: '#333', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        🚚 {t('products.modal.logisticsTitle')}
                       </h5>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
+                        {t('products.modal.logisticsDesc')}
+                      </div>
                       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
                         <div className="form-group" style={{display: 'flex', flexDirection: 'column'}}>
                           <label className="form-label" style={{height: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start'}}>
-                            Weight (kg)
-                            <span style={{fontSize: '11px', color: '#666', fontWeight: 'normal'}}>Min: 1kg, Increment: 1kg</span>
+                            {t('products.modal.weightLabel')}
+                            <span style={{fontSize: '11px', color: '#666', fontWeight: 'normal'}}>{t('products.modal.weightHint')}</span>
                           </label>
                           <input
                             type="number"
@@ -7411,12 +7472,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             className="form-input"
                             value={productFormData.weight || ''}
                             onChange={(e) => setProductFormData({...productFormData, weight: e.target.value})}
-                            placeholder="e.g. 1, 2, 3..."
+                            placeholder={t('products.modal.weightPh')}
                           />
                         </div>
                         <div className="form-group" style={{display: 'flex', flexDirection: 'column'}}>
                           <label className="form-label" style={{height: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start'}}>
-                            Length (cm)
+                            {t('products.modal.lengthLabel')}
                             <span style={{fontSize: '11px', color: 'transparent', fontWeight: 'normal'}}>placeholder</span>
                           </label>
                           <input
@@ -7426,12 +7487,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             className="form-input"
                             value={productFormData.length || ''}
                             onChange={(e) => setProductFormData({...productFormData, length: e.target.value})}
-                            placeholder="e.g. 30.00"
+                            placeholder={t('products.modal.lengthPh')}
                           />
                         </div>
                         <div className="form-group" style={{display: 'flex', flexDirection: 'column'}}>
                           <label className="form-label" style={{height: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start'}}>
-                            Width (cm)
+                            {t('products.modal.widthLabel')}
                             <span style={{fontSize: '11px', color: 'transparent', fontWeight: 'normal'}}>placeholder</span>
                           </label>
                           <input
@@ -7441,12 +7502,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             className="form-input"
                             value={productFormData.width || ''}
                             onChange={(e) => setProductFormData({...productFormData, width: e.target.value})}
-                            placeholder="e.g. 20.00"
+                            placeholder={t('products.modal.widthPh')}
                           />
                         </div>
                         <div className="form-group" style={{display: 'flex', flexDirection: 'column'}}>
                           <label className="form-label" style={{height: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start'}}>
-                            Height (cm)
+                            {t('products.modal.heightLabel')}
                             <span style={{fontSize: '11px', color: 'transparent', fontWeight: 'normal'}}>placeholder</span>
                           </label>
                           <input
@@ -7456,13 +7517,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             className="form-input"
                             value={productFormData.height || ''}
                             onChange={(e) => setProductFormData({...productFormData, height: e.target.value})}
-                            placeholder="e.g. 15.00"
+                            placeholder={t('products.modal.heightPh')}
                           />
                         </div>
                         <div className="form-group" style={{display: 'flex', flexDirection: 'column'}}>
                           <label className="form-label" style={{height: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start'}}>
-                            Pieces per Package
-                            <span style={{fontSize: '11px', color: '#666', fontWeight: 'normal'}}>Max items per package</span>
+                            {t('products.modal.piecesLabel')}
+                            <span style={{fontSize: '11px', color: '#666', fontWeight: 'normal'}}>{t('products.modal.piecesHint')}</span>
                           </label>
                           <input
                             type="number"
@@ -7471,33 +7532,30 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             className="form-input"
                             value={productFormData.piecesPerPackage || ''}
                             onChange={(e) => setProductFormData({...productFormData, piecesPerPackage: e.target.value})}
-                            placeholder="e.g. 6"
+                            placeholder={t('products.modal.piecesPh')}
                           />
                         </div>
                         <div className="form-group" style={{display: 'flex', flexDirection: 'column'}}>
                           <label className="form-label" style={{height: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start'}}>
-                            Cantitate (text liber)
-                            <span style={{fontSize: '11px', color: '#666', fontWeight: 'normal'}}>ex: 5L, 500g, 1 set</span>
+                            {t('products.modal.quantityLabel')}
+                            <span style={{fontSize: '11px', color: '#666', fontWeight: 'normal'}}>{t('products.modal.quantityHint')}</span>
                           </label>
                           <input
                             type="text"
                             className="form-input"
                             value={productFormData.productQuantity || ''}
                             onChange={(e) => setProductFormData({...productFormData, productQuantity: e.target.value})}
-                            placeholder="e.g. 5L, 500g, 1 set"
+                            placeholder={t('products.modal.quantityPh')}
                           />
                         </div>
-                      </div>
-                      <div style={{marginTop: '10px', fontSize: '12px', color: '#666'}}>
-                        These dimensions and pieces per package are used for AWB generation and shipping calculations. Cantitate is displayed on the product page.
                       </div>
                     </div>
 
                     {/* Product Specs Section */}
                     <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
                       <h5 style={{color: '#333', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        📋 Specificații produs
-                        <span style={{fontSize: '12px', fontWeight: 'normal', color: '#666'}}>— caracteristici tehnice afișate pe pagina produsului</span>
+                        📋 {t('products.modal.specsTitle')}
+                        <span style={{fontSize: '12px', fontWeight: 'normal', color: '#666'}}>— {t('products.modal.specsDesc')}</span>
                       </h5>
                       <div>
                         {(productFormData.specs || []).map((spec, idx) => (
@@ -7512,7 +7570,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 newSpecs[idx] = {...newSpecs[idx], label: e.target.value};
                                 setProductFormData({...productFormData, specs: newSpecs});
                               }}
-                              placeholder="Denumire (ex: Dimensiunea etichetei)"
+                              placeholder={t('products.modal.specNamePh')}
                             />
                             <input
                               type="text"
@@ -7524,7 +7582,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 newSpecs[idx] = {...newSpecs[idx], value: e.target.value};
                                 setProductFormData({...productFormData, specs: newSpecs});
                               }}
-                              placeholder="Valoare (ex: 38×58 mm)"
+                              placeholder={t('products.modal.specValuePh')}
                             />
                             <button
                               type="button"
@@ -7533,7 +7591,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 setProductFormData({...productFormData, specs: newSpecs});
                               }}
                               style={{padding: '6px 12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', flexShrink: 0, fontSize: '16px', lineHeight: '1'}}
-                              title="Șterge specificație"
+                              title={t('products.modal.deleteSpec')}
                             >×</button>
                           </div>
                         ))}
@@ -7544,11 +7602,11 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             setProductFormData({...productFormData, specs: newSpecs});
                           }}
                           style={{marginTop: '4px', padding: '6px 14px', backgroundColor: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}
-                        >+ Adaugă specificație</button>
+                        >+ {t('products.modal.addSpec')}</button>
                       </div>
                       {(productFormData.specs || []).length === 0 && (
                         <div style={{marginTop: '8px', fontSize: '12px', color: '#999'}}>
-                          Nicio specificație adăugată. Exemplu: Dimensiunea etichetei → 38×58 mm
+                          {t('products.modal.specsEmpty')}
                         </div>
                       )}
                     </div>
@@ -7594,7 +7652,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 newTiers[idx] = {...newTiers[idx], minQty: parseInt(e.target.value) || 0};
                                 setProductFormData({...productFormData, volumeDiscounts: newTiers});
                               }}
-                              placeholder="ex: 5"
+                              placeholder={t('products.modal.tierQtyPh')}
                             />
                             <input
                               type="number"
@@ -7608,7 +7666,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 newTiers[idx] = {...newTiers[idx], discountPercent: parseFloat(e.target.value) || 0};
                                 setProductFormData({...productFormData, volumeDiscounts: newTiers});
                               }}
-                              placeholder="ex: 10"
+                              placeholder={t('products.modal.tierPercentPh')}
                             />
                             <button
                               type="button"
@@ -7617,7 +7675,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 setProductFormData({...productFormData, volumeDiscounts: newTiers});
                               }}
                               style={{padding: '6px 12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', lineHeight: '1'}}
-                              title="Șterge treaptă"
+                              title={t('products.modal.deleteTier')}
                             >×</button>
                           </div>
                         ))}
@@ -7656,9 +7714,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       marginTop: '20px',
                       border: '1px solid #b3d4fc'
                     }}>
-                      <h4 style={{marginBottom: '15px', color: '#1976d2', fontSize: '14px'}}>
-                        🌍 Traduceri Produs ({productTranslations.length})
+                      <h4 style={{marginBottom: '4px', color: '#1976d2', fontSize: '14px'}}>
+                        🌍 {t('products.modal.translationsTitle')} ({productTranslations.length})
                       </h4>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
+                        {t('products.modal.translationsDesc')}
+                      </div>
                       
                       {/* Show message for new products */}
                       {!editingProduct && (
@@ -7671,7 +7732,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           fontSize: '13px',
                           color: '#856404'
                         }}>
-                          ⚠️ Salvează produsul mai întâi pentru a putea adăuga traduceri.
+                          ⚠️ {t('products.modal.saveFirst')}
                         </div>
                       )}
                       
@@ -7708,7 +7769,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                         value={editingTranslation.name}
                                         onChange={(e) => setEditingTranslation({...editingTranslation, name: e.target.value})}
                                         style={{flex: 1, fontSize: '13px'}}
-                                        placeholder="Name"
+                                        placeholder={t('products.modal.translationEditNamePh')}
                                       />
                                     </div>
                                     <textarea
@@ -7717,14 +7778,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                       onChange={(e) => setEditingTranslation({...editingTranslation, description: e.target.value})}
                                       rows="2"
                                       style={{marginBottom: '8px', fontSize: '13px'}}
-                                      placeholder="Description"
+                                      placeholder={t('products.modal.translationEditDescPh')}
                                     />
                                     <div style={{display: 'flex', gap: '8px'}}>
                                       <button type="button" className="btn" onClick={handleUpdateTranslation} style={{backgroundColor: '#28a745', fontSize: '12px'}}>
-                                        ✓ Save
+                                        ✓ {t('products.modal.translationSave')}
                                       </button>
                                       <button type="button" className="btn" onClick={() => setEditingTranslation(null)} style={{backgroundColor: '#6c757d', fontSize: '12px'}}>
-                                        ✕ Cancel
+                                        ✕ {t('products.modal.translationCancel')}
                                       </button>
                                     </div>
                                   </div>
@@ -7778,7 +7839,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           border: '1px dashed #1976d2'
                         }}>
                           <div style={{fontSize: '13px', fontWeight: 'bold', marginBottom: '10px', color: '#1976d2'}}>
-                            ➕ Adaugă traducere
+                            ➕ {t('products.modal.addTranslation')}
                           </div>
                           <div style={{display: 'grid', gridTemplateColumns: '100px 1fr', gap: '10px', marginBottom: '10px'}}>
                             <select
@@ -7787,7 +7848,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                               onChange={(e) => setNewTranslation({...newTranslation, language: e.target.value})}
                               style={{fontSize: '13px'}}
                             >
-                              <option value="">Limbă</option>
+                              <option value="">{t('products.modal.translationLangPh')}</option>
                               <option value="ro">🇷🇴 Română</option>
                               <option value="de">🇩🇪 Deutsch</option>
                               <option value="fr">🇫🇷 Français</option>
@@ -7798,7 +7859,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             <input
                               type="text"
                               className="form-input"
-                              placeholder="Nume produs tradus"
+                              placeholder={t('products.modal.translationNamePh')}
                               value={newTranslation.name}
                               onChange={(e) => setNewTranslation({...newTranslation, name: e.target.value})}
                               style={{fontSize: '13px'}}
@@ -7806,7 +7867,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           </div>
                           <textarea
                             className="form-input"
-                            placeholder="Descriere tradusă (opțional)"
+                            placeholder={t('products.modal.translationDescPh')}
                             value={newTranslation.description}
                             onChange={(e) => setNewTranslation({...newTranslation, description: e.target.value})}
                             rows="2"
@@ -7816,7 +7877,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             <input
                               type="url"
                               className="form-input"
-                              placeholder="URL sursă (opțional)"
+                              placeholder={t('products.modal.translationUrlPh')}
                               value={newTranslation.sourceUrl}
                               onChange={(e) => setNewTranslation({...newTranslation, sourceUrl: e.target.value})}
                               style={{flex: 1, fontSize: '13px'}}
@@ -7832,7 +7893,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 fontSize: '13px'
                               }}
                             >
-                              ➕ Adaugă
+                              ➕ {t('products.modal.translationAdd')}
                             </button>
                           </div>
                         </div>
@@ -7888,10 +7949,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           setEditingTranslation(null);
                         }}
                       >
-                        Cancel
+                        {t('products.modal.cancelBtn')}
                       </button>
                       <button type="submit" className="btn" style={{background: '#28a745'}}>
-                        {editingProduct ? 'Update Product' : 'Create Product'}
+                        {editingProduct ? t('products.modal.updateBtn') : t('products.modal.createBtn')}
                       </button>
                     </div>
                   </form>
@@ -10376,12 +10437,12 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                               borderRadius: '4px'
                             }}
                           >
-                            <option value="0.00">0% (Reverse Charge)</option>
-                            <option value="5.00">5% (Reduced VAT)</option>
-                            <option value="9.00">9% (Reduced VAT)</option>
-                            <option value="20.00">20% (TVA France)</option>
-                            <option value="21.00">21% (Standard VAT)</option>
-                            <option value="24.00">24% (Luxury VAT)</option>
+                            <option value="0.00">{t('products.modal.vatReverse')}</option>
+                            <option value="5.00">5% ({t('products.modal.vatReduced')})</option>
+                            <option value="9.00">9% ({t('products.modal.vatReduced')})</option>
+                            <option value="21.00">21% ({t('products.modal.vatStandard')})</option>
+                            <option value="21.00">21% ({t('products.modal.vatStandardNew')})</option>
+                            <option value="24.00">24% ({t('products.modal.vatLuxury')})</option>
                           </select>
                         </div>
                         
