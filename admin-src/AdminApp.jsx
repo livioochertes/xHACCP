@@ -1668,6 +1668,61 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         alert('✅ Excel template downloaded successfully!\\n\\nPlease fill in the template with your product data and use "Import from Excel" to upload it.');
       };
 
+      // Export all products to Excel in the same format as the import template
+      const exportProductsToExcel = async () => {
+        try {
+          const headers = { 'Authorization': `Bearer ${token}` };
+          const marketQS = selectedMarketTab && selectedMarketTab !== 'all' ? `&market=${selectedMarketTab}` : '';
+          const marketParam = selectedMarketTab && selectedMarketTab !== 'all' ? `?market=${selectedMarketTab}` : '';
+          const [productsRes, categoriesRes, suppliersRes] = await Promise.all([
+            fetch(`/admin/api/products?limit=100000${marketQS}`, { headers }),
+            fetch(`/admin/api/categories${marketParam}`, { headers }),
+            fetch(`/admin/api/suppliers${marketParam}`, { headers })
+          ]);
+          const [allProducts, allCategories, allSuppliers] = await Promise.all([
+            productsRes.json(), categoriesRes.json(), suppliersRes.json()
+          ]);
+
+          if (!productsRes.ok || !Array.isArray(allProducts) || allProducts.length === 0) {
+            alert(t('products.exportEmpty'));
+            return;
+          }
+
+          const categoryById = new Map((Array.isArray(allCategories) ? allCategories : []).map(c => [c.id, c.name]));
+          const supplierById = new Map((Array.isArray(allSuppliers) ? allSuppliers : []).map(s => [s.id, s.name]));
+
+          const exportData = allProducts.map(p => ({
+            'Product Name': p.name || '',
+            'Description': p.description || '',
+            'Price': p.price != null ? String(p.price) : '',
+            'Stock Quantity': p.stockQuantity != null ? String(p.stockQuantity) : '0',
+            'Category ID': p.categoryId != null ? String(p.categoryId) : '',
+            'Category Name': categoryById.get(p.categoryId) || '',
+            'Status': p.status || 'active',
+            'VAT %': p.vatValue != null ? String(p.vatValue) : (p.vatPercentage != null ? String(p.vatPercentage) : ''),
+            'Product Code': p.productCode || '',
+            'NC Code': p.ncCode || '',
+            'CPV Code': p.cpvCode || '',
+            'Supplier Name': supplierById.get(p.supplierId) || '',
+            'Weight (kg)': p.weight != null ? String(p.weight) : '',
+            'Length (cm)': p.length != null ? String(p.length) : '',
+            'Width (cm)': p.width != null ? String(p.width) : '',
+            'Height (cm)': p.height != null ? String(p.height) : '',
+            'Pieces Per Package': p.piecesPerPackage != null ? String(p.piecesPerPackage) : ''
+          }));
+
+          const ws = XLSX.utils.json_to_sheet(exportData);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Products');
+
+          const dateStr = new Date().toISOString().slice(0, 10);
+          XLSX.writeFile(wb, `xHACCP_Products_Export_${dateStr}.xlsx`);
+        } catch (err) {
+          console.error('Error exporting products to Excel:', err);
+          alert(t('products.exportError'));
+        }
+      };
+
       // Import products from Excel file
       const importProductsFromExcel = async (file) => {
         if (!file) {
@@ -2754,6 +2809,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       onClick={() => setShowExcelImportModal(true)}
                     >
                       📤 {t('products.importExcel')}
+                    </button>
+                    <button 
+                      className="btn" 
+                      style={{background: '#17a2b8', width: 'auto', padding: '8px 16px'}}
+                      onClick={exportProductsToExcel}
+                    >
+                      📥 {t('products.exportExcel')}
                     </button>
                     <button 
                       className="btn" 

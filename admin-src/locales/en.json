@@ -359,7 +359,10 @@
       "quantityPh": "e.g. 5L, 500g, 1 set",
       "tierQtyPh": "e.g. 5",
       "tierPercentPh": "e.g. 10"
-    }
+    },
+    "exportExcel": "Export to Excel",
+    "exportEmpty": "There are no products to export.",
+    "exportError": "Error exporting products to Excel."
   },
   "categories": {
     "title": "Category Management",

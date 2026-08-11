@@ -10786,7 +10786,10 @@
         quantityPh: "e.g. 5L, 500g, 1 set",
         tierQtyPh: "e.g. 5",
         tierPercentPh: "e.g. 10"
-      }
+      },
+      exportExcel: "Export to Excel",
+      exportEmpty: "There are no products to export.",
+      exportError: "Error exporting products to Excel."
     },
     categories: {
       title: "Category Management",
@@ -11331,7 +11334,10 @@
         quantityPh: "ex: 5L, 500g, 1 set",
         tierQtyPh: "ex: 5",
         tierPercentPh: "ex: 10"
-      }
+      },
+      exportExcel: "Export \xEEn Excel",
+      exportEmpty: "Nu exist\u0103 produse de exportat.",
+      exportError: "Eroare la exportul produselor \xEEn Excel."
     },
     categories: {
       title: "Gestionare Categorii",
@@ -11876,7 +11882,10 @@
         quantityPh: "ex : 5L, 500g, 1 set",
         tierQtyPh: "ex : 5",
         tierPercentPh: "ex : 10"
-      }
+      },
+      exportExcel: "Exporter vers Excel",
+      exportEmpty: "Aucun produit \xE0 exporter.",
+      exportError: "Erreur lors de l'export des produits vers Excel."
     },
     categories: {
       title: "Gestion des cat\xE9gories",
@@ -13632,6 +13641,56 @@ Failed: ${result.failed}`);
       XLSX.writeFile(wb, "xHACCP_Products_Import_Template.xlsx");
       alert('\u2705 Excel template downloaded successfully!\\n\\nPlease fill in the template with your product data and use "Import from Excel" to upload it.');
     };
+    const exportProductsToExcel = async () => {
+      try {
+        const headers = { "Authorization": `Bearer ${token}` };
+        const marketQS = selectedMarketTab && selectedMarketTab !== "all" ? `&market=${selectedMarketTab}` : "";
+        const marketParam = selectedMarketTab && selectedMarketTab !== "all" ? `?market=${selectedMarketTab}` : "";
+        const [productsRes, categoriesRes, suppliersRes] = await Promise.all([
+          fetch(`/admin/api/products?limit=100000${marketQS}`, { headers }),
+          fetch(`/admin/api/categories${marketParam}`, { headers }),
+          fetch(`/admin/api/suppliers${marketParam}`, { headers })
+        ]);
+        const [allProducts, allCategories, allSuppliers] = await Promise.all([
+          productsRes.json(),
+          categoriesRes.json(),
+          suppliersRes.json()
+        ]);
+        if (!productsRes.ok || !Array.isArray(allProducts) || allProducts.length === 0) {
+          alert(t2("products.exportEmpty"));
+          return;
+        }
+        const categoryById = new Map((Array.isArray(allCategories) ? allCategories : []).map((c) => [c.id, c.name]));
+        const supplierById = new Map((Array.isArray(allSuppliers) ? allSuppliers : []).map((s) => [s.id, s.name]));
+        const exportData = allProducts.map((p) => ({
+          "Product Name": p.name || "",
+          "Description": p.description || "",
+          "Price": p.price != null ? String(p.price) : "",
+          "Stock Quantity": p.stockQuantity != null ? String(p.stockQuantity) : "0",
+          "Category ID": p.categoryId != null ? String(p.categoryId) : "",
+          "Category Name": categoryById.get(p.categoryId) || "",
+          "Status": p.status || "active",
+          "VAT %": p.vatValue != null ? String(p.vatValue) : p.vatPercentage != null ? String(p.vatPercentage) : "",
+          "Product Code": p.productCode || "",
+          "NC Code": p.ncCode || "",
+          "CPV Code": p.cpvCode || "",
+          "Supplier Name": supplierById.get(p.supplierId) || "",
+          "Weight (kg)": p.weight != null ? String(p.weight) : "",
+          "Length (cm)": p.length != null ? String(p.length) : "",
+          "Width (cm)": p.width != null ? String(p.width) : "",
+          "Height (cm)": p.height != null ? String(p.height) : "",
+          "Pieces Per Package": p.piecesPerPackage != null ? String(p.piecesPerPackage) : ""
+        }));
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Products");
+        const dateStr = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+        XLSX.writeFile(wb, `xHACCP_Products_Export_${dateStr}.xlsx`);
+      } catch (err) {
+        console.error("Error exporting products to Excel:", err);
+        alert(t2("products.exportError"));
+      }
+    };
     const importProductsFromExcel = async (file) => {
       if (!file) {
         alert("Please select an Excel file to import.");
@@ -14648,6 +14707,18 @@ This action cannot be undone.`)) {
                     children: [
                       "\u{1F4E4} ",
                       t2("products.importExcel")
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  "button",
+                  {
+                    className: "btn",
+                    style: { background: "#17a2b8", width: "auto", padding: "8px 16px" },
+                    onClick: exportProductsToExcel,
+                    children: [
+                      "\u{1F4E5} ",
+                      t2("products.exportExcel")
                     ]
                   }
                 ),

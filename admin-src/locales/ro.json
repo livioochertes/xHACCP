@@ -359,7 +359,10 @@
       "quantityPh": "ex: 5L, 500g, 1 set",
       "tierQtyPh": "ex: 5",
       "tierPercentPh": "ex: 10"
-    }
+    },
+    "exportExcel": "Export în Excel",
+    "exportEmpty": "Nu există produse de exportat.",
+    "exportError": "Eroare la exportul produselor în Excel."
   },
   "categories": {
     "title": "Gestionare Categorii",
