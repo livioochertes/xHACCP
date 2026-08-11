@@ -337,16 +337,16 @@ const CATEGORY_IMAGES: Record<string, string[]> = {
   Etichetare: [
     "https://images.unsplash.com/photo-1584473457406-6240486418e9?w=1200&h=630&fit=crop&q=80",
     "https://images.unsplash.com/photo-1518492104633-130d0cc84637?w=1200&h=630&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1604719312566-8912e9c8a213?w=1200&h=630&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1518492104633-130d0cc84637?w=1200&h=630&fit=crop&q=80",
   ],
   Labeling: [
     "https://images.unsplash.com/photo-1584473457406-6240486418e9?w=1200&h=630&fit=crop&q=80",
     "https://images.unsplash.com/photo-1518492104633-130d0cc84637?w=1200&h=630&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1604719312566-8912e9c8a213?w=1200&h=630&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1518492104633-130d0cc84637?w=1200&h=630&fit=crop&q=80",
   ],
   Étiquetage: [
     "https://images.unsplash.com/photo-1584473457406-6240486418e9?w=1200&h=630&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1604719312566-8912e9c8a213?w=1200&h=630&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1518492104633-130d0cc84637?w=1200&h=630&fit=crop&q=80",
   ],
   Trasabilitate: [
     "https://images.unsplash.com/photo-1543168256-418811576931?w=1200&h=630&fit=crop&q=80",

@@ -4213,6 +4213,20 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   });
 
   // ─── Blog API ───────────────────────────────────────────────────────────────
+  // Known-broken Unsplash photo URLs → working replacements
+  // (Unsplash occasionally removes/unpublishes photos; add entries here as needed)
+  const BROKEN_BLOG_IMAGES: Record<string, string> = {
+    'https://images.unsplash.com/photo-1604719312566-8912e9c8a213?w=1200&h=630&fit=crop&q=80':
+      'https://images.unsplash.com/photo-1518492104633-130d0cc84637?w=1200&h=630&fit=crop&q=80',
+  };
+  function fixBlogImageUrl(url: string | null | undefined): string | null | undefined {
+    if (!url) return url;
+    return BROKEN_BLOG_IMAGES[url] ?? url;
+  }
+  function fixBlogPost<T extends { imageUrl?: string | null }>(post: T): T {
+    return { ...post, imageUrl: fixBlogImageUrl(post.imageUrl) };
+  }
+
   // Market → language mapping for blog posts
   function marketToLanguage(market: string): string {
     if (market === "fr") return "fr";
@@ -4231,7 +4245,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         limit: limit ? parseInt(limit as string) : undefined,
         offset: offset ? parseInt(offset as string) : undefined,
       });
-      res.json(posts);
+      res.json(posts.map(fixBlogPost));
     } catch (error) {
       console.error("Get blog posts error:", error);
       res.status(500).json({ message: "Failed to fetch blog posts" });
@@ -4252,7 +4266,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         return res.status(404).json({ message: "Blog post not found" });
       }
       const translations = await storage.getBlogPostTranslations(post.id);
-      res.json({ ...post, translations });
+      res.json({ ...fixBlogPost(post), translations });
     } catch (error) {
       console.error("Get blog post error:", error);
       res.status(500).json({ message: "Failed to fetch blog post" });
@@ -4270,7 +4284,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         limit: limit ? parseInt(limit as string) : undefined,
         offset: offset ? parseInt(offset as string) : undefined,
       });
-      res.json(posts);
+      res.json(posts.map(fixBlogPost));
     } catch (error) {
       console.error("Get blog posts error:", error);
       res.status(500).json({ message: "Failed to fetch blog posts" });
@@ -4289,7 +4303,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         return res.status(404).json({ message: "Blog post not found" });
       }
       const translations = await storage.getBlogPostTranslations(post.id);
-      res.json({ ...post, translations });
+      res.json({ ...fixBlogPost(post), translations });
     } catch (error) {
       console.error("Get blog post error:", error);
       res.status(500).json({ message: "Failed to fetch blog post" });

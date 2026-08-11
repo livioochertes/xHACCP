@@ -43,6 +43,7 @@ function BlogCard({ post, dateLocale }: { post: BlogPost; dateLocale: string }) 
               src={post.imageUrl}
               alt={post.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              onError={(e) => { (e.currentTarget.closest('.aspect-\\[16\\/9\\]') as HTMLElement | null)?.style.setProperty('display', 'none'); }}
             />
           </div>
         )}

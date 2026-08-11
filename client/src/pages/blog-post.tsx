@@ -201,6 +201,7 @@ export default function BlogPostPage() {
               src={displayPost.imageUrl}
               alt={displayPost.title}
               className="w-full h-full object-cover"
+              onError={(e) => { (e.currentTarget.closest('.rounded-xl') as HTMLElement | null)?.style.setProperty('display', 'none'); }}
             />
           </div>
         )}
