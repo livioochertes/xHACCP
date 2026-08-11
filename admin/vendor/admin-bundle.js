@@ -19139,7 +19139,7 @@ Cordialement,`
                     className: "form-input",
                     value: productFormData.description,
                     onChange: (e2) => setProductFormData({ ...productFormData, description: e2.target.value }),
-                    rows: "3",
+                    rows: "8",
                     placeholder: t2("products.modal.descPh")
                   }
                 )
@@ -19959,7 +19959,7 @@ Cordialement,`
                       className: "form-input",
                       value: editingTranslation.description || "",
                       onChange: (e2) => setEditingTranslation({ ...editingTranslation, description: e2.target.value }),
-                      rows: "2",
+                      rows: "6",
                       style: { marginBottom: "8px", fontSize: "13px" },
                       placeholder: t2("products.modal.translationEditDescPh")
                     }
@@ -20057,7 +20057,7 @@ Cordialement,`
                       placeholder: t2("products.modal.translationDescPh"),
                       value: newTranslation.description,
                       onChange: (e2) => setNewTranslation({ ...newTranslation, description: e2.target.value }),
-                      rows: "2",
+                      rows: "6",
                       style: { marginBottom: "10px", fontSize: "13px" }
                     }
                   ),

@@ -7025,7 +7025,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           className="form-input"
                           value={productFormData.description}
                           onChange={(e) => setProductFormData({...productFormData, description: e.target.value})}
-                          rows="3"
+                          rows="8"
                           placeholder={t('products.modal.descPh')}
                         />
                       </div>
@@ -7776,7 +7776,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                       className="form-input"
                                       value={editingTranslation.description || ''}
                                       onChange={(e) => setEditingTranslation({...editingTranslation, description: e.target.value})}
-                                      rows="2"
+                                      rows="6"
                                       style={{marginBottom: '8px', fontSize: '13px'}}
                                       placeholder={t('products.modal.translationEditDescPh')}
                                     />
@@ -7870,7 +7870,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             placeholder={t('products.modal.translationDescPh')}
                             value={newTranslation.description}
                             onChange={(e) => setNewTranslation({...newTranslation, description: e.target.value})}
-                            rows="2"
+                            rows="6"
                             style={{marginBottom: '10px', fontSize: '13px'}}
                           />
                           <div style={{display: 'flex', gap: '10px'}}>
