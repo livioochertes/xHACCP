@@ -1386,9 +1386,19 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           fetchCategories();
         }
 
+        // Determine the display currency for the current market view:
+        // use the most common currency among the loaded products.
+        const currencyCounts = products.reduce((acc, p) => {
+          const cur = p.currency || 'RON';
+          acc[cur] = (acc[cur] || 0) + 1;
+          return acc;
+        }, {});
+        const displayCurrency = Object.entries(currencyCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'RON';
+
         // Calculate analytics based on actual product data
         const analytics = {
           totalProducts: products.length,
+          currency: displayCurrency,
           
           // Category analysis
           categoryBreakdown: categories.reduce((acc, cat) => {
@@ -3109,15 +3119,15 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
                               <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px'}}>
                                 <span style={{fontSize: '14px', color: '#333'}}>{t('products.avgPrice')}</span>
-                                <span style={{fontSize: '14px', fontWeight: 'bold', color: '#007bff'}}>${analyticsData.priceAnalysis.avg}</span>
+                                <span style={{fontSize: '14px', fontWeight: 'bold', color: '#007bff'}}>{analyticsData.priceAnalysis.avg} {analyticsData.currency}</span>
                               </div>
                               <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px'}}>
                                 <span style={{fontSize: '14px', color: '#333'}}>{t('products.lowestPrice')}</span>
-                                <span style={{fontSize: '14px', fontWeight: 'bold', color: '#28a745'}}>${analyticsData.priceAnalysis.min}</span>
+                                <span style={{fontSize: '14px', fontWeight: 'bold', color: '#28a745'}}>{analyticsData.priceAnalysis.min} {analyticsData.currency}</span>
                               </div>
                               <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f8f9fa', borderRadius: '4px'}}>
                                 <span style={{fontSize: '14px', color: '#333'}}>{t('products.highestPrice')}</span>
-                                <span style={{fontSize: '14px', fontWeight: 'bold', color: '#dc3545'}}>${analyticsData.priceAnalysis.max}</span>
+                                <span style={{fontSize: '14px', fontWeight: 'bold', color: '#dc3545'}}>{analyticsData.priceAnalysis.max} {analyticsData.currency}</span>
                               </div>
                             </div>
                           </div>
@@ -3132,7 +3142,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                       <span style={{fontSize: '13px', fontWeight: '500', color: '#333'}}>{product.name}</span>
                                       <span style={{fontSize: '12px', color: '#666'}}>{product.category}</span>
                                     </div>
-                                    <span style={{fontSize: '14px', fontWeight: 'bold', color: '#007bff'}}>{product.price} lei</span>
+                                    <span style={{fontSize: '14px', fontWeight: 'bold', color: '#007bff'}}>{product.price} {analyticsData.currency}</span>
                                   </div>
                                 ))}
                               </div>

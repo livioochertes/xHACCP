@@ -13402,8 +13402,15 @@ Failed: ${result.failed}`);
       if (categories.length === 0) {
         fetchCategories();
       }
+      const currencyCounts = products.reduce((acc, p) => {
+        const cur = p.currency || "RON";
+        acc[cur] = (acc[cur] || 0) + 1;
+        return acc;
+      }, {});
+      const displayCurrency = Object.entries(currencyCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "RON";
       const analytics = {
         totalProducts: products.length,
+        currency: displayCurrency,
         // Category analysis
         categoryBreakdown: categories.reduce((acc, cat) => {
           const categoryProducts = products.filter((p) => p.categoryId === cat.id);
@@ -15054,22 +15061,25 @@ E\u0219uate: ${result.failed || 0}`);
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", padding: "8px", background: "#f8f9fa", borderRadius: "4px" }, children: [
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333" }, children: t2("products.avgPrice") }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "14px", fontWeight: "bold", color: "#007bff" }, children: [
-                          "$",
-                          analyticsData.priceAnalysis.avg
+                          analyticsData.priceAnalysis.avg,
+                          " ",
+                          analyticsData.currency
                         ] })
                       ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", padding: "8px", background: "#f8f9fa", borderRadius: "4px" }, children: [
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333" }, children: t2("products.lowestPrice") }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "14px", fontWeight: "bold", color: "#28a745" }, children: [
-                          "$",
-                          analyticsData.priceAnalysis.min
+                          analyticsData.priceAnalysis.min,
+                          " ",
+                          analyticsData.currency
                         ] })
                       ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", padding: "8px", background: "#f8f9fa", borderRadius: "4px" }, children: [
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#333" }, children: t2("products.highestPrice") }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "14px", fontWeight: "bold", color: "#dc3545" }, children: [
-                          "$",
-                          analyticsData.priceAnalysis.max
+                          analyticsData.priceAnalysis.max,
+                          " ",
+                          analyticsData.currency
                         ] })
                       ] })
                     ] })
@@ -15086,7 +15096,8 @@ E\u0219uate: ${result.failed || 0}`);
                       ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "14px", fontWeight: "bold", color: "#007bff" }, children: [
                         product.price,
-                        " lei"
+                        " ",
+                        analyticsData.currency
                       ] })
                     ] }, index)) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "14px", textAlign: "center", margin: "20px 0" }, children: t2("products.noPricesFound") })
                   ] })

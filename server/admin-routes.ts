@@ -1878,6 +1878,7 @@ export async function registerAdminRoutes(app: Express) {
       // Determine which markets we need to filter by (if any) BEFORE fetching products
       // so we can apply market-scoped IDs in the initial fetch, not post-pagination.
       let marketProductIds: Set<number> | null = null;
+      let marketRowByProduct: Map<number, typeof productMarkets.$inferSelect> | null = null;
       if (!isSuperAdmin && (!market || market === 'all')) {
         // Restricted admin — limit to their markets
         const marketRows = await db.select().from(productMarkets).where(
@@ -1886,10 +1887,15 @@ export async function registerAdminRoutes(app: Express) {
             : inArray(productMarkets.market, allowedMarkets)
         );
         marketProductIds = new Set(marketRows.map(r => r.productId));
+        // If restricted to a single market, we can safely apply its price overrides
+        if (allowedMarkets.length === 1) {
+          marketRowByProduct = new Map(marketRows.map(r => [r.productId, r]));
+        }
       } else if (market && market !== 'all') {
         // Explicit market filter requested
         const marketRows = await db.select().from(productMarkets).where(eq(productMarkets.market, market as string));
         marketProductIds = new Set(marketRows.map(r => r.productId));
+        marketRowByProduct = new Map(marketRows.map(r => [r.productId, r]));
       }
 
       // Fetch ALL products from memory when a market filter is active so that
@@ -1922,6 +1928,30 @@ export async function registerAdminRoutes(app: Express) {
         const off = parseInt(offset as string);
         const lim = parseInt(limit as string);
         filteredProducts = filteredProducts.slice(off, off + lim);
+      }
+
+      // Apply market-specific price/currency/stock overrides so the admin sees
+      // the values for the selected market (e.g. EUR prices on the FR tab).
+      if (marketRowByProduct) {
+        const effectiveMarket = (market && market !== 'all') ? (market as string) : allowedMarkets[0];
+        let defaultCurrency: string | null = null;
+        try {
+          const settings = await storage.getMarketSettings();
+          defaultCurrency = settings.find((s: any) => s.market === effectiveMarket)?.currency || null;
+        } catch (e) {
+          console.error('Could not load market settings for currency fallback:', e);
+        }
+        filteredProducts = filteredProducts.map(p => {
+          const row = (marketRowByProduct as Map<number, any>).get(p.id);
+          if (!row) return p;
+          return {
+            ...p,
+            price: row.price ?? p.price,
+            compareAtPrice: row.compareAtPrice ?? p.compareAtPrice,
+            currency: row.currency ?? defaultCurrency ?? p.currency,
+            stockQuantity: row.stockQuantity ?? p.stockQuantity,
+          };
+        });
       }
 
       res.json(filteredProducts);
