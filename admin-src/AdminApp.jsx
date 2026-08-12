@@ -352,6 +352,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [suppliers, setSuppliers] = useState([]);
       const [showAddUserModal, setShowAddUserModal] = useState(false);
       const [showAddProductModal, setShowAddProductModal] = useState(false);
+      const [showAddOrderModal, setShowAddOrderModal] = useState(false);
       const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
       const [editingUser, setEditingUser] = useState(null);
       const [editingProduct, setEditingProduct] = useState(null);
@@ -2335,6 +2336,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
                   <h3 style={{color: '#333', margin: '0'}}>📋 Order Management</h3>
                   <div style={{display: 'flex', gap: '10px'}}>
+                    <button
+                      className="btn"
+                      style={{background: '#28a745', width: 'auto', padding: '8px 16px'}}
+                      onClick={() => setShowAddOrderModal(true)}
+                    >
+                      ➕ Comandă nouă
+                    </button>
                     <button 
                       className="btn" 
                       style={{background: '#17a2b8', width: 'auto', padding: '8px 16px'}}
@@ -6246,6 +6254,186 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             </div>
             <div style={{marginTop: '6px', fontSize: '11px', color: '#795548'}}>
               Lasă prețul gol pentru a folosi prețul implicit al produsului. Bifează „Activ" pentru ca produsul să fie vizibil pe piața respectivă.
+            </div>
+          </div>
+        );
+      };
+
+      // ─── Add Order Modal — creare comandă manuală din admin ─────────────────
+      const AddOrderModal = () => {
+        const initialMarket = (marketFilter && marketFilter !== 'all') ? marketFilter : 'ro';
+        const [aoMarket, setAoMarket] = useState(initialMarket);
+        const [aoProducts, setAoProducts] = useState([]);
+        const [aoLoading, setAoLoading] = useState(false);
+        const [aoSubmitting, setAoSubmitting] = useState(false);
+        const [aoItems, setAoItems] = useState([{ productId: '', quantity: 1 }]);
+        const [aoCustomer, setAoCustomer] = useState({
+          firstName: '', lastName: '', email: '', phone: '',
+          streetAddress: '', city: '', state: '', zipCode: '', companyName: ''
+        });
+        const [aoPaymentMethod, setAoPaymentMethod] = useState('cash_on_delivery');
+        const [aoNotes, setAoNotes] = useState('');
+
+        useEffect(() => {
+          let cancelled = false;
+          (async () => {
+            setAoLoading(true);
+            try {
+              const resp = await fetch(`/admin/api/orders/product-options?market=${aoMarket}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              const data = await resp.json();
+              if (!cancelled && resp.ok && Array.isArray(data)) setAoProducts(data);
+            } catch (e) { console.error('AddOrder products fetch failed:', e); }
+            if (!cancelled) setAoLoading(false);
+          })();
+          return () => { cancelled = true; };
+        }, [aoMarket]);
+
+        const getProduct = (pid) => aoProducts.find(p => String(p.id) === String(pid));
+
+        const computeUnitPrice = (product, qty) => {
+          if (!product) return 0;
+          let price = parseFloat(product.price) || 0;
+          const tiers = Array.isArray(product.volumeDiscounts) ? product.volumeDiscounts : [];
+          let pct = 0;
+          for (const t of tiers) {
+            if (t && t.minQty > 0 && t.discountPercent > 0 && qty >= t.minQty) pct = t.discountPercent;
+          }
+          return pct > 0 ? parseFloat((price * (1 - pct / 100)).toFixed(2)) : price;
+        };
+
+        const currency = (aoProducts[0] && aoProducts[0].currency) || (aoMarket === 'ro' ? 'RON' : 'EUR');
+        const subtotal = aoItems.reduce((sum, it) => {
+          const p = getProduct(it.productId);
+          const q = parseInt(it.quantity) || 0;
+          return sum + (p && q > 0 ? computeUnitPrice(p, q) * q : 0);
+        }, 0);
+
+        const updateItem = (idx, field, value) => {
+          setAoItems(items => items.map((it, i) => i === idx ? { ...it, [field]: value } : it));
+        };
+
+        const submit = async () => {
+          const validItems = aoItems.filter(it => it.productId && (parseInt(it.quantity) || 0) > 0);
+          if (validItems.length === 0) { alert('Adaugă cel puțin un produs.'); return; }
+          if (!aoCustomer.firstName || !aoCustomer.lastName) { alert('Numele și prenumele sunt obligatorii.'); return; }
+          if (!aoCustomer.email) { alert('Emailul clientului este obligatoriu.'); return; }
+          setAoSubmitting(true);
+          try {
+            const resp = await fetch('/admin/api/orders/create-manual', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({
+                market: aoMarket,
+                items: validItems.map(it => ({ productId: parseInt(it.productId), quantity: parseInt(it.quantity) })),
+                shippingAddress: aoCustomer,
+                billingAddress: aoCustomer,
+                paymentMethod: aoPaymentMethod,
+                email: aoCustomer.email,
+                phone: aoCustomer.phone,
+                notes: aoNotes
+              })
+            });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+              alert('✅ ' + data.message);
+              setShowAddOrderModal(false);
+              fetchOrders();
+            } else {
+              alert('❌ ' + (data.message || 'Eroare la crearea comenzii'));
+            }
+          } catch (e) {
+            alert('❌ Eroare de rețea: ' + e.message);
+          }
+          setAoSubmitting(false);
+        };
+
+        const inputStyle = { width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px', boxSizing: 'border-box' };
+        const labelStyle = { fontSize: '12px', fontWeight: 'bold', color: '#555', marginBottom: '3px', display: 'block' };
+
+        return (
+          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{background: 'white', borderRadius: '8px', width: '90%', maxWidth: '820px', maxHeight: '90vh', overflowY: 'auto', padding: '24px'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+                <h3 style={{margin: 0, color: '#333'}}>➕ Comandă nouă (manuală)</h3>
+                <button onClick={() => setShowAddOrderModal(false)} style={{border: 'none', background: 'none', fontSize: '22px', cursor: 'pointer', color: '#888'}}>×</button>
+              </div>
+
+              <div style={{display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px', padding: '10px', background: '#f8f9fa', borderRadius: '6px'}}>
+                <span style={{fontSize: '13px', fontWeight: 'bold'}}>Piață:</span>
+                <select value={aoMarket} onChange={e => { setAoMarket(e.target.value); setAoItems([{ productId: '', quantity: 1 }]); }} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px'}}>
+                  <option value="ro">🇷🇴 RO (RON)</option>
+                  <option value="com">🌍 COM (EUR)</option>
+                  <option value="fr">🇫🇷 FR (EUR)</option>
+                </select>
+                {marketFilter !== 'all' && <span style={{fontSize: '11px', color: '#888'}}>(preluat din tab-ul de comenzi)</span>}
+              </div>
+
+              <h4 style={{margin: '0 0 8px 0', fontSize: '14px', color: '#333'}}>🛒 Produse {aoLoading ? '(se încarcă...)' : ''}</h4>
+              {aoItems.map((it, idx) => {
+                const p = getProduct(it.productId);
+                const q = parseInt(it.quantity) || 0;
+                const unit = p ? computeUnitPrice(p, q) : 0;
+                const base = p ? parseFloat(p.price) : 0;
+                return (
+                  <div key={idx} style={{display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px'}}>
+                    <select value={it.productId} onChange={e => updateItem(idx, 'productId', e.target.value)} style={{...inputStyle, flex: 3}}>
+                      <option value="">— alege produsul —</option>
+                      {aoProducts.map(pr => (
+                        <option key={pr.id} value={pr.id}>{pr.name} — {parseFloat(pr.price).toFixed(2)} {currency}</option>
+                      ))}
+                    </select>
+                    <input type="number" min="1" max="9999" value={it.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} style={{...inputStyle, flex: 1, maxWidth: '80px'}} />
+                    <span style={{flex: 2, fontSize: '13px', whiteSpace: 'nowrap'}}>
+                      {p && q > 0 ? (
+                        unit < base
+                          ? <><s style={{color: '#999'}}>{(base * q).toFixed(2)}</s> <b style={{color: '#28a745'}}>{(unit * q).toFixed(2)} {currency}</b> <span style={{fontSize: '11px', color: '#28a745'}}>(discount volum)</span></>
+                          : <b>{(unit * q).toFixed(2)} {currency}</b>
+                      ) : '—'}
+                    </span>
+                    <button onClick={() => setAoItems(items => items.filter((_, i) => i !== idx))} disabled={aoItems.length === 1} style={{border: 'none', background: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '16px'}}>🗑</button>
+                  </div>
+                );
+              })}
+              <button onClick={() => setAoItems(items => [...items, { productId: '', quantity: 1 }])} style={{marginBottom: '16px', padding: '6px 12px', border: '1px dashed #28a745', background: 'none', color: '#28a745', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}>+ Adaugă produs</button>
+
+              <div style={{padding: '10px', background: '#f0f8f0', borderRadius: '6px', marginBottom: '16px', fontSize: '13px'}}>
+                Subtotal estimat: <b>{subtotal.toFixed(2)} {currency}</b>
+                <span style={{color: '#888', marginLeft: '8px', fontSize: '11px'}}>(transportul și totalul final se calculează pe server, după aceleași reguli ca pe site)</span>
+              </div>
+
+              <h4 style={{margin: '0 0 8px 0', fontSize: '14px', color: '#333'}}>👤 Date client</h4>
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px'}}>
+                <div><label style={labelStyle}>Prenume *</label><input style={inputStyle} value={aoCustomer.firstName} onChange={e => setAoCustomer(c => ({...c, firstName: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Nume *</label><input style={inputStyle} value={aoCustomer.lastName} onChange={e => setAoCustomer(c => ({...c, lastName: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Email *</label><input type="email" style={inputStyle} value={aoCustomer.email} onChange={e => setAoCustomer(c => ({...c, email: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Telefon</label><input style={inputStyle} value={aoCustomer.phone} onChange={e => setAoCustomer(c => ({...c, phone: e.target.value}))} /></div>
+                <div style={{gridColumn: '1 / -1'}}><label style={labelStyle}>Adresă (stradă, nr.)</label><input style={inputStyle} value={aoCustomer.streetAddress} onChange={e => setAoCustomer(c => ({...c, streetAddress: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Oraș</label><input style={inputStyle} value={aoCustomer.city} onChange={e => setAoCustomer(c => ({...c, city: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Județ</label><input style={inputStyle} value={aoCustomer.state} onChange={e => setAoCustomer(c => ({...c, state: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Cod poștal</label><input style={inputStyle} value={aoCustomer.zipCode} onChange={e => setAoCustomer(c => ({...c, zipCode: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Firmă (opțional, B2B)</label><input style={inputStyle} value={aoCustomer.companyName} onChange={e => setAoCustomer(c => ({...c, companyName: e.target.value}))} /></div>
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px'}}>
+                <div>
+                  <label style={labelStyle}>Metodă de plată</label>
+                  <select value={aoPaymentMethod} onChange={e => setAoPaymentMethod(e.target.value)} style={inputStyle}>
+                    <option value="cash_on_delivery">💵 Ramburs (COD)</option>
+                    <option value="bank_transfer">🏦 Transfer bancar</option>
+                    <option value="card">💳 Card (plătit extern)</option>
+                  </select>
+                </div>
+                <div><label style={labelStyle}>Note (opțional)</label><input style={inputStyle} value={aoNotes} onChange={e => setAoNotes(e.target.value)} /></div>
+              </div>
+
+              <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+                <button onClick={() => setShowAddOrderModal(false)} style={{padding: '10px 18px', border: '1px solid #ddd', background: 'white', borderRadius: '4px', cursor: 'pointer'}}>Anulează</button>
+                <button onClick={submit} disabled={aoSubmitting} style={{padding: '10px 18px', border: 'none', background: aoSubmitting ? '#94d3a2' : '#28a745', color: 'white', borderRadius: '4px', cursor: aoSubmitting ? 'wait' : 'pointer', fontWeight: 'bold'}}>
+                  {aoSubmitting ? 'Se creează...' : '✅ Creează comanda'}
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -11010,6 +11198,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
             {renderContent()}
           </div>
           <ModalsComponent key={modalKey} />
+          {showAddOrderModal && <AddOrderModal />}
 
           {/* Blog Preview Modal */}
           {previewBlogPost && (

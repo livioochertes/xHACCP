@@ -12469,6 +12469,7 @@
     const [suppliers, setSuppliers] = (0, import_react13.useState)([]);
     const [showAddUserModal, setShowAddUserModal] = (0, import_react13.useState)(false);
     const [showAddProductModal, setShowAddProductModal] = (0, import_react13.useState)(false);
+    const [showAddOrderModal, setShowAddOrderModal] = (0, import_react13.useState)(false);
     const [showAddCategoryModal, setShowAddCategoryModal] = (0, import_react13.useState)(false);
     const [editingUser, setEditingUser] = (0, import_react13.useState)(null);
     const [editingProduct, setEditingProduct] = (0, import_react13.useState)(null);
@@ -14203,6 +14204,15 @@ Failed: ${result.failed}`);
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0" }, children: "\u{1F4CB} Order Management" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "button",
+                  {
+                    className: "btn",
+                    style: { background: "#28a745", width: "auto", padding: "8px 16px" },
+                    onClick: () => setShowAddOrderModal(true),
+                    children: "\u2795 Comand\u0103 nou\u0103"
+                  }
+                ),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                   "button",
                   {
@@ -18452,6 +18462,235 @@ Cordialement,`
         ) }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "6px", fontSize: "11px", color: "#795548" }, children: 'Las\u0103 pre\u021Bul gol pentru a folosi pre\u021Bul implicit al produsului. Bifeaz\u0103 \u201EActiv" pentru ca produsul s\u0103 fie vizibil pe pia\u021Ba respectiv\u0103.' })
       ] });
+    };
+    const AddOrderModal = () => {
+      const initialMarket = marketFilter && marketFilter !== "all" ? marketFilter : "ro";
+      const [aoMarket, setAoMarket] = (0, import_react13.useState)(initialMarket);
+      const [aoProducts, setAoProducts] = (0, import_react13.useState)([]);
+      const [aoLoading, setAoLoading] = (0, import_react13.useState)(false);
+      const [aoSubmitting, setAoSubmitting] = (0, import_react13.useState)(false);
+      const [aoItems, setAoItems] = (0, import_react13.useState)([{ productId: "", quantity: 1 }]);
+      const [aoCustomer, setAoCustomer] = (0, import_react13.useState)({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        streetAddress: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        companyName: ""
+      });
+      const [aoPaymentMethod, setAoPaymentMethod] = (0, import_react13.useState)("cash_on_delivery");
+      const [aoNotes, setAoNotes] = (0, import_react13.useState)("");
+      (0, import_react13.useEffect)(() => {
+        let cancelled = false;
+        (async () => {
+          setAoLoading(true);
+          try {
+            const resp = await fetch(`/admin/api/orders/product-options?market=${aoMarket}`, {
+              headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await resp.json();
+            if (!cancelled && resp.ok && Array.isArray(data)) setAoProducts(data);
+          } catch (e2) {
+            console.error("AddOrder products fetch failed:", e2);
+          }
+          if (!cancelled) setAoLoading(false);
+        })();
+        return () => {
+          cancelled = true;
+        };
+      }, [aoMarket]);
+      const getProduct = (pid) => aoProducts.find((p) => String(p.id) === String(pid));
+      const computeUnitPrice = (product, qty) => {
+        if (!product) return 0;
+        let price = parseFloat(product.price) || 0;
+        const tiers = Array.isArray(product.volumeDiscounts) ? product.volumeDiscounts : [];
+        let pct = 0;
+        for (const t3 of tiers) {
+          if (t3 && t3.minQty > 0 && t3.discountPercent > 0 && qty >= t3.minQty) pct = t3.discountPercent;
+        }
+        return pct > 0 ? parseFloat((price * (1 - pct / 100)).toFixed(2)) : price;
+      };
+      const currency = aoProducts[0] && aoProducts[0].currency || (aoMarket === "ro" ? "RON" : "EUR");
+      const subtotal = aoItems.reduce((sum, it) => {
+        const p = getProduct(it.productId);
+        const q = parseInt(it.quantity) || 0;
+        return sum + (p && q > 0 ? computeUnitPrice(p, q) * q : 0);
+      }, 0);
+      const updateItem = (idx, field, value) => {
+        setAoItems((items) => items.map((it, i) => i === idx ? { ...it, [field]: value } : it));
+      };
+      const submit = async () => {
+        const validItems = aoItems.filter((it) => it.productId && (parseInt(it.quantity) || 0) > 0);
+        if (validItems.length === 0) {
+          alert("Adaug\u0103 cel pu\u021Bin un produs.");
+          return;
+        }
+        if (!aoCustomer.firstName || !aoCustomer.lastName) {
+          alert("Numele \u0219i prenumele sunt obligatorii.");
+          return;
+        }
+        if (!aoCustomer.email) {
+          alert("Emailul clientului este obligatoriu.");
+          return;
+        }
+        setAoSubmitting(true);
+        try {
+          const resp = await fetch("/admin/api/orders/create-manual", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({
+              market: aoMarket,
+              items: validItems.map((it) => ({ productId: parseInt(it.productId), quantity: parseInt(it.quantity) })),
+              shippingAddress: aoCustomer,
+              billingAddress: aoCustomer,
+              paymentMethod: aoPaymentMethod,
+              email: aoCustomer.email,
+              phone: aoCustomer.phone,
+              notes: aoNotes
+            })
+          });
+          const data = await resp.json();
+          if (resp.ok && data.success) {
+            alert("\u2705 " + data.message);
+            setShowAddOrderModal(false);
+            fetchOrders();
+          } else {
+            alert("\u274C " + (data.message || "Eroare la crearea comenzii"));
+          }
+        } catch (e2) {
+          alert("\u274C Eroare de re\u021Bea: " + e2.message);
+        }
+        setAoSubmitting(false);
+      };
+      const inputStyle = { width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "13px", boxSizing: "border-box" };
+      const labelStyle = { fontSize: "12px", fontWeight: "bold", color: "#555", marginBottom: "3px", display: "block" };
+      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1e3, display: "flex", alignItems: "center", justifyContent: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", borderRadius: "8px", width: "90%", maxWidth: "820px", maxHeight: "90vh", overflowY: "auto", padding: "24px" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { margin: 0, color: "#333" }, children: "\u2795 Comand\u0103 nou\u0103 (manual\u0103)" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setShowAddOrderModal(false), style: { border: "none", background: "none", fontSize: "22px", cursor: "pointer", color: "#888" }, children: "\xD7" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", alignItems: "center", marginBottom: "16px", padding: "10px", background: "#f8f9fa", borderRadius: "6px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "13px", fontWeight: "bold" }, children: "Pia\u021B\u0103:" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: aoMarket, onChange: (e2) => {
+            setAoMarket(e2.target.value);
+            setAoItems([{ productId: "", quantity: 1 }]);
+          }, style: { padding: "6px 10px", border: "1px solid #ddd", borderRadius: "4px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "ro", children: "\u{1F1F7}\u{1F1F4} RO (RON)" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "com", children: "\u{1F30D} COM (EUR)" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "fr", children: "\u{1F1EB}\u{1F1F7} FR (EUR)" })
+          ] }),
+          marketFilter !== "all" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#888" }, children: "(preluat din tab-ul de comenzi)" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: "0 0 8px 0", fontSize: "14px", color: "#333" }, children: [
+          "\u{1F6D2} Produse ",
+          aoLoading ? "(se \xEEncarc\u0103...)" : ""
+        ] }),
+        aoItems.map((it, idx) => {
+          const p = getProduct(it.productId);
+          const q = parseInt(it.quantity) || 0;
+          const unit = p ? computeUnitPrice(p, q) : 0;
+          const base = p ? parseFloat(p.price) : 0;
+          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: it.productId, onChange: (e2) => updateItem(idx, "productId", e2.target.value), style: { ...inputStyle, flex: 3 }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "\u2014 alege produsul \u2014" }),
+              aoProducts.map((pr) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: pr.id, children: [
+                pr.name,
+                " \u2014 ",
+                parseFloat(pr.price).toFixed(2),
+                " ",
+                currency
+              ] }, pr.id))
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "number", min: "1", max: "9999", value: it.quantity, onChange: (e2) => updateItem(idx, "quantity", e2.target.value), style: { ...inputStyle, flex: 1, maxWidth: "80px" } }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { flex: 2, fontSize: "13px", whiteSpace: "nowrap" }, children: p && q > 0 ? unit < base ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("s", { style: { color: "#999" }, children: (base * q).toFixed(2) }),
+              " ",
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { style: { color: "#28a745" }, children: [
+                (unit * q).toFixed(2),
+                " ",
+                currency
+              ] }),
+              " ",
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#28a745" }, children: "(discount volum)" })
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { children: [
+              (unit * q).toFixed(2),
+              " ",
+              currency
+            ] }) : "\u2014" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setAoItems((items) => items.filter((_, i) => i !== idx)), disabled: aoItems.length === 1, style: { border: "none", background: "none", color: "#dc3545", cursor: "pointer", fontSize: "16px" }, children: "\u{1F5D1}" })
+          ] }, idx);
+        }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setAoItems((items) => [...items, { productId: "", quantity: 1 }]), style: { marginBottom: "16px", padding: "6px 12px", border: "1px dashed #28a745", background: "none", color: "#28a745", borderRadius: "4px", cursor: "pointer", fontSize: "13px" }, children: "+ Adaug\u0103 produs" }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "10px", background: "#f0f8f0", borderRadius: "6px", marginBottom: "16px", fontSize: "13px" }, children: [
+          "Subtotal estimat: ",
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { children: [
+            subtotal.toFixed(2),
+            " ",
+            currency
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#888", marginLeft: "8px", fontSize: "11px" }, children: "(transportul \u0219i totalul final se calculeaz\u0103 pe server, dup\u0103 acelea\u0219i reguli ca pe site)" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 8px 0", fontSize: "14px", color: "#333" }, children: "\u{1F464} Date client" }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Prenume *" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCustomer.firstName, onChange: (e2) => setAoCustomer((c) => ({ ...c, firstName: e2.target.value })) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Nume *" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCustomer.lastName, onChange: (e2) => setAoCustomer((c) => ({ ...c, lastName: e2.target.value })) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Email *" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "email", style: inputStyle, value: aoCustomer.email, onChange: (e2) => setAoCustomer((c) => ({ ...c, email: e2.target.value })) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Telefon" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCustomer.phone, onChange: (e2) => setAoCustomer((c) => ({ ...c, phone: e2.target.value })) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { gridColumn: "1 / -1" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Adres\u0103 (strad\u0103, nr.)" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCustomer.streetAddress, onChange: (e2) => setAoCustomer((c) => ({ ...c, streetAddress: e2.target.value })) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Ora\u0219" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCustomer.city, onChange: (e2) => setAoCustomer((c) => ({ ...c, city: e2.target.value })) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Jude\u021B" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCustomer.state, onChange: (e2) => setAoCustomer((c) => ({ ...c, state: e2.target.value })) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Cod po\u0219tal" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCustomer.zipCode, onChange: (e2) => setAoCustomer((c) => ({ ...c, zipCode: e2.target.value })) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Firm\u0103 (op\u021Bional, B2B)" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCustomer.companyName, onChange: (e2) => setAoCustomer((c) => ({ ...c, companyName: e2.target.value })) })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Metod\u0103 de plat\u0103" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: aoPaymentMethod, onChange: (e2) => setAoPaymentMethod(e2.target.value), style: inputStyle, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "cash_on_delivery", children: "\u{1F4B5} Ramburs (COD)" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "bank_transfer", children: "\u{1F3E6} Transfer bancar" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "card", children: "\u{1F4B3} Card (pl\u0103tit extern)" })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Note (op\u021Bional)" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoNotes, onChange: (e2) => setAoNotes(e2.target.value) })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", justifyContent: "flex-end" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setShowAddOrderModal(false), style: { padding: "10px 18px", border: "1px solid #ddd", background: "white", borderRadius: "4px", cursor: "pointer" }, children: "Anuleaz\u0103" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: submit, disabled: aoSubmitting, style: { padding: "10px 18px", border: "none", background: aoSubmitting ? "#94d3a2" : "#28a745", color: "white", borderRadius: "4px", cursor: aoSubmitting ? "wait" : "pointer", fontWeight: "bold" }, children: aoSubmitting ? "Se creeaz\u0103..." : "\u2705 Creeaz\u0103 comanda" })
+        ] })
+      ] }) });
     };
     const ModalsComponent = () => {
       const [productFormData, setProductFormData] = (0, import_react13.useState)({
@@ -23419,6 +23658,7 @@ ${selectedOrders.map((id) => {
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "content-area", children: renderContent() }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ModalsComponent, {}, modalKey),
+      showAddOrderModal && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(AddOrderModal, {}),
       previewBlogPost && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
         "div",
         {

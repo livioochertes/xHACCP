@@ -58,7 +58,7 @@ function generateAppleClientSecret(): string {
 
 // Volume discount: returns the effective unit price after applying quantity-based discount tiers
 // Mirrors client/src/lib/volume-price.ts — must stay in sync
-function applyVolumeDiscount(basePrice: number, quantity: number, volumeDiscounts: unknown): number {
+export function applyVolumeDiscount(basePrice: number, quantity: number, volumeDiscounts: unknown): number {
   if (!Array.isArray(volumeDiscounts) || volumeDiscounts.length === 0) return basePrice;
   let activeTierDiscount = 0;
   for (const tier of volumeDiscounts as Array<{ minQty: number; discountPercent: number }>) {
@@ -189,7 +189,7 @@ let dataVersion: number = Date.now();
 // Market data in memory: productId → { market → ProductMarket row }
 let productMarketsMap = new Map<number, Map<string, any>>();
 // Market settings in memory: market → MarketSettings row
-let marketSettingsMap = new Map<string, any>();
+export let marketSettingsMap = new Map<string, any>();
 
 // Refresh only market caches from DB (called after admin CRUD on market settings / product markets)
 export async function refreshMarketCaches(): Promise<void> {
@@ -217,7 +217,7 @@ export async function refreshMarketCaches(): Promise<void> {
 }
 
 // Apply market-specific price/availability overlay to a product clone
-function applyMarketOverlay(product: any, market: string): any {
+export function applyMarketOverlay(product: any, market: string): any {
   const marketRow = productMarketsMap.get(product.id)?.get(market);
   if (!marketRow) return product; // no market record → serve as-is (globally available)
   if (marketRow.isActive === false) return null; // disabled for this market → hide
@@ -378,7 +378,7 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction)
 
 // ─── Market middleware ────────────────────────────────────────────────────────
 // Reads market from X-Market header (set by frontend) or falls back to Host
-function getMarketFromRequest(req: Request): string {
+export function getMarketFromRequest(req: Request): string {
   // 1. Query param (e.g. ?market=fr) — useful for manual overrides and testing
   const queryMarket = req.query?.market as string | undefined;
   if (queryMarket && ['ro', 'com', 'fr'].includes(queryMarket)) return queryMarket;

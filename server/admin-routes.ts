@@ -11,7 +11,7 @@ import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
 import { upload, processImages, serveUploads, deleteUploadedFile } from "./upload-middleware";
-import { loadAllDataIntoMemory, refreshMarketCaches } from "./routes";
+import { loadAllDataIntoMemory, refreshMarketCaches, applyVolumeDiscount, applyMarketOverlay, marketSettingsMap } from "./routes";
 import multer from "multer";
 import { readScheduleConfig, writeScheduleConfig } from "./blog-schedule-config";
 import { restartBlogScheduler } from "./blog-scheduler";
@@ -1566,6 +1566,130 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("Error accepting order:", error);
       res.status(500).json({ success: false, message: "Failed to accept order" });
+    }
+  });
+
+  // ─── Product options for manual order creation (mirrors site availability) ──
+  app.get("/admin/api/orders/product-options", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const market = ['ro', 'com', 'fr'].includes(String(req.query.market)) ? String(req.query.market) : 'ro';
+      if (!canAccessMarket(req, market)) {
+        return res.status(403).json({ success: false, message: 'Access denied for this market' });
+      }
+      const allProducts = await storage.getProducts();
+      const options = [];
+      for (const product of allProducts) {
+        const productActive = (product as any).status === 'active' || (product as any).isActive === true;
+        if (!productActive) continue;
+        const effective = applyMarketOverlay(product, market);
+        if (!effective) continue; // disabled for this market
+        options.push({
+          id: product.id,
+          name: product.name,
+          price: effective.price,
+          currency: effective.currency,
+          volumeDiscounts: (product as any).volumeDiscounts || [],
+        });
+      }
+      res.json(options);
+    } catch (error) {
+      console.error('Error fetching product options:', error);
+      res.status(500).json({ success: false, message: 'Eroare la încărcarea produselor' });
+    }
+  });
+
+  // ─── Create order manually from admin (same pricing rules as site checkout) ──
+  app.post("/admin/api/orders/create-manual", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const { market, items, shippingAddress, billingAddress, paymentMethod, notes, email, phone } = req.body || {};
+
+      const orderMarket = ['ro', 'com', 'fr'].includes(market) ? market : 'ro';
+      if (!canAccessMarket(req, orderMarket)) {
+        return res.status(403).json({ success: false, message: 'Access denied for this market' });
+      }
+      if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ success: false, message: 'Comanda trebuie să conțină cel puțin un produs' });
+      }
+      if (!shippingAddress?.firstName || !shippingAddress?.lastName) {
+        return res.status(400).json({ success: false, message: 'Numele și prenumele clientului sunt obligatorii' });
+      }
+      if (!email && !shippingAddress?.email) {
+        return res.status(400).json({ success: false, message: 'Emailul clientului este obligatoriu' });
+      }
+
+      // Server-side price validation — identical rules to site checkout:
+      // active product check, market overlay, volume discounts.
+      const validatedItems = [];
+      for (const item of items) {
+        const quantity = parseInt(String(item.quantity), 10);
+        if (isNaN(quantity) || quantity < 1 || quantity > 9999) {
+          return res.status(400).json({ success: false, message: `Cantitate invalidă pentru produsul #${item.productId}` });
+        }
+        const product = await storage.getProduct(parseInt(String(item.productId), 10));
+        if (!product) {
+          return res.status(400).json({ success: false, message: `Produsul #${item.productId} nu există` });
+        }
+        const productActive = (product as any).status === 'active' || (product as any).isActive === true;
+        if (!productActive) {
+          return res.status(400).json({ success: false, message: `Produsul "${product.name}" nu este activ` });
+        }
+        const effectiveProduct = applyMarketOverlay(product, orderMarket);
+        if (!effectiveProduct) {
+          return res.status(400).json({ success: false, message: `Produsul "${product.name}" nu este disponibil pe piața ${orderMarket.toUpperCase()}` });
+        }
+        const unitPrice = applyVolumeDiscount(parseFloat(effectiveProduct.price), quantity, (product as any).volumeDiscounts);
+        validatedItems.push({
+          productId: product.id,
+          quantity,
+          price: unitPrice.toFixed(2),
+          totalPrice: (unitPrice * quantity).toFixed(2),
+        });
+      }
+
+      const subtotal = validatedItems.reduce((sum, it) => sum + parseFloat(it.price) * it.quantity, 0);
+
+      // Shipping — same market-specific thresholds as site checkout
+      const companySettingsData = await storage.getCompanySettings();
+      const marketSetting = marketSettingsMap.get(orderMarket);
+      const freeShippingThreshold = marketSetting?.freeShippingThreshold
+        ? parseFloat(marketSetting.freeShippingThreshold)
+        : (companySettingsData?.freeShippingThreshold ? parseFloat(companySettingsData.freeShippingThreshold) : 500);
+      const standardShippingCost = marketSetting?.standardShippingCost
+        ? parseFloat(marketSetting.standardShippingCost)
+        : (companySettingsData?.standardShippingCost ? parseFloat(companySettingsData.standardShippingCost) : 25);
+      const shippingCost = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
+      const totalAmount = subtotal + shippingCost;
+
+      const customerEmail = email || shippingAddress?.email || '';
+      const adminName = req.admin?.username || req.admin?.email || 'admin';
+      let orderNotes = `Comandă creată manual din admin de ${adminName}`;
+      if (customerEmail) orderNotes += `\nGuest email: ${customerEmail}${phone ? ', Phone: ' + phone : ''}`;
+      if (notes) orderNotes += `\n${notes}`;
+
+      const orderData: any = {
+        userId: null,
+        market: orderMarket,
+        status: 'pending',
+        totalAmount: totalAmount.toFixed(2),
+        shippingCost: shippingCost.toFixed(2),
+        shippingAddress: { ...shippingAddress, email: customerEmail, phone: phone || shippingAddress?.phone },
+        billingAddress: billingAddress && Object.keys(billingAddress).length > 0 ? billingAddress : shippingAddress,
+        paymentMethod: paymentMethod || 'cash_on_delivery',
+        paymentStatus: 'pending',
+        notes: orderNotes,
+      };
+
+      const order = await storage.createOrder(orderData, validatedItems as any);
+      console.log(`📝 [Admin] Manual order #${order.id} created on market ${orderMarket} by ${adminName} — total ${totalAmount.toFixed(2)}`);
+
+      res.json({
+        success: true,
+        message: `Comanda #${order.id} a fost creată (subtotal ${subtotal.toFixed(2)}, transport ${shippingCost.toFixed(2)}, total ${totalAmount.toFixed(2)})`,
+        order,
+      });
+    } catch (error) {
+      console.error('Error creating manual order:', error);
+      res.status(500).json({ success: false, message: 'Eroare la crearea comenzii' });
     }
   });
 
