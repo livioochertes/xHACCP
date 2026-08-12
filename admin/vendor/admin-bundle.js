@@ -13818,6 +13818,39 @@ Failed: ${result.failed}`);
         return { success: false, message: "Network error" };
       }
     };
+    const processManualOrder = async (orderId) => {
+      try {
+        const response = await fetch(`/admin/api/orders/${orderId}/process-manual`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          fetchOrders();
+          alert("\u{1F590} Procesare manuala pornita pentru comanda #" + orderId + "\n\nAWB + factura se genereaza in fundal. Fara mailuri trimise.\nRefresh dupa cateva secunde.");
+        } else {
+          alert("\u274C Eroare: " + (data.message || "Procesare manuala esuata"));
+        }
+      } catch (err) {
+        alert("\u274C Eroare retea la procesarea manuala");
+      }
+    };
+    const sendAcceptanceEmailFn = async (orderId) => {
+      try {
+        const response = await fetch(`/admin/api/orders/${orderId}/send-acceptance-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          alert("\u2705 " + data.message);
+        } else {
+          alert("\u274C Eroare: " + (data.message || "Trimitere esuata"));
+        }
+      } catch (err) {
+        alert("\u274C Eroare retea la trimiterea mailului");
+      }
+    };
     const performBulkOperation = async (operation, orderIds, data = {}) => {
       try {
         let endpoint = "";
@@ -14396,12 +14429,15 @@ Failed: ${result.failed}`);
                     parseFloat(order.totalAmount).toFixed(2),
                     " lei"
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
-                    padding: "4px 8px",
-                    borderRadius: "4px",
-                    backgroundColor: order.status === "pending" ? "#fff3cd" : order.status === "accepted" ? "#d1ecf1" : order.status === "processing" ? "#cce5ff" : order.status === "shipped" ? "#d4edda" : order.status === "in_delivery" ? "#d4f4f4" : order.status === "delivered" ? "#d4edda" : order.status === "cancelled" ? "#f8d7da" : "#e2e3e5",
-                    color: order.status === "pending" ? "#856404" : order.status === "accepted" ? "#0c5460" : order.status === "processing" ? "#0056b3" : order.status === "shipped" ? "#155724" : order.status === "in_delivery" ? "#0e7c7b" : order.status === "delivered" ? "#155724" : order.status === "cancelled" ? "#721c24" : "#383d41"
-                  }, children: order.status === "in_delivery" ? "In Delivery" : order.status === "cash_on_delivery" ? "COD" : order.status }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      backgroundColor: order.status === "pending" ? "#fff3cd" : order.status === "accepted" ? "#d1ecf1" : order.status === "processing" ? "#cce5ff" : order.status === "shipped" ? "#d4edda" : order.status === "in_delivery" ? "#d4f4f4" : order.status === "delivered" ? "#d4edda" : order.status === "cancelled" ? "#f8d7da" : order.status === "manual_processing" ? "#fff0d6" : order.status === "manual_failed" ? "#f8d7da" : "#e2e3e5",
+                      color: order.status === "pending" ? "#856404" : order.status === "accepted" ? "#0c5460" : order.status === "processing" ? "#0056b3" : order.status === "shipped" ? "#155724" : order.status === "in_delivery" ? "#0e7c7b" : order.status === "delivered" ? "#155724" : order.status === "cancelled" ? "#721c24" : order.status === "manual_processing" ? "#8a4a00" : order.status === "manual_failed" ? "#7a1a1a" : "#383d41"
+                    }, children: order.status === "in_delivery" ? "In Delivery" : order.status === "manual_processing" ? "\u23F3 Manual..." : order.status === "manual_failed" ? "\u274C Manual e\u0219uat" : order.status === "cash_on_delivery" ? "COD" : order.status }),
+                    order.source === "manual_admin" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { display: "inline-block", marginLeft: "4px", padding: "2px 5px", borderRadius: "3px", backgroundColor: "#fd7e14", color: "white", fontSize: "10px", fontWeight: "bold", verticalAlign: "middle" }, title: "Comanda procesata manual de admin", children: "\u{1F590} Manual" })
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: new Date(order.createdAt).toLocaleDateString() }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px", flexWrap: "wrap" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -14460,6 +14496,30 @@ This will:
                         children: "\u2705 Accept"
                       }
                     ),
+                    order.status === "pending" && !order.awbNumber && order.source !== "manual_admin" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#e67e22", color: "white", cursor: "pointer", fontSize: "12px" },
+                        onClick: () => {
+                          if (confirm("\u{1F590} Procesare manuala comanda #" + order.id + "\n\nVa genera AWB + factura\nFara mailuri trimise.\n\nContinui?")) {
+                            processManualOrder(order.id);
+                          }
+                        },
+                        children: "\u{1F590} Manual"
+                      }
+                    ),
+                    order.source === "manual_admin" && order.status === "manual_failed" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#dc3545", color: "white", cursor: "pointer", fontSize: "12px" },
+                        onClick: () => {
+                          if (confirm("\u{1F504} Re\xEEncearc\u0103 procesarea manual\u0103 pentru comanda #" + order.id + "?\n\nVa relua generarea AWB/facturii (cele deja existente NU se duplic\u0103).")) {
+                            processManualOrder(order.id);
+                          }
+                        },
+                        children: "\u{1F504} Retry Manual"
+                      }
+                    ),
                     !["delivered", "cancelled"].includes(order.status) && (!order.awbNumber || order.awbNumber.includes("-API") || order.awbNumber.includes("-MANUAL-")) && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                       "button",
                       {
@@ -14490,6 +14550,18 @@ This will:
                         },
                         onClick: () => window.open(`https://sameday.ro/status-colet/?awb=${order.awbNumber}`, "_blank"),
                         children: "\u{1F4E6} Track Package"
+                      }
+                    ),
+                    order.awbNumber && !order.awbNumber.includes("-API") && !order.awbNumber.includes("-MANUAL-") && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#20c997", color: "white", cursor: "pointer", fontSize: "12px" },
+                        onClick: () => {
+                          if (confirm("\u2709\uFE0F Trimite mail acceptare comanda #" + order.id + "?\n\nVa trimite mailul cu AWB atasat catre client.")) {
+                            sendAcceptanceEmailFn(order.id);
+                          }
+                        },
+                        children: "\u2709\uFE0F Mail AWB"
                       }
                     ),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(

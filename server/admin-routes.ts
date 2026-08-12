@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "./storage";
 import { db, pool } from "./db";
-import { companySettings, suppliers, productMarkets } from "@shared/schema";
+import { companySettings, suppliers, productMarkets, invoices } from "@shared/schema";
 import { desc, eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -1242,7 +1242,7 @@ export async function registerAdminRoutes(app: Express) {
       const orderId = parseInt(req.params.id);
       const { status } = req.body;
       
-      const validStatuses = ['pending', 'processing', 'shipped', 'in_delivery', 'delivered', 'cancelled', 'accepted'];
+      const validStatuses = ['pending', 'processing', 'shipped', 'in_delivery', 'delivered', 'cancelled', 'accepted', 'manual_processing', 'manual_failed'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
@@ -1281,11 +1281,19 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(403).json({ success: false, message: 'Access denied for this market' });
       }
 
-      if (order.status === 'processing' || order.status === 'shipped' || order.status === 'in_delivery' || order.status === 'delivered') {
+      if (order.status === 'processing' || order.status === 'accepted' || order.status === 'shipped' || order.status === 'in_delivery' || order.status === 'delivered') {
         return res.status(400).json({ success: false, message: 'Order has already been processed' });
       }
 
+      // Atomic conditional claim: rejects if manual processing has already claimed this order.
+      // storage.acceptOrder uses a WHERE (source IS NULL OR source = 'website') clause.
       const updatedOrder = await storage.acceptOrder(orderId);
+      if (!updatedOrder) {
+        return res.status(409).json({
+          success: false,
+          message: 'Comanda a fost deja preluată pentru procesare manuală și nu poate fi acceptată automat.',
+        });
+      }
 
       res.json({
         success: true,
@@ -1558,6 +1566,305 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("Error accepting order:", error);
       res.status(500).json({ success: false, message: "Failed to accept order" });
+    }
+  });
+
+  // ─── Process order manually (AWB + invoice, NO emails) ───────────────────
+  app.post("/admin/api/orders/:id/process-manual", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) return res.status(400).json({ success: false, message: 'Invalid order ID' });
+
+      // First, a lightweight read for market access check only
+      const orderPrecheck = await storage.getOrder(orderId);
+      if (!orderPrecheck) return res.status(404).json({ success: false, message: 'Order not found' });
+
+      if (!canAccessMarket(req, orderPrecheck.market || 'ro')) {
+        return res.status(403).json({ success: false, message: 'Access denied for this market' });
+      }
+
+      // ATOMIC CLAIM using a conditional UPDATE as a distributed lock.
+      // Status lifecycle: pending → manual_processing (in-flight) → processing (success) / manual_failed (failure)
+      // Retry is only allowed from 'manual_failed' (explicit failed state, NOT in-flight).
+      // Accept uses a symmetric conditional UPDATE excluding source='manual_admin',
+      // so both flows cannot simultaneously claim the same order.
+      const claimResult = await pool.query(
+        `UPDATE orders
+            SET source = 'manual_admin', status = 'manual_processing', updated_at = NOW()
+          WHERE id = $1
+            AND (
+              -- New claim: pending, not yet manual, no AWB exists
+              (status = 'pending' AND (source IS NULL OR source = 'website') AND awb_number IS NULL)
+              OR
+              -- Retry: explicitly failed (AWB may already exist — background job skips AWB if present,
+              -- so retry can complete a partial failure such as invoice-failed/AWB-succeeded)
+              (source = 'manual_admin' AND status = 'manual_failed')
+            )
+          RETURNING id`,
+        [orderId]
+      );
+
+      if (claimResult.rowCount === 0) {
+        const cur = await storage.getOrder(orderId);
+        if (!cur) return res.status(404).json({ success: false, message: 'Order not found' });
+        if ((cur as any).source === 'manual_admin' && cur.status === 'manual_processing') {
+          return res.status(409).json({ success: false, message: 'Comanda este deja în curs de procesare manuală. Asteaptă finalizarea sau reîncercă după eșec.' });
+        }
+        return res.status(409).json({
+          success: false,
+          message: `Nu se poate procesa manual — status curent: "${cur.status}". Doar comenzile "pending" (sau cele care au eșuat anterior) pot fi procesate manual.`,
+        });
+      }
+
+      // Claim succeeded — fetch the fresh order snapshot for the background job
+      const order = await storage.getOrder(orderId);
+      if (!order) return res.status(500).json({ success: false, message: 'Order vanished after claim' });
+
+      res.json({ success: true, message: 'Procesare manuală pornită (AWB + factură). Fără mailuri trimise.' });
+
+      // Background: invoice + AWB, no emails.
+      // Uses status lifecycle: manual_processing → processing (success) / manual_failed (any failure).
+      (async () => {
+        let invoiceOk = false;
+        let awbOk = false;
+        const isCOD = order.paymentMethod === 'cash_on_delivery' || order.paymentMethod === 'cod' || order.paymentMethod === 'cash';
+        try {
+          console.log(`🖐 [Manual] Processing order #${orderId} manually...`);
+
+          // ── Invoice ──────────────────────────────────────────────────────────
+          // Guard against duplicates: check DB before calling invoice service.
+          // Invoice service internally changes status to 'processing'; we re-assert
+          // 'manual_processing' immediately after so AWB failure still lands in 'manual_failed'.
+          try {
+            const existingInvoices = await db.select().from(invoices).where(eq(invoices.orderId, orderId)).limit(1);
+            if (existingInvoices.length > 0) {
+              console.log(`ℹ️ [Manual] Invoice already exists for order #${orderId}: ${existingInvoices[0].invoiceNumber} — skipping`);
+              invoiceOk = true;
+            } else {
+              const { createInvoiceService } = await import('./invoice-service.js');
+              const invoiceService = await createInvoiceService();
+              await invoiceService.generateInvoiceAfterPayment(orderId, {
+                status: 'succeeded',
+                paymentMethod: isCOD ? 'cash_on_delivery' : (order.paymentMethod || 'card'),
+                paymentId: `manual_${orderId}`,
+                amount: parseFloat(String(order.totalAmount)),
+              });
+              console.log(`✅ [Manual] Invoice generated for order #${orderId}`);
+              invoiceOk = true;
+            }
+            // Re-assert manual_processing: invoice service may have changed status to 'processing'.
+            // We keep it as manual_processing until AWB is also done (or fails) so that the
+            // final status is set atomically by this flow, not by invoice side-effects.
+            await pool.query(
+              `UPDATE orders SET status = 'manual_processing', updated_at = NOW()
+                WHERE id = $1 AND source = 'manual_admin' AND status != 'manual_failed'`,
+              [orderId]
+            );
+          } catch (invoiceError) {
+            console.error(`❌ [Manual] Invoice failed for order #${orderId}:`, invoiceError);
+            // invoice failed; invoiceOk stays false
+          }
+
+          // ── AWB ──────────────────────────────────────────────────────────────
+          if ((order.market || 'ro') !== 'fr') {
+            try {
+              const shippingAddr = order.shippingAddress as any;
+              const billingAddr  = order.billingAddress  as any;
+              const { createSamedayAPI } = await import('./sameday-api');
+              const samedayAPI = createSamedayAPI();
+              if (samedayAPI) {
+                const currentOrder = await storage.getOrder(orderId);
+                if (currentOrder && !currentOrder.awbNumber) {
+                  const [pickupPoints, services] = await Promise.all([
+                    samedayAPI.getPickupPoints(),
+                    samedayAPI.getServices(),
+                  ]);
+                  if (pickupPoints.length > 0 && services.length > 0) {
+                    const selectedPickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
+                    const parcels = await buildCombinedParcels(currentOrder.items || [], storage);
+                    const preferredService = services.find((s: any) => {
+                      const name = s.name?.toLowerCase() || '';
+                      if (name.includes('retur') || name.includes('return')) return false;
+                      return name.includes('standard') || name.includes('next day');
+                    });
+                    const standardService = preferredService || services[0];
+                    const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
+                    const isB2B = !!(billingAddr?.companyName);
+                    const awbData: any = {
+                      pickupPoint: selectedPickupPoint.id,
+                      contactPerson: defaultContact?.id,
+                      service: standardService.id,
+                      packageType: 0,
+                      packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
+                      awbPayment: 1,
+                      awbRecipient: {
+                        name: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || shippingAddr?.companyName || 'Customer',
+                        phoneNumber: shippingAddr?.phone || '',
+                        personType: isB2B ? 1 : 0,
+                        ...(isB2B && { companyName: billingAddr.companyName }),
+                        address: shippingAddr?.streetAddress || shippingAddr?.address || '',
+                        countyString: shippingAddr?.state || shippingAddr?.county || '',
+                        cityString: shippingAddr?.city || shippingAddr?.state || shippingAddr?.county || 'N/A',
+                        postalCode: shippingAddr?.zipCode || '',
+                      },
+                      parcels,
+                      thirdPartyPickup: 0,
+                      insuredValue: 0,
+                      cashOnDelivery: isCOD ? parseFloat(String(currentOrder.totalAmount)) : 0,
+                      observation: `Order #${orderId} (manual)`,
+                      clientInternalReference: `order_${orderId}`,
+                    };
+                    // AWB idempotency: before creating at the courier, check if one already
+                    // exists for this order reference. This covers crash-after-courier-create
+                    // scenarios where the AWB was created externally but not yet persisted.
+                    const clientRef = `order_${orderId}`;
+                    const recoveredAwbNumber = await samedayAPI.findAWBByReference(clientRef);
+                    let finalAwbNumber: string | undefined;
+                    let awbCost = '0';
+                    let awbCurrency = 'RON';
+                    if (recoveredAwbNumber) {
+                      console.log(`ℹ️ [Manual] Recovered existing Sameday AWB ${recoveredAwbNumber} for order #${orderId} — skipping create`);
+                      finalAwbNumber = recoveredAwbNumber;
+                    } else {
+                      const awbResult = await samedayAPI.createAWB(awbData);
+                      finalAwbNumber = awbResult?.awbNumber;
+                      awbCost = String(awbResult?.cost || 0);
+                      awbCurrency = awbResult?.currency || 'RON';
+                    }
+                    if (finalAwbNumber) {
+                      awbOk = true;
+                      // Persist AWB fields only. Do NOT set status here —
+                      // terminal status ('processing' / 'manual_failed') is set
+                      // exclusively by the finally block to remain authoritative.
+                      await storage.updateOrder(orderId, {
+                        awbNumber: finalAwbNumber,
+                        awbCost,
+                        awbCurrency,
+                      });
+                      console.log(`✅ [Manual] AWB persisted for order #${orderId}: ${finalAwbNumber}`);
+                    } else {
+                      console.warn(`⚠️ [Manual] AWB result had no number for order #${orderId}`);
+                    }
+                  }
+                } else if (currentOrder?.awbNumber) {
+                  awbOk = true;
+                  console.log(`ℹ️ [Manual] AWB already existed for order #${orderId}: ${currentOrder.awbNumber}`);
+                }
+              }
+            } catch (awbError) {
+              console.error(`❌ [Manual] AWB failed for order #${orderId}:`, awbError);
+            }
+          } else {
+            // FR market: no AWB; treat invoice success as overall success
+            awbOk = invoiceOk;
+            console.log(`ℹ️ [Manual] FR market — AWB skipped for order #${orderId}`);
+          }
+
+        } catch (bgErr) {
+          console.error(`❌ [Manual] Unexpected background error for order #${orderId}:`, bgErr);
+        } finally {
+          // The finally block is the sole authority for terminal order status.
+          // It always runs and always writes, overriding any intermediate status
+          // changes (e.g., invoice service side-effects, AWB partial writes).
+          // This guarantees no unrecoverable intermediate state regardless of
+          // which steps succeeded or failed.
+          const allOk = invoiceOk && awbOk;
+          const terminalStatus = allOk ? 'processing' : 'manual_failed';
+          await pool.query(
+            `UPDATE orders SET status = $2, updated_at = NOW()
+              WHERE id = $1 AND source = 'manual_admin'`,
+            [orderId, terminalStatus]
+          );
+          if (allOk) {
+            console.log(`✅ [Manual] Order #${orderId} marked as processing (invoiceOk=${invoiceOk}, awbOk=${awbOk})`);
+          } else {
+            console.log(`⚠️ [Manual] Order #${orderId} marked as manual_failed (invoiceOk=${invoiceOk}, awbOk=${awbOk}) — retry available`);
+          }
+        }
+      })();
+
+    } catch (error) {
+      console.error("Error in process-manual:", error);
+      res.status(500).json({ success: false, message: "Eroare la procesarea manuală" });
+    }
+  });
+
+  // ─── Resend acceptance/shipment email with AWB ─────────────────────────────
+  app.post("/admin/api/orders/:id/send-acceptance-email", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) return res.status(400).json({ success: false, message: 'Invalid order ID' });
+
+      const order = await storage.getOrder(orderId);
+      if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+      if (!canAccessMarket(req, order.market || 'ro')) {
+        return res.status(403).json({ success: false, message: 'Access denied for this market' });
+      }
+
+      if (!order.awbNumber) {
+        return res.status(400).json({ success: false, message: 'Comanda nu are AWB generat. Generează AWB înainte de a trimite mailul.' });
+      }
+
+      // Resolve customer email
+      const shippingAddr = order.shippingAddress as any;
+      const billingAddr  = order.billingAddress  as any;
+      let customerEmail = shippingAddr?.email || billingAddr?.email || '';
+      if (!customerEmail && order.userId) {
+        const user = await storage.getUser(order.userId);
+        customerEmail = user?.email || '';
+      }
+      if (!customerEmail) {
+        const m = order.notes?.match(/Guest email:\s*([^\s,]+)/);
+        customerEmail = m ? m[1] : '';
+      }
+      if (!customerEmail) {
+        return res.status(400).json({ success: false, message: 'Nu am găsit adresa de email a clientului.' });
+      }
+
+      const awbNumber = order.awbNumber;
+
+      // Fetch AWB PDF
+      let awbPdfBuffer: Buffer | undefined;
+      try {
+        const { createSamedayAPI } = await import('./sameday-api');
+        const samedayAPI = createSamedayAPI();
+        if (samedayAPI) {
+          awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
+        }
+      } catch (pdfErr) {
+        console.warn(`⚠️ [SendEmail] Could not fetch AWB PDF for order #${orderId}:`, pdfErr);
+      }
+
+      // Fetch invoice PDF if available
+      let invoicePdfBuffer: Buffer | null = null;
+      let invoiceNumber: string | undefined;
+      try {
+        const orderInvoices = await db.select().from(invoices).where(eq(invoices.orderId, orderId)).limit(1);
+        if (orderInvoices.length > 0) {
+          const inv = orderInvoices[0];
+          invoiceNumber = inv.invoiceNumber;
+          const { createInvoiceService } = await import('./invoice-service.js');
+          const invoiceService = await createInvoiceService();
+          invoicePdfBuffer = await invoiceService.getInvoicePdf(inv.id);
+        }
+      } catch (invErr) {
+        console.warn(`⚠️ [SendEmail] Could not fetch invoice PDF for order #${orderId}:`, invErr);
+      }
+
+      const { sendCustomerShipmentEmail } = await import('./email-service');
+      const sent = await sendCustomerShipmentEmail(customerEmail, order, awbNumber, invoicePdfBuffer, invoiceNumber, awbPdfBuffer);
+
+      if (sent) {
+        console.log(`✅ [SendEmail] Acceptance email sent to ${customerEmail} for order #${orderId}`);
+        res.json({ success: true, message: `Mail de acceptare trimis la ${customerEmail}` });
+      } else {
+        res.status(500).json({ success: false, message: 'Trimiterea mailului a eșuat. Verifică configurarea SendGrid.' });
+      }
+
+    } catch (error) {
+      console.error("Error in send-acceptance-email:", error);
+      res.status(500).json({ success: false, message: "Eroare la trimiterea mailului" });
     }
   });
 

@@ -1202,7 +1202,8 @@ export async function sendCustomerShipmentEmail(
   order: OrderWithItems,
   awbNumber: string,
   invoicePdfBuffer?: Buffer | null,
-  invoiceNumber?: string
+  invoiceNumber?: string,
+  awbPdfBuffer?: Buffer | null
 ): Promise<boolean> {
   if (!mailService || !VERIFIED_SENDER) {
     console.warn("Email service not configured. Skipping customer shipment email.");
@@ -1333,6 +1334,14 @@ export async function sendCustomerShipmentEmail(
   };
 
   const attachments: any[] = [];
+  if (awbPdfBuffer && awbPdfBuffer.length > 0) {
+    attachments.push({
+      content: awbPdfBuffer.toString('base64'),
+      filename: `AWB_${awbNumber}.pdf`,
+      type: 'application/pdf',
+      disposition: 'attachment',
+    });
+  }
   if (invoicePdfBuffer && invoicePdfBuffer.length > 0) {
     attachments.push({
       content: invoicePdfBuffer.toString('base64'),

@@ -112,7 +112,7 @@ export interface IStorage {
   createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order>;
   updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order>;
-  acceptOrder(id: number): Promise<Order>;
+  acceptOrder(id: number): Promise<Order | null>;
   linkGuestOrdersToUser(email: string, userId: number): Promise<number>;
 
   // Cart operations
@@ -657,6 +657,7 @@ export class DatabaseStorage implements IStorage {
         awbTrackingUrl: orders.awbTrackingUrl,
         awbCreatedAt: orders.awbCreatedAt,
         estimatedDelivery: orders.estimatedDelivery,
+        source: orders.source,
         createdAt: orders.createdAt,
         updatedAt: orders.updatedAt,
         items: sql`
@@ -717,6 +718,7 @@ export class DatabaseStorage implements IStorage {
         awbTrackingUrl: orders.awbTrackingUrl,
         awbCreatedAt: orders.awbCreatedAt,
         estimatedDelivery: orders.estimatedDelivery,
+        source: orders.source,
         createdAt: orders.createdAt,
         updatedAt: orders.updatedAt,
         items: sql`
@@ -781,13 +783,20 @@ export class DatabaseStorage implements IStorage {
     return updatedOrder;
   }
 
-  async acceptOrder(id: number): Promise<Order> {
+  async acceptOrder(id: number): Promise<Order | null> {
+    // Conditional claim: only succeeds when the order has NOT been claimed by manual processing.
+    // This makes Accept and Manual mutually exclusive — the first one atomically wins.
     const [updatedOrder] = await db
       .update(orders)
       .set({ status: 'processing', updatedAt: new Date() })
-      .where(eq(orders.id, id))
+      .where(
+        and(
+          eq(orders.id, id),
+          sql`(source IS NULL OR source = 'website')`
+        )
+      )
       .returning();
-    return updatedOrder;
+    return updatedOrder || null;
   }
 
   async linkGuestOrdersToUser(email: string, userId: number): Promise<number> {

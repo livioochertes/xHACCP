@@ -132,7 +132,28 @@ app.use((req, res, next) => {
 
   // Start automated blog post generation (every Monday at 08:00 Bucharest)
   startBlogScheduler();
-  
+
+  // ── Startup recovery: stale manual_processing orders ─────────────────────
+  // If the process was killed while a manual background job was running, the
+  // order may be stuck in 'manual_processing' with no further progress.
+  // Reset them to 'manual_failed' so admins can safely retry.
+  // This also covers a failed terminal-status write in the finally block.
+  try {
+    const { pool } = await import('./db');
+    const recovered = await pool.query(
+      `UPDATE orders
+          SET status = 'manual_failed', updated_at = NOW()
+        WHERE source = 'manual_admin' AND status = 'manual_processing'
+        RETURNING id`
+    );
+    if (recovered.rowCount && recovered.rowCount > 0) {
+      const ids = recovered.rows.map((r: any) => r.id).join(', ');
+      console.log(`🔄 [Startup] Recovered ${recovered.rowCount} stale manual_processing order(s) → manual_failed: ${ids}`);
+    }
+  } catch (recoveryErr) {
+    console.error('[Startup] Manual-processing recovery failed (non-fatal):', recoveryErr);
+  }
+
   try {
     if (app.get("env") === "development") {
       await seedDatabase();

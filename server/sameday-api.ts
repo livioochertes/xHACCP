@@ -335,6 +335,30 @@ export class SamedayAPI {
   async trackAWB(awbNumber: string): Promise<any> {
     return this.apiRequest(`/api/awb/${awbNumber}/status-history`);
   }
+
+  /**
+   * Attempt to recover an existing AWB number by clientInternalReference.
+   * Sameday supports GET /api/awb with optional clientInternalReference filter.
+   * Returns the awbNumber if found, null otherwise.
+   * Used to provide idempotency on retry: if a previous attempt created an AWB
+   * at the courier but crashed before we persisted the number, this recovers it.
+   */
+  async findAWBByReference(clientInternalReference: string): Promise<string | null> {
+    try {
+      const result = await this.apiRequest<{ data?: Array<{ awbNumber?: string }> }>(
+        `/api/awb?clientInternalReference=${encodeURIComponent(clientInternalReference)}&perPage=1`
+      );
+      const awbNumber = result?.data?.[0]?.awbNumber;
+      if (awbNumber) {
+        console.log(`🔍 [Sameday] Found existing AWB by reference "${clientInternalReference}": ${awbNumber}`);
+        return awbNumber;
+      }
+    } catch (err) {
+      // If the provider doesn't support this query, ignore — caller will proceed to create
+      console.warn(`⚠️ [Sameday] findAWBByReference failed (provider may not support filter): ${err}`);
+    }
+    return null;
+  }
 }
 
 let samedayInstance: SamedayAPI | null = null;

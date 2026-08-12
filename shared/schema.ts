@@ -185,6 +185,7 @@ export const orders = pgTable("orders", {
   awbTrackingUrl: text("awb_tracking_url"),
   awbCreatedAt: timestamp("awb_created_at"),
   estimatedDelivery: timestamp("estimated_delivery"),
+  source: varchar("source", { length: 50 }).default("website"), // 'website' | 'manual_admin'
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -222,7 +223,7 @@ export const reviews = pgTable("reviews", {
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   invoiceNumber: varchar("invoice_number", { length: 100 }).notNull().unique(),
-  orderId: integer("order_id").references(() => orders.id),
+  orderId: integer("order_id").references(() => orders.id).unique(),
   userId: integer("user_id").references(() => users.id),
   issueDate: timestamp("issue_date").defaultNow().notNull(),
   supplyDate: timestamp("supply_date"),

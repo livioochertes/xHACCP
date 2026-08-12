@@ -1877,6 +1877,41 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         }
       };
 
+      const processManualOrder = async (orderId) => {
+        try {
+          const response = await fetch(`/admin/api/orders/${orderId}/process-manual`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (response.ok && data.success) {
+            fetchOrders();
+            alert('🖐 Procesare manuala pornita pentru comanda #' + orderId + '\n\nAWB + factura se genereaza in fundal. Fara mailuri trimise.\nRefresh dupa cateva secunde.');
+          } else {
+            alert('❌ Eroare: ' + (data.message || 'Procesare manuala esuata'));
+          }
+        } catch (err) {
+          alert('❌ Eroare retea la procesarea manuala');
+        }
+      };
+
+      const sendAcceptanceEmailFn = async (orderId) => {
+        try {
+          const response = await fetch(`/admin/api/orders/${orderId}/send-acceptance-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (response.ok && data.success) {
+            alert('✅ ' + data.message);
+          } else {
+            alert('❌ Eroare: ' + (data.message || 'Trimitere esuata'));
+          }
+        } catch (err) {
+          alert('❌ Eroare retea la trimiterea mailului');
+        }
+      };
+
       const performBulkOperation = async (operation, orderIds, data = {}) => {
         try {
           let endpoint = '';
@@ -2510,17 +2545,20 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                                 order.status === 'shipped' ? '#d4edda' : 
                                                 order.status === 'in_delivery' ? '#d4f4f4' : 
                                                 order.status === 'delivered' ? '#d4edda' : 
-                                                order.status === 'cancelled' ? '#f8d7da' : '#e2e3e5',
+                                                order.status === 'cancelled' ? '#f8d7da' : order.status === 'manual_processing' ? '#fff0d6' : order.status === 'manual_failed' ? '#f8d7da' : '#e2e3e5',
                                 color: order.status === 'pending' ? '#856404' : 
                                        order.status === 'accepted' ? '#0c5460' : 
                                        order.status === 'processing' ? '#0056b3' : 
                                        order.status === 'shipped' ? '#155724' : 
                                        order.status === 'in_delivery' ? '#0e7c7b' : 
                                        order.status === 'delivered' ? '#155724' : 
-                                       order.status === 'cancelled' ? '#721c24' : '#383d41'
+                                       order.status === 'cancelled' ? '#721c24' : order.status === 'manual_processing' ? '#8a4a00' : order.status === 'manual_failed' ? '#7a1a1a' : '#383d41'
                               }}>
-                                {order.status === 'in_delivery' ? 'In Delivery' : order.status === 'cash_on_delivery' ? 'COD' : order.status}
+                                {order.status === 'in_delivery' ? 'In Delivery' : order.status === 'manual_processing' ? '⏳ Manual...' : order.status === 'manual_failed' ? '❌ Manual eșuat' : order.status === 'cash_on_delivery' ? 'COD' : order.status}
                               </span>
+                              {order.source === 'manual_admin' && (
+                                <span style={{display:'inline-block',marginLeft:'4px',padding:'2px 5px',borderRadius:'3px',backgroundColor:'#fd7e14',color:'white',fontSize:'10px',fontWeight:'bold',verticalAlign:'middle'}} title="Comanda procesata manual de admin">🖐 Manual</span>
+                              )}
                             </td>
                             <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>{new Date(order.createdAt).toLocaleDateString()}</td>
                             <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>
@@ -2573,6 +2611,26 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                     ✅ Accept
                                   </button>
                                 )}
+                                {order.status === 'pending' && !order.awbNumber && order.source !== 'manual_admin' && (
+                                  <button
+                                    style={{padding:'4px 8px',border:'none',borderRadius:'3px',backgroundColor:'#e67e22',color:'white',cursor:'pointer',fontSize:'12px'}}
+                                    onClick={() => {
+                                      if (confirm('🖐 Procesare manuala comanda #' + order.id + '\n\nVa genera AWB + factura\nFara mailuri trimise.\n\nContinui?')) {
+                                        processManualOrder(order.id);
+                                      }
+                                    }}
+                                  >🖐 Manual</button>
+                                )}
+                                {order.source === 'manual_admin' && order.status === 'manual_failed' && (
+                                  <button
+                                    style={{padding:'4px 8px',border:'none',borderRadius:'3px',backgroundColor:'#dc3545',color:'white',cursor:'pointer',fontSize:'12px'}}
+                                    onClick={() => {
+                                      if (confirm('🔄 Reîncearcă procesarea manuală pentru comanda #' + order.id + '?\n\nVa relua generarea AWB/facturii (cele deja existente NU se duplică).')) {
+                                        processManualOrder(order.id);
+                                      }
+                                    }}
+                                  >🔄 Retry Manual</button>
+                                )}
                                 {!['delivered','cancelled'].includes(order.status) && (!order.awbNumber || order.awbNumber.includes('-API') || order.awbNumber.includes('-MANUAL-')) && (
                                   <button 
                                     style={{
@@ -2604,6 +2662,16 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                   >
                                     📦 Track Package
                                   </button>
+                                )}
+                                {order.awbNumber && !order.awbNumber.includes('-API') && !order.awbNumber.includes('-MANUAL-') && (
+                                  <button
+                                    style={{padding:'4px 8px',border:'none',borderRadius:'3px',backgroundColor:'#20c997',color:'white',cursor:'pointer',fontSize:'12px'}}
+                                    onClick={() => {
+                                      if (confirm('✉️ Trimite mail acceptare comanda #' + order.id + '?\n\nVa trimite mailul cu AWB atasat catre client.')) {
+                                        sendAcceptanceEmailFn(order.id);
+                                      }
+                                    }}
+                                  >✉️ Mail AWB</button>
                                 )}
                                 <button 
                                   style={{
