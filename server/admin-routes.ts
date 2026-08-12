@@ -1234,7 +1234,14 @@ export async function registerAdminRoutes(app: Express) {
           volumeDiscounts: (product as any).volumeDiscounts || [],
         });
       }
-      res.json(options);
+      // Shipping settings for the market — same source as site checkout
+      const cs = await storage.getCompanySettings();
+      const ms = marketSettingsMap.get(market);
+      const shipping = {
+        freeShippingThreshold: ms?.freeShippingThreshold ? parseFloat(ms.freeShippingThreshold) : (cs?.freeShippingThreshold ? parseFloat(cs.freeShippingThreshold) : 500),
+        standardShippingCost: ms?.standardShippingCost ? parseFloat(ms.standardShippingCost) : (cs?.standardShippingCost ? parseFloat(cs.standardShippingCost) : 25),
+      };
+      res.json({ products: options, shipping });
     } catch (error) {
       console.error('Error fetching product options:', error);
       res.status(500).json({ success: false, message: 'Eroare la încărcarea produselor' });

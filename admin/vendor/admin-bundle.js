@@ -18467,6 +18467,7 @@ Cordialement,`
       const initialMarket = marketFilter && marketFilter !== "all" ? marketFilter : "ro";
       const [aoMarket, setAoMarket] = (0, import_react13.useState)(initialMarket);
       const [aoProducts, setAoProducts] = (0, import_react13.useState)([]);
+      const [aoShipping, setAoShipping] = (0, import_react13.useState)({ freeShippingThreshold: 500, standardShippingCost: 25 });
       const [aoLoading, setAoLoading] = (0, import_react13.useState)(false);
       const [aoSubmitting, setAoSubmitting] = (0, import_react13.useState)(false);
       const [aoItems, setAoItems] = (0, import_react13.useState)([{ productId: "", quantity: 1 }]);
@@ -18495,7 +18496,14 @@ Cordialement,`
               headers: { "Authorization": `Bearer ${token}` }
             });
             const data = await resp.json();
-            if (!cancelled && resp.ok && Array.isArray(data)) setAoProducts(data);
+            if (!cancelled && resp.ok) {
+              if (Array.isArray(data)) {
+                setAoProducts(data);
+              } else if (data && Array.isArray(data.products)) {
+                setAoProducts(data.products);
+                if (data.shipping) setAoShipping(data.shipping);
+              }
+            }
           } catch (e2) {
             console.error("AddOrder products fetch failed:", e2);
           }
@@ -18685,15 +18693,49 @@ Cordialement,`
           ] }, idx);
         }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setAoItems((items) => [...items, { productId: "", quantity: 1 }]), style: { marginBottom: "16px", padding: "6px 12px", border: "1px dashed #28a745", background: "none", color: "#28a745", borderRadius: "4px", cursor: "pointer", fontSize: "13px" }, children: "+ Adaug\u0103 produs" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "10px", background: "#f0f8f0", borderRadius: "6px", marginBottom: "16px", fontSize: "13px" }, children: [
-          "Subtotal estimat: ",
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { children: [
-            subtotal.toFixed(2),
-            " ",
-            currency
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#888", marginLeft: "8px", fontSize: "11px" }, children: "(transportul \u0219i totalul final se calculeaz\u0103 pe server, dup\u0103 acelea\u0219i reguli ca pe site)" })
-        ] }),
+        (() => {
+          const shippingCost = subtotal > aoShipping.freeShippingThreshold ? 0 : aoShipping.standardShippingCost;
+          const total = subtotal + (subtotal > 0 ? shippingCost : 0);
+          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "12px 14px", background: "#f0f8f0", borderRadius: "6px", marginBottom: "16px", fontSize: "13px", border: "1px solid #d4edda" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "4px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "Subtotal produse:" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { children: [
+                subtotal.toFixed(2),
+                " ",
+                currency
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "4px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                "Transport ",
+                subtotal > 0 && shippingCost === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#28a745", fontSize: "11px" }, children: [
+                  "(gratuit peste ",
+                  aoShipping.freeShippingThreshold.toFixed(0),
+                  " ",
+                  currency,
+                  ")"
+                ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#888", fontSize: "11px" }, children: [
+                  "(gratuit peste ",
+                  aoShipping.freeShippingThreshold.toFixed(0),
+                  " ",
+                  currency,
+                  ")"
+                ] }),
+                ":"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("b", { style: { color: subtotal > 0 && shippingCost === 0 ? "#28a745" : "inherit" }, children: subtotal > 0 ? shippingCost === 0 ? "GRATUIT" : `${shippingCost.toFixed(2)} ${currency}` : "\u2014" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", paddingTop: "6px", borderTop: "1px solid #d4edda", fontSize: "15px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("b", { children: "Total comand\u0103:" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { style: { color: "#28a745" }, children: [
+                total.toFixed(2),
+                " ",
+                currency
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { color: "#888", fontSize: "11px", marginTop: "4px" }, children: "Calculat dup\u0103 acelea\u0219i reguli ca pe site; serverul revalideaz\u0103 la creare." })
+          ] });
+        })(),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 8px 0", fontSize: "14px", color: "#333" }, children: "\u{1F464} Date client" }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [

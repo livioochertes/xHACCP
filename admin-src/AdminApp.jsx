@@ -6264,6 +6264,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         const initialMarket = (marketFilter && marketFilter !== 'all') ? marketFilter : 'ro';
         const [aoMarket, setAoMarket] = useState(initialMarket);
         const [aoProducts, setAoProducts] = useState([]);
+        const [aoShipping, setAoShipping] = useState({ freeShippingThreshold: 500, standardShippingCost: 25 });
         const [aoLoading, setAoLoading] = useState(false);
         const [aoSubmitting, setAoSubmitting] = useState(false);
         const [aoItems, setAoItems] = useState([{ productId: '', quantity: 1 }]);
@@ -6286,7 +6287,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 headers: { 'Authorization': `Bearer ${token}` }
               });
               const data = await resp.json();
-              if (!cancelled && resp.ok && Array.isArray(data)) setAoProducts(data);
+              if (!cancelled && resp.ok) {
+                if (Array.isArray(data)) { setAoProducts(data); }
+                else if (data && Array.isArray(data.products)) {
+                  setAoProducts(data.products);
+                  if (data.shipping) setAoShipping(data.shipping);
+                }
+              }
             } catch (e) { console.error('AddOrder products fetch failed:', e); }
             if (!cancelled) setAoLoading(false);
           })();
@@ -6444,10 +6451,25 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               })}
               <button onClick={() => setAoItems(items => [...items, { productId: '', quantity: 1 }])} style={{marginBottom: '16px', padding: '6px 12px', border: '1px dashed #28a745', background: 'none', color: '#28a745', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}>+ Adaugă produs</button>
 
-              <div style={{padding: '10px', background: '#f0f8f0', borderRadius: '6px', marginBottom: '16px', fontSize: '13px'}}>
-                Subtotal estimat: <b>{subtotal.toFixed(2)} {currency}</b>
-                <span style={{color: '#888', marginLeft: '8px', fontSize: '11px'}}>(transportul și totalul final se calculează pe server, după aceleași reguli ca pe site)</span>
-              </div>
+              {(() => {
+                const shippingCost = subtotal > aoShipping.freeShippingThreshold ? 0 : aoShipping.standardShippingCost;
+                const total = subtotal + (subtotal > 0 ? shippingCost : 0);
+                return (
+                  <div style={{padding: '12px 14px', background: '#f0f8f0', borderRadius: '6px', marginBottom: '16px', fontSize: '13px', border: '1px solid #d4edda'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                      <span>Subtotal produse:</span><b>{subtotal.toFixed(2)} {currency}</b>
+                    </div>
+                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                      <span>Transport {subtotal > 0 && shippingCost === 0 ? <span style={{color: '#28a745', fontSize: '11px'}}>(gratuit peste {aoShipping.freeShippingThreshold.toFixed(0)} {currency})</span> : <span style={{color: '#888', fontSize: '11px'}}>(gratuit peste {aoShipping.freeShippingThreshold.toFixed(0)} {currency})</span>}:</span>
+                      <b style={{color: subtotal > 0 && shippingCost === 0 ? '#28a745' : 'inherit'}}>{subtotal > 0 ? (shippingCost === 0 ? 'GRATUIT' : `${shippingCost.toFixed(2)} ${currency}`) : '—'}</b>
+                    </div>
+                    <div style={{display: 'flex', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid #d4edda', fontSize: '15px'}}>
+                      <b>Total comandă:</b><b style={{color: '#28a745'}}>{total.toFixed(2)} {currency}</b>
+                    </div>
+                    <div style={{color: '#888', fontSize: '11px', marginTop: '4px'}}>Calculat după aceleași reguli ca pe site; serverul revalidează la creare.</div>
+                  </div>
+                );
+              })()}
 
               <h4 style={{margin: '0 0 8px 0', fontSize: '14px', color: '#333'}}>👤 Date client</h4>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px'}}>
