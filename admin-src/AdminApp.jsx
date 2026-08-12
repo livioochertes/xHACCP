@@ -6317,7 +6317,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         const subtotal = aoItems.reduce((sum, it) => {
           const p = getProduct(it.productId);
           const q = parseInt(it.quantity) || 0;
-          return sum + (p && q > 0 ? computeUnitPrice(p, q) * q : 0);
+          if (!p || q <= 0) return sum;
+          const unit = (it.customPrice !== undefined && it.customPrice !== '') ? (parseFloat(it.customPrice) || 0) : computeUnitPrice(p, q);
+          return sum + unit * q;
         }, 0);
 
         const updateItem = (idx, field, value) => {
@@ -6327,6 +6329,11 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         const submit = async () => {
           const validItems = aoItems.filter(it => it.productId && (parseInt(it.quantity) || 0) > 0);
           if (validItems.length === 0) { alert('Adaugă cel puțin un produs.'); return; }
+          for (const it of validItems) {
+            if (it.customPrice !== undefined && it.customPrice !== '' && (isNaN(parseFloat(it.customPrice)) || parseFloat(it.customPrice) <= 0)) {
+              alert('Preț unitar invalid — trebuie să fie un număr pozitiv.'); return;
+            }
+          }
           if (!aoCustomer.firstName || !aoCustomer.lastName) { alert('Numele și prenumele sunt obligatorii.'); return; }
           if (!aoCustomer.email) { alert('Emailul clientului este obligatoriu.'); return; }
           if (!aoCustomer.phone) { alert('Telefonul este obligatoriu (necesar pentru AWB).'); return; }
@@ -6354,7 +6361,16 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   : { ...addr, clientType: 'individual' };
                 return {
                   market: aoMarket,
-                  items: validItems.map(it => ({ productId: parseInt(it.productId), quantity: parseInt(it.quantity) })),
+                  items: validItems.map(it => {
+                    const item = { productId: parseInt(it.productId), quantity: parseInt(it.quantity) };
+                    if (it.customPrice !== undefined && it.customPrice !== '') {
+                      const p = getProduct(it.productId);
+                      const siteUnit = p ? computeUnitPrice(p, parseInt(it.quantity) || 0) : null;
+                      const cp = parseFloat(it.customPrice);
+                      if (!isNaN(cp) && cp > 0 && cp !== siteUnit) item.customPrice = cp;
+                    }
+                    return item;
+                  }),
                   shippingAddress: aoIsCompany ? { ...addr, companyName: aoCompany.companyName } : addr,
                   billingAddress: billing,
                   paymentMethod: aoPaymentMethod,
@@ -6437,13 +6453,34 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         </div>
                       )}
                     </div>
-                    <input type="number" min="1" max="9999" value={it.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} style={{...inputStyle, flex: 1, maxWidth: '80px'}} />
+                    <input type="number" min="1" max="9999" value={it.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} style={{...inputStyle, flex: 1, maxWidth: '70px'}} title="Cantitate" />
+                    <div style={{flex: 1, maxWidth: '110px', position: 'relative'}}>
+                      <input
+                        type="number" step="0.01" min="0.01"
+                        value={it.customPrice !== undefined ? it.customPrice : (p ? unit : '')}
+                        onChange={e => updateItem(idx, 'customPrice', e.target.value)}
+                        disabled={!p}
+                        title="Preț unitar (modificabil)"
+                        style={{...inputStyle, width: '100%', background: it.customPrice !== undefined && parseFloat(it.customPrice) !== unit ? '#fff8e6' : 'white', borderColor: it.customPrice !== undefined && parseFloat(it.customPrice) !== unit ? '#f0ad4e' : '#ddd'}}
+                      />
+                    </div>
+                    {it.customPrice !== undefined && p && parseFloat(it.customPrice) !== unit && (
+                      <button onClick={() => setAoItems(items => items.map((x, i) => i === idx ? { ...x, customPrice: undefined } : x))} title={`Revino la prețul site-ului (${unit.toFixed(2)})`} style={{border: 'none', background: 'none', cursor: 'pointer', fontSize: '14px'}}>↺</button>
+                    )}
                     <span style={{flex: 2, fontSize: '13px', whiteSpace: 'nowrap'}}>
-                      {p && q > 0 ? (
-                        unit < base
-                          ? <><s style={{color: '#999'}}>{(base * q).toFixed(2)}</s> <b style={{color: '#28a745'}}>{(unit * q).toFixed(2)} {currency}</b> <span style={{fontSize: '11px', color: '#28a745'}}>(discount volum)</span></>
-                          : <b>{(unit * q).toFixed(2)} {currency}</b>
-                      ) : '—'}
+                      {p && q > 0 ? (() => {
+                        const effUnit = it.customPrice !== undefined && it.customPrice !== '' ? (parseFloat(it.customPrice) || 0) : unit;
+                        const overridden = it.customPrice !== undefined && parseFloat(it.customPrice) !== unit;
+                        return (
+                          <>
+                            {overridden
+                              ? <><s style={{color: '#999'}}>{(unit * q).toFixed(2)}</s> <b style={{color: '#f0ad4e'}}>{(effUnit * q).toFixed(2)} {currency}</b> <span style={{fontSize: '11px', color: '#f0ad4e'}}>(preț modificat)</span></>
+                              : (unit < base
+                                ? <><s style={{color: '#999'}}>{(base * q).toFixed(2)}</s> <b style={{color: '#28a745'}}>{(effUnit * q).toFixed(2)} {currency}</b> <span style={{fontSize: '11px', color: '#28a745'}}>(discount volum)</span></>
+                                : <b>{(effUnit * q).toFixed(2)} {currency}</b>)}
+                          </>
+                        );
+                      })() : '—'}
                     </span>
                     <button onClick={() => setAoItems(items => items.filter((_, i) => i !== idx))} disabled={aoItems.length === 1} style={{border: 'none', background: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '16px'}}>🗑</button>
                   </div>

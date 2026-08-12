@@ -18528,7 +18528,9 @@ Cordialement,`
       const subtotal = aoItems.reduce((sum, it) => {
         const p = getProduct(it.productId);
         const q = parseInt(it.quantity) || 0;
-        return sum + (p && q > 0 ? computeUnitPrice(p, q) * q : 0);
+        if (!p || q <= 0) return sum;
+        const unit = it.customPrice !== void 0 && it.customPrice !== "" ? parseFloat(it.customPrice) || 0 : computeUnitPrice(p, q);
+        return sum + unit * q;
       }, 0);
       const updateItem = (idx, field, value) => {
         setAoItems((items) => items.map((it, i) => i === idx ? { ...it, [field]: value } : it));
@@ -18538,6 +18540,12 @@ Cordialement,`
         if (validItems.length === 0) {
           alert("Adaug\u0103 cel pu\u021Bin un produs.");
           return;
+        }
+        for (const it of validItems) {
+          if (it.customPrice !== void 0 && it.customPrice !== "" && (isNaN(parseFloat(it.customPrice)) || parseFloat(it.customPrice) <= 0)) {
+            alert("Pre\u021B unitar invalid \u2014 trebuie s\u0103 fie un num\u0103r pozitiv.");
+            return;
+          }
         }
         if (!aoCustomer.firstName || !aoCustomer.lastName) {
           alert("Numele \u0219i prenumele sunt obligatorii.");
@@ -18584,7 +18592,16 @@ Cordialement,`
               const billing = aoIsCompany ? { ...addr, clientType: "company", companyName: aoCompany.companyName, vatNumber: aoCompany.vatNumber, registrationNumber: aoCompany.registrationNumber } : { ...addr, clientType: "individual" };
               return {
                 market: aoMarket,
-                items: validItems.map((it) => ({ productId: parseInt(it.productId), quantity: parseInt(it.quantity) })),
+                items: validItems.map((it) => {
+                  const item = { productId: parseInt(it.productId), quantity: parseInt(it.quantity) };
+                  if (it.customPrice !== void 0 && it.customPrice !== "") {
+                    const p = getProduct(it.productId);
+                    const siteUnit = p ? computeUnitPrice(p, parseInt(it.quantity) || 0) : null;
+                    const cp = parseFloat(it.customPrice);
+                    if (!isNaN(cp) && cp > 0 && cp !== siteUnit) item.customPrice = cp;
+                  }
+                  return item;
+                }),
                 shippingAddress: aoIsCompany ? { ...addr, companyName: aoCompany.companyName } : addr,
                 billingAddress: billing,
                 paymentMethod: aoPaymentMethod,
@@ -18673,22 +18690,50 @@ Cordialement,`
                 aoProducts.filter((pr) => !it.search || pr.name.toLowerCase().includes(it.search.toLowerCase())).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "8px 10px", color: "#888", fontSize: "13px" }, children: "Niciun produs g\u0103sit" })
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "number", min: "1", max: "9999", value: it.quantity, onChange: (e2) => updateItem(idx, "quantity", e2.target.value), style: { ...inputStyle, flex: 1, maxWidth: "80px" } }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { flex: 2, fontSize: "13px", whiteSpace: "nowrap" }, children: p && q > 0 ? unit < base ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("s", { style: { color: "#999" }, children: (base * q).toFixed(2) }),
-              " ",
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { style: { color: "#28a745" }, children: [
-                (unit * q).toFixed(2),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "number", min: "1", max: "9999", value: it.quantity, onChange: (e2) => updateItem(idx, "quantity", e2.target.value), style: { ...inputStyle, flex: 1, maxWidth: "70px" }, title: "Cantitate" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flex: 1, maxWidth: "110px", position: "relative" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "input",
+              {
+                type: "number",
+                step: "0.01",
+                min: "0.01",
+                value: it.customPrice !== void 0 ? it.customPrice : p ? unit : "",
+                onChange: (e2) => updateItem(idx, "customPrice", e2.target.value),
+                disabled: !p,
+                title: "Pre\u021B unitar (modificabil)",
+                style: { ...inputStyle, width: "100%", background: it.customPrice !== void 0 && parseFloat(it.customPrice) !== unit ? "#fff8e6" : "white", borderColor: it.customPrice !== void 0 && parseFloat(it.customPrice) !== unit ? "#f0ad4e" : "#ddd" }
+              }
+            ) }),
+            it.customPrice !== void 0 && p && parseFloat(it.customPrice) !== unit && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, customPrice: void 0 } : x)), title: `Revino la pre\u021Bul site-ului (${unit.toFixed(2)})`, style: { border: "none", background: "none", cursor: "pointer", fontSize: "14px" }, children: "\u21BA" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { flex: 2, fontSize: "13px", whiteSpace: "nowrap" }, children: p && q > 0 ? (() => {
+              const effUnit = it.customPrice !== void 0 && it.customPrice !== "" ? parseFloat(it.customPrice) || 0 : unit;
+              const overridden = it.customPrice !== void 0 && parseFloat(it.customPrice) !== unit;
+              return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(import_jsx_runtime2.Fragment, { children: overridden ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("s", { style: { color: "#999" }, children: (unit * q).toFixed(2) }),
+                " ",
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { style: { color: "#f0ad4e" }, children: [
+                  (effUnit * q).toFixed(2),
+                  " ",
+                  currency
+                ] }),
+                " ",
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#f0ad4e" }, children: "(pre\u021B modificat)" })
+              ] }) : unit < base ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("s", { style: { color: "#999" }, children: (base * q).toFixed(2) }),
+                " ",
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { style: { color: "#28a745" }, children: [
+                  (effUnit * q).toFixed(2),
+                  " ",
+                  currency
+                ] }),
+                " ",
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#28a745" }, children: "(discount volum)" })
+              ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { children: [
+                (effUnit * q).toFixed(2),
                 " ",
                 currency
-              ] }),
-              " ",
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "11px", color: "#28a745" }, children: "(discount volum)" })
-            ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { children: [
-              (unit * q).toFixed(2),
-              " ",
-              currency
-            ] }) : "\u2014" }),
+              ] }) });
+            })() : "\u2014" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setAoItems((items) => items.filter((_, i) => i !== idx)), disabled: aoItems.length === 1, style: { border: "none", background: "none", color: "#dc3545", cursor: "pointer", fontSize: "16px" }, children: "\u{1F5D1}" })
           ] }, idx);
         }),

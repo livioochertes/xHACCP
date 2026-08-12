@@ -1651,6 +1651,7 @@ export async function registerAdminRoutes(app: Express) {
       // Server-side price validation — identical rules to site checkout:
       // active product check, market overlay, volume discounts.
       const validatedItems = [];
+      const priceOverrideNotes: string[] = [];
       for (const item of items) {
         const quantity = parseInt(String(item.quantity), 10);
         if (isNaN(quantity) || quantity < 1 || quantity > 9999) {
@@ -1668,7 +1669,19 @@ export async function registerAdminRoutes(app: Express) {
         if (!effectiveProduct) {
           return res.status(400).json({ success: false, message: `Produsul "${product.name}" nu este disponibil pe piața ${orderMarket.toUpperCase()}` });
         }
-        const unitPrice = applyVolumeDiscount(parseFloat(effectiveProduct.price), quantity, (product as any).volumeDiscounts);
+        const sitePrice = applyVolumeDiscount(parseFloat(effectiveProduct.price), quantity, (product as any).volumeDiscounts);
+        // Admin may override the unit price (situations where it differs from the site)
+        let unitPrice = sitePrice;
+        if (item.customPrice !== undefined && item.customPrice !== null && item.customPrice !== '') {
+          const cp = parseFloat(String(item.customPrice));
+          if (isNaN(cp) || cp <= 0 || cp > 999999) {
+            return res.status(400).json({ success: false, message: `Preț personalizat invalid pentru "${product.name}"` });
+          }
+          unitPrice = parseFloat(cp.toFixed(2));
+          if (unitPrice !== sitePrice) {
+            priceOverrideNotes.push(`${product.name}: ${unitPrice.toFixed(2)} (site: ${sitePrice.toFixed(2)})`);
+          }
+        }
         validatedItems.push({
           productId: product.id,
           quantity,
@@ -1694,6 +1707,7 @@ export async function registerAdminRoutes(app: Express) {
       const customerEmail = email || shippingAddress?.email || '';
       const adminName = req.admin?.username || req.admin?.email || 'admin';
       let orderNotes = `Comandă creată manual din admin de ${adminName}`;
+      if (priceOverrideNotes.length > 0) orderNotes += `\nPrețuri modificate manual: ${priceOverrideNotes.join('; ')}`;
       if (customerEmail) orderNotes += `\nGuest email: ${customerEmail}${phone ? ', Phone: ' + phone : ''}`;
       if (notes) orderNotes += `\n${notes}`;
 
