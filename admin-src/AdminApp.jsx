@@ -6400,12 +6400,36 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 const base = p ? parseFloat(p.price) : 0;
                 return (
                   <div key={idx} style={{display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px'}}>
-                    <select value={it.productId} onChange={e => updateItem(idx, 'productId', e.target.value)} style={{...inputStyle, flex: 3}}>
-                      <option value="">— alege produsul —</option>
-                      {aoProducts.map(pr => (
-                        <option key={pr.id} value={pr.id}>{pr.name} — {parseFloat(pr.price).toFixed(2)} {currency}</option>
-                      ))}
-                    </select>
+                    <div style={{flex: 3, position: 'relative'}}>
+                      <input
+                        style={{...inputStyle, width: '100%'}}
+                        placeholder="Caută produs..."
+                        value={it.search !== undefined ? it.search : (p ? `${p.name} — ${parseFloat(p.price).toFixed(2)} ${currency}` : '')}
+                        onChange={e => setAoItems(items => items.map((x, i) => i === idx ? { ...x, search: e.target.value, productId: '', open: true } : x))}
+                        onFocus={() => setAoItems(items => items.map((x, i) => i === idx ? { ...x, open: true, search: x.productId ? '' : (x.search || '') } : x))}
+                        onBlur={() => setTimeout(() => setAoItems(items => items.map((x, i) => i === idx ? { ...x, open: false, search: undefined } : x)), 200)}
+                      />
+                      {it.open && (
+                        <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '220px', overflowY: 'auto', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
+                          {aoProducts
+                            .filter(pr => !it.search || pr.name.toLowerCase().includes(it.search.toLowerCase()))
+                            .map(pr => (
+                              <div
+                                key={pr.id}
+                                onMouseDown={() => setAoItems(items => items.map((x, i) => i === idx ? { ...x, productId: String(pr.id), search: undefined, open: false } : x))}
+                                style={{padding: '8px 10px', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f0f0f0'}}
+                                onMouseEnter={e => e.currentTarget.style.background = '#f0f8f0'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                              >
+                                {pr.name} — <b>{parseFloat(pr.price).toFixed(2)} {currency}</b>
+                              </div>
+                            ))}
+                          {aoProducts.filter(pr => !it.search || pr.name.toLowerCase().includes(it.search.toLowerCase())).length === 0 && (
+                            <div style={{padding: '8px 10px', color: '#888', fontSize: '13px'}}>Niciun produs găsit</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <input type="number" min="1" max="9999" value={it.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} style={{...inputStyle, flex: 1, maxWidth: '80px'}} />
                     <span style={{flex: 2, fontSize: '13px', whiteSpace: 'nowrap'}}>
                       {p && q > 0 ? (

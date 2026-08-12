@@ -18630,15 +18630,40 @@ Cordialement,`
           const unit = p ? computeUnitPrice(p, q) : 0;
           const base = p ? parseFloat(p.price) : 0;
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: it.productId, onChange: (e2) => updateItem(idx, "productId", e2.target.value), style: { ...inputStyle, flex: 3 }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "\u2014 alege produsul \u2014" }),
-              aoProducts.map((pr) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: pr.id, children: [
-                pr.name,
-                " \u2014 ",
-                parseFloat(pr.price).toFixed(2),
-                " ",
-                currency
-              ] }, pr.id))
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { flex: 3, position: "relative" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "input",
+                {
+                  style: { ...inputStyle, width: "100%" },
+                  placeholder: "Caut\u0103 produs...",
+                  value: it.search !== void 0 ? it.search : p ? `${p.name} \u2014 ${parseFloat(p.price).toFixed(2)} ${currency}` : "",
+                  onChange: (e2) => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, search: e2.target.value, productId: "", open: true } : x)),
+                  onFocus: () => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, open: true, search: x.productId ? "" : x.search || "" } : x)),
+                  onBlur: () => setTimeout(() => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, open: false, search: void 0 } : x)), 200)
+                }
+              ),
+              it.open && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "absolute", top: "100%", left: 0, right: 0, background: "white", border: "1px solid #ddd", borderRadius: "4px", maxHeight: "220px", overflowY: "auto", zIndex: 10, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }, children: [
+                aoProducts.filter((pr) => !it.search || pr.name.toLowerCase().includes(it.search.toLowerCase())).map((pr) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  "div",
+                  {
+                    onMouseDown: () => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, productId: String(pr.id), search: void 0, open: false } : x)),
+                    style: { padding: "8px 10px", cursor: "pointer", fontSize: "13px", borderBottom: "1px solid #f0f0f0" },
+                    onMouseEnter: (e2) => e2.currentTarget.style.background = "#f0f8f0",
+                    onMouseLeave: (e2) => e2.currentTarget.style.background = "white",
+                    children: [
+                      pr.name,
+                      " \u2014 ",
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { children: [
+                        parseFloat(pr.price).toFixed(2),
+                        " ",
+                        currency
+                      ] })
+                    ]
+                  },
+                  pr.id
+                )),
+                aoProducts.filter((pr) => !it.search || pr.name.toLowerCase().includes(it.search.toLowerCase())).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "8px 10px", color: "#888", fontSize: "13px" }, children: "Niciun produs g\u0103sit" })
+              ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "number", min: "1", max: "9999", value: it.quantity, onChange: (e2) => updateItem(idx, "quantity", e2.target.value), style: { ...inputStyle, flex: 1, maxWidth: "80px" } }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { flex: 2, fontSize: "13px", whiteSpace: "nowrap" }, children: p && q > 0 ? unit < base ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
