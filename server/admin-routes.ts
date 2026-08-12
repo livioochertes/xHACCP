@@ -1212,6 +1212,36 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // Get individual order details
+  // ─── Product options for manual order creation (mirrors site availability) ──
+  app.get("/admin/api/orders/product-options", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const market = ['ro', 'com', 'fr'].includes(String(req.query.market)) ? String(req.query.market) : 'ro';
+      if (!canAccessMarket(req, market)) {
+        return res.status(403).json({ success: false, message: 'Access denied for this market' });
+      }
+      const allProducts = await storage.getProducts();
+      const options = [];
+      for (const product of allProducts) {
+        const productActive = (product as any).status === 'active' || (product as any).isActive === true;
+        if (!productActive) continue;
+        const effective = applyMarketOverlay(product, market);
+        if (!effective) continue; // disabled for this market
+        options.push({
+          id: product.id,
+          name: product.name,
+          price: effective.price,
+          currency: effective.currency,
+          volumeDiscounts: (product as any).volumeDiscounts || [],
+        });
+      }
+      res.json(options);
+    } catch (error) {
+      console.error('Error fetching product options:', error);
+      res.status(500).json({ success: false, message: 'Eroare la încărcarea produselor' });
+    }
+  });
+
+
   app.get("/admin/api/orders/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const orderId = parseInt(req.params.id);
@@ -1566,35 +1596,6 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("Error accepting order:", error);
       res.status(500).json({ success: false, message: "Failed to accept order" });
-    }
-  });
-
-  // ─── Product options for manual order creation (mirrors site availability) ──
-  app.get("/admin/api/orders/product-options", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
-    try {
-      const market = ['ro', 'com', 'fr'].includes(String(req.query.market)) ? String(req.query.market) : 'ro';
-      if (!canAccessMarket(req, market)) {
-        return res.status(403).json({ success: false, message: 'Access denied for this market' });
-      }
-      const allProducts = await storage.getProducts();
-      const options = [];
-      for (const product of allProducts) {
-        const productActive = (product as any).status === 'active' || (product as any).isActive === true;
-        if (!productActive) continue;
-        const effective = applyMarketOverlay(product, market);
-        if (!effective) continue; // disabled for this market
-        options.push({
-          id: product.id,
-          name: product.name,
-          price: effective.price,
-          currency: effective.currency,
-          volumeDiscounts: (product as any).volumeDiscounts || [],
-        });
-      }
-      res.json(options);
-    } catch (error) {
-      console.error('Error fetching product options:', error);
-      res.status(500).json({ success: false, message: 'Eroare la încărcarea produselor' });
     }
   });
 
