@@ -1616,6 +1616,29 @@ export async function registerAdminRoutes(app: Express) {
       if (!email && !shippingAddress?.email) {
         return res.status(400).json({ success: false, message: 'Emailul clientului este obligatoriu' });
       }
+      // Fields required downstream by Sameday AWB + Smartbill invoice
+      if (!phone && !shippingAddress?.phone) {
+        return res.status(400).json({ success: false, message: 'Telefonul este obligatoriu (necesar pentru AWB)' });
+      }
+      if (!shippingAddress?.streetAddress && !shippingAddress?.address) {
+        return res.status(400).json({ success: false, message: 'Adresa este obligatorie (necesară pentru AWB și factură)' });
+      }
+      if (!shippingAddress?.city) {
+        return res.status(400).json({ success: false, message: 'Orașul este obligatoriu (necesar pentru AWB și factură)' });
+      }
+      if (!shippingAddress?.state && !shippingAddress?.county) {
+        return res.status(400).json({ success: false, message: 'Județul este obligatoriu (necesar pentru AWB și factură)' });
+      }
+      // Normalize aliases so both AWB (streetAddress/state) and Smartbill (address/county) find their fields
+      const normalizeAddr = (a: any) => a ? ({
+        ...a,
+        streetAddress: a.streetAddress || a.address,
+        address: a.address || a.streetAddress,
+        state: a.state || a.county,
+        county: a.county || a.state,
+      }) : a;
+      const normShipping = normalizeAddr(shippingAddress);
+      const normBilling = normalizeAddr(billingAddress && Object.keys(billingAddress).length > 0 ? billingAddress : shippingAddress);
 
       // Server-side price validation — identical rules to site checkout:
       // active product check, market overlay, volume discounts.
@@ -1672,8 +1695,8 @@ export async function registerAdminRoutes(app: Express) {
         status: 'pending',
         totalAmount: totalAmount.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
-        shippingAddress: { ...shippingAddress, email: customerEmail, phone: phone || shippingAddress?.phone },
-        billingAddress: billingAddress && Object.keys(billingAddress).length > 0 ? billingAddress : shippingAddress,
+        shippingAddress: { ...normShipping, email: customerEmail, phone: phone || normShipping?.phone },
+        billingAddress: normBilling,
         paymentMethod: paymentMethod || 'cash_on_delivery',
         paymentStatus: 'pending',
         notes: orderNotes,

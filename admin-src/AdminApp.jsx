@@ -6267,10 +6267,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         const [aoLoading, setAoLoading] = useState(false);
         const [aoSubmitting, setAoSubmitting] = useState(false);
         const [aoItems, setAoItems] = useState([{ productId: '', quantity: 1 }]);
+        const defaultCountry = initialMarket === 'fr' ? 'France' : (initialMarket === 'com' ? '' : 'Romania');
         const [aoCustomer, setAoCustomer] = useState({
           firstName: '', lastName: '', email: '', phone: '',
-          streetAddress: '', city: '', state: '', zipCode: '', companyName: ''
+          streetAddress: '', city: '', state: '', zipCode: '', country: defaultCountry
         });
+        const [aoIsCompany, setAoIsCompany] = useState(false);
+        const [aoCompany, setAoCompany] = useState({ companyName: '', vatNumber: '', registrationNumber: '' });
         const [aoPaymentMethod, setAoPaymentMethod] = useState('cash_on_delivery');
         const [aoNotes, setAoNotes] = useState('');
 
@@ -6319,21 +6322,40 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           if (validItems.length === 0) { alert('Adaugă cel puțin un produs.'); return; }
           if (!aoCustomer.firstName || !aoCustomer.lastName) { alert('Numele și prenumele sunt obligatorii.'); return; }
           if (!aoCustomer.email) { alert('Emailul clientului este obligatoriu.'); return; }
+          if (!aoCustomer.phone) { alert('Telefonul este obligatoriu (necesar pentru AWB).'); return; }
+          if (!aoCustomer.streetAddress) { alert('Adresa este obligatorie (necesară pentru AWB și factură).'); return; }
+          if (!aoCustomer.city) { alert('Orașul este obligatoriu (necesar pentru AWB și factură).'); return; }
+          if (!aoCustomer.state) { alert('Județul este obligatoriu (necesar pentru AWB și factură).'); return; }
+          if (aoMarket === 'ro' && aoCustomer.zipCode && !/^\d{6}$/.test(aoCustomer.zipCode.replace(/\s/g, ''))) {
+            if (!confirm('Codul poștal nu are 6 cifre — Sameday îl va ignora. Continui?')) return;
+          }
+          if (aoIsCompany && !aoCompany.companyName) { alert('Numele firmei este obligatoriu pentru comandă B2B.'); return; }
           setAoSubmitting(true);
           try {
             const resp = await fetch('/admin/api/orders/create-manual', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-              body: JSON.stringify({
-                market: aoMarket,
-                items: validItems.map(it => ({ productId: parseInt(it.productId), quantity: parseInt(it.quantity) })),
-                shippingAddress: aoCustomer,
-                billingAddress: aoCustomer,
-                paymentMethod: aoPaymentMethod,
-                email: aoCustomer.email,
-                phone: aoCustomer.phone,
-                notes: aoNotes
-              })
+              body: JSON.stringify((() => {
+                // Aliases: AWB reads streetAddress/state, Smartbill invoice reads address/county
+                const addr = {
+                  ...aoCustomer,
+                  address: aoCustomer.streetAddress,
+                  county: aoCustomer.state
+                };
+                const billing = aoIsCompany
+                  ? { ...addr, clientType: 'company', companyName: aoCompany.companyName, vatNumber: aoCompany.vatNumber, registrationNumber: aoCompany.registrationNumber }
+                  : { ...addr, clientType: 'individual' };
+                return {
+                  market: aoMarket,
+                  items: validItems.map(it => ({ productId: parseInt(it.productId), quantity: parseInt(it.quantity) })),
+                  shippingAddress: aoIsCompany ? { ...addr, companyName: aoCompany.companyName } : addr,
+                  billingAddress: billing,
+                  paymentMethod: aoPaymentMethod,
+                  email: aoCustomer.email,
+                  phone: aoCustomer.phone,
+                  notes: aoNotes
+                };
+              })())
             });
             const data = await resp.json();
             if (resp.ok && data.success) {
@@ -6362,7 +6384,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
 
               <div style={{display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px', padding: '10px', background: '#f8f9fa', borderRadius: '6px'}}>
                 <span style={{fontSize: '13px', fontWeight: 'bold'}}>Piață:</span>
-                <select value={aoMarket} onChange={e => { setAoMarket(e.target.value); setAoItems([{ productId: '', quantity: 1 }]); }} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px'}}>
+                <select value={aoMarket} onChange={e => { const m = e.target.value; setAoMarket(m); setAoItems([{ productId: '', quantity: 1 }]); setAoCustomer(c => ({...c, country: m === 'fr' ? 'France' : (m === 'com' ? c.country : 'Romania')})); }} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px'}}>
                   <option value="ro">🇷🇴 RO (RON)</option>
                   <option value="com">🌍 COM (EUR)</option>
                   <option value="fr">🇫🇷 FR (EUR)</option>
@@ -6408,12 +6430,26 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 <div><label style={labelStyle}>Prenume *</label><input style={inputStyle} value={aoCustomer.firstName} onChange={e => setAoCustomer(c => ({...c, firstName: e.target.value}))} /></div>
                 <div><label style={labelStyle}>Nume *</label><input style={inputStyle} value={aoCustomer.lastName} onChange={e => setAoCustomer(c => ({...c, lastName: e.target.value}))} /></div>
                 <div><label style={labelStyle}>Email *</label><input type="email" style={inputStyle} value={aoCustomer.email} onChange={e => setAoCustomer(c => ({...c, email: e.target.value}))} /></div>
-                <div><label style={labelStyle}>Telefon</label><input style={inputStyle} value={aoCustomer.phone} onChange={e => setAoCustomer(c => ({...c, phone: e.target.value}))} /></div>
-                <div style={{gridColumn: '1 / -1'}}><label style={labelStyle}>Adresă (stradă, nr.)</label><input style={inputStyle} value={aoCustomer.streetAddress} onChange={e => setAoCustomer(c => ({...c, streetAddress: e.target.value}))} /></div>
-                <div><label style={labelStyle}>Oraș</label><input style={inputStyle} value={aoCustomer.city} onChange={e => setAoCustomer(c => ({...c, city: e.target.value}))} /></div>
-                <div><label style={labelStyle}>Județ</label><input style={inputStyle} value={aoCustomer.state} onChange={e => setAoCustomer(c => ({...c, state: e.target.value}))} /></div>
-                <div><label style={labelStyle}>Cod poștal</label><input style={inputStyle} value={aoCustomer.zipCode} onChange={e => setAoCustomer(c => ({...c, zipCode: e.target.value}))} /></div>
-                <div><label style={labelStyle}>Firmă (opțional, B2B)</label><input style={inputStyle} value={aoCustomer.companyName} onChange={e => setAoCustomer(c => ({...c, companyName: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Telefon * <span style={{fontWeight: 'normal', color: '#888'}}>(pentru AWB)</span></label><input style={inputStyle} value={aoCustomer.phone} onChange={e => setAoCustomer(c => ({...c, phone: e.target.value}))} /></div>
+                <div style={{gridColumn: '1 / -1'}}><label style={labelStyle}>Adresă (stradă, nr.) *</label><input style={inputStyle} value={aoCustomer.streetAddress} onChange={e => setAoCustomer(c => ({...c, streetAddress: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Oraș *</label><input style={inputStyle} value={aoCustomer.city} onChange={e => setAoCustomer(c => ({...c, city: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Județ *</label><input style={inputStyle} value={aoCustomer.state} onChange={e => setAoCustomer(c => ({...c, state: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Cod poștal <span style={{fontWeight: 'normal', color: '#888'}}>(6 cifre pt. Sameday)</span></label><input style={inputStyle} value={aoCustomer.zipCode} onChange={e => setAoCustomer(c => ({...c, zipCode: e.target.value}))} /></div>
+                <div><label style={labelStyle}>Țară</label><input style={inputStyle} value={aoCustomer.country} onChange={e => setAoCustomer(c => ({...c, country: e.target.value}))} /></div>
+              </div>
+
+              <div style={{marginBottom: '16px', padding: '12px', background: aoIsCompany ? '#fff8e6' : '#f8f9fa', borderRadius: '6px', border: '1px solid ' + (aoIsCompany ? '#ffe0a3' : '#eee')}}>
+                <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', marginBottom: aoIsCompany ? '10px' : 0}}>
+                  <input type="checkbox" checked={aoIsCompany} onChange={e => setAoIsCompany(e.target.checked)} />
+                  🏢 Persoană juridică (factură pe firmă)
+                </label>
+                {aoIsCompany && (
+                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px'}}>
+                    <div><label style={labelStyle}>Nume firmă *</label><input style={inputStyle} value={aoCompany.companyName} onChange={e => setAoCompany(c => ({...c, companyName: e.target.value}))} /></div>
+                    <div><label style={labelStyle}>CUI / Cod TVA <span style={{fontWeight: 'normal', color: '#888'}}>(ex. RO12345678)</span></label><input style={inputStyle} value={aoCompany.vatNumber} onChange={e => setAoCompany(c => ({...c, vatNumber: e.target.value}))} /></div>
+                    <div><label style={labelStyle}>Nr. Reg. Com. <span style={{fontWeight: 'normal', color: '#888'}}>(ex. J12/345/2020)</span></label><input style={inputStyle} value={aoCompany.registrationNumber} onChange={e => setAoCompany(c => ({...c, registrationNumber: e.target.value}))} /></div>
+                  </div>
+                )}
               </div>
 
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px'}}>
