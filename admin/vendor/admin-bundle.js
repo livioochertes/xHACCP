@@ -18468,6 +18468,7 @@ Cordialement,`
       const [aoMarket, setAoMarket] = (0, import_react13.useState)(initialMarket);
       const [aoProducts, setAoProducts] = (0, import_react13.useState)([]);
       const [aoShipping, setAoShipping] = (0, import_react13.useState)({ freeShippingThreshold: 500, standardShippingCost: 25 });
+      const [aoCustomShipping, setAoCustomShipping] = (0, import_react13.useState)(void 0);
       const [aoLoading, setAoLoading] = (0, import_react13.useState)(false);
       const [aoSubmitting, setAoSubmitting] = (0, import_react13.useState)(false);
       const [aoItems, setAoItems] = (0, import_react13.useState)([{ productId: "", quantity: 1 }]);
@@ -18542,10 +18543,14 @@ Cordialement,`
           return;
         }
         for (const it of validItems) {
-          if (it.customPrice !== void 0 && it.customPrice !== "" && (isNaN(parseFloat(it.customPrice)) || parseFloat(it.customPrice) <= 0)) {
+          if (it.customPrice !== void 0 && it.customPrice !== "" && (isNaN(parseFloat(it.customPrice)) || parseFloat(parseFloat(it.customPrice).toFixed(2)) <= 0)) {
             alert("Pre\u021B unitar invalid \u2014 trebuie s\u0103 fie un num\u0103r pozitiv.");
             return;
           }
+        }
+        if (aoCustomShipping !== void 0 && aoCustomShipping !== "" && (isNaN(parseFloat(aoCustomShipping)) || parseFloat(aoCustomShipping) < 0)) {
+          alert("Cost transport invalid \u2014 trebuie s\u0103 fie 0 sau un num\u0103r pozitiv.");
+          return;
         }
         if (!aoCustomer.firstName || !aoCustomer.lastName) {
           alert("Numele \u0219i prenumele sunt obligatorii.");
@@ -18607,7 +18612,8 @@ Cordialement,`
                 paymentMethod: aoPaymentMethod,
                 email: aoCustomer.email,
                 phone: aoCustomer.phone,
-                notes: aoNotes
+                notes: aoNotes,
+                ...aoCustomShipping !== void 0 && aoCustomShipping !== "" ? { customShippingCost: parseFloat(aoCustomShipping) } : {}
               };
             })())
           });
@@ -18637,6 +18643,7 @@ Cordialement,`
             const m = e2.target.value;
             setAoMarket(m);
             setAoItems([{ productId: "", quantity: 1 }]);
+            setAoCustomShipping(void 0);
             setAoCustomer((c) => ({ ...c, country: m === "fr" ? "France" : m === "com" ? c.country : "Romania" }));
           }, style: { padding: "6px 10px", border: "1px solid #ddd", borderRadius: "4px" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "ro", children: "\u{1F1F7}\u{1F1F4} RO (RON)" }),
@@ -18662,7 +18669,7 @@ Cordialement,`
                   style: { ...inputStyle, width: "100%" },
                   placeholder: "Caut\u0103 produs...",
                   value: it.search !== void 0 ? it.search : p ? `${p.name} \u2014 ${parseFloat(p.price).toFixed(2)} ${currency}` : "",
-                  onChange: (e2) => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, search: e2.target.value, productId: "", open: true } : x)),
+                  onChange: (e2) => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, search: e2.target.value, productId: "", customPrice: void 0, open: true } : x)),
                   onFocus: () => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, open: true, search: x.productId ? "" : x.search || "" } : x)),
                   onBlur: () => setTimeout(() => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, open: false, search: void 0 } : x)), 200)
                 }
@@ -18671,7 +18678,7 @@ Cordialement,`
                 aoProducts.filter((pr) => !it.search || pr.name.toLowerCase().includes(it.search.toLowerCase())).map((pr) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "div",
                   {
-                    onMouseDown: () => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, productId: String(pr.id), search: void 0, open: false } : x)),
+                    onMouseDown: () => setAoItems((items) => items.map((x, i) => i === idx ? { ...x, productId: String(pr.id), customPrice: void 0, search: void 0, open: false } : x)),
                     style: { padding: "8px 10px", cursor: "pointer", fontSize: "13px", borderBottom: "1px solid #f0f0f0" },
                     onMouseEnter: (e2) => e2.currentTarget.style.background = "#f0f8f0",
                     onMouseLeave: (e2) => e2.currentTarget.style.background = "white",
@@ -18739,7 +18746,9 @@ Cordialement,`
         }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setAoItems((items) => [...items, { productId: "", quantity: 1 }]), style: { marginBottom: "16px", padding: "6px 12px", border: "1px dashed #28a745", background: "none", color: "#28a745", borderRadius: "4px", cursor: "pointer", fontSize: "13px" }, children: "+ Adaug\u0103 produs" }),
         (() => {
-          const shippingCost = subtotal > aoShipping.freeShippingThreshold ? 0 : aoShipping.standardShippingCost;
+          const siteShipping = subtotal > aoShipping.freeShippingThreshold ? 0 : aoShipping.standardShippingCost;
+          const shippingOverridden = aoCustomShipping !== void 0 && aoCustomShipping !== "" && parseFloat(aoCustomShipping) !== siteShipping;
+          const shippingCost = aoCustomShipping !== void 0 && aoCustomShipping !== "" ? parseFloat(aoCustomShipping) || 0 : siteShipping;
           const total = subtotal + (subtotal > 0 ? shippingCost : 0);
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "12px 14px", background: "#f0f8f0", borderRadius: "6px", marginBottom: "16px", fontSize: "13px", border: "1px solid #d4edda" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "4px" }, children: [
@@ -18750,26 +18759,37 @@ Cordialement,`
                 currency
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "4px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", gap: "8px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
                 "Transport ",
-                subtotal > 0 && shippingCost === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#28a745", fontSize: "11px" }, children: [
-                  "(gratuit peste ",
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#888", fontSize: "11px" }, children: [
+                  "(site: ",
+                  subtotal > 0 ? siteShipping === 0 ? "gratuit" : siteShipping.toFixed(2) + " " + currency : "\u2014",
+                  ", gratuit peste ",
                   aoShipping.freeShippingThreshold.toFixed(0),
                   " ",
                   currency,
                   ")"
-                ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#888", fontSize: "11px" }, children: [
-                  "(gratuit peste ",
-                  aoShipping.freeShippingThreshold.toFixed(0),
-                  " ",
-                  currency,
-                  ")"
-                ] }),
-                ":"
+                ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("b", { style: { color: subtotal > 0 && shippingCost === 0 ? "#28a745" : "inherit" }, children: subtotal > 0 ? shippingCost === 0 ? "GRATUIT" : `${shippingCost.toFixed(2)} ${currency}` : "\u2014" })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "input",
+                  {
+                    type: "number",
+                    step: "0.01",
+                    min: "0",
+                    value: aoCustomShipping !== void 0 ? aoCustomShipping : siteShipping,
+                    onChange: (e2) => setAoCustomShipping(e2.target.value),
+                    style: { width: "90px", padding: "5px 8px", border: "1px solid " + (shippingOverridden ? "#f0ad4e" : "#ddd"), borderRadius: "4px", fontSize: "13px", background: shippingOverridden ? "#fff8e6" : "white", textAlign: "right" }
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: currency }),
+                shippingCost > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setAoCustomShipping("0"), title: "Anuleaz\u0103 transportul (0)", style: { border: "1px solid #dc3545", background: "none", color: "#dc3545", borderRadius: "4px", cursor: "pointer", fontSize: "11px", padding: "3px 6px" }, children: "Anuleaz\u0103" }),
+                shippingOverridden && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setAoCustomShipping(void 0), title: `Revino la regula site-ului (${siteShipping.toFixed(2)})`, style: { border: "none", background: "none", cursor: "pointer", fontSize: "14px" }, children: "\u21BA" })
+              ] })
             ] }),
+            shippingOverridden && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { color: "#f0ad4e", fontSize: "11px", marginBottom: "4px", textAlign: "right" }, children: "transport modificat manual" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", paddingTop: "6px", borderTop: "1px solid #d4edda", fontSize: "15px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("b", { children: "Total comand\u0103:" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { style: { color: "#28a745" }, children: [

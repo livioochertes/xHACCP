@@ -6265,6 +6265,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         const [aoMarket, setAoMarket] = useState(initialMarket);
         const [aoProducts, setAoProducts] = useState([]);
         const [aoShipping, setAoShipping] = useState({ freeShippingThreshold: 500, standardShippingCost: 25 });
+        const [aoCustomShipping, setAoCustomShipping] = useState(undefined); // undefined = folosește regula site-ului
         const [aoLoading, setAoLoading] = useState(false);
         const [aoSubmitting, setAoSubmitting] = useState(false);
         const [aoItems, setAoItems] = useState([{ productId: '', quantity: 1 }]);
@@ -6330,9 +6331,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           const validItems = aoItems.filter(it => it.productId && (parseInt(it.quantity) || 0) > 0);
           if (validItems.length === 0) { alert('Adaugă cel puțin un produs.'); return; }
           for (const it of validItems) {
-            if (it.customPrice !== undefined && it.customPrice !== '' && (isNaN(parseFloat(it.customPrice)) || parseFloat(it.customPrice) <= 0)) {
+            if (it.customPrice !== undefined && it.customPrice !== '' && (isNaN(parseFloat(it.customPrice)) || parseFloat(parseFloat(it.customPrice).toFixed(2)) <= 0)) {
               alert('Preț unitar invalid — trebuie să fie un număr pozitiv.'); return;
             }
+          }
+          if (aoCustomShipping !== undefined && aoCustomShipping !== '' && (isNaN(parseFloat(aoCustomShipping)) || parseFloat(aoCustomShipping) < 0)) {
+            alert('Cost transport invalid — trebuie să fie 0 sau un număr pozitiv.'); return;
           }
           if (!aoCustomer.firstName || !aoCustomer.lastName) { alert('Numele și prenumele sunt obligatorii.'); return; }
           if (!aoCustomer.email) { alert('Emailul clientului este obligatoriu.'); return; }
@@ -6376,7 +6380,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   paymentMethod: aoPaymentMethod,
                   email: aoCustomer.email,
                   phone: aoCustomer.phone,
-                  notes: aoNotes
+                  notes: aoNotes,
+                  ...(aoCustomShipping !== undefined && aoCustomShipping !== '' ? { customShippingCost: parseFloat(aoCustomShipping) } : {})
                 };
               })())
             });
@@ -6407,7 +6412,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
 
               <div style={{display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px', padding: '10px', background: '#f8f9fa', borderRadius: '6px'}}>
                 <span style={{fontSize: '13px', fontWeight: 'bold'}}>Piață:</span>
-                <select value={aoMarket} onChange={e => { const m = e.target.value; setAoMarket(m); setAoItems([{ productId: '', quantity: 1 }]); setAoCustomer(c => ({...c, country: m === 'fr' ? 'France' : (m === 'com' ? c.country : 'Romania')})); }} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px'}}>
+                <select value={aoMarket} onChange={e => { const m = e.target.value; setAoMarket(m); setAoItems([{ productId: '', quantity: 1 }]); setAoCustomShipping(undefined); setAoCustomer(c => ({...c, country: m === 'fr' ? 'France' : (m === 'com' ? c.country : 'Romania')})); }} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px'}}>
                   <option value="ro">🇷🇴 RO (RON)</option>
                   <option value="com">🌍 COM (EUR)</option>
                   <option value="fr">🇫🇷 FR (EUR)</option>
@@ -6428,7 +6433,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         style={{...inputStyle, width: '100%'}}
                         placeholder="Caută produs..."
                         value={it.search !== undefined ? it.search : (p ? `${p.name} — ${parseFloat(p.price).toFixed(2)} ${currency}` : '')}
-                        onChange={e => setAoItems(items => items.map((x, i) => i === idx ? { ...x, search: e.target.value, productId: '', open: true } : x))}
+                        onChange={e => setAoItems(items => items.map((x, i) => i === idx ? { ...x, search: e.target.value, productId: '', customPrice: undefined, open: true } : x))}
                         onFocus={() => setAoItems(items => items.map((x, i) => i === idx ? { ...x, open: true, search: x.productId ? '' : (x.search || '') } : x))}
                         onBlur={() => setTimeout(() => setAoItems(items => items.map((x, i) => i === idx ? { ...x, open: false, search: undefined } : x)), 200)}
                       />
@@ -6439,7 +6444,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             .map(pr => (
                               <div
                                 key={pr.id}
-                                onMouseDown={() => setAoItems(items => items.map((x, i) => i === idx ? { ...x, productId: String(pr.id), search: undefined, open: false } : x))}
+                                onMouseDown={() => setAoItems(items => items.map((x, i) => i === idx ? { ...x, productId: String(pr.id), customPrice: undefined, search: undefined, open: false } : x))}
                                 style={{padding: '8px 10px', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f0f0f0'}}
                                 onMouseEnter={e => e.currentTarget.style.background = '#f0f8f0'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'white'}
@@ -6489,17 +6494,34 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               <button onClick={() => setAoItems(items => [...items, { productId: '', quantity: 1 }])} style={{marginBottom: '16px', padding: '6px 12px', border: '1px dashed #28a745', background: 'none', color: '#28a745', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'}}>+ Adaugă produs</button>
 
               {(() => {
-                const shippingCost = subtotal > aoShipping.freeShippingThreshold ? 0 : aoShipping.standardShippingCost;
+                const siteShipping = subtotal > aoShipping.freeShippingThreshold ? 0 : aoShipping.standardShippingCost;
+                const shippingOverridden = aoCustomShipping !== undefined && aoCustomShipping !== '' && parseFloat(aoCustomShipping) !== siteShipping;
+                const shippingCost = (aoCustomShipping !== undefined && aoCustomShipping !== '') ? (parseFloat(aoCustomShipping) || 0) : siteShipping;
                 const total = subtotal + (subtotal > 0 ? shippingCost : 0);
                 return (
                   <div style={{padding: '12px 14px', background: '#f0f8f0', borderRadius: '6px', marginBottom: '16px', fontSize: '13px', border: '1px solid #d4edda'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
                       <span>Subtotal produse:</span><b>{subtotal.toFixed(2)} {currency}</b>
                     </div>
-                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                      <span>Transport {subtotal > 0 && shippingCost === 0 ? <span style={{color: '#28a745', fontSize: '11px'}}>(gratuit peste {aoShipping.freeShippingThreshold.toFixed(0)} {currency})</span> : <span style={{color: '#888', fontSize: '11px'}}>(gratuit peste {aoShipping.freeShippingThreshold.toFixed(0)} {currency})</span>}:</span>
-                      <b style={{color: subtotal > 0 && shippingCost === 0 ? '#28a745' : 'inherit'}}>{subtotal > 0 ? (shippingCost === 0 ? 'GRATUIT' : `${shippingCost.toFixed(2)} ${currency}`) : '—'}</b>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', gap: '8px'}}>
+                      <span>Transport <span style={{color: '#888', fontSize: '11px'}}>(site: {subtotal > 0 ? (siteShipping === 0 ? 'gratuit' : siteShipping.toFixed(2) + ' ' + currency) : '—'}, gratuit peste {aoShipping.freeShippingThreshold.toFixed(0)} {currency})</span></span>
+                      <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                        <input
+                          type="number" step="0.01" min="0"
+                          value={aoCustomShipping !== undefined ? aoCustomShipping : siteShipping}
+                          onChange={e => setAoCustomShipping(e.target.value)}
+                          style={{width: '90px', padding: '5px 8px', border: '1px solid ' + (shippingOverridden ? '#f0ad4e' : '#ddd'), borderRadius: '4px', fontSize: '13px', background: shippingOverridden ? '#fff8e6' : 'white', textAlign: 'right'}}
+                        />
+                        <span style={{fontSize: '12px'}}>{currency}</span>
+                        {shippingCost > 0 && (
+                          <button onClick={() => setAoCustomShipping('0')} title="Anulează transportul (0)" style={{border: '1px solid #dc3545', background: 'none', color: '#dc3545', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', padding: '3px 6px'}}>Anulează</button>
+                        )}
+                        {shippingOverridden && (
+                          <button onClick={() => setAoCustomShipping(undefined)} title={`Revino la regula site-ului (${siteShipping.toFixed(2)})`} style={{border: 'none', background: 'none', cursor: 'pointer', fontSize: '14px'}}>↺</button>
+                        )}
+                      </span>
                     </div>
+                    {shippingOverridden && <div style={{color: '#f0ad4e', fontSize: '11px', marginBottom: '4px', textAlign: 'right'}}>transport modificat manual</div>}
                     <div style={{display: 'flex', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid #d4edda', fontSize: '15px'}}>
                       <b>Total comandă:</b><b style={{color: '#28a745'}}>{total.toFixed(2)} {currency}</b>
                     </div>

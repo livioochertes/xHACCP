@@ -1609,7 +1609,7 @@ export async function registerAdminRoutes(app: Express) {
   // ─── Create order manually from admin (same pricing rules as site checkout) ──
   app.post("/admin/api/orders/create-manual", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { market, items, shippingAddress, billingAddress, paymentMethod, notes, email, phone } = req.body || {};
+      const { market, items, shippingAddress, billingAddress, paymentMethod, notes, email, phone, customShippingCost } = req.body || {};
 
       const orderMarket = ['ro', 'com', 'fr'].includes(market) ? market : 'ro';
       if (!canAccessMarket(req, orderMarket)) {
@@ -1674,10 +1674,11 @@ export async function registerAdminRoutes(app: Express) {
         let unitPrice = sitePrice;
         if (item.customPrice !== undefined && item.customPrice !== null && item.customPrice !== '') {
           const cp = parseFloat(String(item.customPrice));
-          if (isNaN(cp) || cp <= 0 || cp > 999999) {
+          const cpNormalized = isNaN(cp) ? NaN : parseFloat(cp.toFixed(2));
+          if (!isFinite(cpNormalized) || cpNormalized <= 0 || cpNormalized > 999999) {
             return res.status(400).json({ success: false, message: `Preț personalizat invalid pentru "${product.name}"` });
           }
-          unitPrice = parseFloat(cp.toFixed(2));
+          unitPrice = cpNormalized;
           if (unitPrice !== sitePrice) {
             priceOverrideNotes.push(`${product.name}: ${unitPrice.toFixed(2)} (site: ${sitePrice.toFixed(2)})`);
           }
@@ -1701,7 +1702,19 @@ export async function registerAdminRoutes(app: Express) {
       const standardShippingCost = marketSetting?.standardShippingCost
         ? parseFloat(marketSetting.standardShippingCost)
         : (companySettingsData?.standardShippingCost ? parseFloat(companySettingsData.standardShippingCost) : 25);
-      const shippingCost = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
+      const siteShippingCost = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
+      // Admin may override shipping cost (including 0 to cancel it)
+      let shippingCost = siteShippingCost;
+      if (customShippingCost !== undefined && customShippingCost !== null && customShippingCost !== '') {
+        const csc = parseFloat(String(customShippingCost));
+        if (isNaN(csc) || csc < 0 || csc > 99999) {
+          return res.status(400).json({ success: false, message: 'Cost transport invalid' });
+        }
+        shippingCost = parseFloat(csc.toFixed(2));
+        if (shippingCost !== siteShippingCost) {
+          priceOverrideNotes.push(`Transport: ${shippingCost.toFixed(2)} (site: ${siteShippingCost.toFixed(2)})`);
+        }
+      }
       const totalAmount = subtotal + shippingCost;
 
       const customerEmail = email || shippingAddress?.email || '';
