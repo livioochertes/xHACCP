@@ -67,6 +67,9 @@ export interface TranslationKeys {
   'products.quantityPerUnit': string;
   'products.netContent': string;
   'products.netWeight': string;
+  'products.prevPage': string;
+  'products.nextPage': string;
+  'products.page': string;
   
   // Cart
   'cart.title': string;
@@ -697,6 +700,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': 'Qty/unit',
     'products.netContent': 'Quantity',
     'products.netWeight': 'Weight',
+    'products.prevPage': 'Previous',
+    'products.nextPage': 'Next',
+    'products.page': 'Page',
     
     // Cart
     'cart.title': 'Shopping Cart',
@@ -1383,6 +1389,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': 'Cant./unidad',
     'products.netContent': 'Cantidad',
     'products.netWeight': 'Peso',
+    'products.prevPage': 'Anterior',
+    'products.nextPage': 'Siguiente',
+    'products.page': 'Página',
     
     // Cart
     'cart.title': 'Carrito de Compras',
@@ -1851,6 +1860,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': 'Qté/unité',
     'products.netContent': 'Quantité',
     'products.netWeight': 'Poids',
+    'products.prevPage': 'Précédente',
+    'products.nextPage': 'Suivante',
+    'products.page': 'Page',
     
     // Cart
     'cart.title': 'Panier',
@@ -2349,6 +2361,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': 'Mng./Einheit',
     'products.netContent': 'Menge',
     'products.netWeight': 'Gewicht',
+    'products.prevPage': 'Vorherige',
+    'products.nextPage': 'Nächste',
+    'products.page': 'Seite',
     'cart.title': 'Warenkorb',
     'cart.empty': 'Ihr Warenkorb ist leer.',
     'cart.emptyDesc': 'Fügen Sie Produkte zu Ihrem Warenkorb hinzu, um loszulegen',
@@ -2845,6 +2860,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': 'Cant. unitate',
     'products.netContent': 'Cantitate',
     'products.netWeight': 'Greutate',
+    'products.prevPage': 'Anterioară',
+    'products.nextPage': 'Următoare',
+    'products.page': 'Pagina',
     
     // Cart
     'cart.title': 'Coș de Cumpărături',
@@ -3358,6 +3376,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': 'Qtà/unità',
     'products.netContent': 'Quantità',
     'products.netWeight': 'Peso',
+    'products.prevPage': 'Precedente',
+    'products.nextPage': 'Successiva',
+    'products.page': 'Pagina',
     'common.filters': 'Filtri',
     'messages.addedToCart': 'Aggiunto al carrello',
     'messages.addedToCartDesc': '{name} è stato aggiunto al tuo carrello.',
@@ -3673,6 +3694,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': 'Qtd./unidade',
     'products.netContent': 'Quantidade',
     'products.netWeight': 'Peso',
+    'products.prevPage': 'Anterior',
+    'products.nextPage': 'Próxima',
+    'products.page': 'Página',
     'common.filters': 'Filtros',
     'messages.addedToCart': 'Adicionado ao carrinho',
     'messages.addedToCartDesc': '{name} foi adicionado ao seu carrinho.',
@@ -3988,6 +4012,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': '单位数量',
     'products.netContent': '数量',
     'products.netWeight': '重量',
+    'products.prevPage': '上一页',
+    'products.nextPage': '下一页',
+    'products.page': '页',
     'common.filters': '筛选',
     'messages.addedToCart': '已加入购物车',
     'messages.addedToCartDesc': '{name} 已添加到您的购物车。',
@@ -4303,6 +4330,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': '単位数量',
     'products.netContent': '数量',
     'products.netWeight': '重量',
+    'products.prevPage': '前のページ',
+    'products.nextPage': '次のページ',
+    'products.page': 'ページ',
     'common.filters': 'フィルター',
     'messages.addedToCart': 'カートに追加しました',
     'messages.addedToCartDesc': '{name} がカートに追加されました。',
@@ -4618,6 +4648,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': '단위 수량',
     'products.netContent': '수량',
     'products.netWeight': '중량',
+    'products.prevPage': '이전',
+    'products.nextPage': '다음',
+    'products.page': '페이지',
     'common.filters': '필터',
     'messages.addedToCart': '장바구니에 추가됨',
     'messages.addedToCartDesc': '{name}이(가) 장바구니에 추가되었습니다.',
@@ -4935,6 +4968,9 @@ const translations: Record<Language, TranslationKeys> = {
     'products.quantityPerUnit': 'الكمية/الوحدة',
     'products.netContent': 'الكمية',
     'products.netWeight': 'الوزن',
+    'products.prevPage': 'السابق',
+    'products.nextPage': 'التالي',
+    'products.page': 'الصفحة',
     'common.filters': 'الفلاتر',
     'messages.addedToCart': 'تمت الإضافة إلى السلة',
     'messages.addedToCartDesc': 'تمت إضافة {name} إلى سلة التسوق الخاصة بك.',
