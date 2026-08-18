@@ -4498,6 +4498,38 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(400).json({ message: "No Excel file uploaded" });
       }
 
+      // market = tab-ul activ din admin (ro / com / fr)
+      const importMarket = (['ro', 'com', 'fr'].includes(req.body?.market)) ? req.body.market as string : null;
+
+      // Authorization: explicit market must be in admin's allowed markets
+      if (importMarket && !canAccessMarket(req, importMarket)) {
+        return res.status(403).json({ message: `Acces interzis pentru piața ${importMarket}` });
+      }
+
+      // Determine target markets — never exceed admin's own access
+      const isSuperAdmin = !req.adminMarkets || req.adminMarkets.length === 0;
+      const adminAllowed: string[] = isSuperAdmin ? ['ro', 'com', 'fr'] : req.adminMarkets!;
+      const targetMarkets: string[] = importMarket ? [importMarket] : adminAllowed.filter(m => ['ro', 'com', 'fr'].includes(m));
+      if (targetMarkets.length === 0) {
+        return res.status(403).json({ message: 'Nu există piețe autorizate pentru import' });
+      }
+
+      // duplicateStrategy = { [productCode]: 'update' | 'skip' } — trimis la re-confirmare
+      // Validate values server-side to prevent injection of unexpected actions
+      let duplicateStrategy: Record<string, 'update' | 'skip'> | null = null;
+      if (req.body?.duplicateStrategy) {
+        try {
+          const parsed = JSON.parse(req.body.duplicateStrategy);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            duplicateStrategy = {} as Record<string, 'update' | 'skip'>;
+            for (const [k, v] of Object.entries(parsed)) {
+              if (v === 'update' || v === 'skip') duplicateStrategy[k] = v;
+              else duplicateStrategy[k] = 'skip'; // unknown values default to skip
+            }
+          }
+        } catch {}
+      }
+
       // Parse Excel file
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(req.file.buffer);
@@ -4524,213 +4556,274 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(400).json({ message: "Excel file is empty or invalid" });
       }
 
-      console.log(`📤 Processing ${jsonData.length} rows from Excel file`);
-      console.log('First row data:', JSON.stringify(jsonData[0], null, 2));
+      console.log(`📤 Processing ${jsonData.length} rows from Excel file (market: ${importMarket || 'all'})`);
 
-      let imported = 0;
-      let errors = [];
-      let duplicates = [];
+      // Pre-load data needed for validation
+      const [categories, existingProducts, companySettingsData, allSuppliers] = await Promise.all([
+        storage.getCategories(),
+        storage.getProducts(),
+        storage.getCompanySettings(),
+        storage.getSuppliers(),
+      ]);
 
-      // Get all categories for validation
-      const categories = await storage.getCategories();
-      const categoryMap = new Map();
-      categories.forEach(cat => {
+      const categoryMap = new Map<any, any>();
+      categories.forEach((cat: any) => {
         categoryMap.set(cat.id, cat);
-        categoryMap.set(cat.name, cat);
+        categoryMap.set(cat.name.toLowerCase(), cat);
       });
 
-      // Get existing products to check for duplicates
-      const existingProducts = await storage.getProducts();
-      const existingNames = new Set(existingProducts.map(p => p.name.toLowerCase()));
+      const defaultCurrency = companySettingsData?.defaultCurrency || 'RON';
+      const defaultVatPercentage = companySettingsData?.defaultVatPercentage || 19;
 
-      // Process each row
+      // Build existing-product maps for duplicate detection
+      const existingNames = new Set(existingProducts.map((p: any) => p.name.toLowerCase()));
+      // product_code → { id, name } — only for non-empty codes
+      const existingCodeMap = new Map<string, { id: number; name: string }>();
+      existingProducts.forEach((p: any) => {
+        if (p.productCode && p.productCode.trim()) {
+          existingCodeMap.set(p.productCode.trim().toLowerCase(), { id: p.id, name: p.name });
+        }
+      });
+
+      // ── Phase 1: scan rows and detect code-based duplicates ──────────────────
+      interface ParsedRow {
+        rowNumber: number;
+        productName: string;
+        price: number;
+        stockQuantity: number;
+        finalCategoryId: number;
+        description: string;
+        status: string;
+        vatValue: number;
+        currency: string;
+        productCode: string;
+        ncCode: string;
+        cpvCode: string;
+        supplierName: string;
+        weight: number;
+        length: number;
+        width: number;
+        height: number;
+        piecesPerPackage: number;
+        existingId?: number; // set when code matches an existing product
+        existingName?: string;
+      }
+
+      const parsedRows: ParsedRow[] = [];
+      const parseErrors: string[] = [];
+      const codeDuplicates: Array<{ rowNumber: number; code: string; existingName: string; existingId: number; newName: string }> = [];
+      const seenExistingCodes = new Set<string>(); // collapse repeated rows referencing the same DB product
+
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i];
-        const rowNumber = i + 2; // Excel row number (header is row 1)
+        const rowNumber = i + 2;
 
+        const productName = row['Product Name']?.toString()?.trim();
+        if (!productName) { parseErrors.push(`Rândul ${rowNumber}: Product Name este obligatoriu`); continue; }
+
+        const price = parseFloat(row['Price']?.toString()?.replace(',', '.') || '0');
+        if (price <= 0) { parseErrors.push(`Rândul ${rowNumber}: Prețul trebuie să fie > 0`); continue; }
+
+        const stockQuantity = parseInt(row['Stock Quantity']?.toString() || '0');
+        if (stockQuantity < 0) { parseErrors.push(`Rândul ${rowNumber}: Stocul nu poate fi negativ`); continue; }
+
+        const categoryId = parseInt(row['Category ID']?.toString() || '0');
+        const categoryName = row['Category Name']?.toString()?.trim();
+        let finalCategoryId = categoryId;
+        if (!categoryMap.has(categoryId)) {
+          const byName = categoryName ? categories.find((c: any) => c.name.toLowerCase() === categoryName.toLowerCase()) : null;
+          if (byName) { finalCategoryId = byName.id; }
+          else { parseErrors.push(`Rândul ${rowNumber}: Categoria ID ${categoryId}${categoryName ? ` / "${categoryName}"` : ''} nu există`); continue; }
+        }
+
+        const status = row['Status']?.toString()?.toLowerCase()?.trim() || 'active';
+        const validStatuses = ['active', 'inactive', 'draft', 'discontinued'];
+        if (!validStatuses.includes(status)) { parseErrors.push(`Rândul ${rowNumber}: Status invalid (${status})`); continue; }
+
+        const productCode = row['Product Code']?.toString()?.trim() || '';
+
+        const parsed: ParsedRow = {
+          rowNumber,
+          productName,
+          price,
+          stockQuantity,
+          finalCategoryId,
+          description: row['Description']?.toString()?.trim() || '',
+          status,
+          vatValue: parseFloat(row['VAT %']?.toString()?.replace('%', '').replace(',', '.') || defaultVatPercentage.toString()),
+          currency: row['Currency']?.toString()?.trim()?.toUpperCase() || defaultCurrency,
+          productCode,
+          ncCode: row['NC Code']?.toString()?.trim() || '',
+          cpvCode: row['CPV Code']?.toString()?.trim() || '',
+          supplierName: row['Supplier Name']?.toString()?.trim() || 'xHACCP Direct',
+          weight: Math.max(1, Math.round(parseFloat(row['Weight (kg)']?.toString()?.replace(',', '.') || '1'))),
+          length: parseFloat(row['Length (cm)']?.toString()?.replace(',', '.') || '10'),
+          width: parseFloat(row['Width (cm)']?.toString()?.replace(',', '.') || '10'),
+          height: parseFloat(row['Height (cm)']?.toString()?.replace(',', '.') || '10'),
+          piecesPerPackage: Math.max(1, parseInt(row['Pieces Per Package']?.toString() || '1')),
+        };
+
+        // Check product-code duplicate against DB
+        if (productCode) {
+          const existing = existingCodeMap.get(productCode.toLowerCase());
+          if (existing) {
+            if (seenExistingCodes.has(productCode.toLowerCase())) {
+              // Second (or more) row referencing the same existing product — reject outright
+              parseErrors.push(`Rândul ${rowNumber}: Codul "${productCode}" apare de mai multe ori în fișier — omis`);
+              continue;
+            }
+            seenExistingCodes.add(productCode.toLowerCase());
+            parsed.existingId = existing.id;
+            parsed.existingName = existing.name;
+            codeDuplicates.push({ rowNumber, code: productCode, existingName: existing.name, existingId: existing.id, newName: productName });
+          }
+        }
+
+        parsedRows.push(parsed);
+      }
+
+      // ── Phase 2: if code duplicates exist and no strategy yet → ask UI ───────
+      if (codeDuplicates.length > 0 && !duplicateStrategy) {
+        return res.json({
+          needsConfirmation: true,
+          duplicates: codeDuplicates,
+          parseErrors,
+          total: jsonData.length,
+        });
+      }
+
+      // ── Phase 3: process rows ─────────────────────────────────────────────────
+      // Supplier cache to avoid repeated DB calls per row
+      const supplierCache = new Map<string, number>();
+      allSuppliers.forEach((s: any) => supplierCache.set(s.name.toLowerCase(), s.id));
+
+      const getOrCreateSupplier = async (name: string): Promise<number | null> => {
+        const key = name.toLowerCase();
+        if (supplierCache.has(key)) return supplierCache.get(key)!;
+        const newSupplier = await storage.createSupplier({
+          name, email: `contact@${name.toLowerCase().replace(/\s+/g, '')}.com`,
+          phone: '', address: '', city: '', state: '', zipCode: '', country: '',
+          contactPerson: '', integrationType: 'email', isActive: true,
+        });
+        supplierCache.set(key, newSupplier.id);
+        return newSupplier.id;
+      };
+
+      let imported = 0;
+      let updated = 0;
+      let skipped = 0;
+      const errors: string[] = [...parseErrors];
+      const namesSeen = new Set<string>(); // within-file name dedup
+      const codesSeen = new Set<string>(); // within-file code dedup
+
+      for (const parsed of parsedRows) {
         try {
-          console.log(`Processing row ${rowNumber}:`, JSON.stringify(row, null, 2));
-          
-          // Extract and validate required fields
-          const productName = row['Product Name']?.toString()?.trim();
-          const price = parseFloat(row['Price']?.toString()?.replace(',', '.') || '0');
-          const stockQuantity = parseInt(row['Stock Quantity']?.toString() || '0');
-          const categoryId = parseInt(row['Category ID']?.toString() || '0');
-          
-          console.log(`Row ${rowNumber} parsed:`, { productName, price, stockQuantity, categoryId });
+          const { productName, price, stockQuantity, finalCategoryId, description, status,
+                  vatValue, currency, productCode, ncCode, cpvCode, supplierName,
+                  weight, length, width, height, piecesPerPackage, rowNumber, existingId } = parsed;
 
-          // Validation
-          if (!productName) {
-            errors.push(`Row ${rowNumber}: Product Name is required`);
-            continue;
-          }
-
-          if (existingNames.has(productName.toLowerCase())) {
-            duplicates.push(`Row ${rowNumber}: Product "${productName}" already exists`);
-            continue;
-          }
-
-          if (price <= 0) {
-            errors.push(`Row ${rowNumber}: Price must be greater than 0`);
-            continue;
-          }
-
-          if (stockQuantity < 0) {
-            errors.push(`Row ${rowNumber}: Stock Quantity cannot be negative`);
-            continue;
-          }
-
-          // Try to find category by ID first, then by name if provided
-          let finalCategoryId = categoryId;
-          const categoryName = row['Category Name']?.toString()?.trim();
-          
-          if (!categoryMap.has(categoryId)) {
-            // If category ID doesn't exist, try to find by name
-            if (categoryName) {
-              const categoryByName = categories.find(cat => cat.name.toLowerCase() === categoryName.toLowerCase());
-              if (categoryByName) {
-                finalCategoryId = categoryByName.id;
-                console.log(`✅ Found category by name: "${categoryName}" (ID: ${finalCategoryId})`);
-              } else {
-                errors.push(`Row ${rowNumber}: Category ID ${categoryId} and Category Name "${categoryName}" do not exist`);
+          // ── Update path (existing product, code match, strategy = 'update') ───
+          if (existingId && duplicateStrategy) {
+            const strat = duplicateStrategy[productCode] ?? duplicateStrategy[productCode.toLowerCase()];
+            // Missing key defaults to skip (safe fallback for incomplete strategy maps)
+            if (!strat || strat === 'skip') { skipped++; continue; }
+            if (strat === 'update') {
+              // Authorization: verify existing product is in at least one authorized market
+              const existingMarkets = await storage.getProductMarkets(existingId);
+              const productInAllowedMarket = isSuperAdmin || existingMarkets.some((pm: any) => adminAllowed.includes(pm.market));
+              if (!productInAllowedMarket) {
+                errors.push(`Rândul ${rowNumber}: Produsul #${existingId} nu este în piețele autorizate — omis`);
+                skipped++;
                 continue;
               }
-            } else {
-              errors.push(`Row ${rowNumber}: Category ID ${categoryId} does not exist`);
+              const supplierId = await getOrCreateSupplier(supplierName);
+              await storage.updateProduct(existingId, {
+                name: productName, description, price: price.toString(),
+                compareAtPrice: (price * 1.2).toString(), categoryId: finalCategoryId,
+                supplierId, stockQuantity, vatValue: vatValue.toString(),
+                vatPercentage: vatValue.toString(), currency, productCode, ncCode, cpvCode, status,
+                weight: weight as any, length: length.toString(), width: width.toString(),
+                height: height.toString(), piecesPerPackage,
+              });
+              // Ensure productMarkets rows exist (don't overwrite existing overrides)
+              for (const mkt of targetMarkets) {
+                await storage.setProductMarket({ productId: existingId, market: mkt, isActive: true });
+              }
+              updated++;
+              console.log(`✏️ Updated product #${existingId} "${productName}" (code: ${productCode})`);
               continue;
             }
           }
 
-          // Get company defaults for currency and VAT
-          const companySettings = await storage.getCompanySettings();
-          const defaultCurrency = companySettings?.defaultCurrency || 'RON';
-          const defaultVatPercentage = companySettings?.defaultVatPercentage || 19;
-
-          // Extract optional fields with defaults
-          const description = row['Description']?.toString()?.trim() || '';
-          const status = row['Status']?.toString()?.toLowerCase()?.trim() || 'active';
-          const vatValue = parseFloat(row['VAT %']?.toString()?.replace('%', '').replace(',', '.') || defaultVatPercentage.toString());
-          const currency = row['Currency']?.toString()?.trim()?.toUpperCase() || defaultCurrency;
-          const productCode = row['Product Code']?.toString()?.trim() || '';
-          const ncCode = row['NC Code']?.toString()?.trim() || '';
-          const cpvCode = row['CPV Code']?.toString()?.trim() || '';
-          const supplierName = row['Supplier Name']?.toString()?.trim() || 'xHACCP Direct';
-          
-          // Extract logistics fields with defaults and validation
-          const weight = Math.max(1, Math.round(parseFloat(row['Weight (kg)']?.toString()?.replace(',', '.') || '1')));
-          const length = parseFloat(row['Length (cm)']?.toString()?.replace(',', '.') || '10');
-          const width = parseFloat(row['Width (cm)']?.toString()?.replace(',', '.') || '10'); 
-          const height = parseFloat(row['Height (cm)']?.toString()?.replace(',', '.') || '10');
-          const piecesPerPackage = Math.max(1, parseInt(row['Pieces Per Package']?.toString() || '1'));
-
-          // Validate status
-          const validStatuses = ['active', 'inactive', 'draft', 'discontinued'];
-          if (!validStatuses.includes(status)) {
-            errors.push(`Row ${rowNumber}: Status must be one of: ${validStatuses.join(', ')}`);
+          // ── Skip if it's a code-duplicate with no strategy (shouldn't reach here) or name-dup ──
+          if (existingId && !duplicateStrategy) { skipped++; continue; }
+          if (!existingId && existingNames.has(productName.toLowerCase())) {
+            errors.push(`Rândul ${rowNumber}: Produsul "${productName}" există deja (după nume) — omis`);
+            continue;
+          }
+          if (namesSeen.has(productName.toLowerCase())) {
+            errors.push(`Rândul ${rowNumber}: Duplicat în fișier: "${productName}" — omis`);
+            continue;
+          }
+          // Within-file code dedup (two rows with same code, neither in DB)
+          if (productCode && codesSeen.has(productCode.toLowerCase())) {
+            errors.push(`Rândul ${rowNumber}: Cod duplicat în fișier: "${productCode}" — omis`);
             continue;
           }
 
-          // Find or create supplier
-          let supplierId = null;
-          const suppliers = await storage.getSuppliers();
-          const supplier = suppliers.find(s => s.name.toLowerCase() === supplierName.toLowerCase());
-          if (supplier) {
-            supplierId = supplier.id;
-            console.log(`✅ Found existing supplier: ${supplierName} (ID: ${supplierId})`);
-          } else {
-            console.log(`🔄 Creating new supplier: ${supplierName}`);
-            // Create new supplier if it doesn't exist
-            const newSupplier = await storage.createSupplier({
-              name: supplierName,
-              email: `contact@${supplierName.toLowerCase().replace(/\s+/g, '')}.com`,
-              phone: '',
-              address: '',
-              city: '',
-              state: '',
-              zipCode: '',
-              country: '',
-              contactPerson: '',
-              integrationType: 'email',
-              isActive: true
-            });
-            supplierId = newSupplier.id;
-            console.log(`✅ Created new supplier: ${supplierName} (ID: ${supplierId})`);
-          }
-
-          // Generate slug
+          // ── Insert path ───────────────────────────────────────────────────────
+          const supplierId = await getOrCreateSupplier(supplierName);
           const slug = productName.toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .trim();
+            .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
 
-          // Create product
-          const productData = {
-            name: productName,
-            slug: slug,
-            description: description,
-            price: price.toString(),
-            compareAtPrice: (price * 1.2).toString(), // 20% higher than regular price
-            categoryId: finalCategoryId,
-            supplierId: supplierId,
-            stockQuantity: stockQuantity,
-            featured: false,
-            images: [],
-            vatValue: vatValue.toString(),
-            vatPercentage: vatValue.toString(), // Use same value for backwards compatibility
-            currency: currency, // Use company default currency (RON for Romanian market)
-            productCode: productCode,
-            ncCode: ncCode,
-            cpvCode: cpvCode,
-            status: status,
-            weight: weight,
-            length: length.toString(),
-            width: width.toString(),
-            height: height.toString(),
-            piecesPerPackage: piecesPerPackage
+          const productData: any = {
+            name: productName, slug, description, price: price.toString(),
+            compareAtPrice: (price * 1.2).toString(), categoryId: finalCategoryId,
+            supplierId, stockQuantity, featured: false, images: [],
+            vatValue: vatValue.toString(), vatPercentage: vatValue.toString(),
+            currency, productCode, ncCode, cpvCode, status,
+            weight, length: length.toString(), width: width.toString(),
+            height: height.toString(), piecesPerPackage,
           };
 
-          console.log(`🔄 Creating product with data:`, JSON.stringify(productData, null, 2));
           const createdProduct = await storage.createProduct(productData);
-          console.log(`✅ Product created successfully:`, createdProduct);
-          imported++;
-          existingNames.add(productName.toLowerCase()); // Add to set to prevent duplicates in same import
+          namesSeen.add(productName.toLowerCase());
+          existingNames.add(productName.toLowerCase());
+          if (productCode) codesSeen.add(productCode.toLowerCase());
 
-          console.log(`✅ Imported product: ${productName}`);
+          // ── Create productMarkets rows so the product is visible in admin ────
+          for (const mkt of targetMarkets) {
+            await storage.setProductMarket({ productId: createdProduct.id, market: mkt, isActive: true });
+          }
+
+          imported++;
+          console.log(`✅ Imported product #${createdProduct.id} "${productName}" → markets: ${targetMarkets.join(', ')}`);
         } catch (error: any) {
-          console.error(`❌ Error processing row ${rowNumber}:`, error);
-          console.error('Error details:', error.stack);
-          errors.push(`Row ${rowNumber}: ${error.message}`);
+          console.error(`❌ Error processing row ${parsed.rowNumber}:`, error);
+          errors.push(`Rândul ${parsed.rowNumber}: ${error.message}`);
         }
       }
 
-      // Refresh memory cache
+      // Refresh memory + market caches
       await loadAllDataIntoMemory();
+      await refreshMarketCaches();
 
-      console.log('📊 Import Summary:', {
-        total: jsonData.length,
-        imported: imported,
-        errors: errors.length,
-        duplicates: duplicates.length,
-        errorDetails: errors,
-        duplicateDetails: duplicates
-      });
+      console.log(`📊 Import Summary: ${imported} imported, ${updated} updated, ${skipped} skipped, ${errors.length} errors`);
 
       res.json({
         success: true,
-        message: `Import completed: ${imported} products imported`,
+        message: `Import finalizat: ${imported} produse importate${updated > 0 ? `, ${updated} actualizate` : ''}${skipped > 0 ? `, ${skipped} omise` : ''}`,
         total: jsonData.length,
-        imported: imported,
-        errors: errors,
-        duplicates: duplicates
+        imported,
+        updated,
+        skipped,
+        errors,
+        duplicates: [],
       });
 
     } catch (error: any) {
       console.error("Excel import error:", error);
-      res.status(500).json({ 
-        message: "Failed to import Excel file", 
-        error: error.message 
-      });
+      res.status(500).json({ message: "Failed to import Excel file", error: error.message });
     }
   });
 

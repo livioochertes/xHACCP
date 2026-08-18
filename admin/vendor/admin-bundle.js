@@ -12576,6 +12576,7 @@
     const [showExcelImportModal, setShowExcelImportModal] = (0, import_react13.useState)(false);
     const [excelFile, setExcelFile] = (0, import_react13.useState)(null);
     const [importResults, setImportResults] = (0, import_react13.useState)(null);
+    const [importDuplicates, setImportDuplicates] = (0, import_react13.useState)(null);
     const [initialProductData, setInitialProductData] = (0, import_react13.useState)(null);
     const [modalKey, setModalKey] = (0, import_react13.useState)(0);
     const [productTranslations, setProductTranslations] = (0, import_react13.useState)([]);
@@ -13699,52 +13700,56 @@ Failed: ${result.failed}`);
         alert(t2("products.exportError"));
       }
     };
-    const importProductsFromExcel = async (file) => {
+    const importProductsFromExcel = async (file, duplicateStrategy) => {
       if (!file) {
         alert("Please select an Excel file to import.");
         return;
       }
       try {
         setImportResults({ loading: true });
+        setImportDuplicates(null);
         const formData = new FormData();
         formData.append("excelFile", file);
+        if (selectedMarketTab && selectedMarketTab !== "all") {
+          formData.append("market", selectedMarketTab);
+        }
+        if (duplicateStrategy) {
+          formData.append("duplicateStrategy", JSON.stringify(duplicateStrategy));
+        }
         const response = await fetch("/admin/api/products/import-excel", {
           method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          },
+          headers: { "Authorization": `Bearer ${token}` },
           body: formData
         });
         const result = await response.json();
+        if (response.ok && result.needsConfirmation) {
+          setImportResults(null);
+          setImportDuplicates({
+            duplicates: result.duplicates || [],
+            parseErrors: result.parseErrors || [],
+            total: result.total || 0,
+            strategies: Object.fromEntries((result.duplicates || []).map((d) => [d.code, "skip"]))
+          });
+          return;
+        }
         if (response.ok) {
+          setImportDuplicates(null);
           setImportResults({
             success: true,
             imported: result.imported || 0,
+            updated: result.updated || 0,
+            skipped: result.skipped || 0,
             errors: result.errors || [],
-            duplicates: result.duplicates || [],
             total: result.total || 0
           });
-          console.log("Excel import completed, refreshing product list...");
           await fetchProducts();
-          setTimeout(async () => {
-            console.log("Performing delayed product list refresh...");
-            await fetchProducts();
-          }, 1e3);
-          alert(`\u2705 Import completed!\\n\\nImported: ${result.imported}\\nErrors: ${result.errors?.length || 0}\\nDuplicates: ${result.duplicates?.length || 0}\\n\\nProduct list has been refreshed. The new products should now be visible.`);
+          setTimeout(() => fetchProducts(), 1e3);
         } else {
-          setImportResults({
-            success: false,
-            message: result.message || "Import failed"
-          });
-          alert("\u274C Import failed: " + (result.message || "Unknown error"));
+          setImportResults({ success: false, message: result.message || "Import failed" });
         }
       } catch (error2) {
         console.error("Error importing Excel:", error2);
-        setImportResults({
-          success: false,
-          message: "Network error during import"
-        });
-        alert("\u274C Network error during import");
+        setImportResults({ success: false, message: "Network error during import" });
       }
     };
     const updateOrderStatus = async (orderId, status) => {
@@ -23594,7 +23599,83 @@ ${selectedOrders.map((id) => {
           ] }),
           importResults && importResults.loading && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { textAlign: "center", marginBottom: "20px" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "loading" }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", marginTop: "10px" }, children: "Processing Excel file..." })
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", marginTop: "10px" }, children: "Se proceseaz\u0103 fi\u0219ierul Excel..." })
+          ] }),
+          importDuplicates && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px", border: "1px solid #f0ad4e", borderRadius: "6px", overflow: "hidden" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#fff3cd", padding: "12px 15px", borderBottom: "1px solid #f0ad4e" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#856404", margin: 0 }, children: [
+                "\u26A0\uFE0F ",
+                importDuplicates.duplicates.length,
+                " produs(e) cu cod existent"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#856404", margin: "4px 0 0 0", fontSize: "13px" }, children: "Alege ce s\u0103 se \xEEnt\xE2mple cu fiecare produs. Celelalte r\xE2nduri f\u0103r\u0103 cod duplicat vor fi importate normal." })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "10px 15px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", marginBottom: "10px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setImportDuplicates((d) => ({ ...d, strategies: Object.fromEntries(d.duplicates.map((x) => [x.code, "update"])) })), style: { padding: "5px 10px", border: "1px solid #17a2b8", background: "#17a2b8", color: "white", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }, children: "\u270F\uFE0F Actualizeaz\u0103 toate" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setImportDuplicates((d) => ({ ...d, strategies: Object.fromEntries(d.duplicates.map((x) => [x.code, "skip"])) })), style: { padding: "5px 10px", border: "1px solid #6c757d", background: "#6c757d", color: "white", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }, children: "\u23ED Sari peste toate" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "12px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { background: "#f8f9fa" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ddd" }, children: "Cod produs" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ddd" }, children: "Existent \xEEn sistem" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("th", { style: { padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ddd" }, children: [
+                    "Nou (Excel, r\xE2nd ",
+                    "{",
+                    "r\xE2ndului",
+                    "}",
+                    ")"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "6px 8px", textAlign: "center", borderBottom: "1px solid #ddd" }, children: "Ac\u021Biune" })
+                ] }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: importDuplicates.duplicates.map((d) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #f0f0f0" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "6px 8px", fontFamily: "monospace", fontWeight: "bold" }, children: d.code }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "6px 8px", color: "#666" }, children: d.existingName }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "6px 8px" }, children: [
+                    d.newName,
+                    " ",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#888", fontSize: "11px" }, children: [
+                      "(r.",
+                      d.rowNumber,
+                      ")"
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "6px 8px", textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "select",
+                    {
+                      value: importDuplicates.strategies[d.code] || "skip",
+                      onChange: (e2) => setImportDuplicates((prev) => ({ ...prev, strategies: { ...prev.strategies, [d.code]: e2.target.value } })),
+                      style: { padding: "3px 6px", border: "1px solid #ddd", borderRadius: "3px", fontSize: "12px", background: importDuplicates.strategies[d.code] === "update" ? "#d1ecf1" : "#f8f9fa" },
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "skip", children: "\u23ED Sari peste" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "update", children: "\u270F\uFE0F Actualizeaz\u0103" })
+                      ]
+                    }
+                  ) })
+                ] }, d.code)) })
+              ] }),
+              importDuplicates.parseErrors.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "8px", color: "#721c24", fontSize: "12px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("b", { children: [
+                  "Erori de validare (",
+                  importDuplicates.parseErrors.length,
+                  "):"
+                ] }),
+                " ",
+                importDuplicates.parseErrors.slice(0, 3).join("; "),
+                importDuplicates.parseErrors.length > 3 ? "\u2026" : ""
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "10px 15px", borderTop: "1px solid #f0ad4e", display: "flex", justifyContent: "flex-end", gap: "8px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setImportDuplicates(null), style: { padding: "7px 14px", border: "1px solid #6c757d", background: "white", borderRadius: "4px", cursor: "pointer" }, children: "Anuleaz\u0103" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "button",
+                {
+                  onClick: () => importProductsFromExcel(excelFile, importDuplicates.strategies),
+                  style: { padding: "7px 14px", border: "none", background: "#fd7e14", color: "white", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" },
+                  children: "\u{1F4E4} Continu\u0103 importul"
+                }
+              )
+            ] })
           ] }),
           importResults && !importResults.loading && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
             marginBottom: "20px",
@@ -23603,30 +23684,35 @@ ${selectedOrders.map((id) => {
             background: importResults.success ? "#d4edda" : "#f8d7da",
             border: importResults.success ? "1px solid #c3e6cb" : "1px solid #f5c6cb"
           }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: {
-              color: importResults.success ? "#155724" : "#721c24",
-              marginBottom: "10px"
-            }, children: importResults.success ? "\u2705 Import Results" : "\u274C Import Failed" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: importResults.success ? "#155724" : "#721c24", marginBottom: "10px" }, children: importResults.success ? "\u2705 Rezultate import" : "\u274C Import e\u0219uat" }),
             importResults.success ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { color: "#155724" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Total processed:" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Total r\xE2nduri:" }),
                 " ",
                 importResults.total
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Successfully imported:" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Importate (noi):" }),
                 " ",
                 importResults.imported
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Errors:" }),
+              importResults.updated > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Actualizate:" }),
                 " ",
-                importResults.errors?.length || 0
+                importResults.updated
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Duplicates skipped:" }),
+              importResults.skipped > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Omise:" }),
                 " ",
-                importResults.duplicates?.length || 0
+                importResults.skipped
+              ] }),
+              importResults.errors?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("details", { style: { marginTop: "8px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("summary", { style: { cursor: "pointer" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
+                  "Erori (",
+                  importResults.errors.length,
+                  "):"
+                ] }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("ul", { style: { marginTop: "6px", paddingLeft: "16px", fontSize: "12px" }, children: importResults.errors.map((e2, i) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("li", { children: e2 }, i)) })
               ] })
             ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#721c24" }, children: importResults.message })
           ] }),
@@ -23652,11 +23738,12 @@ ${selectedOrders.map((id) => {
                     setShowExcelImportModal(false);
                     setExcelFile(null);
                     setImportResults(null);
+                    setImportDuplicates(null);
                   },
-                  children: "Cancel"
+                  children: "\xCEnchide"
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              !importDuplicates && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                 "button",
                 {
                   type: "button",
@@ -23664,7 +23751,7 @@ ${selectedOrders.map((id) => {
                   style: { background: "#fd7e14" },
                   onClick: () => importProductsFromExcel(excelFile),
                   disabled: !excelFile || importResults && importResults.loading,
-                  children: "\u{1F4E4} Import Products"
+                  children: "\u{1F4E4} Import\u0103 produse"
                 }
               )
             ] })

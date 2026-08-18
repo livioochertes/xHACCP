@@ -467,6 +467,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [showExcelImportModal, setShowExcelImportModal] = useState(false);
       const [excelFile, setExcelFile] = useState(null);
       const [importResults, setImportResults] = useState(null);
+      const [importDuplicates, setImportDuplicates] = useState(null); // { duplicates, parseErrors, total, strategies }
       
       // Initial product data for new products - passed to ModalsComponent
       const [initialProductData, setInitialProductData] = useState(null);
@@ -1735,7 +1736,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       };
 
       // Import products from Excel file
-      const importProductsFromExcel = async (file) => {
+      // duplicateStrategy: { [productCode]: 'update'|'skip' } — null on first call
+      const importProductsFromExcel = async (file, duplicateStrategy) => {
         if (!file) {
           alert('Please select an Excel file to import.');
           return;
@@ -1743,54 +1745,55 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
 
         try {
           setImportResults({ loading: true });
-          
+          setImportDuplicates(null);
+
           const formData = new FormData();
           formData.append('excelFile', file);
+          if (selectedMarketTab && selectedMarketTab !== 'all') {
+            formData.append('market', selectedMarketTab);
+          }
+          if (duplicateStrategy) {
+            formData.append('duplicateStrategy', JSON.stringify(duplicateStrategy));
+          }
 
           const response = await fetch('/admin/api/products/import-excel', {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
           });
 
           const result = await response.json();
 
+          // Server detected code duplicates — needs user decision before continuing
+          if (response.ok && result.needsConfirmation) {
+            setImportResults(null);
+            setImportDuplicates({
+              duplicates: result.duplicates || [],
+              parseErrors: result.parseErrors || [],
+              total: result.total || 0,
+              strategies: Object.fromEntries((result.duplicates || []).map(d => [d.code, 'skip'])),
+            });
+            return;
+          }
+
           if (response.ok) {
+            setImportDuplicates(null);
             setImportResults({
               success: true,
               imported: result.imported || 0,
+              updated: result.updated || 0,
+              skipped: result.skipped || 0,
               errors: result.errors || [],
-              duplicates: result.duplicates || [],
               total: result.total || 0
             });
-            
-            // Refresh products list with delay to ensure data is updated
-            console.log('Excel import completed, refreshing product list...');
             await fetchProducts();
-            
-            // Also refresh after a short delay to ensure cache is cleared
-            setTimeout(async () => {
-              console.log('Performing delayed product list refresh...');
-              await fetchProducts();
-            }, 1000);
-            
-            alert(`✅ Import completed!\\n\\nImported: ${result.imported}\\nErrors: ${result.errors?.length || 0}\\nDuplicates: ${result.duplicates?.length || 0}\\n\\nProduct list has been refreshed. The new products should now be visible.`);
+            setTimeout(() => fetchProducts(), 1000);
           } else {
-            setImportResults({
-              success: false,
-              message: result.message || 'Import failed'
-            });
-            alert('❌ Import failed: ' + (result.message || 'Unknown error'));
+            setImportResults({ success: false, message: result.message || 'Import failed' });
           }
         } catch (error) {
           console.error('Error importing Excel:', error);
-          setImportResults({
-            success: false,
-            message: 'Network error during import'
-          });
-          alert('❌ Network error during import');
+          setImportResults({ success: false, message: 'Network error during import' });
         }
       };
 
@@ -11135,30 +11138,94 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                   {importResults && importResults.loading && (
                     <div style={{textAlign: 'center', marginBottom: '20px'}}>
                       <div className="loading"></div>
-                      <p style={{color: '#666', marginTop: '10px'}}>Processing Excel file...</p>
+                      <p style={{color: '#666', marginTop: '10px'}}>Se procesează fișierul Excel...</p>
+                    </div>
+                  )}
+
+                  {/* ── Duplicate confirmation step ── */}
+                  {importDuplicates && (
+                    <div style={{marginBottom: '20px', border: '1px solid #f0ad4e', borderRadius: '6px', overflow: 'hidden'}}>
+                      <div style={{background: '#fff3cd', padding: '12px 15px', borderBottom: '1px solid #f0ad4e'}}>
+                        <h4 style={{color: '#856404', margin: 0}}>⚠️ {importDuplicates.duplicates.length} produs(e) cu cod existent</h4>
+                        <p style={{color: '#856404', margin: '4px 0 0 0', fontSize: '13px'}}>Alege ce să se întâmple cu fiecare produs. Celelalte rânduri fără cod duplicat vor fi importate normal.</p>
+                      </div>
+                      <div style={{padding: '10px 15px'}}>
+                        <div style={{display: 'flex', gap: '8px', marginBottom: '10px'}}>
+                          <button onClick={() => setImportDuplicates(d => ({...d, strategies: Object.fromEntries(d.duplicates.map(x => [x.code, 'update']))}))} style={{padding: '5px 10px', border: '1px solid #17a2b8', background: '#17a2b8', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✏️ Actualizează toate</button>
+                          <button onClick={() => setImportDuplicates(d => ({...d, strategies: Object.fromEntries(d.duplicates.map(x => [x.code, 'skip']))}))} style={{padding: '5px 10px', border: '1px solid #6c757d', background: '#6c757d', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>⏭ Sari peste toate</button>
+                        </div>
+                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                          <thead>
+                            <tr style={{background: '#f8f9fa'}}>
+                              <th style={{padding: '6px 8px', textAlign: 'left', borderBottom: '1px solid #ddd'}}>Cod produs</th>
+                              <th style={{padding: '6px 8px', textAlign: 'left', borderBottom: '1px solid #ddd'}}>Existent în sistem</th>
+                              <th style={{padding: '6px 8px', textAlign: 'left', borderBottom: '1px solid #ddd'}}>Nou (Excel, rând {'{'}rândului{'}'})</th>
+                              <th style={{padding: '6px 8px', textAlign: 'center', borderBottom: '1px solid #ddd'}}>Acțiune</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {importDuplicates.duplicates.map(d => (
+                              <tr key={d.code} style={{borderBottom: '1px solid #f0f0f0'}}>
+                                <td style={{padding: '6px 8px', fontFamily: 'monospace', fontWeight: 'bold'}}>{d.code}</td>
+                                <td style={{padding: '6px 8px', color: '#666'}}>{d.existingName}</td>
+                                <td style={{padding: '6px 8px'}}>{d.newName} <span style={{color: '#888', fontSize: '11px'}}>(r.{d.rowNumber})</span></td>
+                                <td style={{padding: '6px 8px', textAlign: 'center'}}>
+                                  <select
+                                    value={importDuplicates.strategies[d.code] || 'skip'}
+                                    onChange={e => setImportDuplicates(prev => ({...prev, strategies: {...prev.strategies, [d.code]: e.target.value}}))}
+                                    style={{padding: '3px 6px', border: '1px solid #ddd', borderRadius: '3px', fontSize: '12px', background: importDuplicates.strategies[d.code] === 'update' ? '#d1ecf1' : '#f8f9fa'}}
+                                  >
+                                    <option value="skip">⏭ Sari peste</option>
+                                    <option value="update">✏️ Actualizează</option>
+                                  </select>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {importDuplicates.parseErrors.length > 0 && (
+                          <div style={{marginTop: '8px', color: '#721c24', fontSize: '12px'}}>
+                            <b>Erori de validare ({importDuplicates.parseErrors.length}):</b> {importDuplicates.parseErrors.slice(0, 3).join('; ')}{importDuplicates.parseErrors.length > 3 ? '…' : ''}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{padding: '10px 15px', borderTop: '1px solid #f0ad4e', display: 'flex', justifyContent: 'flex-end', gap: '8px'}}>
+                        <button onClick={() => setImportDuplicates(null)} style={{padding: '7px 14px', border: '1px solid #6c757d', background: 'white', borderRadius: '4px', cursor: 'pointer'}}>Anulează</button>
+                        <button
+                          onClick={() => importProductsFromExcel(excelFile, importDuplicates.strategies)}
+                          style={{padding: '7px 14px', border: 'none', background: '#fd7e14', color: 'white', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}
+                        >
+                          📤 Continuă importul
+                        </button>
+                      </div>
                     </div>
                   )}
 
                   {importResults && !importResults.loading && (
                     <div style={{
-                      marginBottom: '20px', 
-                      padding: '15px', 
+                      marginBottom: '20px',
+                      padding: '15px',
                       borderRadius: '6px',
                       background: importResults.success ? '#d4edda' : '#f8d7da',
                       border: importResults.success ? '1px solid #c3e6cb' : '1px solid #f5c6cb'
                     }}>
-                      <h4 style={{
-                        color: importResults.success ? '#155724' : '#721c24',
-                        marginBottom: '10px'
-                      }}>
-                        {importResults.success ? '✅ Import Results' : '❌ Import Failed'}
+                      <h4 style={{color: importResults.success ? '#155724' : '#721c24', marginBottom: '10px'}}>
+                        {importResults.success ? '✅ Rezultate import' : '❌ Import eșuat'}
                       </h4>
                       {importResults.success ? (
                         <div style={{color: '#155724'}}>
-                          <p><strong>Total processed:</strong> {importResults.total}</p>
-                          <p><strong>Successfully imported:</strong> {importResults.imported}</p>
-                          <p><strong>Errors:</strong> {importResults.errors?.length || 0}</p>
-                          <p><strong>Duplicates skipped:</strong> {importResults.duplicates?.length || 0}</p>
+                          <p><strong>Total rânduri:</strong> {importResults.total}</p>
+                          <p><strong>Importate (noi):</strong> {importResults.imported}</p>
+                          {importResults.updated > 0 && <p><strong>Actualizate:</strong> {importResults.updated}</p>}
+                          {importResults.skipped > 0 && <p><strong>Omise:</strong> {importResults.skipped}</p>}
+                          {importResults.errors?.length > 0 && (
+                            <details style={{marginTop: '8px'}}>
+                              <summary style={{cursor: 'pointer'}}><strong>Erori ({importResults.errors.length}):</strong></summary>
+                              <ul style={{marginTop: '6px', paddingLeft: '16px', fontSize: '12px'}}>
+                                {importResults.errors.map((e, i) => <li key={i}>{e}</li>)}
+                              </ul>
+                            </details>
+                          )}
                         </div>
                       ) : (
                         <p style={{color: '#721c24'}}>{importResults.message}</p>
@@ -11186,19 +11253,22 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                           setShowExcelImportModal(false);
                           setExcelFile(null);
                           setImportResults(null);
+                          setImportDuplicates(null);
                         }}
                       >
-                        Cancel
+                        Închide
                       </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        style={{background: '#fd7e14'}}
-                        onClick={() => importProductsFromExcel(excelFile)}
-                        disabled={!excelFile || (importResults && importResults.loading)}
-                      >
-                        📤 Import Products
-                      </button>
+                      {!importDuplicates && (
+                        <button
+                          type="button"
+                          className="btn"
+                          style={{background: '#fd7e14'}}
+                          onClick={() => importProductsFromExcel(excelFile)}
+                          disabled={!excelFile || (importResults && importResults.loading)}
+                        >
+                          📤 Importă produse
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
