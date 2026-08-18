@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "./storage";
 import { db, pool } from "./db";
 import { companySettings, suppliers, productMarkets, invoices } from "@shared/schema";
-import { desc, eq, and, inArray } from "drizzle-orm";
+import { desc, eq, and, inArray, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
@@ -4791,13 +4791,14 @@ export async function registerAdminRoutes(app: Express) {
           existingNames.add(productName.toLowerCase());
           if (productCode) codesSeen.add(productCode.toLowerCase());
 
-          // ── Create productMarkets rows so the product is visible in admin ────
+          // ── Create productMarkets rows (inactive) so product is visible in admin
+          //    but NOT yet live on the storefront — admin must activate after adding photos ──
           for (const mkt of targetMarkets) {
-            await storage.setProductMarket({ productId: createdProduct.id, market: mkt, isActive: true });
+            await storage.setProductMarket({ productId: createdProduct.id, market: mkt, isActive: false });
           }
 
           imported++;
-          console.log(`✅ Imported product #${createdProduct.id} "${productName}" → markets: ${targetMarkets.join(', ')}`);
+          console.log(`✅ Imported product #${createdProduct.id} "${productName}" → markets: ${targetMarkets.join(', ')} (inactive — needs admin activation)`);
         } catch (error: any) {
           console.error(`❌ Error processing row ${parsed.rowNumber}:`, error);
           errors.push(`Rândul ${parsed.rowNumber}: ${error.message}`);
@@ -5551,6 +5552,41 @@ export async function registerAdminRoutes(app: Express) {
       res.json(pms);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch product markets" });
+    }
+  });
+
+  // POST /admin/api/products/fix-orphaned-markets
+  // Creates productMarkets rows (isActive: true) for every product that has NONE,
+  // so they become manageable from admin without changing live-site visibility.
+  // Body: { market: 'fr'|'ro'|'com' } — required, which market to register them under.
+  app.post("/admin/api/products/fix-orphaned-markets", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const { market } = req.body as { market?: string };
+      if (!market || !['ro', 'com', 'fr'].includes(market)) {
+        return res.status(400).json({ message: "market must be ro, com, or fr" });
+      }
+      if (!canAccessMarket(req, market)) {
+        return res.status(403).json({ message: `Acces interzis pentru piața ${market}` });
+      }
+
+      const orphaned = await db.execute(sql`
+        SELECT p.id, p.name FROM products p
+        WHERE NOT EXISTS (SELECT 1 FROM product_markets pm WHERE pm.product_id = p.id)
+        ORDER BY p.created_at DESC
+      `);
+
+      let fixed = 0;
+      for (const row of orphaned.rows as any[]) {
+        await storage.setProductMarket({ productId: row.id, market, isActive: true });
+        fixed++;
+      }
+
+      await loadAllDataIntoMemory();
+      await refreshMarketCaches();
+
+      res.json({ fixed, market, message: `${fixed} produse orfane înregistrate pe piața ${market} (active)` });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

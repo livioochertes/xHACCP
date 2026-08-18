@@ -14978,6 +14978,42 @@ E\u0219uate: ${result.failed || 0}`);
                       t2("products.generateCodes")
                     ]
                   }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "button",
+                  {
+                    className: "btn",
+                    style: { background: "#6f42c1", width: "auto", padding: "8px 16px" },
+                    title: "\xCEnregistreaz\u0103 \xEEn admin produsele importate care nu apar \xEEn lista de produse",
+                    onClick: async () => {
+                      const market = selectedMarketTab && selectedMarketTab !== "all" ? selectedMarketTab : "fr";
+                      if (!confirm(`Acest buton \xEEnregistreaz\u0103 \xEEn admin toate produsele f\u0103r\u0103 pia\u021B\u0103 asociat\u0103 (importate cu sistemul vechi).
+
+Pia\u021Ba: ${market.toUpperCase()}
+
+Continua\u021Bi?`)) return;
+                      try {
+                        const response = await fetch("/admin/api/products/fix-orphaned-markets", {
+                          method: "POST",
+                          headers: {
+                            "Authorization": `Bearer ${localStorage.getItem("adminToken")}`,
+                            "Content-Type": "application/json"
+                          },
+                          body: JSON.stringify({ market })
+                        });
+                        const result = await response.json();
+                        if (response.ok) {
+                          alert(`\u2705 ${result.message}`);
+                          fetchProducts();
+                        } else {
+                          alert("\u274C Eroare: " + result.message);
+                        }
+                      } catch (error2) {
+                        alert("\u274C Eroare la repararea produselor orfane");
+                      }
+                    },
+                    children: "\u{1F527} Repar\u0103 produse orfane"
+                  }
                 )
               ] })
             ] }),
