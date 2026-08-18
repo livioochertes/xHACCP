@@ -7850,8 +7850,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             <option value="0.00">{t('products.modal.vatReverse')}</option>
                             <option value="5.00">5% ({t('products.modal.vatReduced')})</option>
                             <option value="9.00">9% ({t('products.modal.vatReduced')})</option>
+                            <option value="19.00">19% (TVA standard România)</option>
+                            <option value="20.00">20% (TVA standard France)</option>
                             <option value="21.00">21% ({t('products.modal.vatStandard')})</option>
-                            <option value="21.00">21% ({t('products.modal.vatStandardNew')})</option>
                             <option value="24.00">24% ({t('products.modal.vatLuxury')})</option>
                           </select>
                         </div>
@@ -10929,23 +10930,24 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                         
                         <div>
                           <label style={{display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#333'}}>Default VAT %</label>
-                          <select
-                            name="defaultVatPercentage"
-                            defaultValue={companySettings.defaultVatPercentage || '19.00'}
-                            style={{
-                              width: '100%',
-                              padding: '8px',
-                              border: '1px solid #ddd',
-                              borderRadius: '4px'
-                            }}
-                          >
-                            <option value="0.00">{t('products.modal.vatReverse')}</option>
-                            <option value="5.00">5% ({t('products.modal.vatReduced')})</option>
-                            <option value="9.00">9% ({t('products.modal.vatReduced')})</option>
-                            <option value="21.00">21% ({t('products.modal.vatStandard')})</option>
-                            <option value="21.00">21% ({t('products.modal.vatStandardNew')})</option>
-                            <option value="24.00">24% ({t('products.modal.vatLuxury')})</option>
-                          </select>
+                           <select
+                             name="defaultVatPercentage"
+                             defaultValue={companySettings.defaultVatPercentage || '19.00'}
+                             style={{
+                               width: '100%',
+                               padding: '8px',
+                               border: '1px solid #ddd',
+                               borderRadius: '4px'
+                             }}
+                           >
+                             <option value="0.00">{t('products.modal.vatReverse')}</option>
+                             <option value="5.00">5% ({t('products.modal.vatReduced')})</option>
+                             <option value="9.00">9% ({t('products.modal.vatReduced')})</option>
+                             <option value="19.00">19% (TVA standard România)</option>
+                             <option value="20.00">20% (TVA standard France)</option>
+                             <option value="21.00">21% ({t('products.modal.vatStandard')})</option>
+                             <option value="24.00">24% ({t('products.modal.vatLuxury')})</option>
+                           </select>
                         </div>
                         
                         <div>

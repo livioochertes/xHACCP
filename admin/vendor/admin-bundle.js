@@ -20100,14 +20100,11 @@ Cordialement,`
                           t2("products.modal.vatReduced"),
                           ")"
                         ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "19.00", children: "19% (TVA standard Rom\xE2nia)" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "20.00", children: "20% (TVA standard France)" }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "21.00", children: [
                           "21% (",
                           t2("products.modal.vatStandard"),
-                          ")"
-                        ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "21.00", children: [
-                          "21% (",
-                          t2("products.modal.vatStandardNew"),
                           ")"
                         ] }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "24.00", children: [
@@ -23392,14 +23389,11 @@ ${selectedOrders.map((id) => {
                           t2("products.modal.vatReduced"),
                           ")"
                         ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "19.00", children: "19% (TVA standard Rom\xE2nia)" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "20.00", children: "20% (TVA standard France)" }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "21.00", children: [
                           "21% (",
                           t2("products.modal.vatStandard"),
-                          ")"
-                        ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "21.00", children: [
-                          "21% (",
-                          t2("products.modal.vatStandardNew"),
                           ")"
                         ] }),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: "24.00", children: [
