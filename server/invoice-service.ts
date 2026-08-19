@@ -317,7 +317,7 @@ export class InvoiceService {
       if (this.config.enableSmartbill) {
         try {
           // Try to get next invoice number from Smartbill
-          const seriesResponse = await this.smartbillApi.getSeries(this.config.smartbill.companyVat);
+          const seriesResponse: any = await this.smartbillApi.getSeries(this.config.smartbill.companyVat);
           const seriesData = seriesResponse.list || seriesResponse; // Handle both response formats
           const ktoSeries = seriesData.find((s: any) => s.name === 'KTO' && s.type === 'f'); // 'f' = factura (invoice)
           if (ktoSeries && ktoSeries.nextNumber) {
@@ -535,9 +535,9 @@ export class InvoiceService {
         productName: it.productName,
         productCode: it.productCode,
         quantity: it.quantity,
-        unitPrice: it.unitPrice,
-        vatRate: it.vatRate,
-        lineTotal: it.lineTotal,
+        unitPrice: String(it.unitPrice),
+        vatRate: String(it.vatRate),
+        lineTotal: String(it.lineTotal),
       })));
 
       // Fire-and-forget: submit to fr-specific Chorus Pro hook (stub) after creation

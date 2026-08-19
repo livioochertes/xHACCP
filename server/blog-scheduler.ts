@@ -1,8 +1,8 @@
-import cron from "node-cron";
+import cron, { type ScheduledTask } from "node-cron";
 import { generateWeeklyBlogPost } from "./ai-blog-generator";
 import { readScheduleConfig, writeScheduleConfig, type BlogScheduleConfig } from "./blog-schedule-config";
 
-let scheduledTask: cron.ScheduledTask | null = null;
+let scheduledTask: ScheduledTask | null = null;
 let currentConfig: BlogScheduleConfig | null = null;
 
 function buildCronExpression(config: BlogScheduleConfig): string {
@@ -42,7 +42,7 @@ export function startBlogScheduler() {
         }
       }
     },
-    { scheduled: true, timezone: "Europe/Bucharest" }
+    { timezone: "Europe/Bucharest" }
   );
 }
 

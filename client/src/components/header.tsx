@@ -29,7 +29,7 @@ export default function Header() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { t } = useTranslation();
 
-  const { data: categories } = useQuery({
+  const { data: categories } = useQuery<any[]>({
     queryKey: ["/api/categories"],
   });
 

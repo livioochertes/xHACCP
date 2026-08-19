@@ -854,10 +854,7 @@ function OrderStatusUpdate({ orderId, currentStatus, onStatusUpdate }: OrderStat
 
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
-      return apiRequest(`/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        body: { status: newStatus }
-      });
+      return apiRequest('PUT', `/api/orders/${orderId}/status`, { status: newStatus });
     },
     onSuccess: () => {
       toast({
@@ -929,9 +926,7 @@ function AWBActions({ order, onAWBGenerated }: AWBActionsProps) {
 
   const generateAWBMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/orders/${order.id}/generate-awb`, {
-        method: 'POST'
-      });
+      return apiRequest('POST', `/api/orders/${order.id}/generate-awb`);
     },
     onSuccess: (data: any) => {
       toast({

@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users, invoiceItems } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users, invoiceItems, orders, invoices } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -2140,7 +2140,7 @@ Sitemap: https://${domain}/sitemap.xml
           throw new Error(`Product not found: ${item.productId}`);
         }
         
-        const productActive = product.status === 'active' || product.isActive === true;
+        const productActive = product.status === 'active';
         if (!productActive) {
           throw new Error(`Product is not available: ${product.name}`);
         }
@@ -2392,7 +2392,7 @@ Sitemap: https://${domain}/sitemap.xml
 
                     if (currentOrder.items && currentOrder.items.length > 0) {
                       for (const item of currentOrder.items) {
-                        const product = await storage.getProduct(item.productId);
+                        const product = item.productId != null ? await storage.getProduct(item.productId) : undefined;
                         if (!product) continue;
                         const piecesPerPackage = (product as any).piecesPerPackage || 1;
                         const weight = (product as any).weight || 1;
@@ -2472,7 +2472,7 @@ Sitemap: https://${domain}/sitemap.xml
                 const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
 
                 for (const item of latestOrder.items) {
-                  const product = await storage.getProduct(item.productId);
+                  const product = item.productId != null ? await storage.getProduct(item.productId) : undefined;
                   const supplierId = product?.supplierId || null;
                   let supplierInfo = supplierGroups.get(supplierId);
 
@@ -2488,7 +2488,7 @@ Sitemap: https://${domain}/sitemap.xml
                       }
                     }
                     if (!supplierInfo) {
-                      const orderMkt = (createdOrder.market as string) || 'ro';
+                      const orderMkt = latestOrder.market || 'ro';
                       const companySettings = await storage.getCompanySettingsByMarket(orderMkt);
                       const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
                       supplierInfo = {
@@ -2645,7 +2645,7 @@ Sitemap: https://${domain}/sitemap.xml
         console.log('📦 Processing order items for intelligent package calculation:');
         
         for (const item of order.items) {
-          const product = await storage.getProduct(item.productId);
+          const product = item.productId != null ? await storage.getProduct(item.productId) : undefined;
           if (!product) {
             console.log(`⚠️ Product not found for item ${item.productId}, using defaults`);
             continue;
@@ -2653,10 +2653,10 @@ Sitemap: https://${domain}/sitemap.xml
 
           const quantity = item.quantity;
           const piecesPerPackage = product.piecesPerPackage || 1;
-          const weight = product.weight || 1;
-          const length = product.length || 10;
-          const width = product.width || 10;
-          const height = product.height || 10;
+          const weight = Number(product.weight) || 1;
+          const length = Number(product.length) || 10;
+          const width = Number(product.width) || 10;
+          const height = Number(product.height) || 10;
 
           // Calculate number of packages needed for this product
           const packagesNeeded = Math.ceil(quantity / piecesPerPackage);
@@ -2736,7 +2736,7 @@ Sitemap: https://${domain}/sitemap.xml
         packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
         awbPayment: 1,
         awbRecipient: {
-          name: `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim() || shippingAddr.companyName || order.customerName || 'Customer',
+          name: `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim() || shippingAddr.companyName || (order as { customerName?: string }).customerName || 'Customer',
           phoneNumber: shippingAddr.phone || '+40700000000',
           personType: isB2B1 ? 1 : 0,
           ...(isB2B1 && { companyName: billingAddr1.companyName }),
@@ -3553,15 +3553,15 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       if (order.items && order.items.length > 0) {
         for (const item of order.items) {
-          const product = await storage.getProduct(item.productId);
+          const product = item.productId != null ? await storage.getProduct(item.productId) : undefined;
           if (!product) continue;
 
           const quantity = item.quantity;
           const piecesPerPackage = product.piecesPerPackage || 1;
-          const weight = product.weight || 1;
-          const length = product.length || 10;
-          const width = product.width || 10;
-          const height = product.height || 10;
+          const weight = Number(product.weight) || 1;
+          const length = Number(product.length) || 10;
+          const width = Number(product.width) || 10;
+          const height = Number(product.height) || 10;
           const packagesNeeded = Math.ceil(quantity / piecesPerPackage);
 
           for (let packageNum = 1; packageNum <= packagesNeeded; packageNum++) {
@@ -3612,7 +3612,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
         awbPayment: 1,
         awbRecipient: {
-          name: `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim() || shippingAddr.companyName || order.customerName || 'Customer',
+          name: `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim() || shippingAddr.companyName || (order as { customerName?: string }).customerName || 'Customer',
           phoneNumber: shippingAddr.phone || '+40700000000',
           personType: isB2B2 ? 1 : 0,
           ...(isB2B2 && { companyName: billingAddr2.companyName }),
@@ -3773,7 +3773,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                     const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
 
                     for (const item of latestOrder.items) {
-                      const product = await storage.getProduct(item.productId);
+                      const product = item.productId != null ? await storage.getProduct(item.productId) : undefined;
                       const supplierId = product?.supplierId || null;
                       let supplierInfo = supplierGroups.get(supplierId);
 
@@ -3972,7 +3972,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                     const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
 
                     for (const item of latestOrder.items) {
-                      const product = await storage.getProduct(item.productId);
+                      const product = item.productId != null ? await storage.getProduct(item.productId) : undefined;
                       const supplierId = product?.supplierId || null;
                       let supplierInfo = supplierGroups.get(supplierId);
 

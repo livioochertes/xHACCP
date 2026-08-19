@@ -46,7 +46,7 @@ export default function RevolutPayment({
         });
 
         // Create payment request instance for Apple Pay/Google Pay
-        const instance = paymentRequest(paymentContainerRef.current, {
+        const instance = paymentRequest(paymentContainerRef.current!, {
           currency: currency.toUpperCase(),
           amount: Math.round(amount * 100), // Convert to cents
           createOrder: async () => {
@@ -103,9 +103,10 @@ export default function RevolutPayment({
         
         setIsInitialized(true);
       } catch (error) {
-        console.error("Failed to initialize real payment:", error);
-        console.error("Error details:", error.message, error.stack);
-        setPaymentRequestInstance({ available: false, error: error.message });
+        const err = error as Error;
+        console.error("Failed to initialize real payment:", err);
+        console.error("Error details:", err.message, err.stack);
+        setPaymentRequestInstance({ available: false, error: err.message });
         setIsInitialized(true);
       }
     };
@@ -158,10 +159,11 @@ export default function RevolutPayment({
       }
 
       // Create a real Revolut card payment
-      const { card } = await RevolutCheckout.payments({
+      const paymentsInstance = await RevolutCheckout.payments({
         locale: "en",
         publicToken: publicKey,
       });
+      const card = (paymentsInstance as any).card as (target: HTMLElement | null, options: any) => any;
 
       const cardInstance = card(cardContainerRef.current, {
         publicId: order.token || order.public_id || order.id,
@@ -209,11 +211,12 @@ export default function RevolutPayment({
 
       cardInstance.render();
     } catch (error) {
-      console.error("Failed to initialize card payment:", error);
-      console.error("Card payment error details:", error.message, error.stack);
+      const err = error as Error;
+      console.error("Failed to initialize card payment:", err);
+      console.error("Card payment error details:", err.message, err.stack);
       toast({
         title: "Payment Error",
-        description: error.message || "Failed to initialize payment system.",
+        description: err.message || "Failed to initialize payment system.",
         variant: "destructive",
       });
       // Reset display state on error

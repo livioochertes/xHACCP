@@ -571,7 +571,7 @@ export async function seedDatabase() {
     ];
 
     // Add default values for new fields to all products
-    const productsWithNewFields = sampleProducts.map((product, index) => ({
+    const productsWithNewFields = sampleProducts.map((product: any, index: number) => ({
       ...product,
       vatValue: product.vatValue || "21.00",
       vatPercentage: product.vatPercentage || "21.00", // Default VAT percentage

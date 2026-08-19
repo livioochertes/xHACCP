@@ -24,6 +24,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/hooks/useTranslation";
+import type { TranslationKeys } from "@/translations";
 import Header from "@/components/header";
 
 import VivaPayment from "@/components/viva-payment";
@@ -82,12 +83,13 @@ const billingAddressSchemaRelaxed = z.object({
   registrationNumber: z.string().default(""),
 });
 
-function createCheckoutSchema(t: (key: string) => string) {
-  const billingFull = createBillingAddressSchemaFull(t);
+function createCheckoutSchema(t: (key: keyof TranslationKeys) => string) {
+  const translate = (key: string) => t(key as keyof TranslationKeys);
+  const billingFull = createBillingAddressSchemaFull(translate);
   return z.object({
     email: z.string().email(t('checkout.invalidEmail')),
     phone: z.string().default(""),
-    shippingAddress: createShippingAddressSchema(t),
+    shippingAddress: createShippingAddressSchema(translate),
     billingAddress: billingAddressSchemaRelaxed,
     paymentMethod: z.enum(["viva", "cash"]),
     sameAsBilling: z.boolean().default(false),

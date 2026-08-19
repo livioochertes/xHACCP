@@ -2,7 +2,7 @@ import { MailService } from '@sendgrid/mail';
 import type { OrderWithItems, User } from '../shared/schema';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const VERIFIED_SENDER = process.env.SENDGRID_FROM_EMAIL;
+const VERIFIED_SENDER: string = process.env.SENDGRID_FROM_EMAIL || 'noreply@xhaccp.com';
 
 let mailService: MailService | null = null;
 
@@ -1388,7 +1388,7 @@ export async function sendInvoiceEmailFr(
   const firstName    = billingAddr.firstName  || shippingAddr.firstName  || 'Client';
   const lastName     = billingAddr.lastName   || shippingAddr.lastName   || '';
   const customerName = `${firstName} ${lastName}`.trim();
-  const currency     = order.currency || 'EUR';
+  const currency     = (order as any).currency || 'EUR';
   const totalAmount  = parseFloat(order.totalAmount);
   const vatRate      = 20; // France standard VAT
   const vatAmount    = (totalAmount * vatRate) / (100 + vatRate);

@@ -137,7 +137,7 @@ export interface IStorage {
   getInvoices(userId?: number): Promise<Invoice[]>;
   getInvoice(id: number): Promise<InvoiceWithItems | undefined>;
   getInvoiceByNumber(invoiceNumber: string): Promise<InvoiceWithItems | undefined>;
-  createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice>;
+  createInvoice(invoice: InsertInvoice, items: Omit<InsertInvoiceItem, "invoiceId">[]): Promise<Invoice>;
   updateInvoice(id: number, invoice: Partial<InsertInvoice>): Promise<Invoice>;
   deleteInvoice(id: number): Promise<void>;
 
@@ -353,7 +353,7 @@ export class DatabaseStorage implements IStorage {
       query.limit(options.limit);
     }
 
-    return await query;
+    return (await query) as unknown as ProductWithCategory[];
   }
 
   async getProduct(id: number): Promise<ProductWithCategory | undefined> {
@@ -430,7 +430,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(suppliers, eq(products.supplierId, suppliers.id))
       .where(eq(products.id, id));
     
-    return product;
+    return product as unknown as ProductWithCategory | undefined;
   }
 
   async getProductBySlug(slug: string): Promise<ProductWithCategory | undefined> {
@@ -509,7 +509,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(suppliers, eq(products.supplierId, suppliers.id))
       .where(eq(products.slug, slug));
 
-    if (product) return product;
+    if (product) return product as unknown as ProductWithCategory;
 
     // 2. Fallback: look up by localized slug stored in product_translations
     const [translation] = await db
@@ -527,7 +527,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(suppliers, eq(products.supplierId, suppliers.id))
       .where(eq(products.id, translation.productId));
 
-    return localizedProduct;
+    return localizedProduct as unknown as ProductWithCategory | undefined;
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
@@ -1004,7 +1004,7 @@ export class DatabaseStorage implements IStorage {
 
     return {
       ...invoice,
-      user,
+      user: user as User,
       items,
     };
   }
@@ -1034,12 +1034,12 @@ export class DatabaseStorage implements IStorage {
 
     return {
       ...invoice,
-      user,
+      user: user as User,
       items,
     };
   }
 
-  async createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice> {
+  async createInvoice(invoice: InsertInvoice, items: Omit<InsertInvoiceItem, "invoiceId">[]): Promise<Invoice> {
     // Create the invoice
     const [newInvoice] = await db.insert(invoices).values(invoice).returning();
     
@@ -1168,9 +1168,9 @@ export class DatabaseStorage implements IStorage {
           quantity: item.quantity,
           price: item.price,
           totalPrice: item.totalPrice,
-          product: item.product
+          product: item.product as unknown as Product
         }))
-      });
+      } as unknown as OrderWithItems);
     }
 
     return result;
@@ -1196,13 +1196,13 @@ export class DatabaseStorage implements IStorage {
       // Update existing settings
       const [updatedSettings] = await db
         .update(companySettings)
-        .set({ ...settings, updatedAt: new Date() })
+        .set({ ...settings, updatedAt: new Date() } as any)
         .where(eq(companySettings.id, existing.id))
         .returning();
       return updatedSettings;
     } else {
       // Create new settings if none exist
-      const [newSettings] = await db.insert(companySettings).values([settings]).returning();
+      const [newSettings] = await db.insert(companySettings).values([settings] as any).returning();
       return newSettings;
     }
   }
@@ -1221,13 +1221,13 @@ export class DatabaseStorage implements IStorage {
       // Update existing settings
       const [updatedSettings] = await db
         .update(shippingSettings)
-        .set({ ...settings, updatedAt: new Date() })
+        .set({ ...settings, updatedAt: new Date() } as any)
         .where(eq(shippingSettings.id, existing.id))
         .returning();
       return updatedSettings;
     } else {
       // Create new settings if none exist
-      const [newSettings] = await db.insert(shippingSettings).values([settings]).returning();  
+      const [newSettings] = await db.insert(shippingSettings).values([settings] as any).returning();
       return newSettings;
     }
   }

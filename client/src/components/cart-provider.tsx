@@ -47,23 +47,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Load authenticated user's cart from API
-  const { data: apiCart = [], isLoading: apiLoading } = useQuery({
+  const { data: apiCart, isLoading: apiLoading } = useQuery<CartItemWithProduct[]>({
     queryKey: ["/api/cart"],
     enabled: isAuthenticated,
     staleTime: 0,
   });
 
   // Use API cart for authenticated users, localStorage cart for guests
-  const cart = isAuthenticated ? apiCart : localCart;
+  const cart: CartItemWithProduct[] = isAuthenticated ? (apiCart ?? []) : localCart;
   const isLoading = isAuthenticated ? apiLoading : false;
 
-  const addToCartMutation = useMutation({
+  const addToCartMutation = useMutation<
+    { product: any; quantity: number } | Response,
+    Error,
+    { productId: number; quantity: number }
+  >({
     mutationFn: async ({ productId, quantity }: { productId: number; quantity: number }) => {
       if (isAuthenticated) {
-        const token = localStorage.getItem("token");
-        return apiRequest("POST", "/api/cart", { productId, quantity }, {
-          Authorization: `Bearer ${token}`,
-        });
+        return apiRequest("POST", "/api/cart", { productId, quantity });
       } else {
         // Guest cart - get product details
         const response = await fetch(`/api/products/${productId}`, {
@@ -77,25 +78,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (isAuthenticated) {
         queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       } else {
+        const guestData = data as { product: any; quantity: number };
         // Update guest cart in localStorage
         setLocalCart(prev => {
-          const existingItem = prev.find(item => item.productId === data.product.id);
+          const existingItem = prev.find(item => item.productId === guestData.product.id);
           let newCart;
           
           if (existingItem) {
             newCart = prev.map(item =>
-              item.productId === data.product.id
-                ? { ...item, quantity: item.quantity + data.quantity }
+              item.productId === guestData.product.id
+                ? { ...item, quantity: item.quantity + guestData.quantity }
                 : item
             );
           } else {
             newCart = [...prev, {
               id: Date.now(), // temporary ID
               userId: 0, // guest user
-              productId: data.product.id,
-              quantity: data.quantity,
+              productId: guestData.product.id,
+              quantity: guestData.quantity,
               createdAt: new Date(),
-              product: data.product
+              product: guestData.product
             }];
           }
           
@@ -106,13 +108,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const updateQuantityMutation = useMutation({
+  const updateQuantityMutation = useMutation<
+    { itemId: number; quantity: number } | Response,
+    Error,
+    { itemId: number; quantity: number }
+  >({
     mutationFn: async ({ itemId, quantity }: { itemId: number; quantity: number }) => {
       if (isAuthenticated) {
-        const token = localStorage.getItem("token");
-        return apiRequest("PUT", `/api/cart/${itemId}`, { quantity }, {
-          Authorization: `Bearer ${token}`,
-        });
+        return apiRequest("PUT", `/api/cart/${itemId}`, { quantity });
       } else {
         return { itemId, quantity };
       }
@@ -121,10 +124,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (isAuthenticated) {
         queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       } else {
+        const guestData = data as { itemId: number; quantity: number };
         setLocalCart(prev => {
           const newCart = prev.map(item =>
-            item.id === data.itemId
-              ? { ...item, quantity: data.quantity }
+            item.id === guestData.itemId
+              ? { ...item, quantity: guestData.quantity }
               : item
           );
           localStorage.setItem("guestCart", JSON.stringify(newCart));
@@ -134,13 +138,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const removeFromCartMutation = useMutation({
+  const removeFromCartMutation = useMutation<
+    { itemId: number } | Response,
+    Error,
+    number
+  >({
     mutationFn: async (itemId: number) => {
       if (isAuthenticated) {
-        const token = localStorage.getItem("token");
-        return apiRequest("DELETE", `/api/cart/${itemId}`, undefined, {
-          Authorization: `Bearer ${token}`,
-        });
+        return apiRequest("DELETE", `/api/cart/${itemId}`);
       } else {
         return { itemId };
       }
@@ -149,8 +154,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (isAuthenticated) {
         queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       } else {
+        const guestData = data as { itemId: number };
         setLocalCart(prev => {
-          const newCart = prev.filter(item => item.id !== data.itemId);
+          const newCart = prev.filter(item => item.id !== guestData.itemId);
           localStorage.setItem("guestCart", JSON.stringify(newCart));
           return newCart;
         });
@@ -158,13 +164,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const clearCartMutation = useMutation({
+  const clearCartMutation = useMutation<Response | Record<string, never>, Error, void>({
     mutationFn: async () => {
       if (isAuthenticated) {
-        const token = localStorage.getItem("token");
-        return apiRequest("DELETE", "/api/cart", undefined, {
-          Authorization: `Bearer ${token}`,
-        });
+        return apiRequest("DELETE", "/api/cart");
       } else {
         return {};
       }

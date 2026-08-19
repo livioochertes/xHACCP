@@ -123,7 +123,7 @@ export default function Products() {
       case "price-asc": return sorted.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
       case "price-desc": return sorted.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
       case "name": return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      case "rating": return sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      case "rating": return sorted.sort((a, b) => parseFloat(b.rating ?? "0") - parseFloat(a.rating ?? "0"));
       default: return sorted;
     }
   }, [allProducts, sortBy]);

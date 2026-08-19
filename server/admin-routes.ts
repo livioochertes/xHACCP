@@ -47,18 +47,18 @@ async function buildCombinedParcels(items: any[], storageRef: typeof storage): P
     categoryGroups.get(catId)!.push(entry);
   }
 
-  for (const [, group] of categoryGroups) {
+  for (const [, group] of Array.from(categoryGroups)) {
     const allHaveMultiPack = group.every(
-      (e) => (parseInt(String(e.product.piecesPerPackage)) || 1) > 1
+      (e: any) => (parseInt(String(e.product.piecesPerPackage)) || 1) > 1
     );
 
     if (allHaveMultiPack && group.length > 1) {
       const minPiecesPerPackage = Math.min(
-        ...group.map((e) => parseInt(String(e.product.piecesPerPackage)) || 1)
+        ...group.map((e: any) => parseInt(String(e.product.piecesPerPackage)) || 1)
       );
-      const totalQuantity = group.reduce((sum, e) => sum + (e.item.quantity || 1), 0);
+      const totalQuantity = group.reduce((sum: number, e: any) => sum + (e.item.quantity || 1), 0);
       const combinedWeight = group.reduce(
-        (sum, e) => sum + (parseFloat(String(e.product.weight)) || 1) * (e.item.quantity || 1),
+        (sum: number, e: any) => sum + (parseFloat(String(e.product.weight)) || 1) * (e.item.quantity || 1),
         0
       );
       const numberOfPackages = Math.ceil(totalQuantity / minPiecesPerPackage);
@@ -646,7 +646,7 @@ export async function registerAdminRoutes(app: Express) {
       const hashed = await bcrypt.hash(tempPassword, 10);
 
       // Update password in DB
-      await db.execute(
+      await pool.query(
         `UPDATE users SET password = $1 WHERE id = $2`,
         [hashed, admin.id]
       );
@@ -1513,7 +1513,7 @@ export async function registerAdminRoutes(app: Express) {
               const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
 
               for (const item of fullOrder.items) {
-                const product = await storage.getProduct(item.productId);
+                const product = item.productId != null ? await storage.getProduct(item.productId) : null;
                 const supplierId = product?.supplierId || null;
                 let supplierInfo = supplierGroups.get(supplierId);
 
@@ -1546,7 +1546,7 @@ export async function registerAdminRoutes(app: Express) {
                 });
               }
 
-              for (const [, group] of supplierGroups) {
+              for (const [, group] of Array.from(supplierGroups)) {
                 if (group.supplierEmail) {
                   try {
                     await sendSupplierOrderEmail(
@@ -3038,14 +3038,14 @@ export async function registerAdminRoutes(app: Express) {
         try {
           const product = await storage.getProduct(parseInt(productId));
           if (product) {
-            let newPrice = product.price;
+            let newPrice: number | string = product.price;
             if (multiplier) {
               newPrice = parseFloat(product.price) * multiplier;
             } else if (fixedPrice) {
               newPrice = fixedPrice;
             }
             
-            await storage.updateProduct(parseInt(productId), { price: newPrice.toString() });
+            await storage.updateProduct(parseInt(productId), { price: String(newPrice) });
             results.push({ id: productId, success: true, newPrice });
           } else {
             results.push({ id: productId, success: false, message: "Product not found" });
@@ -3091,7 +3091,7 @@ export async function registerAdminRoutes(app: Express) {
             results.push({ id: productId, success: false, message: "Product not found" });
           }
         } catch (error) {
-          results.push({ id: productId, success: false, message: error.message });
+          results.push({ id: productId, success: false, message: error instanceof Error ? error.message : 'Unknown error' });
         }
       }
       
@@ -3131,7 +3131,7 @@ export async function registerAdminRoutes(app: Express) {
             results.push({ id: productId, success: false, message: "Product not found" });
           }
         } catch (error) {
-          results.push({ id: productId, success: false, message: error.message });
+          results.push({ id: productId, success: false, message: error instanceof Error ? error.message : 'Unknown error' });
         }
       }
       
@@ -3233,7 +3233,7 @@ export async function registerAdminRoutes(app: Express) {
             results.push({ id: productId, success: false, message: "Product not found" });
           }
         } catch (error) {
-          results.push({ id: productId, success: false, message: error.message });
+          results.push({ id: productId, success: false, message: error instanceof Error ? error.message : 'Unknown error' });
         }
       }
       
@@ -3306,7 +3306,7 @@ export async function registerAdminRoutes(app: Express) {
             results.push({ id: productId, success: false, message: "Product not found" });
           }
         } catch (error) {
-          results.push({ id: productId, success: false, message: error.message });
+          results.push({ id: productId, success: false, message: error instanceof Error ? error.message : 'Unknown error' });
         }
       }
       
@@ -3603,7 +3603,7 @@ export async function registerAdminRoutes(app: Express) {
           updateResults.push({
             productId: update.productId,
             success: false,
-            error: error.message
+            error: error instanceof Error ? error.message : 'Unknown error'
           });
         }
       }
@@ -3655,7 +3655,7 @@ export async function registerAdminRoutes(app: Express) {
           updateResults.push({
             productId: update.productId,
             success: false,
-            error: error.message
+            error: error instanceof Error ? error.message : 'Unknown error'
           });
         }
       }
@@ -3688,7 +3688,7 @@ export async function registerAdminRoutes(app: Express) {
       const supplierOrders = new Map();
       
       for (const item of order.items) {
-        const product = await storage.getProduct(item.productId);
+        const product = item.productId != null ? await storage.getProduct(item.productId) : null;
         if (product && product.supplierId) {
           if (!supplierOrders.has(product.supplierId)) {
             supplierOrders.set(product.supplierId, []);
@@ -3702,7 +3702,7 @@ export async function registerAdminRoutes(app: Express) {
 
       // Forward order to each supplier
       const forwardResults = [];
-      for (const [supplierId, items] of supplierOrders) {
+      for (const [supplierId, items] of Array.from(supplierOrders)) {
         try {
           const supplier = await storage.getSupplier(supplierId);
           if (supplier) {
@@ -3715,7 +3715,7 @@ export async function registerAdminRoutes(app: Express) {
               },
               shippingAddress: order.shippingAddress,
               billingAddress: order.billingAddress,
-              items: items.map(item => ({
+              items: (items as any[]).map((item: any) => ({
                 productId: item.productId,
                 productName: item.product.name,
                 productCode: item.product.productCode,
@@ -3730,17 +3730,17 @@ export async function registerAdminRoutes(app: Express) {
             forwardResults.push({
               supplierId,
               supplierName: supplier.name,
-              itemCount: items.length,
-              success: result.success,
-              message: result.message,
-              data: result.data
+              itemCount: (items as any[]).length,
+              success: result?.success,
+              message: result?.message,
+              data: (result as any)?.data
             });
           }
         } catch (error) {
           forwardResults.push({
             supplierId,
             success: false,
-            error: error.message
+            error: error instanceof Error ? error.message : 'Unknown error'
           });
         }
       }
@@ -3797,16 +3797,16 @@ export async function registerAdminRoutes(app: Express) {
           }
 
           // Get suppliers for products in this order
-          const supplierIds = new Set();
+          const supplierIds = new Set<number>();
           for (const item of order.items) {
-            const product = await storage.getProduct(item.productId);
+            const product = item.productId != null ? await storage.getProduct(item.productId) : null;
             if (product && product.supplierId) {
               supplierIds.add(product.supplierId);
             }
           }
 
           // Sync with each supplier
-          for (const supplierId of supplierIds) {
+          for (const supplierId of Array.from(supplierIds)) {
             const supplier = await storage.getSupplier(supplierId);
             if (supplier) {
               const syncResult = await performSupplierSync(supplier, order, action);
@@ -3821,7 +3821,7 @@ export async function registerAdminRoutes(app: Express) {
             }
           }
         } catch (error) {
-          results.push({ orderId, success: false, message: error.message });
+          results.push({ orderId, success: false, message: error instanceof Error ? error.message : 'Unknown error' });
         }
       }
 
@@ -3906,7 +3906,7 @@ export async function registerAdminRoutes(app: Express) {
 
       const supplierGroups = new Map<number | null, { supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[] }>();
       for (const item of order.items) {
-        const product = await storage.getProduct(item.productId);
+        const product = item.productId != null ? await storage.getProduct(item.productId) : null;
         const supplierId = product?.supplierId || null;
         let supplierInfo = supplierGroups.get(supplierId);
         if (!supplierInfo) {
@@ -3926,7 +3926,7 @@ export async function registerAdminRoutes(app: Express) {
         supplierInfo.items.push({ productName: item.product.name, quantity: item.quantity });
       }
 
-      for (const [, group] of supplierGroups) {
+      for (const [, group] of Array.from(supplierGroups)) {
         if (group.supplierEmail) {
           try {
             await sendSupplierOrderEmail(group.supplierEmail, group.supplierName, order, group.items, awbNumber, awbPdfBuffer);
@@ -4017,7 +4017,7 @@ export async function registerAdminRoutes(app: Express) {
         }
         const service = preferredManualService || services[0];
 
-        console.log('✅ Using pickup point:', pickupPoint.id, pickupPoint.alias);
+        console.log('✅ Using pickup point:', pickupPoint.id, (pickupPoint as any).alias);
         console.log('✅ Using service:', service.id, service.name);
 
         // Parse shipping and billing addresses
@@ -4076,7 +4076,7 @@ export async function registerAdminRoutes(app: Express) {
             }
           }
         } catch (error) {
-          console.warn('Could not fetch county/city IDs, using string names as fallback:', error.message);
+          console.warn('Could not fetch county/city IDs, using string names as fallback:', error instanceof Error ? error.message : error);
         }
 
         // Create AWB request with EXACT Sameday API v3.0 format and required fields
@@ -4093,7 +4093,7 @@ export async function registerAdminRoutes(app: Express) {
           insuredValue: 0,
           thirdPartyPickup: 0,
           awbRecipient: {
-            name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim() || shippingAddress.companyName || order.customerName || 'Customer',
+            name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim() || shippingAddress.companyName || (order as any).customerName || 'Customer',
             phoneNumber: shippingAddress.phone || "+40745009000",
             personType: isB2BManual ? 1 : 0,
             ...(isB2BManual && { companyName: manualBillingAddr.companyName }),
@@ -4111,7 +4111,7 @@ export async function registerAdminRoutes(app: Express) {
         console.log('📦 Creating AWB with Sameday API:', JSON.stringify(awbRequest, null, 2));
         
         const awbStartTime = Date.now();
-        const awbResponse = await samedayAPI.createAWB(awbRequest);
+        const awbResponse = await samedayAPI.createAWB(awbRequest as any);
         const awbEndTime = Date.now();
         console.log('✅ AWB created successfully in', awbEndTime - awbStartTime, 'ms:', awbResponse);
 
@@ -4119,10 +4119,10 @@ export async function registerAdminRoutes(app: Express) {
           throw new Error('Sameday API returned empty AWB number');
         }
 
-        const orderUpdate = await storage.updateOrder(parseInt(orderId), {
+        const orderUpdate = await storage.updateOrder(orderId, {
           awbNumber: awbResponse.awbNumber,
           awbCourier: 'Sameday',
-          awbCost: awbResponse.cost || 0,
+          awbCost: String(awbResponse.cost || 0),
           awbCurrency: awbResponse.currency || 'RON',
           awbPdfUrl: awbResponse.pdfLink || null,
           status: 'in_delivery',
@@ -4142,7 +4142,7 @@ export async function registerAdminRoutes(app: Express) {
             trackingUrl: `https://sameday.ro/status-colet/?awb=${finalAwb}`,
             message: `Real AWB created via Sameday API: ${finalAwb}`
           });
-          sendAwbEmails(parseInt(orderId), finalAwb).catch(e => console.error('❌ [AWB Email] Background email error:', e));
+          sendAwbEmails(orderId, finalAwb).catch(e => console.error('❌ [AWB Email] Background email error:', e));
         }
       };
 
@@ -5766,7 +5766,7 @@ export async function registerAdminRoutes(app: Express) {
           const order = await storage.getOrder((invoice as any).orderId);
           if (order) {
             enriched.items = (order.items as any[]) || [];
-            enriched.subtotal = order.subtotalAmount ?? order.totalAmount;
+            enriched.subtotal = order.totalAmount;
             enriched.taxAmount = (order as any).taxAmount ?? null;
             enriched.paymentMethod = order.paymentMethod;
             enriched.paymentStatus = order.paymentStatus;
