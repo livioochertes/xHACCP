@@ -1613,35 +1613,33 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
-  // Public company settings endpoint (allowlisted fields for invoice display)
+  // Public company data for the detected market (no auth required).
   app.get("/api/company-settings", async (req, res) => {
     try {
-      const market = (req.query.market as string) || getMarketFromRequest(req);
+      const market = getMarketFromRequest(req);
       const settings = await storage.getCompanySettingsByMarket(market);
-      if (settings) {
-        res.json({
-          name: settings.name,
-          email: settings.email,
-          phone: settings.phone,
-          address: settings.address,
-          city: settings.city,
-          state: settings.state,
-          zipCode: settings.zipCode,
-          country: settings.country,
-          vatNumber: settings.vatNumber,
-          registrationNumber: settings.registrationNumber,
-          bankName: settings.bankName,
-          iban: settings.iban,
-          website: settings.website,
-          defaultVatPercentage: settings.defaultVatPercentage,
-          logisticsEmail: settings.logisticsEmail,
-        });
-      } else {
-        res.json({ name: 'xHACCP', email: 'info@xhaccp.com' });
-      }
+      if (!settings) return res.json({});
+      res.json({
+        name: settings.name,
+        email: settings.email,
+        phone: settings.phone,
+        address: settings.address,
+        city: settings.city,
+        state: settings.state,
+        zipCode: settings.zipCode,
+        country: settings.country,
+        contactPerson: settings.contactPerson,
+        website: settings.website,
+        vatNumber: settings.vatNumber,
+        registrationNumber: settings.registrationNumber,
+        bankName: settings.bankName,
+        iban: settings.iban,
+        description: settings.description,
+        defaultVatPercentage: settings.defaultVatPercentage,
+      });
     } catch (error) {
       console.error("Error fetching public company settings:", error);
-      res.status(500).json({ message: "Failed to fetch company settings" });
+      res.json({});
     }
   });
 
@@ -3003,7 +3001,7 @@ ${product.description}`;
       }
 
       const companySettings = await storage.getCompanySettingsByMarket(market);
-      const businessEmails = collectContactRecipients(companySettings, market);
+      const businessEmails = collectContactRecipients(companySettings);
 
       // Do not log customer PII or configured recipient addresses.
       console.log("Contact form submission received", {
@@ -4187,18 +4185,6 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     } catch (error) {
       console.error("Error getting Viva webhook verification:", error);
       res.status(500).send("Verification error");
-    }
-  });
-
-  // Public shipping settings endpoint (no auth required) — market-aware
-  app.get("/api/company-settings", async (req, res) => {
-    try {
-      const settings = await storage.getCompanySettings();
-      if (!settings) return res.json({});
-      const { name, email, phone, address, city, zipCode, country, website, vatNumber, registrationNumber, description, marketContacts } = settings;
-      res.json({ name, email, phone, address, city, zipCode, country, website, vatNumber, registrationNumber, description, marketContacts });
-    } catch (err) {
-      res.json({});
     }
   });
 

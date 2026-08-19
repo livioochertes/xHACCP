@@ -459,13 +459,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         website: '',
         vatNumber: '',
         registrationNumber: '',
-        description: '',
-        marketContacts: { ro: {}, fr: {}, com: {} }
+        description: ''
       });
-      // Keep per-market contact edits outside the render state so typing does
-      // not rebuild the controlled inputs and steal focus after each key.
-      const marketContactsDraftRef = React.useRef({ ro: {}, fr: {}, com: {} });
-      const [activeMarketTab, setActiveMarketTab] = useState('ro');
       const [showCompanySettingsModal, setShowCompanySettingsModal] = useState(false);
       const [showExcelImportModal, setShowExcelImportModal] = useState(false);
       const [excelFile, setExcelFile] = useState(null);
@@ -2136,16 +2131,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           const data = await response.json();
           
           if (response.ok && data) {
-            const marketContacts = data.marketContacts || { ro: {}, fr: {}, com: {} };
-            marketContactsDraftRef.current = marketContacts;
-            setCompanySettings({
-              ...data,
-              marketContacts
-            });
+            setCompanySettings(data);
           } else {
             // Set default values if no company settings exist
-            const marketContacts = { ro: {}, fr: {}, com: {} };
-            marketContactsDraftRef.current = marketContacts;
             setCompanySettings({
               name: 'xHACCP',
               email: 'info@xhaccp.com',
@@ -2164,8 +2152,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               reverseChargeVat: '0.00',
               freeShippingThreshold: '500.00',
               standardShippingCost: '25.00',
-              description: 'Professional kitchen equipment and supplies for the HORECA industry.',
-              marketContacts
+              description: 'Professional kitchen equipment and supplies for the HORECA industry.'
             });
           }
         } catch (err) {
@@ -10671,16 +10658,14 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                       reverseChargeVat: formData.get('reverseChargeVat'),
                       freeShippingThreshold: formData.get('freeShippingThreshold'),
                       standardShippingCost: formData.get('standardShippingCost'),
-                      description: formData.get('description'),
-                       marketContacts: marketContactsDraftRef.current
+                       description: formData.get('description')
                     };
                     
                     const result = await updateCompanySettings(settingsData);
                     
                     if (result.success) {
                       alert('✅ Company settings updated successfully!');
-                       marketContactsDraftRef.current = settingsData.marketContacts;
-                       setCompanySettings(settingsData);
+                      setCompanySettings(settingsData);
                       setShowCompanySettingsModal(false);
                     } else {
                       alert(`❌ Error updating company settings: ${result.message}`);
@@ -11049,57 +11034,6 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                           resize: 'vertical'
                         }}
                       />
-                    </div>
-
-                    {/* Per-market contact data */}
-                    <div style={{marginBottom: '20px', padding: '15px', background: '#f0fff4', border: '1px solid #28a745', borderRadius: '6px'}}>
-                      <h4 style={{color: '#28a745', marginBottom: '15px', fontSize: '16px'}}>🌍 Date de contact per piață</h4>
-                      <p style={{fontSize: '12px', color: '#555', marginBottom: '12px'}}>Aceste date apar pe site-ul fiecărei piețe (Home footer, Privacy, Terms). Dacă un câmp e gol, se folosesc datele generale de mai sus.</p>
-                      {/* Tabs */}
-                      <div style={{display: 'flex', gap: '4px', marginBottom: '15px'}}>
-                        {[{key:'ro', label:'🇷🇴 xhaccp.ro'}, {key:'fr', label:'🇫🇷 xhaccp.fr'}, {key:'com', label:'🌐 xhaccp.com'}].map(tab => (
-                          <button key={tab.key} type="button" onClick={() => setActiveMarketTab(tab.key)}
-                            style={{padding: '6px 14px', borderRadius: '4px', border: '1px solid #28a745', cursor: 'pointer', fontSize: '13px',
-                              background: activeMarketTab === tab.key ? '#28a745' : 'white',
-                              color: activeMarketTab === tab.key ? 'white' : '#28a745', fontWeight: activeMarketTab === tab.key ? 'bold' : 'normal'}}>
-                            {tab.label}
-                          </button>
-                        ))}
-                      </div>
-                      {/* Fields for active tab */}
-                      {['ro','fr','com'].map(mkt => activeMarketTab === mkt && (
-                        <div key={mkt} style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                          {[
-                            {label: 'Denumire firmă', key: 'name', type: 'text'},
-                            {label: 'Email contact', key: 'email', type: 'email'},
-                            {label: 'Telefon', key: 'phone', type: 'text'},
-                            {label: 'CUI / TVA', key: 'vatNumber', type: 'text'},
-                            {label: 'Nr. Reg. Com.', key: 'registrationNumber', type: 'text'},
-                            {label: 'Adresă stradă', key: 'address', type: 'text'},
-                            {label: 'Localitate', key: 'city', type: 'text'},
-                            {label: 'Cod poștal', key: 'zipCode', type: 'text'},
-                            {label: 'Țară', key: 'country', type: 'text'},
-                          ].map(field => (
-                            <div key={field.key}>
-                              <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 'bold', color: '#333'}}>{field.label}</label>
-                              <input type={field.type}
-                                defaultValue={(marketContactsDraftRef.current?.[mkt]?.[field.key]) || ''}
-                                onInput={(e) => {
-                                  marketContactsDraftRef.current = {
-                                    ...marketContactsDraftRef.current,
-                                    [mkt]: {
-                                      ...marketContactsDraftRef.current?.[mkt],
-                                      [field.key]: e.currentTarget.value
-                                    }
-                                  };
-                                }}
-                                placeholder={`(implicit: ${field.key === 'name' ? companySettings.name : field.key === 'email' ? companySettings.email : field.key === 'phone' ? companySettings.phone : '—'})`}
-                                style={{width: '100%', padding: '7px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px'}}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ))}
                     </div>
 
                     <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>

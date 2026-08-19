@@ -13,7 +13,6 @@ export interface ContactFormData {
 export interface ContactCompanySettings {
   email?: string | null;
   logisticsEmail?: string | null;
-  marketContacts?: Partial<Record<ContactMarket, { email?: string | null }>> | null;
 }
 
 interface ContactCopy {
@@ -146,14 +145,9 @@ export function dedupeEmailAddresses(values: Array<string | null | undefined>): 
 
 export function collectContactRecipients(
   settings: ContactCompanySettings | null | undefined,
-  market: ContactMarket,
 ): string[] {
   if (!settings) return [];
-  return dedupeEmailAddresses([
-    settings.email,
-    settings.logisticsEmail,
-    settings.marketContacts?.[market]?.email,
-  ]);
+  return dedupeEmailAddresses([settings.email, settings.logisticsEmail]);
 }
 
 export function getContactLanguages(market: ContactMarket): Array<"ro" | "fr" | "en"> {

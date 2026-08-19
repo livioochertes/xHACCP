@@ -4254,7 +4254,7 @@ export async function registerAdminRoutes(app: Express) {
         iban: 'RO49 AAAA 1B31 0075 9384 0000',
         description: 'Professional kitchen equipment and supplies for the HORECA industry.',
         defaultCurrency: 'RON', defaultVatPercentage: '19.00', reverseChargeVat: '0.00',
-        freeShippingThreshold: '500.00', standardShippingCost: '25.00', marketContacts: null, marketCode: null
+        freeShippingThreshold: '500.00', standardShippingCost: '25.00', marketCode: null
       };
 
       if (market && market !== 'all') {
@@ -4274,8 +4274,7 @@ export async function registerAdminRoutes(app: Express) {
             defaultCurrency: r.default_currency, defaultVatPercentage: r.default_vat_percentage,
             reverseChargeVat: r.reverse_charge_vat,
             freeShippingThreshold: r.free_shipping_threshold,
-            standardShippingCost: r.standard_shipping_cost,
-            marketContacts: r.market_contacts
+            standardShippingCost: r.standard_shipping_cost
           });
         }
         // No market-specific row found — create an empty row for this market (no data cloned from other markets)
@@ -4298,7 +4297,7 @@ export async function registerAdminRoutes(app: Express) {
           `, [market, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
               'RON', 19, false, null, null]);
         } catch (_) { /* ignore concurrent create */ }
-        return res.json({ ...emptyData, marketCode: market, marketContacts: null });
+        return res.json({ ...emptyData, marketCode: market });
       }
 
       // No market: return global settings (first row)
@@ -4317,8 +4316,7 @@ export async function registerAdminRoutes(app: Express) {
           defaultCurrency: g.default_currency, defaultVatPercentage: g.default_vat_percentage,
           reverseChargeVat: g.reverse_charge_vat,
           freeShippingThreshold: g.free_shipping_threshold,
-          standardShippingCost: g.standard_shipping_cost,
-          marketContacts: g.market_contacts
+          standardShippingCost: g.standard_shipping_cost
         });
       }
       res.json(DEFAULTS);

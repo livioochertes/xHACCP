@@ -18,23 +18,16 @@ const form: ContactFormData = {
   orderNumber: "FR-100",
 };
 
-test("collects all configured emails for only the selected market and removes duplicates", () => {
+test("collects the selected market row's configured emails and removes duplicates", () => {
   const settings = {
     email: "main@xhaccp.fr",
     logisticsEmail: "logistics@xhaccp.fr; MAIN@xhaccp.fr",
-    marketContacts: {
-      ro: { email: "romania@xhaccp.ro" },
-      fr: { email: "contact@xhaccp.fr,invalid-address" },
-      com: { email: "global@xhaccp.com" },
-    },
   };
 
-  assert.deepEqual(collectContactRecipients(settings, "fr"), [
+  assert.deepEqual(collectContactRecipients(settings), [
     "main@xhaccp.fr",
     "logistics@xhaccp.fr",
-    "contact@xhaccp.fr",
   ]);
-  assert.equal(collectContactRecipients(settings, "fr").includes("romania@xhaccp.ro"), false);
 });
 
 test("selects RO+EN, FR+EN, and EN-only languages by market", () => {

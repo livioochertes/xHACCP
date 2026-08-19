@@ -12568,11 +12568,8 @@
       website: "",
       vatNumber: "",
       registrationNumber: "",
-      description: "",
-      marketContacts: { ro: {}, fr: {}, com: {} }
+      description: ""
     });
-    const marketContactsDraftRef = import_react13.default.useRef({ ro: {}, fr: {}, com: {} });
-    const [activeMarketTab, setActiveMarketTab] = (0, import_react13.useState)("ro");
     const [showCompanySettingsModal, setShowCompanySettingsModal] = (0, import_react13.useState)(false);
     const [showExcelImportModal, setShowExcelImportModal] = (0, import_react13.useState)(false);
     const [excelFile, setExcelFile] = (0, import_react13.useState)(null);
@@ -14044,15 +14041,8 @@ Failed: ${result.failed}`);
         });
         const data = await response.json();
         if (response.ok && data) {
-          const marketContacts = data.marketContacts || { ro: {}, fr: {}, com: {} };
-          marketContactsDraftRef.current = marketContacts;
-          setCompanySettings({
-            ...data,
-            marketContacts
-          });
+          setCompanySettings(data);
         } else {
-          const marketContacts = { ro: {}, fr: {}, com: {} };
-          marketContactsDraftRef.current = marketContacts;
           setCompanySettings({
             name: "xHACCP",
             email: "info@xhaccp.com",
@@ -14071,8 +14061,7 @@ Failed: ${result.failed}`);
             reverseChargeVat: "0.00",
             freeShippingThreshold: "500.00",
             standardShippingCost: "25.00",
-            description: "Professional kitchen equipment and supplies for the HORECA industry.",
-            marketContacts
+            description: "Professional kitchen equipment and supplies for the HORECA industry."
           });
         }
       } catch (err) {
@@ -23074,13 +23063,11 @@ ${selectedOrders.map((id) => {
               reverseChargeVat: formData.get("reverseChargeVat"),
               freeShippingThreshold: formData.get("freeShippingThreshold"),
               standardShippingCost: formData.get("standardShippingCost"),
-              description: formData.get("description"),
-              marketContacts: marketContactsDraftRef.current
+              description: formData.get("description")
             };
             const result = await updateCompanySettings(settingsData);
             if (result.success) {
               alert("\u2705 Company settings updated successfully!");
-              marketContactsDraftRef.current = settingsData.marketContacts;
               setCompanySettings(settingsData);
               setShowCompanySettingsModal(false);
             } else {
@@ -23508,60 +23495,6 @@ ${selectedOrders.map((id) => {
                   }
                 }
               )
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px", padding: "15px", background: "#f0fff4", border: "1px solid #28a745", borderRadius: "6px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#28a745", marginBottom: "15px", fontSize: "16px" }, children: "\u{1F30D} Date de contact per pia\u021B\u0103" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "12px", color: "#555", marginBottom: "12px" }, children: "Aceste date apar pe site-ul fiec\u0103rei pie\u021Be (Home footer, Privacy, Terms). Dac\u0103 un c\xE2mp e gol, se folosesc datele generale de mai sus." }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", gap: "4px", marginBottom: "15px" }, children: [{ key: "ro", label: "\u{1F1F7}\u{1F1F4} xhaccp.ro" }, { key: "fr", label: "\u{1F1EB}\u{1F1F7} xhaccp.fr" }, { key: "com", label: "\u{1F310} xhaccp.com" }].map((tab) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "button",
-                {
-                  type: "button",
-                  onClick: () => setActiveMarketTab(tab.key),
-                  style: {
-                    padding: "6px 14px",
-                    borderRadius: "4px",
-                    border: "1px solid #28a745",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    background: activeMarketTab === tab.key ? "#28a745" : "white",
-                    color: activeMarketTab === tab.key ? "white" : "#28a745",
-                    fontWeight: activeMarketTab === tab.key ? "bold" : "normal"
-                  },
-                  children: tab.label
-                },
-                tab.key
-              )) }),
-              ["ro", "fr", "com"].map((mkt) => activeMarketTab === mkt && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }, children: [
-                { label: "Denumire firm\u0103", key: "name", type: "text" },
-                { label: "Email contact", key: "email", type: "email" },
-                { label: "Telefon", key: "phone", type: "text" },
-                { label: "CUI / TVA", key: "vatNumber", type: "text" },
-                { label: "Nr. Reg. Com.", key: "registrationNumber", type: "text" },
-                { label: "Adres\u0103 strad\u0103", key: "address", type: "text" },
-                { label: "Localitate", key: "city", type: "text" },
-                { label: "Cod po\u0219tal", key: "zipCode", type: "text" },
-                { label: "\u021Aar\u0103", key: "country", type: "text" }
-              ].map((field) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "bold", color: "#333" }, children: field.label }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "input",
-                  {
-                    type: field.type,
-                    defaultValue: marketContactsDraftRef.current?.[mkt]?.[field.key] || "",
-                    onInput: (e2) => {
-                      marketContactsDraftRef.current = {
-                        ...marketContactsDraftRef.current,
-                        [mkt]: {
-                          ...marketContactsDraftRef.current?.[mkt],
-                          [field.key]: e2.currentTarget.value
-                        }
-                      };
-                    },
-                    placeholder: `(implicit: ${field.key === "name" ? companySettings.name : field.key === "email" ? companySettings.email : field.key === "phone" ? companySettings.phone : "\u2014"})`,
-                    style: { width: "100%", padding: "7px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "13px" }
-                  }
-                )
-              ] }, field.key)) }, mkt))
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", justifyContent: "flex-end" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
