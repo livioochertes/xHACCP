@@ -12,6 +12,7 @@ import rateLimit from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
 import { upload, processImages, serveUploads, deleteUploadedFile } from "./upload-middleware";
 import { loadAllDataIntoMemory, refreshMarketCaches, applyVolumeDiscount, applyMarketOverlay, marketSettingsMap } from "./routes";
+import { getMarketFromRequest } from "./market-routing";
 import multer from "multer";
 import { readScheduleConfig, writeScheduleConfig } from "./blog-schedule-config";
 import { restartBlogScheduler } from "./blog-scheduler";
@@ -652,8 +653,8 @@ export async function registerAdminRoutes(app: Express) {
       );
 
       // Send email
-      const { sendEmail } = await import("./email-service.js");
-      const fromEmail = process.env.SENDGRID_FROM_EMAIL || "noreply@xhaccp.com";
+      const { sendEmail, getSenderForMarket } = await import("./email-service.js");
+      const fromEmail = getSenderForMarket(getMarketFromRequest(req));
       await sendEmail({
         to: email,
         from: fromEmail,

@@ -6,7 +6,7 @@ import {
   getContactLanguages,
   type ContactFormData,
 } from "./contact-email";
-import { sendContactFormEmails } from "./email-service";
+import { getSenderForMarket, sendContactFormEmails } from "./email-service";
 
 const form: ContactFormData = {
   name: "Jean Client",
@@ -34,6 +34,13 @@ test("selects RO+EN, FR+EN, and EN-only languages by market", () => {
   assert.deepEqual(getContactLanguages("ro"), ["ro", "en"]);
   assert.deepEqual(getContactLanguages("fr"), ["fr", "en"]);
   assert.deepEqual(getContactLanguages("com"), ["en"]);
+});
+
+test("uses the verified French sender only for the FR market", () => {
+  assert.equal(getSenderForMarket("fr"), "info@xhaccp.fr");
+  assert.equal(getSenderForMarket("FR"), "info@xhaccp.fr");
+  assert.notEqual(getSenderForMarket("ro"), "info@xhaccp.fr");
+  assert.notEqual(getSenderForMarket("com"), "info@xhaccp.fr");
 });
 
 test("builds French and English versions for the FR domain", () => {
@@ -76,6 +83,7 @@ test("escapes customer-provided HTML in generated messages", () => {
 
 test("attempts every recipient independently and reports partial delivery", async () => {
   const attempted: string[] = [];
+  const senders: string[] = [];
   const result = await sendContactFormEmails(form, {
     market: "fr",
     businessEmails: [
@@ -85,6 +93,7 @@ test("attempts every recipient independently and reports partial delivery", asyn
     ],
     send: async (params) => {
       attempted.push(params.to);
+      senders.push(params.from);
       return params.to !== "failing@xhaccp.fr";
     },
   });
@@ -94,6 +103,7 @@ test("attempts every recipient independently and reports partial delivery", asyn
     "failing@xhaccp.fr",
     form.email,
   ]);
+  assert.deepEqual(senders, ["info@xhaccp.fr", "info@xhaccp.fr", "info@xhaccp.fr"]);
   assert.equal(result.toBusinessSent, true);
   assert.equal(result.toCustomerSent, true);
   assert.equal(result.businessRecipientsAttempted, 2);

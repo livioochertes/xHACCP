@@ -9,6 +9,15 @@ import {
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const VERIFIED_SENDER: string = process.env.SENDGRID_FROM_EMAIL || 'noreply@xhaccp.com';
+const VERIFIED_SENDER_FR: string = process.env.SENDGRID_FROM_EMAIL_FR || 'info@xhaccp.fr';
+
+export function getSenderForMarket(market?: string): string {
+  return market?.toLowerCase() === 'fr' ? VERIFIED_SENDER_FR : VERIFIED_SENDER;
+}
+
+function getSenderForOrder(order: OrderWithItems): string {
+  return getSenderForMarket((order as any).market);
+}
 
 let mailService: MailService | null = null;
 
@@ -263,7 +272,7 @@ export async function sendOrderConfirmationEmail(
 
   const emailParams: Parameters<typeof sendEmail>[0] = {
     to: user.email,
-    from: VERIFIED_SENDER,
+    from: getSenderForOrder(order),
     subject: `Order Confirmation #${order.id} - xHACCP`,
     text: textContent,
     html: html,
@@ -472,7 +481,7 @@ export async function sendNewOrderNotificationEmail(
 
   return await sendEmail({
     to: logisticsEmail,
-    from: VERIFIED_SENDER,
+    from: getSenderForOrder(order),
     subject: `🔔 New Order #${order.id} - Awaiting Review & Acceptance`,
     text: textContent,
     html: html,
@@ -635,7 +644,7 @@ export async function sendLogisticsNotificationEmail(
 
   return await sendEmail({
     to: logisticsEmail,
-    from: VERIFIED_SENDER,
+    from: getSenderForOrder(order),
     subject: `New Order #${order.id} - Ready for Processing`,
     text: textContent,
     html: html,
@@ -662,7 +671,8 @@ export async function sendNotificationPreferencesEmail(
     productRestocks: boolean;
     priceDrops: boolean;
     promotions: boolean;
-  }
+  },
+  market?: string,
 ): Promise<boolean> {
   const preferencesHtml = `
     <ul style="list-style-type: none; padding: 0;">
@@ -739,7 +749,7 @@ export async function sendNotificationPreferencesEmail(
 
   return await sendEmail({
     to: user.email,
-    from: VERIFIED_SENDER,
+    from: getSenderForMarket(market || (user as any).market),
     subject: 'Notification Preferences Updated - xHACCP',
     html,
     text: `Hello ${user.firstName}, your notification preferences have been updated successfully. Email notifications: ${preferences.emailNotifications ? 'Enabled' : 'Disabled'}, Order updates: ${preferences.orderUpdates ? 'Enabled' : 'Disabled'}, Product restocks: ${preferences.productRestocks ? 'Enabled' : 'Disabled'}, Price drops: ${preferences.priceDrops ? 'Enabled' : 'Disabled'}, Promotions: ${preferences.promotions ? 'Enabled' : 'Disabled'}.`
@@ -787,7 +797,7 @@ export async function sendContactFormEmails(
       try {
         return await sender({
           to: recipient,
-          from: VERIFIED_SENDER,
+           from: getSenderForMarket(options.market),
           subject: templates.business.subject,
           text: templates.business.text,
           html: templates.business.html,
@@ -808,7 +818,7 @@ export async function sendContactFormEmails(
     try {
       toCustomerSent = await sender({
         to: data.email,
-        from: VERIFIED_SENDER,
+        from: getSenderForMarket(options.market),
         subject: templates.customer.subject,
         text: templates.customer.text,
         html: templates.customer.html,
@@ -957,7 +967,7 @@ export async function sendLogisticsAWBEmail(
 
   const emailData: any = {
     to: logisticsEmail,
-    from: VERIFIED_SENDER,
+    from: getSenderForOrder(order),
     subject: `📦 New Shipment - Order #${order.id} - AWB: ${awbNumber}`,
     text: `New shipment for Order #${order.id}\nAWB: ${awbNumber}\nTracking: ${trackingUrl}\nRecipient: ${shippingAddress.firstName} ${shippingAddress.lastName}\nAddress: ${shippingAddress.address}, ${shippingAddress.city}\nTotal: ${order.totalAmount} lei`,
     html: html,
@@ -1080,7 +1090,7 @@ export async function sendSupplierOrderEmail(
 
   const emailData: any = {
     to: supplierEmail,
-    from: VERIFIED_SENDER,
+    from: getSenderForOrder(order),
     subject: `📦 New Order #${order.id} - Products to Prepare`,
     text: `New Order #${order.id}\n\nProducts to Prepare:\n${itemsText}\n\nAWB: ${awbNumber}\nTracking: ${trackingUrl}\nDeliver to: ${shippingAddress?.firstName || ''} ${shippingAddress?.lastName || ''}, ${shippingAddress?.streetAddress || shippingAddress?.address || ''}, ${shippingAddress?.city || ''}\nPhone: ${shippingAddress?.phone || 'N/A'}`,
     html,
@@ -1238,7 +1248,7 @@ export async function sendCustomerShipmentEmail(
 
   const emailData: any = {
     to: customerEmail,
-    from: VERIFIED_SENDER,
+    from: getSenderForOrder(order),
     subject: `✅ Order #${order.id} Accepted & Shipped - AWB: ${awbNumber}`,
     text: `Your order #${order.id} has been accepted!\n\nAWB: ${awbNumber}\nTracking: ${trackingUrl}\nCourier: Sameday\n\nTotal: ${order.totalAmount} lei\n${invoiceNumber ? `Invoice: ${invoiceNumber}` : ''}\n\nThank you for your order!`,
     html,
@@ -1396,7 +1406,7 @@ export async function sendInvoiceEmailFr(
 
   const emailData: any = {
     to: customerEmail,
-    from: VERIFIED_SENDER,
+    from: getSenderForMarket('fr'),
     subject: invoiceNumber
       ? `Votre facture xHACCP N° ${invoiceNumber} – Commande #${order.id}`
       : `Confirmation de commande xHACCP #${order.id}`,
@@ -1434,7 +1444,7 @@ export async function sendManualInvoiceEmail(params: {
   sellerName: string;
   market: string;
 }): Promise<boolean> {
-  const { pdfBuffer, invoiceNumber, toEmail, customMessage, sellerName } = params;
+  const { pdfBuffer, invoiceNumber, toEmail, customMessage, sellerName, market } = params;
   const isProforma = invoiceNumber.startsWith('PRO-');
   const docType = isProforma ? 'Devis / Proformă' : 'Facture / Factură';
   const subject = `${docType} N° ${invoiceNumber} — ${sellerName}`;
@@ -1457,9 +1467,8 @@ export async function sendManualInvoiceEmail(params: {
       </div>
     </div>`;
 
-  const fromEmail = (await getCompanyEmailFromSettings()) || 'noreply@xhaccp.ro';
   return await sendEmail({
-    from: fromEmail,
+    from: getSenderForMarket(market),
     to: toEmail,
     subject,
     html: htmlContent,

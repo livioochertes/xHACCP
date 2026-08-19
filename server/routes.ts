@@ -14,6 +14,7 @@ import QRCode from "qrcode";
 import path from "path";
 import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
+import { getMarketFromRequest } from "./market-routing.js";
 import { registerSeoRoutes, build404Html, getBaseUrl } from './seo-routes.js';
 import { buildAIMarketCatalog, formatAIMarketCatalog } from './ai-catalog';
 import {
@@ -382,23 +383,7 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction)
   next();
 };
 
-// ─── Market middleware ────────────────────────────────────────────────────────
-// Reads market from X-Market header (set by frontend) or falls back to Host
-export function getMarketFromRequest(req: Request): string {
-  // 1. Query param (e.g. ?market=fr) — useful for manual overrides and testing
-  const queryMarket = req.query?.market as string | undefined;
-  if (queryMarket && ['ro', 'com', 'fr'].includes(queryMarket)) return queryMarket;
-  // 2. X-Market header (set by the frontend based on current language/market)
-  const headerMarket = req.headers['x-market'] as string | undefined;
-  if (headerMarket && ['ro', 'com', 'fr'].includes(headerMarket)) return headerMarket;
-  // 3. Hostname-based detection
-  const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
-  const domain = host.replace(/^www\./, '').split(':')[0];
-  if (domain === 'xhaccp.ro') return 'ro';
-  if (domain === 'xhaccp.fr') return 'fr';
-  if (domain === 'xhaccp.com') return 'com';
-  return 'ro'; // default
-}
+export { getMarketFromRequest };
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // SEO: server-side meta tag injection for all SPA routes (helps Google index them)
@@ -1244,7 +1229,7 @@ Sitemap: https://${domain}/sitemap.xml
           productRestocks: updatedUser.productRestocks || false,
           priceDrops: updatedUser.priceDrops || false,
           promotions: updatedUser.promotions || false
-        });
+        }, getMarketFromRequest(req));
         console.log('✅ Notification preferences email sent successfully to:', updatedUser.email);
       } catch (emailError) {
         console.error('❌ Failed to send notification preferences email:', emailError);

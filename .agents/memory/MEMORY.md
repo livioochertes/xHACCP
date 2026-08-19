@@ -2,3 +2,4 @@
 - [Localized product slugs](localized-slugs.md) — product_translations.slug holds per-language slugs; backend does 2-step lookup (global→localized); frontend useProductTranslation returns localizedSlug.
 - [Admin i18n Architecture](admin-i18n-architecture.md) — react-i18next in admin-src/; rebuild with `node admin-src/build.js`; source recovered from git history.
 - [Volume discount must be applied server-side](volume-discount-server-side.md) — backend recalculates prices from DB for security; must also call applyVolumeDiscount() or volume-tier prices are ignored in emails/Viva.
+- [SendGrid sender by market](sendgrid-sender-by-market.md) — French-market email must use the verified info@xhaccp.fr sender; RO/COM retain the default identity.
