@@ -3044,9 +3044,19 @@ ${product.description}`;
         return res.status(400).json({ message: "Message is required" });
       }
 
-      // Get current products for context
-      const products = allProductsData.slice(0, 15); // Use first 15 products for context
-      const productList = products.map(p => `${p.name} - $${p.price} (ID: ${p.id}, Slug: ${p.slug})`).join(', ');
+      // Determine the current market (query param → X-Market header → hostname → 'ro')
+      const market = getMarketFromRequest(req);
+      const marketCurrency = marketSettingsMap.get(market)?.currency || 'EUR';
+
+      // Get current products for context, filtered and priced for this market
+      const products = allProductsData
+        .filter(p => p.status?.toLowerCase() === 'active' || p.isActive === true)
+        .map(p => applyMarketOverlay(p, market))
+        .filter((p): p is any => p !== null)
+        .slice(0, 15);
+      const productList = products
+        .map(p => `${p.name} - ${p.price} ${p.currency || marketCurrency} (ID: ${p.id}, Slug: ${p.slug})`)
+        .join(', ');
 
       // Extract user ID from JWT token if present (optional authentication)
       let userId = null;
@@ -3054,8 +3064,11 @@ ${product.description}`;
       if (authHeader?.startsWith('Bearer ')) {
         try {
           const token = authHeader.substring(7);
-          const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-          userId = decoded.userId;
+          if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET is not configured");
+          }
+          const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
+          userId = decoded.id ?? decoded.userId;
         } catch (error) {
           // Token is invalid or expired, continue without authentication
           console.log("Invalid or expired token, continuing as guest");
@@ -3111,7 +3124,14 @@ When user asks about orders, invoices, or order status, provide specific informa
 4. Equipment comparisons and technical specifications
 5. Order status and invoice information (for signed-in users)
 
-Our current featured products include: ${productList}${userContext}
+The customer is browsing the ${market.toUpperCase()} market site.
+
+Our current featured products for this market include: ${productList}${userContext}
+
+STRICT RULES about products and prices:
+- Only recommend products from the catalog above; never invent products, prices, or availability.
+- Only quote prices exactly as listed above, always with the currency shown next to each price. Never use "$" unless a product's listed currency is USD.
+- Do not mention products or prices from other markets.
 
 IMPORTANT: When recommending specific products from our catalog, always format them as clickable links using this exact format:
 [Product Name](/products/product-slug)
@@ -3131,8 +3151,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         message.toLowerCase().includes('purchase')
       )) {
         const orderDetails = userOrders.map(order => {
-          const orderTotal = order.items.reduce((sum: number, item: any) => sum + (parseFloat(item.product.price) * item.quantity), 0);
-          return `Order #${order.id} - Status: ${order.status} - Total: $${orderTotal.toFixed(2)} - Date: ${new Date(order.createdAt).toLocaleDateString()} - Items: ${order.items.length}`;
+          const orderCurrency = marketSettingsMap.get(order.market || 'ro')?.currency || 'RON';
+          const orderTotal = order.totalAmount != null
+            ? parseFloat(order.totalAmount)
+            : order.items.reduce((sum: number, item: any) => sum + (parseFloat(item.product.price) * item.quantity), 0);
+          return `Order #${order.id} - Status: ${order.status} - Total: ${orderTotal.toFixed(2)} ${orderCurrency} - Date: ${new Date(order.createdAt).toLocaleDateString()} - Items: ${order.items.length}`;
         }).join('\n');
         
         enhancedMessage = `${message}\n\nUser's Order History:\n${orderDetails}`;
