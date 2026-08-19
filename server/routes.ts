@@ -15,6 +15,7 @@ import path from "path";
 import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
 import { registerSeoRoutes, build404Html, getBaseUrl } from './seo-routes.js';
+import { buildAIMarketCatalog, formatAIMarketCatalog } from './ai-catalog';
 
 const appleOAuthStates = new Map<string, number>();
 setInterval(() => {
@@ -3052,13 +3053,8 @@ ${product.description}`;
       // and availability applied before it is sent to the model. Do not truncate
       // this list: products are sorted by priority in allProductsData, but every
       // active product must be available for recommendations.
-      const products = allProductsData
-        .filter(p => p.status?.toLowerCase() === 'active' || p.isActive === true)
-        .map(p => applyMarketOverlay(p, market))
-        .filter((p): p is any => p !== null);
-      const productList = products
-        .map(p => `${p.name} | ${p.price} ${p.currency || marketCurrency} | ID: ${p.id} | Slug: ${p.slug}`)
-        .join('\n');
+      const products = buildAIMarketCatalog(allProductsData, market, applyMarketOverlay);
+      const productList = formatAIMarketCatalog(products, marketCurrency);
 
       // Extract user ID from JWT token if present (optional authentication)
       let userId = null;
