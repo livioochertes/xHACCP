@@ -3048,15 +3048,17 @@ ${product.description}`;
       const market = getMarketFromRequest(req);
       const marketCurrency = marketSettingsMap.get(market)?.currency || 'EUR';
 
-      // Get current products for context, filtered and priced for this market
+      // Get the complete active catalog for this market, with market-specific prices
+      // and availability applied before it is sent to the model. Do not truncate
+      // this list: products are sorted by priority in allProductsData, but every
+      // active product must be available for recommendations.
       const products = allProductsData
         .filter(p => p.status?.toLowerCase() === 'active' || p.isActive === true)
         .map(p => applyMarketOverlay(p, market))
-        .filter((p): p is any => p !== null)
-        .slice(0, 15);
+        .filter((p): p is any => p !== null);
       const productList = products
-        .map(p => `${p.name} - ${p.price} ${p.currency || marketCurrency} (ID: ${p.id}, Slug: ${p.slug})`)
-        .join(', ');
+        .map(p => `${p.name} | ${p.price} ${p.currency || marketCurrency} | ID: ${p.id} | Slug: ${p.slug}`)
+        .join('\n');
 
       // Extract user ID from JWT token if present (optional authentication)
       let userId = null;
@@ -3126,10 +3128,11 @@ When user asks about orders, invoices, or order status, provide specific informa
 
 The customer is browsing the ${market.toUpperCase()} market site.
 
-Our current featured products for this market include: ${productList}${userContext}
+Our complete active product catalog for this market is below. Every listed product is available for recommendations, and the price/currency shown on its line is the current price for this market:
+${productList}${userContext}
 
 STRICT RULES about products and prices:
-- Only recommend products from the catalog above; never invent products, prices, or availability.
+- Only recommend products from the complete catalog above; never invent products, prices, or availability.
 - Only quote prices exactly as listed above, always with the currency shown next to each price. Never use "$" unless a product's listed currency is USD.
 - Do not mention products or prices from other markets.
 
