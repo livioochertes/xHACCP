@@ -512,7 +512,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             stockQuantity: editingProduct.stockQuantity || '',
             featured: editingProduct.featured || false,
             vatValue: editingProduct.vatValue || '',
-            vatPercentage: editingProduct.vatPercentage || '19.00',
+            // Older products were created with the obsolete 21% fallback.
+            // When editing them from the French market, present the French
+            // standard rate so saving the product corrects that old default.
+            vatPercentage: selectedMarketTab === 'fr' && (!editingProduct.vatPercentage || Number(editingProduct.vatPercentage) === 21)
+              ? '20.00'
+              : (editingProduct.vatPercentage || (selectedMarketTab === 'ro' ? '19.00' : '0.00')),
             currency: editingProduct.currency || 'EUR',
             productCode: editingProduct.productCode || '',
             ncCode: editingProduct.ncCode || '',
@@ -2163,7 +2168,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       // Fetch company defaults for new products
       const fetchCompanyDefaults = async () => {
         try {
-          const response = await fetch('/admin/api/company-settings', {
+          const market = selectedMarketTab && selectedMarketTab !== 'all' ? selectedMarketTab : '';
+          const response = await fetch(`/admin/api/company-settings${market ? `?market=${market}` : ''}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -2174,7 +2180,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           if (response.ok && data) {
             return {
               currency: data.defaultCurrency || 'EUR',
-              vatPercentage: data.defaultVatPercentage || '21.00'
+              vatPercentage: data.defaultVatPercentage || (market === 'fr' ? '20.00' : market === 'ro' ? '19.00' : '0.00')
             };
           }
         } catch (err) {
@@ -2184,7 +2190,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         // Return defaults if fetch fails
         return {
           currency: 'EUR',
-          vatPercentage: '21.00'
+          vatPercentage: selectedMarketTab === 'fr' ? '20.00' : selectedMarketTab === 'ro' ? '19.00' : '0.00'
         };
       };
 
@@ -2936,7 +2942,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             stockQuantity: '',
                             featured: false,
                             vatValue: '',
-                            vatPercentage: defaults.vatPercentage || '21.00',
+                            vatPercentage: defaults.vatPercentage || (selectedMarketTab === 'fr' ? '20.00' : selectedMarketTab === 'ro' ? '19.00' : '0.00'),
                             currency: defaults.currency || 'RON',
                             productCode: generatedCode,
                             ncCode: '',
