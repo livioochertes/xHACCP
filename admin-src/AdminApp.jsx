@@ -462,6 +462,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         description: '',
         marketContacts: { ro: {}, fr: {}, com: {} }
       });
+      // Keep per-market contact edits outside the render state so typing does
+      // not rebuild the controlled inputs and steal focus after each key.
+      const marketContactsDraftRef = React.useRef({ ro: {}, fr: {}, com: {} });
       const [activeMarketTab, setActiveMarketTab] = useState('ro');
       const [showCompanySettingsModal, setShowCompanySettingsModal] = useState(false);
       const [showExcelImportModal, setShowExcelImportModal] = useState(false);
@@ -2133,12 +2136,16 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           const data = await response.json();
           
           if (response.ok && data) {
+            const marketContacts = data.marketContacts || { ro: {}, fr: {}, com: {} };
+            marketContactsDraftRef.current = marketContacts;
             setCompanySettings({
               ...data,
-              marketContacts: data.marketContacts || { ro: {}, fr: {}, com: {} }
+              marketContacts
             });
           } else {
             // Set default values if no company settings exist
+            const marketContacts = { ro: {}, fr: {}, com: {} };
+            marketContactsDraftRef.current = marketContacts;
             setCompanySettings({
               name: 'xHACCP',
               email: 'info@xhaccp.com',
@@ -2157,7 +2164,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               reverseChargeVat: '0.00',
               freeShippingThreshold: '500.00',
               standardShippingCost: '25.00',
-              description: 'Professional kitchen equipment and supplies for the HORECA industry.'
+              description: 'Professional kitchen equipment and supplies for the HORECA industry.',
+              marketContacts
             });
           }
         } catch (err) {
@@ -10664,14 +10672,15 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                       freeShippingThreshold: formData.get('freeShippingThreshold'),
                       standardShippingCost: formData.get('standardShippingCost'),
                       description: formData.get('description'),
-                      marketContacts: companySettings.marketContacts || { ro: {}, fr: {}, com: {} }
+                       marketContacts: marketContactsDraftRef.current
                     };
                     
                     const result = await updateCompanySettings(settingsData);
                     
                     if (result.success) {
                       alert('✅ Company settings updated successfully!');
-                      setCompanySettings(settingsData);
+                       marketContactsDraftRef.current = settingsData.marketContacts;
+                       setCompanySettings(settingsData);
                       setShowCompanySettingsModal(false);
                     } else {
                       alert(`❌ Error updating company settings: ${result.message}`);
@@ -11074,14 +11083,16 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                             <div key={field.key}>
                               <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 'bold', color: '#333'}}>{field.label}</label>
                               <input type={field.type}
-                                value={(companySettings.marketContacts?.[mkt]?.[field.key]) || ''}
-                                onChange={(e) => setCompanySettings(prev => ({
-                                  ...prev,
-                                  marketContacts: {
-                                    ...prev.marketContacts,
-                                    [mkt]: { ...prev.marketContacts?.[mkt], [field.key]: e.target.value }
-                                  }
-                                }))}
+                                defaultValue={(marketContactsDraftRef.current?.[mkt]?.[field.key]) || ''}
+                                onInput={(e) => {
+                                  marketContactsDraftRef.current = {
+                                    ...marketContactsDraftRef.current,
+                                    [mkt]: {
+                                      ...marketContactsDraftRef.current?.[mkt],
+                                      [field.key]: e.currentTarget.value
+                                    }
+                                  };
+                                }}
                                 placeholder={`(implicit: ${field.key === 'name' ? companySettings.name : field.key === 'email' ? companySettings.email : field.key === 'phone' ? companySettings.phone : '—'})`}
                                 style={{width: '100%', padding: '7px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px'}}
                               />

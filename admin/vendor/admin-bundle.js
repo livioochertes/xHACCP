@@ -12571,6 +12571,7 @@
       description: "",
       marketContacts: { ro: {}, fr: {}, com: {} }
     });
+    const marketContactsDraftRef = import_react13.default.useRef({ ro: {}, fr: {}, com: {} });
     const [activeMarketTab, setActiveMarketTab] = (0, import_react13.useState)("ro");
     const [showCompanySettingsModal, setShowCompanySettingsModal] = (0, import_react13.useState)(false);
     const [showExcelImportModal, setShowExcelImportModal] = (0, import_react13.useState)(false);
@@ -14043,11 +14044,15 @@ Failed: ${result.failed}`);
         });
         const data = await response.json();
         if (response.ok && data) {
+          const marketContacts = data.marketContacts || { ro: {}, fr: {}, com: {} };
+          marketContactsDraftRef.current = marketContacts;
           setCompanySettings({
             ...data,
-            marketContacts: data.marketContacts || { ro: {}, fr: {}, com: {} }
+            marketContacts
           });
         } else {
+          const marketContacts = { ro: {}, fr: {}, com: {} };
+          marketContactsDraftRef.current = marketContacts;
           setCompanySettings({
             name: "xHACCP",
             email: "info@xhaccp.com",
@@ -14066,7 +14071,8 @@ Failed: ${result.failed}`);
             reverseChargeVat: "0.00",
             freeShippingThreshold: "500.00",
             standardShippingCost: "25.00",
-            description: "Professional kitchen equipment and supplies for the HORECA industry."
+            description: "Professional kitchen equipment and supplies for the HORECA industry.",
+            marketContacts
           });
         }
       } catch (err) {
@@ -23069,11 +23075,12 @@ ${selectedOrders.map((id) => {
               freeShippingThreshold: formData.get("freeShippingThreshold"),
               standardShippingCost: formData.get("standardShippingCost"),
               description: formData.get("description"),
-              marketContacts: companySettings.marketContacts || { ro: {}, fr: {}, com: {} }
+              marketContacts: marketContactsDraftRef.current
             };
             const result = await updateCompanySettings(settingsData);
             if (result.success) {
               alert("\u2705 Company settings updated successfully!");
+              marketContactsDraftRef.current = settingsData.marketContacts;
               setCompanySettings(settingsData);
               setShowCompanySettingsModal(false);
             } else {
@@ -23540,14 +23547,16 @@ ${selectedOrders.map((id) => {
                   "input",
                   {
                     type: field.type,
-                    value: companySettings.marketContacts?.[mkt]?.[field.key] || "",
-                    onChange: (e2) => setCompanySettings((prev) => ({
-                      ...prev,
-                      marketContacts: {
-                        ...prev.marketContacts,
-                        [mkt]: { ...prev.marketContacts?.[mkt], [field.key]: e2.target.value }
-                      }
-                    })),
+                    defaultValue: marketContactsDraftRef.current?.[mkt]?.[field.key] || "",
+                    onInput: (e2) => {
+                      marketContactsDraftRef.current = {
+                        ...marketContactsDraftRef.current,
+                        [mkt]: {
+                          ...marketContactsDraftRef.current?.[mkt],
+                          [field.key]: e2.currentTarget.value
+                        }
+                      };
+                    },
                     placeholder: `(implicit: ${field.key === "name" ? companySettings.name : field.key === "email" ? companySettings.email : field.key === "phone" ? companySettings.phone : "\u2014"})`,
                     style: { width: "100%", padding: "7px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "13px" }
                   }
