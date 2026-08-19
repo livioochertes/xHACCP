@@ -16,6 +16,11 @@ import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
 import { registerSeoRoutes, build404Html, getBaseUrl } from './seo-routes.js';
 import { buildAIMarketCatalog, formatAIMarketCatalog } from './ai-catalog';
+import {
+  collectContactRecipients,
+  isValidEmailAddress,
+  type ContactMarket,
+} from './contact-email.js';
 
 const appleOAuthStates = new Map<string, number>();
 setInterval(() => {
@@ -2954,54 +2959,110 @@ ${product.description}`;
   app.post("/api/contact", async (req, res) => {
     try {
       const { name, email, phone, subject, category, message, orderNumber } = req.body;
+      const market = getMarketFromRequest(req) as ContactMarket;
       
       // Validate required fields
-      if (!name || !email || !subject || !message || !category) {
+      if (
+        typeof name !== "string" ||
+        typeof email !== "string" ||
+        typeof subject !== "string" ||
+        typeof message !== "string" ||
+        typeof category !== "string" ||
+        !name.trim() ||
+        !email.trim() ||
+        !subject.trim() ||
+        !message.trim() ||
+        !category.trim()
+      ) {
         return res.status(400).json({ 
           success: false, 
           message: "Missing required fields: name, email, subject, message, and category are required" 
         });
       }
 
-      // Log the contact form submission
-      console.log("Contact form submission:", {
-        name,
-        email,
-        phone: phone || 'Not provided',
-        subject,
+      if (!isValidEmailAddress(email.trim())) {
+        return res.status(400).json({
+          success: false,
+          message: "A valid email address is required",
+        });
+      }
+
+      const allowedCategories = new Set([
+        "general",
+        "product",
+        "order",
+        "technical",
+        "billing",
+        "partnership",
+      ]);
+      if (!allowedCategories.has(category)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid contact category",
+        });
+      }
+
+      const companySettings = await storage.getCompanySettingsByMarket(market);
+      const businessEmails = collectContactRecipients(companySettings, market);
+
+      // Do not log customer PII or configured recipient addresses.
+      console.log("Contact form submission received", {
+        market,
         category,
-        message,
-        orderNumber: orderNumber || 'Not provided',
+        hasOrderNumber: Boolean(orderNumber),
+        configuredRecipients: businessEmails.length,
         timestamp: new Date().toISOString(),
-        ip: req.ip || 'unknown'
       });
 
-      // Send emails: to business (info@xhaccp.com) and confirmation to customer
       const emailResults = await sendContactFormEmails({
-        name,
-        email,
-        phone,
-        subject,
+        name: name.trim(),
+        email: email.trim(),
+        phone: typeof phone === "string" ? phone.trim() : undefined,
+        subject: subject.trim(),
         category,
-        message,
-        orderNumber
+        message: message.trim(),
+        orderNumber: typeof orderNumber === "string" ? orderNumber.trim() : undefined,
+      }, {
+        market,
+        businessEmails,
       });
 
       console.log("Contact form email results:", emailResults);
 
-      if (emailResults.toBusinessSent || emailResults.toCustomerSent) {
+      const successMessages: Record<ContactMarket, string> = {
+        ro: "Vă mulțumim că ne-ați contactat! Am primit mesajul dumneavoastră și vă vom răspunde în cel mai scurt timp posibil.",
+        fr: "Merci de nous avoir contactés ! Nous avons reçu votre message et nous vous répondrons dans les plus brefs délais.",
+        com: "Thank you for contacting us! We received your message and will reply as soon as possible.",
+      };
+      const failureMessages: Record<ContactMarket, string> = {
+        ro: "Mesajul nu a putut fi livrat. Vă rugăm să încercați din nou.",
+        fr: "Votre message n'a pas pu être envoyé. Veuillez réessayer.",
+        com: "Your message could not be delivered. Please try again.",
+      };
+
+      // A customer confirmation alone must never count as successful delivery.
+      if (emailResults.toBusinessSent) {
         res.json({
           success: true,
-          message: "Vă mulțumim că ne-ați contactat! Am primit mesajul dumneavoastră și vă vom răspunde în cel mai scurt timp posibil.",
-          ticketId: `TICKET_${Date.now()}`,
+          message: successMessages[market],
+          ticketId: emailResults.ticketId,
           timestamp: new Date().toISOString(),
-          emailsSent: emailResults
+          emailsSent: {
+            toBusinessSent: emailResults.toBusinessSent,
+            toCustomerSent: emailResults.toCustomerSent,
+            businessRecipientsAttempted: emailResults.businessRecipientsAttempted,
+            businessRecipientsSent: emailResults.businessRecipientsSent,
+            businessRecipientsFailed: emailResults.businessRecipientsFailed,
+          },
         });
       } else {
-        console.error("Failed to send contact form emails");
+        console.error("Contact form was not delivered to any configured market recipient", {
+          market,
+          configuredRecipients: businessEmails.length,
+        });
         res.status(500).json({ 
           success: false, 
-          message: "A apărut o eroare la trimiterea mesajului. Vă rugăm să încercați din nou." 
+          message: failureMessages[market],
         });
       }
     } catch (error) {

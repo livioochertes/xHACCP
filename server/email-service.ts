@@ -1,5 +1,11 @@
 import { MailService } from '@sendgrid/mail';
 import type { OrderWithItems, User } from '../shared/schema';
+import {
+  buildContactEmailTemplates,
+  dedupeEmailAddresses,
+  type ContactFormData,
+  type ContactMarket,
+} from './contact-email.js';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const VERIFIED_SENDER: string = process.env.SENDGRID_FROM_EMAIL || 'noreply@xhaccp.com';
@@ -740,184 +746,89 @@ export async function sendNotificationPreferencesEmail(
   });
 }
 
-// Contact form email interface
-interface ContactFormData {
-  name: string;
-  email: string;
-  phone?: string;
-  subject: string;
-  category: string;
-  message: string;
-  orderNumber?: string;
+export interface ContactEmailOptions {
+  market: ContactMarket;
+  businessEmails: string[];
+  send?: typeof sendEmail;
 }
 
-// Send contact form emails - to business and confirmation to customer
-export async function sendContactFormEmails(data: ContactFormData): Promise<{ toBusinessSent: boolean; toCustomerSent: boolean }> {
-  const BUSINESS_EMAIL = 'info@namarteccl.com';
+export interface ContactEmailResults {
+  ticketId: string;
+  market: ContactMarket;
+  toBusinessSent: boolean;
+  toCustomerSent: boolean;
+  businessRecipientsAttempted: number;
+  businessRecipientsSent: number;
+  businessRecipientsFailed: number;
+}
+
+// Send independently to every configured market recipient, then confirm to the
+// customer only after at least one business recipient accepted the message.
+export async function sendContactFormEmails(
+  data: ContactFormData,
+  options: ContactEmailOptions,
+): Promise<ContactEmailResults> {
   const ticketId = `TICKET_${Date.now()}`;
-  const timestamp = new Date().toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest' });
+  const sender = options.send || sendEmail;
+  const businessEmails = dedupeEmailAddresses(options.businessEmails);
+  const templates = buildContactEmailTemplates(
+    data,
+    options.market,
+    ticketId,
+  );
 
-  // Email to business (info@xhaccp.com)
-  const businessHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Mesaj nou de contact - xHACCP</title>
-    </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2c3e50; margin-bottom: 10px;">xHACCP</h1>
-        <h2 style="color: #e74c3c; margin-top: 0;">📩 Mesaj nou de contact</h2>
-      </div>
-      
-      <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
-        <h3 style="margin-top: 0; color: #856404;">Detalii Contact</h3>
-        <p><strong>ID Ticket:</strong> ${ticketId}</p>
-        <p><strong>Data:</strong> ${timestamp}</p>
-        <p><strong>Nume:</strong> ${data.name}</p>
-        <p><strong>Email:</strong> <a href="mailto:${data.email}">${data.email}</a></p>
-        <p><strong>Telefon:</strong> ${data.phone || 'Nu a fost furnizat'}</p>
-        <p><strong>Categorie:</strong> ${data.category}</p>
-        <p><strong>Subiect:</strong> ${data.subject}</p>
-        ${data.orderNumber ? `<p><strong>Număr comandă:</strong> #${data.orderNumber}</p>` : ''}
-      </div>
-
-      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-        <h3 style="margin-top: 0; color: #2c3e50;">Mesaj:</h3>
-        <p style="white-space: pre-wrap; margin: 0;">${data.message}</p>
-      </div>
-
-      <div style="background-color: #d4edda; padding: 15px; border-radius: 8px;">
-        <p style="margin: 0; color: #155724;">
-          <strong>Acțiune necesară:</strong> Răspundeți clientului în termen de 24 de ore.
-        </p>
-      </div>
-
-      <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-        <p style="margin: 0; color: #666; font-size: 14px;">
-          Răspundeți direct la acest email pentru a contacta clientul.
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
-
-  const businessText = `
-    xHACCP - Mesaj nou de contact
-    
-    ID Ticket: ${ticketId}
-    Data: ${timestamp}
-    
-    Detalii Contact:
-    - Nume: ${data.name}
-    - Email: ${data.email}
-    - Telefon: ${data.phone || 'Nu a fost furnizat'}
-    - Categorie: ${data.category}
-    - Subiect: ${data.subject}
-    ${data.orderNumber ? `- Număr comandă: #${data.orderNumber}` : ''}
-    
-    Mesaj:
-    ${data.message}
-    
-    Răspundeți clientului în termen de 24 de ore.
-  `;
-
-  // Confirmation email to customer
-  const customerHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Confirmare mesaj - xHACCP</title>
-    </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2c3e50; margin-bottom: 10px;">xHACCP</h1>
-        <h2 style="color: #27ae60; margin-top: 0;">✅ Am primit mesajul dumneavoastră</h2>
-      </div>
-      
-      <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-        <h3 style="margin-top: 0; color: #155724;">Bună ${data.name},</h3>
-        <p>Vă mulțumim că ne-ați contactat! Am primit mesajul dumneavoastră și vă vom răspunde în cel mai scurt timp posibil, de obicei în 24 de ore.</p>
-        <p><strong>ID Ticket:</strong> ${ticketId}</p>
-      </div>
-
-      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-        <h3 style="margin-top: 0; color: #2c3e50;">Rezumat mesaj trimis:</h3>
-        <p><strong>Categorie:</strong> ${data.category}</p>
-        <p><strong>Subiect:</strong> ${data.subject}</p>
-        ${data.orderNumber ? `<p><strong>Număr comandă:</strong> #${data.orderNumber}</p>` : ''}
-        <hr style="border: none; border-top: 1px solid #eee; margin: 15px 0;">
-        <p><strong>Mesaj:</strong></p>
-        <p style="white-space: pre-wrap; background-color: #fff; padding: 10px; border-radius: 4px; border: 1px solid #eee;">${data.message}</p>
-      </div>
-
-      <div style="background-color: #e8f4fd; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-        <h3 style="margin-top: 0; color: #0c5460;">Aveți nevoie de ajutor urgent?</h3>
-        <p style="margin: 0;">Dacă aveți întrebări urgente, ne puteți contacta la:</p>
-        <ul style="margin: 10px 0 0 0; padding-left: 20px;">
-          <li>Email: <a href="mailto:info@xhaccp.com" style="color: #27ae60;">info@xhaccp.com</a></li>
-        </ul>
-      </div>
-
-      <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-        <p style="margin: 0; color: #666;">
-          Vă mulțumim că ați ales xHACCP!
-        </p>
-        <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
-          © 2025 xHACCP. Toate drepturile rezervate.
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
-
-  const customerText = `
-    xHACCP - Confirmare mesaj
-    
-    Bună ${data.name},
-    
-    Vă mulțumim că ne-ați contactat! Am primit mesajul dumneavoastră și vă vom răspunde în cel mai scurt timp posibil, de obicei în 24 de ore.
-    
-    ID Ticket: ${ticketId}
-    
-    Rezumat mesaj trimis:
-    - Categorie: ${data.category}
-    - Subiect: ${data.subject}
-    ${data.orderNumber ? `- Număr comandă: #${data.orderNumber}` : ''}
-    
-    Mesaj:
-    ${data.message}
-    
-    Aveți nevoie de ajutor urgent?
-    Email: info@xhaccp.com
-    
-    Vă mulțumim că ați ales xHACCP!
-  `;
-
-  // Send both emails
-  console.log(`📧 Sending contact form emails - Business: ${BUSINESS_EMAIL}, Customer: ${data.email}`);
-  
-  const toBusinessSent = await sendEmail({
-    to: BUSINESS_EMAIL,
-    from: VERIFIED_SENDER,
-    subject: `📩 [${data.category}] ${data.subject} - ${data.name}`,
-    text: businessText,
-    html: businessHtml,
-    replyTo: data.email, // Allow direct reply to customer
+  console.log("📧 Sending contact form notifications", {
+    market: options.market,
+    businessRecipients: businessEmails.length,
   });
 
-  const toCustomerSent = await sendEmail({
-    to: data.email,
-    from: VERIFIED_SENDER,
-    subject: `Confirmare mesaj - xHACCP (${ticketId})`,
-    text: customerText,
-    html: customerHtml,
-  });
+  const businessResults = await Promise.all(
+    businessEmails.map(async (recipient) => {
+      try {
+        return await sender({
+          to: recipient,
+          from: VERIFIED_SENDER,
+          subject: templates.business.subject,
+          text: templates.business.text,
+          html: templates.business.html,
+          replyTo: data.email,
+        });
+      } catch (error) {
+        console.error("Contact notification send failed for one configured recipient");
+        return false;
+      }
+    }),
+  );
 
-  console.log(`📧 Contact form email results - toBusiness: ${toBusinessSent}, toCustomer: ${toCustomerSent}`);
-  return { toBusinessSent, toCustomerSent };
+  const businessRecipientsSent = businessResults.filter(Boolean).length;
+  const toBusinessSent = businessRecipientsSent > 0;
+  let toCustomerSent = false;
+
+  if (toBusinessSent) {
+    try {
+      toCustomerSent = await sender({
+        to: data.email,
+        from: VERIFIED_SENDER,
+        subject: templates.customer.subject,
+        text: templates.customer.text,
+        html: templates.customer.html,
+      });
+    } catch (error) {
+      console.error("Contact confirmation email failed");
+    }
+  }
+
+  const results: ContactEmailResults = {
+    ticketId,
+    market: options.market,
+    toBusinessSent,
+    toCustomerSent,
+    businessRecipientsAttempted: businessEmails.length,
+    businessRecipientsSent,
+    businessRecipientsFailed: businessEmails.length - businessRecipientsSent,
+  };
+  console.log("📧 Contact form delivery summary", results);
+  return results;
 }
 
 export async function sendLogisticsAWBEmail(
