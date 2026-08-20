@@ -606,6 +606,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         else if (activeView === 'categories') fetchCategories();
         else if (activeView === 'suppliers') fetchSuppliers();
         else if (activeView === 'vouchers') fetchVouchers();
+        else if (activeView === 'blog') fetchBlogPosts();
         else if (activeView === 'invoices') { setInvoiceMarketFilter('all'); fetchInvoices(selectedMarketTab); fetchInvoiceCounters(); }
         else if (activeView === 'company-settings') { fetchCompanySettings(); fetchMarkets(); fetchInvoiceCounters(); }
       }, [selectedMarketTab]);
@@ -913,7 +914,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
 
       const fetchBlogPosts = async () => {
         try {
-          const _bMkt = sessionStorage.getItem('adminMarketTab');
+          const _bMkt = selectedMarketTab;
           const _bMktQ = _bMkt && _bMkt !== 'all' ? '?market=' + _bMkt : '';
           const response = await fetch('/admin/api/blog/posts' + _bMktQ, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -5197,7 +5198,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 </div>
 
                 {/* Schedule Config */}
-                <div style={{background: '#f0f7ff', borderRadius: '8px', padding: '20px', marginBottom: '24px', border: '1px solid #b8d4f5'}}>
+                {adminIsSuperAdmin && (
+                  <div style={{background: '#f0f7ff', borderRadius: '8px', padding: '20px', marginBottom: '24px', border: '1px solid #b8d4f5'}}>
                   <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px'}}>
                     <h4 style={{margin: 0, color: '#1565c0'}}>⏰ Generare automată</h4>
                     {!scheduleLoaded && (
@@ -5237,7 +5239,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       Curent: {scheduleConfig.enabled ? `la fiecare ${scheduleConfig.intervalDays} zi(le), ora ${scheduleConfig.hour}:00 Bucharest` : 'dezactivat'}
                     </p>
                   )}
-                </div>
+                  </div>
+                )}
 
                 {/* Generate Weekly by Market */}
                 <div style={{background: '#fff8e1', borderRadius: '8px', padding: '16px', marginBottom: '24px', border: '1px solid #ffe082'}}>
@@ -5287,6 +5290,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         <tr style={{background: '#f8f9fa', borderBottom: '2px solid #dee2e6'}}>
                           <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>Titlu</th>
                           <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>Categorie</th>
+                          <th style={{padding: '10px 12px', textAlign: 'center', color: '#495057'}}>Piață</th>
                           <th style={{padding: '10px 12px', textAlign: 'left', color: '#495057'}}>Limbă</th>
                           <th style={{padding: '10px 12px', textAlign: 'center', color: '#495057'}}>Citit</th>
                           <th style={{padding: '10px 12px', textAlign: 'center', color: '#495057'}}>Status</th>
@@ -5302,6 +5306,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                               <div style={{fontSize: '12px', color: '#868e96', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px'}}>{post.excerpt}</div>
                             </td>
                             <td style={{padding: '10px 12px', color: '#495057'}}>{post.category}</td>
+                            <td style={{padding: '10px 12px', textAlign: 'center'}}>{(post.marketCode || 'ro') === 'fr' ? '🇫🇷 FR' : (post.marketCode || 'ro') === 'com' ? '🌐 COM' : '🇷🇴 RO'}</td>
                             <td style={{padding: '10px 12px', textAlign: 'center'}}>{post.language === 'ro' ? '🇷🇴' : post.language === 'fr' ? '🇫🇷' : '🇬🇧'}</td>
                             <td style={{padding: '10px 12px', textAlign: 'center', color: '#495057'}}>{post.readTimeMinutes ? post.readTimeMinutes + ' min' : '-'}</td>
                             <td style={{padding: '10px 12px', textAlign: 'center'}}>

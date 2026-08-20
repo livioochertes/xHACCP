@@ -19,6 +19,10 @@ import { restartBlogScheduler } from "./blog-scheduler";
 import ExcelJS from "exceljs";
 import * as cheerio from "cheerio";
 
+const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
+  throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
+})();
+
 async function buildCombinedParcels(items: any[], storageRef: typeof storage): Promise<any[]> {
   const parcels: any[] = [];
   let parcelCounter = 1;
@@ -189,7 +193,7 @@ const authenticateAdmin = async (req: AdminAuthRequest, res: Response, next: Nex
       return res.status(401).json({ message: "Admin authentication required" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "fallback-secret") as { id?: number; adminId?: number; isAdmin?: boolean };
+    const decoded = jwt.verify(token, JWT_SIGNING_SECRET) as { id?: number; adminId?: number; isAdmin?: boolean };
     
     // Support both token structures: regular admin tokens (with id) and admin-specific tokens (with adminId)
     const userId = decoded.id || decoded.adminId;
@@ -592,7 +596,7 @@ export async function registerAdminRoutes(app: Express) {
         // Generate a temporary token for 2FA verification
         const tempToken = jwt.sign(
           { adminId: admin.id, stage: "2fa_required" },
-          process.env.JWT_SECRET || "fallback-secret",
+          JWT_SIGNING_SECRET,
           { expiresIn: "10m" }
         );
         
@@ -606,7 +610,7 @@ export async function registerAdminRoutes(app: Express) {
       // Generate access token
       const token = jwt.sign(
         { adminId: admin.id, adminMarkets: admin.adminMarkets || [] },
-        process.env.JWT_SECRET || "fallback-secret",
+        JWT_SIGNING_SECRET,
         { expiresIn: "24h" }
       );
 
@@ -692,7 +696,7 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       // Verify temporary token
-      const decoded = jwt.verify(tempToken, process.env.JWT_SECRET || "fallback-secret") as { adminId: number, stage: string };
+      const decoded = jwt.verify(tempToken, JWT_SIGNING_SECRET) as { adminId: number, stage: string };
       
       if (decoded.stage !== "2fa_required") {
         return res.status(401).json({ message: "Invalid verification stage" });
@@ -733,7 +737,7 @@ export async function registerAdminRoutes(app: Express) {
       // Generate final access token
       const token = jwt.sign(
         { adminId: admin.id, adminMarkets: admin.adminMarkets || [] },
-        process.env.JWT_SECRET || "fallback-secret",
+        JWT_SIGNING_SECRET,
         { expiresIn: "24h" }
       );
 
@@ -5319,9 +5323,29 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // ─── Blog Admin Routes ────────────────────────────────────────────────────
-  app.get("/admin/api/blog/posts", authenticateAdmin, async (_req: AdminAuthRequest, res: Response) => {
+  app.get("/admin/api/blog/posts", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const posts = await storage.getBlogPosts();
+      const requestedMarket = typeof req.query.market === "string" ? req.query.market : undefined;
+      const validMarket = requestedMarket === "ro" || requestedMarket === "fr" || requestedMarket === "com"
+        ? requestedMarket
+        : undefined;
+      if (requestedMarket && !validMarket) {
+        return res.status(400).json({ message: "Invalid marketplace" });
+      }
+      if (validMarket && !canAccessMarket(req, validMarket)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
+      const allowedMarkets = req.adminMarkets || [];
+      const posts = validMarket
+        ? await storage.getBlogPosts({ marketCode: validMarket })
+        : allowedMarkets.length === 0
+          ? await storage.getBlogPosts()
+          : (await Promise.all(
+              allowedMarkets.map((market) => storage.getBlogPosts({ marketCode: market })),
+            )).flat().sort((a, b) =>
+              (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0),
+            );
       res.json(posts);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch blog posts" });
@@ -5330,7 +5354,23 @@ export async function registerAdminRoutes(app: Express) {
 
   app.patch("/admin/api/blog/posts/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const updated = await storage.updateBlogPost(parseInt(req.params.id), req.body);
+      const id = parseInt(req.params.id);
+      const post = await storage.getBlogPost(id);
+      if (!post) return res.status(404).json({ message: "Blog post not found" });
+      if (!canAccessMarket(req, post.marketCode || "ro")) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (Object.prototype.hasOwnProperty.call(req.body, "marketCode")) {
+        const targetMarket = req.body.marketCode ?? "ro";
+        if (targetMarket !== "ro" && targetMarket !== "fr" && targetMarket !== "com") {
+          return res.status(400).json({ message: "Invalid target marketplace" });
+        }
+        if (!canAccessMarket(req, targetMarket)) {
+          return res.status(403).json({ message: "Access denied for target market" });
+        }
+        req.body.marketCode = targetMarket;
+      }
+      const updated = await storage.updateBlogPost(id, req.body);
       res.json(updated);
     } catch (error) {
       res.status(500).json({ message: "Failed to update blog post" });
@@ -5339,7 +5379,13 @@ export async function registerAdminRoutes(app: Express) {
 
   app.delete("/admin/api/blog/posts/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      await storage.deleteBlogPost(parseInt(req.params.id));
+      const id = parseInt(req.params.id);
+      const post = await storage.getBlogPost(id);
+      if (!post) return res.status(404).json({ message: "Blog post not found" });
+      if (!canAccessMarket(req, post.marketCode || "ro")) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      await storage.deleteBlogPost(id);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete blog post" });
@@ -5389,7 +5435,10 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  app.get("/admin/api/blog/schedule", authenticateAdmin, (_req: AdminAuthRequest, res: Response) => {
+  app.get("/admin/api/blog/schedule", authenticateAdmin, (req: AdminAuthRequest, res: Response) => {
+    if (!req.isSuperAdmin) {
+      return res.status(403).json({ message: "Only superadmins can manage the global blog schedule" });
+    }
     try {
       const config = readScheduleConfig();
       res.json(config);
@@ -5399,6 +5448,9 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   app.post("/admin/api/blog/schedule", authenticateAdmin, (req: AdminAuthRequest, res: Response) => {
+    if (!req.isSuperAdmin) {
+      return res.status(403).json({ message: "Only superadmins can manage the global blog schedule" });
+    }
     try {
       const { enabled, intervalDays, hour } = req.body;
       const config = {

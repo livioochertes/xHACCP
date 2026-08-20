@@ -412,9 +412,34 @@ const DEFAULT_IMAGES = [
   "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&h=630&fit=crop&q=80",
 ];
 
-function pickImageForCategory(category: string): string {
-  const pool = CATEGORY_IMAGES[category] || DEFAULT_IMAGES;
-  return pool[Math.floor(Math.random() * pool.length)];
+const ALL_COVER_IMAGES = Array.from(
+  new Set([...Object.values(CATEGORY_IMAGES).flat(), ...DEFAULT_IMAGES]),
+);
+
+export function pickImageForCategory(
+  category: string,
+  recentlyUsedImages: Iterable<string | null | undefined> = [],
+): string {
+  const recentlyUsed = new Set(
+    Array.from(recentlyUsedImages).filter((image): image is string => Boolean(image)),
+  );
+  const categoryPool = Array.from(
+    new Set(CATEGORY_IMAGES[category] || DEFAULT_IMAGES),
+  );
+  const unusedCategoryImages = categoryPool.filter((image) => !recentlyUsed.has(image));
+  const unusedLibraryImages = ALL_COVER_IMAGES.filter((image) => !recentlyUsed.has(image));
+  const eligibleImages = unusedCategoryImages.length > 0
+    ? unusedCategoryImages
+    : unusedLibraryImages.length > 0
+      ? unusedLibraryImages
+      : categoryPool;
+
+  return eligibleImages[Math.floor(Math.random() * eligibleImages.length)];
+}
+
+async function pickImageForMarket(category: string, marketCode: "ro" | "fr" | "com"): Promise<string> {
+  const recentPosts = await storage.getBlogPosts({ marketCode, limit: 20 });
+  return pickImageForCategory(category, recentPosts.map((post) => post.imageUrl));
 }
 
 function generateSlug(title: string): string {
@@ -492,13 +517,12 @@ async function generateBlogPostForTopic(topic: BlogTopicData): Promise<number> {
   const baseSlug = generateSlug(topic.title);
   const uniqueSlug = `${baseSlug}-${Date.now().toString(36)}`;
 
-  const imageUrl = pickImageForCategory(topic.category);
-
   // Derive market code from topic language
   const marketCode: "ro" | "fr" | "com" =
     topic.language === "fr" ? "fr" :
     topic.language === "en" ? "com" :
     "ro";
+  const imageUrl = await pickImageForMarket(topic.category, marketCode);
 
   const post: InsertBlogPost = {
     title: topic.title,

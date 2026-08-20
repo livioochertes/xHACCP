@@ -12683,6 +12683,7 @@
       else if (activeView === "categories") fetchCategories();
       else if (activeView === "suppliers") fetchSuppliers();
       else if (activeView === "vouchers") fetchVouchers();
+      else if (activeView === "blog") fetchBlogPosts();
       else if (activeView === "invoices") {
         setInvoiceMarketFilter("all");
         fetchInvoices(selectedMarketTab);
@@ -12949,7 +12950,7 @@
     };
     const fetchBlogPosts = async () => {
       try {
-        const _bMkt = sessionStorage.getItem("adminMarketTab");
+        const _bMkt = selectedMarketTab;
         const _bMktQ = _bMkt && _bMkt !== "all" ? "?market=" + _bMkt : "";
         const response = await fetch("/admin/api/blog/posts" + _bMktQ, {
           headers: { "Authorization": `Bearer ${token}` }
@@ -17323,7 +17324,7 @@ This action cannot be undone.`)) {
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "10px 0 0", fontSize: "12px", color: "#868e96" }, children: '\u2139\uFE0F Generarea dureaz\u0103 ~25-40 secunde. "Etichete HACCP" este inclus \xEEn toate articolele.' })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f0f7ff", borderRadius: "8px", padding: "20px", marginBottom: "24px", border: "1px solid #b8d4f5" }, children: [
+            adminIsSuperAdmin && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f0f7ff", borderRadius: "8px", padding: "20px", marginBottom: "24px", border: "1px solid #b8d4f5" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: 0, color: "#1565c0" }, children: "\u23F0 Generare automat\u0103" }),
                 !scheduleLoaded && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: fetchScheduleConfig, style: { background: "none", border: "1px solid #1565c0", borderRadius: "6px", padding: "4px 12px", cursor: "pointer", fontSize: "12px", color: "#1565c0" }, children: "\xCEncarc\u0103 configura\u021Bie" })
@@ -17433,6 +17434,7 @@ This action cannot be undone.`)) {
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { background: "#f8f9fa", borderBottom: "2px solid #dee2e6" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: "Titlu" }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: "Categorie" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "center", color: "#495057" }, children: "Pia\u021B\u0103" }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "left", color: "#495057" }, children: "Limb\u0103" }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "center", color: "#495057" }, children: "Citit" }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px 12px", textAlign: "center", color: "#495057" }, children: "Status" }),
@@ -17445,6 +17447,7 @@ This action cannot be undone.`)) {
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#868e96", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: "2px" }, children: post.excerpt })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", color: "#495057" }, children: post.category }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", textAlign: "center" }, children: (post.marketCode || "ro") === "fr" ? "\u{1F1EB}\u{1F1F7} FR" : (post.marketCode || "ro") === "com" ? "\u{1F310} COM" : "\u{1F1F7}\u{1F1F4} RO" }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", textAlign: "center" }, children: post.language === "ro" ? "\u{1F1F7}\u{1F1F4}" : post.language === "fr" ? "\u{1F1EB}\u{1F1F7}" : "\u{1F1EC}\u{1F1E7}" }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", textAlign: "center", color: "#495057" }, children: post.readTimeMinutes ? post.readTimeMinutes + " min" : "-" }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {

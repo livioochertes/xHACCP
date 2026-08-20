@@ -23,6 +23,10 @@ import {
   type ContactMarket,
 } from './contact-email.js';
 
+const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
+  throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
+})();
+
 const appleOAuthStates = new Map<string, number>();
 setInterval(() => {
   const tenMinutesAgo = Date.now() - 600000;
@@ -95,7 +99,7 @@ const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction)
     const token = authHeader && authHeader.split(' ')[1];
     if (token) {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as any;
+        const decoded = jwt.verify(token, JWT_SIGNING_SECRET) as any;
         req.userId = decoded.id;
       } catch (err) {
         // Token invalid — continue as guest
@@ -124,12 +128,12 @@ const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunc
     
     // Try to decode as regular user token first
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as any;
+      decoded = jwt.verify(token, JWT_SIGNING_SECRET) as any;
       console.log('✅ Token decoded as user token:', { id: decoded.id, email: decoded.email });
     } catch (err) {
       // Try to decode as admin token
       try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as any;
+        decoded = jwt.verify(token, JWT_SIGNING_SECRET) as any;
         if (decoded.adminId) {
           isAdminToken = true;
           decoded.id = decoded.adminId; // Map adminId to id for consistency
@@ -674,7 +678,7 @@ Sitemap: https://${domain}/sitemap.xml
 
       const token = jwt.sign(
         { id: user.id, email: user.email },
-        process.env.JWT_SECRET || "your-secret-key",
+        JWT_SIGNING_SECRET,
         { expiresIn: "24h" }
       );
 
@@ -716,7 +720,7 @@ Sitemap: https://${domain}/sitemap.xml
 
       const token = jwt.sign(
         { id: user.id, email: user.email },
-        process.env.JWT_SECRET || "your-secret-key",
+        JWT_SIGNING_SECRET,
         { expiresIn: "24h" }
       );
 
@@ -806,7 +810,7 @@ Sitemap: https://${domain}/sitemap.xml
 
       const token = jwt.sign(
         { id: user.id, email: user.email },
-        process.env.JWT_SECRET || "your-secret-key",
+        JWT_SIGNING_SECRET,
         { expiresIn: "24h" }
       );
 
@@ -920,7 +924,7 @@ Sitemap: https://${domain}/sitemap.xml
 
       const token = jwt.sign(
         { id: user.id, email: user.email },
-        process.env.JWT_SECRET || "your-secret-key",
+        JWT_SIGNING_SECRET,
         { expiresIn: "24h" }
       );
 
@@ -3106,10 +3110,7 @@ ${product.description}`;
       if (authHeader?.startsWith('Bearer ')) {
         try {
           const token = authHeader.substring(7);
-          if (!process.env.JWT_SECRET) {
-            throw new Error("JWT_SECRET is not configured");
-          }
-          const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
+          const decoded = jwt.verify(token, JWT_SIGNING_SECRET) as any;
           userId = decoded.id ?? decoded.userId;
         } catch (error) {
           // Token is invalid or expired, continue without authentication
@@ -3390,7 +3391,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       let userId: number | null = null;
       if (token) {
         try {
-          const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as any;
+          const decoded = jwt.verify(token, JWT_SIGNING_SECRET) as any;
           userId = decoded.userId || decoded.id;
         } catch (e) { }
       }
@@ -4364,112 +4365,12 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     }
   });
 
-  // Admin: list all posts (including unpublished)
-  app.get("/api/admin/blog/posts", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      const market = req.query.market as string | undefined;
-      const adminUser = (req as any).user;
-      const adminMarkets: string[] = adminUser?.adminMarkets || [];
-      const isSuperAdmin = adminMarkets.length === 0;
-
-      let options: { marketCode?: string } | undefined;
-      if (market && market !== "all") {
-        options = { marketCode: market };
-      } else if (!isSuperAdmin && adminMarkets.length > 0) {
-        options = { marketCode: adminMarkets[0] };
-      }
-
-      const posts = await storage.getBlogPosts(options);
-      res.json(posts);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch blog posts" });
-    }
-  });
-
-  // Admin: update post (toggle published, edit, etc.)
-  app.patch("/api/admin/blog/posts/:id", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updated = await storage.updateBlogPost(id, req.body);
-      res.json(updated);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update blog post" });
-    }
-  });
-
-  // Admin: delete post
-  app.delete("/api/admin/blog/posts/:id", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      await storage.deleteBlogPost(parseInt(req.params.id));
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete blog post" });
-    }
-  });
-
-  // Admin: trigger translations for a specific post
-  app.post("/api/admin/blog/posts/:id/translate", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      if (!process.env.ANTHROPIC_API_KEY) {
-        return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });
-      }
-      const id = parseInt(req.params.id);
-      const post = await storage.getBlogPost(id);
-      if (!post) return res.status(404).json({ success: false, message: "Post not found" });
-
-      const { generateTranslationsForPost } = await import("./ai-blog-generator");
-      const marketCode = post.marketCode ?? "ro";
-      const srcLang = post.language ?? "ro";
-
-      res.json({ success: true, message: "Traducere pornită în fundal…" });
-
-      generateTranslationsForPost(post.id, post.title, post.excerpt ?? "", post.content, srcLang, marketCode)
-        .catch(err => console.error("[Translate route] error:", err));
-    } catch (error) {
-      console.error("Translate blog post error:", error);
-      res.status(500).json({ success: false, message: "Eroare la traducere: " + (error as Error).message });
-    }
-  });
-
-  // Admin: get translations for a post
-  app.get("/api/admin/blog/posts/:id/translations", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const translations = await storage.getBlogPostTranslations(id);
-      res.json(translations);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch translations" });
-    }
-  });
-
-  // Admin: generate blog post via Claude AI
-  app.post("/api/admin/blog/generate", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      if (!process.env.ANTHROPIC_API_KEY) {
-        return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });
-      }
-      const { generateBlogPostManually } = await import("./ai-blog-generator");
-      const { title, category, language } = req.body;
-      const postId = await generateBlogPostManually(title, category, language || "ro");
-      res.json({ success: true, message: "Articol generat cu succes", postId });
-    } catch (error) {
-      console.error("Generate blog post error:", error);
-      res.status(500).json({ success: false, message: "Eroare generare articol: " + (error as Error).message });
-    }
-  });
-
-  // Admin: trigger weekly post manually
-  app.post("/api/admin/blog/generate-weekly", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      if (!process.env.ANTHROPIC_API_KEY) {
-        return res.status(503).json({ success: false, message: "ANTHROPIC_API_KEY nu este configurat" });
-      }
-      const { generateWeeklyBlogPost } = await import("./ai-blog-generator");
-      const postId = await generateWeeklyBlogPost();
-      res.json({ success: true, message: "Articol săptămânal generat", postId });
-    } catch (error) {
-      res.status(500).json({ success: false, message: "Eroare: " + (error as Error).message });
-    }
+  // Retired legacy Admin blog API. The protected /admin/api/blog/* family is
+  // the only supported administration surface and enforces marketplace access.
+  app.all("/api/admin/blog/*", (_req, res) => {
+    res.status(410).json({
+      message: "This Admin blog API was retired. Use /admin/api/blog/* instead.",
+    });
   });
 
   // ─── Unknown-route 404 handler ────────────────────────────────────────────
