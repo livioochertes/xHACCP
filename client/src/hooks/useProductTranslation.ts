@@ -22,17 +22,20 @@ export function useProductTranslation(productId: number | undefined, originalNam
       name: originalName,
       description: originalDescription,
       localizedSlug: originalSlug || null,
+      hasLocalizedDescription: false,
     };
   }
 
   const translatedName = translation.name || originalName;
+  const localizedDescription = translation.description?.trim();
   // Only use slug stored in DB — never generate client-side (client slug can't be resolved by backend)
   const localizedSlug = translation.slug || null;
 
   return {
     name: translatedName,
-    description: translation.description || originalDescription,
+    description: localizedDescription || originalDescription,
     localizedSlug,
+    hasLocalizedDescription: Boolean(localizedDescription),
   };
 }
 

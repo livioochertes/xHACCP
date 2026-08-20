@@ -63,7 +63,7 @@ export default function ProductDetails() {
     enabled: !!product?.id,
   });
 
-  const { name: translatedName, description: translatedDescription, localizedSlug } = useProductTranslation(
+  const { name: translatedName, description: translatedDescription, localizedSlug, hasLocalizedDescription } = useProductTranslation(
     product?.id,
     product?.name || '',
     product?.description || null,
@@ -145,13 +145,13 @@ export default function ProductDetails() {
     const productObj: Record<string, unknown> = {
       "@context": "https://schema.org",
       "@type": "Product",
-      "name": product.name,
+      "name": translatedName,
       "sku": `KP-${product.id}`,
       "url": productUrl,
       "brand": { "@type": "Brand", "name": "xHACCP" },
       "offers": offer,
     };
-    if (product.description) productObj["description"] = product.description;
+    if (translatedDescription) productObj["description"] = translatedDescription;
     if (allImages.length > 0) productObj["image"] = allImages;
     const reviewCount = product.reviewCount || 0;
     if (reviewCount > 0 && product.rating) {
@@ -170,7 +170,7 @@ export default function ProductDetails() {
         "itemListElement": breadcrumbItems,
       },
     ] as Record<string, unknown>[];
-  }, [product, allImages]);
+  }, [product, allImages, translatedName, translatedDescription]);
 
   useJsonLd("product-detail", productSchema);
 
@@ -223,11 +223,13 @@ export default function ProductDetails() {
 
   const { data: aiDescData, isLoading: aiDescLoading } = useQuery<{ html: string }>({
     queryKey: [`/api/products/${product?.id}/description-ai`],
-    enabled: !!product?.id && !!(translatedDescription || product?.description),
+    // The saved AI HTML belongs to the original product description. It must
+    // not replace a user-managed translation such as the French description.
+    enabled: !hasLocalizedDescription && !!product?.id && !!(translatedDescription || product?.description),
     staleTime: Infinity,
   });
 
-  const formattedDesc = aiDescData?.html || fallbackDesc;
+  const formattedDesc = hasLocalizedDescription ? fallbackDesc : (aiDescData?.html || fallbackDesc);
 
   const plainDesc = useMemo(
     () => stripFormatting(fallbackDesc),
@@ -671,7 +673,7 @@ export default function ProductDetails() {
             <TabsContent value="description" className="mt-6">
               <Card>
                 <CardContent className="p-8">
-                  {aiDescLoading ? (
+                  {!hasLocalizedDescription && aiDescLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <div className="loading-spinner h-4 w-4" />
                       <span>{t('products.aiFormatting') || 'Se formatează cu AI…'}</span>
