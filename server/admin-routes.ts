@@ -2603,6 +2603,42 @@ export async function registerAdminRoutes(app: Express) {
   app.delete("/admin/api/products/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const productId = parseInt(req.params.id);
+      const market = typeof req.query.market === 'string' ? req.query.market : undefined;
+      const validMarkets = ['ro', 'fr', 'com'];
+
+      if (market && !validMarkets.includes(market)) {
+        return res.status(400).json({ message: "Invalid market" });
+      }
+
+      if (market) {
+        if (!canAccessMarket(req, market)) {
+          return res.status(403).json({ message: "Access denied for this market" });
+        }
+
+        const product = await storage.getProduct(productId);
+        if (!product) {
+          return res.status(404).json({ message: "Product not found" });
+        }
+
+        // A product is shared between marketplaces. Removing its market row
+        // keeps invoices/orders from the other markets historically intact.
+        await storage.deleteProductMarket(productId, market);
+        refreshMarketCaches().catch(console.error);
+
+        return res.json({
+          message: `Product removed from the ${market.toUpperCase()} marketplace`,
+          scope: "market",
+          market,
+        });
+      }
+
+      // A restricted administrator must always make an explicit market-scoped
+      // removal, never delete the shared catalog record for other markets.
+      if ((req.adminMarkets || []).length > 0) {
+        return res.status(403).json({
+          message: "Select a marketplace before removing a product",
+        });
+      }
       
       await storage.deleteProduct(productId);
       
@@ -3294,10 +3330,25 @@ export async function registerAdminRoutes(app: Express) {
 
   app.put("/admin/api/products/bulk/delete", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { productIds } = req.body;
+      const { productIds, market } = req.body;
       
       if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
         return res.status(400).json({ message: "Product IDs are required" });
+      }
+
+      const validMarkets = ['ro', 'fr', 'com'];
+      if (market !== undefined && (!validMarkets.includes(market))) {
+        return res.status(400).json({ message: "Invalid market" });
+      }
+
+      if (market && !canAccessMarket(req, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
+      if (!market && (req.adminMarkets || []).length > 0) {
+        return res.status(403).json({
+          message: "Select a marketplace before removing products",
+        });
       }
       
       const results = [];
@@ -3305,7 +3356,11 @@ export async function registerAdminRoutes(app: Express) {
         try {
           const product = await storage.getProduct(parseInt(productId));
           if (product) {
-            await storage.deleteProduct(parseInt(productId));
+            if (market) {
+              await storage.deleteProductMarket(parseInt(productId), market);
+            } else {
+              await storage.deleteProduct(parseInt(productId));
+            }
             results.push({ id: productId, success: true });
           } else {
             results.push({ id: productId, success: false, message: "Product not found" });
@@ -3315,12 +3370,19 @@ export async function registerAdminRoutes(app: Express) {
         }
       }
       
-      // Refresh memory cache after bulk operations
-      await loadAllDataIntoMemory();
+      // A market-scoped removal only changes availability. A global deletion
+      // also needs the shared product cache refreshed.
+      if (market) {
+        refreshMarketCaches().catch(console.error);
+      } else {
+        await loadAllDataIntoMemory();
+      }
       
       const totalCount = productIds.length;
       res.json({ 
-        message: `Delete operation completed for ${totalCount} products`,
+        message: market
+          ? `Removed ${totalCount} products from the ${market.toUpperCase()} marketplace`
+          : `Delete operation completed for ${totalCount} products`,
         results
       });
     } catch (error) {
@@ -5573,9 +5635,19 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const entries = req.body;
       if (!Array.isArray(entries)) return res.status(400).json({ message: "Array of entries required" });
+      const validMarkets = ['ro', 'fr', 'com'];
+
+      for (const entry of entries) {
+        if (!entry?.productId || !validMarkets.includes(entry.market)) {
+          return res.status(400).json({ message: "Each entry requires a valid product and market" });
+        }
+        if (!canAccessMarket(req, entry.market)) {
+          return res.status(403).json({ message: "Access denied for this market" });
+        }
+      }
+
       const results = [];
       for (const entry of entries) {
-        if (!entry.productId || !entry.market) continue;
         const pm = await storage.setProductMarket({
           productId: entry.productId,
           market: entry.market,
@@ -5600,7 +5672,7 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const productId = parseInt(req.params.id);
       const pms = await storage.getProductMarkets(productId);
-      res.json(pms);
+      res.json(pms.filter(row => canAccessMarket(req, row.market)));
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch product markets" });
     }
@@ -5649,9 +5721,35 @@ export async function registerAdminRoutes(app: Express) {
       const productId = parseInt(req.params.id);
       const markets = req.body;
       if (!Array.isArray(markets)) return res.status(400).json({ message: "Array of market entries required" });
-      // Delete existing market rows not present in the new list
+      const validMarkets = ['ro', 'fr', 'com'];
+      const product = await storage.getProduct(productId);
+      if (!product) return res.status(404).json({ message: "Product not found" });
+
+      const incomingMarkets = new Set<string>();
+      for (const marketEntry of markets) {
+        if (!marketEntry || !validMarkets.includes(marketEntry.market)) {
+          return res.status(400).json({ message: "Each entry requires a valid market" });
+        }
+        if (incomingMarkets.has(marketEntry.market)) {
+          return res.status(400).json({ message: "Each market can be included only once" });
+        }
+        if (!canAccessMarket(req, marketEntry.market)) {
+          return res.status(403).json({ message: "Access denied for this market" });
+        }
+        incomingMarkets.add(marketEntry.market);
+      }
+
       const existingRows = await storage.getProductMarkets(productId);
-      const incomingMarkets = new Set(markets.map((m: any) => m.market));
+      // Validate every affected row before deleting anything. This prevents a
+      // restricted admin from omitting another market and deleting it.
+      for (const row of existingRows) {
+        if (!incomingMarkets.has(row.market)) {
+          if (!canAccessMarket(req, row.market)) {
+            return res.status(403).json({ message: "Access denied for this market" });
+          }
+        }
+      }
+      // Delete existing market rows not present in the new list.
       for (const row of existingRows) {
         if (!incomingMarkets.has(row.market)) {
           await storage.deleteProductMarket(productId, row.market);
@@ -5684,7 +5782,20 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const productId = parseInt(req.params.id);
       const market = req.params.market;
+      const validMarkets = ['ro', 'fr', 'com'];
       const { isActive, price, compareAtPrice, currency, inStock, stockQuantity } = req.body;
+
+      if (!validMarkets.includes(market)) {
+        return res.status(400).json({ message: "Invalid market" });
+      }
+      if (!canAccessMarket(req, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
       const pm = await storage.setProductMarket({
         productId,
         market,
@@ -5705,9 +5816,26 @@ export async function registerAdminRoutes(app: Express) {
   // DELETE /admin/api/products/:id/markets/:market — remove product from a market
   app.delete("/admin/api/products/:id/markets/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      await storage.deleteProductMarket(parseInt(req.params.id), req.params.market);
+      const productId = parseInt(req.params.id);
+      const market = req.params.market;
+      const validMarkets = ['ro', 'fr', 'com'];
+
+      if (!validMarkets.includes(market)) {
+        return res.status(400).json({ message: "Invalid market" });
+      }
+
+      if (!canAccessMarket(req, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      await storage.deleteProductMarket(productId, market);
       refreshMarketCaches().catch(console.error);
-      res.json({ success: true });
+      res.json({ success: true, message: `Product removed from the ${market.toUpperCase()} marketplace` });
     } catch (error) {
       res.status(500).json({ message: "Failed to remove product from market" });
     }
@@ -5720,6 +5848,19 @@ export async function registerAdminRoutes(app: Express) {
       const productId = parseInt(req.params.id);
       const { markets } = req.body;
       if (!Array.isArray(markets)) return res.status(400).json({ message: "markets array required" });
+      const validMarkets = ['ro', 'fr', 'com'];
+      const product = await storage.getProduct(productId);
+      if (!product) return res.status(404).json({ message: "Product not found" });
+
+      for (const marketEntry of markets) {
+        if (!marketEntry || !validMarkets.includes(marketEntry.market)) {
+          return res.status(400).json({ message: "Each entry requires a valid market" });
+        }
+        if (!canAccessMarket(req, marketEntry.market)) {
+          return res.status(403).json({ message: "Access denied for this market" });
+        }
+      }
+
       const results = [];
       for (const m of markets) {
         const pm = await storage.setProductMarket({

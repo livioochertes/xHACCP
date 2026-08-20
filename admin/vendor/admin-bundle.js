@@ -13565,9 +13565,10 @@ Failed: ${result.failed}`);
         return { success: false, message: "Network error" };
       }
     };
-    const deleteProduct = async (productId) => {
+    const deleteProduct = async (productId, market) => {
       try {
-        const response = await fetch(`/admin/api/products/${productId}`, {
+        const marketQuery = market && market !== "all" ? `?market=${encodeURIComponent(market)}` : "";
+        const response = await fetch(`/admin/api/products/${productId}${marketQuery}`, {
           method: "DELETE",
           headers: {
             "Authorization": `Bearer ${token}`
@@ -13920,6 +13921,9 @@ Failed: ${result.failed}`);
             break;
           case "delete":
             endpoint = "/admin/api/products/bulk/delete";
+            if (selectedMarketTab && selectedMarketTab !== "all") {
+              payload.market = selectedMarketTab;
+            }
             break;
           default:
             return { success: false, message: "Invalid operation" };
@@ -15516,12 +15520,16 @@ Continua\u021Bi?`)) return;
                           fontSize: "12px"
                         },
                         onClick: async () => {
-                          if (confirm(`Delete product "${product.name}"?
+                          const marketScoped = selectedMarketTab && selectedMarketTab !== "all";
+                          const confirmation = marketScoped ? `Remove product "${product.name}" from the ${selectedMarketTab.toUpperCase()} marketplace?
 
-This action cannot be undone.`)) {
-                            const result = await deleteProduct(product.id);
+It will remain available in other marketplaces and historical orders will be preserved.` : `Delete product "${product.name}" from all marketplaces?
+
+This action cannot be undone.`;
+                          if (confirm(confirmation)) {
+                            const result = await deleteProduct(product.id, selectedMarketTab);
                             if (result.success) {
-                              alert("Product deleted successfully");
+                              alert(result.message || "Product removed successfully");
                             } else {
                               alert("Error: " + result.message);
                             }
@@ -17867,7 +17875,13 @@ This action cannot be undone.`)) {
             result = await performProductBulkOperation("export", selectedProducts);
             break;
           case "delete":
-            if (!confirm(`Are you sure you want to delete ${selectedProducts.length} products? This action cannot be undone.`)) {
+            const marketScoped = selectedMarketTab && selectedMarketTab !== "all";
+            const confirmation = marketScoped ? `Remove ${selectedProducts.length} products from the ${selectedMarketTab.toUpperCase()} marketplace?
+
+They will remain in other marketplaces and historical orders will be preserved.` : `Are you sure you want to delete ${selectedProducts.length} products from all marketplaces?
+
+This action cannot be undone.`;
+            if (!confirm(confirmation)) {
               setIsProcessing(false);
               return;
             }

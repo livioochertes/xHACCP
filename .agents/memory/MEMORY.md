@@ -3,3 +3,4 @@
 - [Admin i18n Architecture](admin-i18n-architecture.md) — react-i18next in admin-src/; rebuild with `node admin-src/build.js`; source recovered from git history.
 - [Volume discount must be applied server-side](volume-discount-server-side.md) — backend recalculates prices from DB for security; must also call applyVolumeDiscount() or volume-tier prices are ignored in emails/Viva.
 - [SendGrid sender by market](sendgrid-sender-by-market.md) — French-market email must use the verified info@xhaccp.fr sender; RO/COM retain the default identity.
+- [Marketplace product removal](marketplace-product-removal.md) — removing an item from one market must preserve the shared catalog record and historical invoices in other markets.

@@ -1584,9 +1584,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         }
       };
 
-      const deleteProduct = async (productId) => {
+      const deleteProduct = async (productId, market) => {
         try {
-          const response = await fetch(`/admin/api/products/${productId}`, {
+          const marketQuery = market && market !== 'all' ? `?market=${encodeURIComponent(market)}` : '';
+          const response = await fetch(`/admin/api/products/${productId}${marketQuery}`, {
             method: 'DELETE',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -1987,6 +1988,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               break;
             case 'delete':
               endpoint = '/admin/api/products/bulk/delete';
+              if (selectedMarketTab && selectedMarketTab !== 'all') {
+                payload.market = selectedMarketTab;
+              }
               break;
             default:
               return { success: false, message: 'Invalid operation' };
@@ -3552,10 +3556,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                     fontSize: '12px'
                                   }}
                                   onClick={async () => {
-                                    if (confirm(`Delete product "${product.name}"?\n\nThis action cannot be undone.`)) {
-                                      const result = await deleteProduct(product.id);
+                                    const marketScoped = selectedMarketTab && selectedMarketTab !== 'all';
+                                    const confirmation = marketScoped
+                                      ? `Remove product "${product.name}" from the ${selectedMarketTab.toUpperCase()} marketplace?\n\nIt will remain available in other marketplaces and historical orders will be preserved.`
+                                      : `Delete product "${product.name}" from all marketplaces?\n\nThis action cannot be undone.`;
+                                    if (confirm(confirmation)) {
+                                      const result = await deleteProduct(product.id, selectedMarketTab);
                                       if (result.success) {
-                                        alert('Product deleted successfully');
+                                        alert(result.message || 'Product removed successfully');
                                       } else {
                                         alert('Error: ' + result.message);
                                       }
@@ -5707,7 +5715,11 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               result = await performProductBulkOperation('export', selectedProducts);
               break;
             case 'delete':
-              if (!confirm(`Are you sure you want to delete ${selectedProducts.length} products? This action cannot be undone.`)) {
+              const marketScoped = selectedMarketTab && selectedMarketTab !== 'all';
+              const confirmation = marketScoped
+                ? `Remove ${selectedProducts.length} products from the ${selectedMarketTab.toUpperCase()} marketplace?\n\nThey will remain in other marketplaces and historical orders will be preserved.`
+                : `Are you sure you want to delete ${selectedProducts.length} products from all marketplaces?\n\nThis action cannot be undone.`;
+              if (!confirm(confirmation)) {
                 setIsProcessing(false);
                 return;
               }
