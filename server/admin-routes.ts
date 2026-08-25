@@ -2936,6 +2936,61 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Create independent category records for a marketplace from another
+  // marketplace's current structure. Existing target records are preserved.
+  app.post("/admin/api/categories/initialize-market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const validMarkets = new Set(['ro', 'fr', 'com']);
+      const sourceMarket = String(req.body?.sourceMarket || 'ro');
+      const targetMarket = String(req.body?.targetMarket || '');
+
+      if (!validMarkets.has(sourceMarket) || !validMarkets.has(targetMarket) || sourceMarket === targetMarket) {
+        return res.status(400).json({ message: "A valid, different source and target marketplace are required" });
+      }
+      if (!canAccessMarket(req as AdminAuthRequest, targetMarket)) {
+        return res.status(403).json({ message: "Access denied for the target market" });
+      }
+      if (!canAccessMarket(req as AdminAuthRequest, sourceMarket)) {
+        return res.status(403).json({ message: "Access denied for the source market" });
+      }
+
+      const [sourceCategories, targetCategories] = await Promise.all([
+        storage.getCategories(sourceMarket),
+        storage.getCategories(targetMarket),
+      ]);
+      const existingSlugs = new Set(targetCategories.map(category => category.slug));
+      const created = [];
+
+      for (const sourceCategory of sourceCategories) {
+        if (existingSlugs.has(sourceCategory.slug)) continue;
+        const category = await storage.createCategory({
+          name: sourceCategory.name,
+          slug: sourceCategory.slug,
+          description: sourceCategory.description,
+          imageUrl: sourceCategory.imageUrl,
+          showOnMainTop: false,
+          showOnMainShop: false,
+          sortOrder: sourceCategory.sortOrder ?? 0,
+          marketCode: targetMarket,
+        });
+        existingSlugs.add(category.slug);
+        created.push(category);
+      }
+
+      await loadAllDataIntoMemory();
+      res.json({
+        message: created.length
+          ? `${created.length} categorii au fost create independent pentru piața ${targetMarket.toUpperCase()}`
+          : `Piața ${targetMarket.toUpperCase()} are deja toate categoriile sursă`,
+        createdCount: created.length,
+        categories: created,
+      });
+    } catch (error) {
+      console.error("Error initializing market categories:", error);
+      res.status(500).json({ message: "Failed to initialize marketplace categories" });
+    }
+  });
+
   app.post("/admin/api/categories", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const { name, description, imageUrl, marketCode } = req.body;

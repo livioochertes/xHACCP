@@ -2031,6 +2031,34 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         }
       };
 
+      const initializeMarketCategories = async () => {
+        const targetMarket = selectedMarketTab && selectedMarketTab !== 'all' ? selectedMarketTab : null;
+        if (!targetMarket) {
+          return { success: false, message: 'Selectează mai întâi o piață concretă.' };
+        }
+        if (!confirm(`Creează în ${targetMarket.toUpperCase()} copii independente ale categoriilor RO?\n\nCategoriile deja existente în ${targetMarket.toUpperCase()} nu vor fi modificate.`)) {
+          return { success: false, message: 'Acțiune anulată' };
+        }
+        try {
+          const response = await fetch('/admin/api/categories/initialize-market', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ sourceMarket: 'ro', targetMarket })
+          });
+          const data = await response.json();
+          if (response.ok) {
+            await fetchCategories();
+            return { success: true, message: data.message };
+          }
+          return { success: false, message: data.message || 'Nu s-au putut inițializa categoriile' };
+        } catch (err) {
+          return { success: false, message: 'Network error' };
+        }
+      };
+
       const updateCategory = async (categoryId, categoryData) => {
         try {
           const token = localStorage.getItem('adminToken');
@@ -3873,7 +3901,24 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 ) : (
                   <div style={{padding: '40px', textAlign: 'center', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
                     <p style={{color: '#666', fontSize: '18px', marginBottom: '15px'}}>{t('categories.noneFound')}</p>
-                    <p style={{color: '#6c757d', marginBottom: '20px'}}>{t('categories.createFirst')}</p>
+                     <p style={{color: '#6c757d', marginBottom: '20px'}}>
+                       {selectedMarketTab && selectedMarketTab !== 'all'
+                         ? `Nu există încă categorii pentru ${selectedMarketTab.toUpperCase()}. Creează o structură independentă pornind de la RO sau adaugă una nouă.`
+                         : t('categories.createFirst')}
+                     </p>
+                     {selectedMarketTab && selectedMarketTab !== 'all' && (
+                       <button
+                         className="btn"
+                         style={{background: '#6f42c1', width: 'auto', padding: '12px 24px', marginRight: '10px'}}
+                         onClick={async () => {
+                           const result = await initializeMarketCategories();
+                           if (result.success) alert(`✅ ${result.message}`);
+                           else if (result.message !== 'Acțiune anulată') alert('❌ ' + result.message);
+                         }}
+                       >
+                         📋 Inițializează categoriile din RO
+                       </button>
+                     )}
                     <button 
                       className="btn" 
                       style={{background: '#28a745', width: 'auto', padding: '12px 24px'}}

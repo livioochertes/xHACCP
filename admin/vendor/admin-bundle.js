@@ -13957,6 +13957,35 @@ Failed: ${result.failed}`);
             return { success: false, message: "Network error" };
           }
         };
+        const initializeMarketCategories2 = async () => {
+          const targetMarket = selectedMarketTab && selectedMarketTab !== "all" ? selectedMarketTab : null;
+          if (!targetMarket) {
+            return { success: false, message: "Selecteaz\u0103 mai \xEEnt\xE2i o pia\u021B\u0103 concret\u0103." };
+          }
+          if (!confirm(`Creeaz\u0103 \xEEn ${targetMarket.toUpperCase()} copii independente ale categoriilor RO?
+
+Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modificate.`)) {
+            return { success: false, message: "Ac\u021Biune anulat\u0103" };
+          }
+          try {
+            const response2 = await fetch("/admin/api/categories/initialize-market", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+              },
+              body: JSON.stringify({ sourceMarket: "ro", targetMarket })
+            });
+            const data2 = await response2.json();
+            if (response2.ok) {
+              await fetchCategories();
+              return { success: true, message: data2.message };
+            }
+            return { success: false, message: data2.message || "Nu s-au putut ini\u021Bializa categoriile" };
+          } catch (err) {
+            return { success: false, message: "Network error" };
+          }
+        };
         const updateCategory2 = async (categoryId, categoryData) => {
           try {
             const token2 = localStorage.getItem("adminToken");
@@ -15849,7 +15878,20 @@ This action cannot be undone. Make sure no products are assigned to this categor
               ] }, index)) })
             ] }) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: t2("categories.noneFound") }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: t2("categories.createFirst") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: selectedMarketTab && selectedMarketTab !== "all" ? `Nu exist\u0103 \xEEnc\u0103 categorii pentru ${selectedMarketTab.toUpperCase()}. Creeaz\u0103 o structur\u0103 independent\u0103 pornind de la RO sau adaug\u0103 una nou\u0103.` : t2("categories.createFirst") }),
+              selectedMarketTab && selectedMarketTab !== "all" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "button",
+                {
+                  className: "btn",
+                  style: { background: "#6f42c1", width: "auto", padding: "12px 24px", marginRight: "10px" },
+                  onClick: async () => {
+                    const result = await initializeMarketCategories();
+                    if (result.success) alert(`\u2705 ${result.message}`);
+                    else if (result.message !== "Ac\u021Biune anulat\u0103") alert("\u274C " + result.message);
+                  },
+                  children: "\u{1F4CB} Ini\u021Bializeaz\u0103 categoriile din RO"
+                }
+              ),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                 "button",
                 {
