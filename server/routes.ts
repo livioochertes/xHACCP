@@ -195,7 +195,11 @@ let allProductsData: any[] = [];
 let productsBySlug = new Map<string, any>();
 let stringifiedProductsData: string = '';
 let stringifiedCategoriesData: string = '';
-let dataVersion: number = Date.now();
+let dataVersion = 0;
+
+function bumpDataVersion() {
+  dataVersion += 1;
+}
 
 // Market data in memory: productId → { market → ProductMarket row }
 let productMarketsMap = new Map<number, Map<string, any>>();
@@ -210,11 +214,13 @@ export async function refreshMarketCaches(): Promise<void> {
     for (const ms of allMarketSettings) {
       marketSettingsMap.set(ms.market, ms);
     }
-    const allProductMarketsRows: any[] = [];
-    for (const ms of allMarketSettings) {
-      const rows = await storage.getProductMarketsByMarket(ms.market);
-      allProductMarketsRows.push(...rows);
-    }
+    // Product-market availability is valid independently of a settings row.
+    // Always load every supported marketplace so an incomplete settings table
+    // cannot turn market-specific products into globally available products.
+    const validMarkets = ['ro', 'fr', 'com'];
+    const allProductMarketsRows = (
+      await Promise.all(validMarkets.map((market) => storage.getProductMarketsByMarket(market)))
+    ).flat();
     productMarketsMap.clear();
     for (const pm of allProductMarketsRows) {
       if (!productMarketsMap.has(pm.productId)) {
@@ -222,15 +228,27 @@ export async function refreshMarketCaches(): Promise<void> {
       }
       productMarketsMap.get(pm.productId)!.set(pm.market, pm);
     }
+    // Product availability changed, so public product responses must not retain
+    // an ETag generated for the previous marketplace catalog.
+    bumpDataVersion();
   } catch (err) {
     console.error("Error refreshing market caches:", err);
+    throw err;
   }
 }
 
 // Apply market-specific price/availability overlay to a product clone
 export function applyMarketOverlay(product: any, market: string): any {
-  const marketRow = productMarketsMap.get(product.id)?.get(market);
-  if (!marketRow) return product; // no market record → serve as-is (globally available)
+  const productMarketRows = productMarketsMap.get(product.id);
+  // Legacy products that have never been assigned to any marketplace remain
+  // globally available until an administrator explicitly reconciles them.
+  if (!productMarketRows || productMarketRows.size === 0) return product;
+
+  const marketRow = productMarketRows.get(market);
+  // Once a product is assigned to at least one marketplace, its availability
+  // is explicit. A missing FR row must not make an RO/COM-only item reappear
+  // on the French storefront after it was removed from that market.
+  if (!marketRow) return null;
   if (marketRow.isActive === false) return null; // disabled for this market → hide
   // Currency priority: product_markets.currency → market_settings.currency → product.currency
   // Applied whenever a market row exists and is active (not only when other overrides are set)
@@ -258,7 +276,9 @@ export async function loadAllDataIntoMemory() {
     console.log('Loading all data into permanent memory...');
     
     // Update version to invalidate caches
-    dataVersion = Date.now();
+    bumpDataVersion();
+    productsByCategory.clear();
+    productsBySlug.clear();
     
     // Load categories
     const rawCategories = await storage.getCategories();
@@ -1737,10 +1757,12 @@ Sitemap: https://${domain}/sitemap.xml
       products = products.slice(0, limitNum);
     }
     
-    // Set aggressive caching headers for performance (per-market)
+    // Marketplace availability changes must be visible immediately after an
+    // admin import/removal, not up to five minutes later from browser/CDN cache.
+    const searchKey = search ? encodeURIComponent(String(search)) : 'all';
     res.set({
-      'Cache-Control': 'public, max-age=300, s-maxage=300',
-      'ETag': `products-${market}-${categorySlug || 'all'}-${featured || 'all'}-${limitNum}`,
+      'Cache-Control': 'no-store',
+      'ETag': `products-${dataVersion}-${market}-${categorySlug || 'all'}-${featured || 'all'}-${searchKey}-${limitNum}`,
       'Content-Type': 'application/json'
     });
     
@@ -1916,6 +1938,7 @@ Sitemap: https://${domain}/sitemap.xml
     try {
       const productData = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(productData);
+      await loadAllDataIntoMemory();
       res.json(product);
     } catch (error) {
       console.error("Create product error:", error);
@@ -1928,6 +1951,7 @@ Sitemap: https://${domain}/sitemap.xml
       const productId = parseInt(req.params.id);
       const productData = req.body;
       const product = await storage.updateProduct(productId, productData);
+      await loadAllDataIntoMemory();
       res.json(product);
     } catch (error) {
       console.error("Update product error:", error);
@@ -1939,6 +1963,7 @@ Sitemap: https://${domain}/sitemap.xml
     try {
       const productId = parseInt(req.params.id);
       await storage.deleteProduct(productId);
+      await loadAllDataIntoMemory();
       res.json({ message: "Product deleted successfully" });
     } catch (error) {
       console.error("Delete product error:", error);

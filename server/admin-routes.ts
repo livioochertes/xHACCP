@@ -2623,7 +2623,7 @@ export async function registerAdminRoutes(app: Express) {
         // A product is shared between marketplaces. Removing its market row
         // keeps invoices/orders from the other markets historically intact.
         await storage.deleteProductMarket(productId, market);
-        refreshMarketCaches().catch(console.error);
+        await refreshMarketCaches();
 
         return res.json({
           message: `Product removed from the ${market.toUpperCase()} marketplace`,
@@ -3373,7 +3373,7 @@ export async function registerAdminRoutes(app: Express) {
       // A market-scoped removal only changes availability. A global deletion
       // also needs the shared product cache refreshed.
       if (market) {
-        refreshMarketCaches().catch(console.error);
+        await refreshMarketCaches();
       } else {
         await loadAllDataIntoMemory();
       }
@@ -5660,7 +5660,7 @@ export async function registerAdminRoutes(app: Express) {
         });
         results.push(pm);
       }
-      refreshMarketCaches().catch(console.error);
+      await refreshMarketCaches();
       res.json(results);
     } catch (error) {
       res.status(500).json({ message: "Failed to bulk-assign product markets" });
@@ -5770,7 +5770,7 @@ export async function registerAdminRoutes(app: Express) {
         });
         results.push(pm);
       }
-      refreshMarketCaches().catch(console.error);
+      await refreshMarketCaches();
       res.json(results);
     } catch (error) {
       res.status(500).json({ message: "Failed to update product markets" });
@@ -5806,7 +5806,7 @@ export async function registerAdminRoutes(app: Express) {
         inStock: inStock ?? null,
         stockQuantity: stockQuantity ?? null,
       });
-      refreshMarketCaches().catch(console.error);
+      await refreshMarketCaches();
       res.json(pm);
     } catch (error) {
       res.status(500).json({ message: "Failed to update product market" });
@@ -5834,7 +5834,7 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       await storage.deleteProductMarket(productId, market);
-      refreshMarketCaches().catch(console.error);
+      await refreshMarketCaches();
       res.json({ success: true, message: `Product removed from the ${market.toUpperCase()} marketplace` });
     } catch (error) {
       res.status(500).json({ message: "Failed to remove product from market" });
@@ -5875,7 +5875,7 @@ export async function registerAdminRoutes(app: Express) {
         });
         results.push(pm);
       }
-      refreshMarketCaches().catch(console.error);
+      await refreshMarketCaches();
       res.json(results);
     } catch (error) {
       res.status(500).json({ message: "Failed to bulk-update product markets" });
