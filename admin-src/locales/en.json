@@ -206,7 +206,6 @@
     "addNew": "Add New Product",
     "actions": "Product Actions",
     "downloadTemplate": "Download Excel Template",
-    "generateCodes": "Generate Missing Codes",
     "searchFilterTitle": "Search & Filter Products",
     "searchLabel": "Search Products",
     "searchPlaceholder": "Search by name, ID, category, or description...",

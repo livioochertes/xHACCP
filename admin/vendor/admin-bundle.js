@@ -10633,7 +10633,6 @@
       addNew: "Add New Product",
       actions: "Product Actions",
       downloadTemplate: "Download Excel Template",
-      generateCodes: "Generate Missing Codes",
       searchFilterTitle: "Search & Filter Products",
       searchLabel: "Search Products",
       searchPlaceholder: "Search by name, ID, category, or description...",
@@ -11181,7 +11180,6 @@
       addNew: "Adaug\u0103 Produs Nou",
       actions: "Ac\u021Biuni Produse",
       downloadTemplate: "Descarc\u0103 \u0218ablon Excel",
-      generateCodes: "Genereaz\u0103 Coduri Lips\u0103",
       searchFilterTitle: "C\u0103utare & Filtrare Produse",
       searchLabel: "Caut\u0103 Produse",
       searchPlaceholder: "Caut\u0103 dup\u0103 nume, ID, categorie sau descriere...",
@@ -11729,7 +11727,6 @@
       addNew: "Ajouter un produit",
       actions: "Actions produits",
       downloadTemplate: "T\xE9l\xE9charger le mod\xE8le Excel",
-      generateCodes: "G\xE9n\xE9rer les codes manquants",
       searchFilterTitle: "Recherche & Filtres produits",
       searchLabel: "Rechercher des produits",
       searchPlaceholder: "Rechercher par nom, ID, cat\xE9gorie ou description...",
@@ -14987,42 +14984,6 @@ This action cannot be undone.`)) {
                     children: [
                       "\u{1F4E5} ",
                       t2("products.downloadTemplate")
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "button",
-                  {
-                    className: "btn",
-                    style: { background: "#dc3545", width: "auto", padding: "8px 16px" },
-                    onClick: async () => {
-                      if (!confirm("Aceasta va genera coduri de produs pentru toate produsele care nu au cod. Continua\u021Bi?")) return;
-                      try {
-                        const response = await fetch("/admin/api/products/bulk/generate-codes", {
-                          method: "POST",
-                          headers: {
-                            "Authorization": `Bearer ${localStorage.getItem("adminToken")}`,
-                            "Content-Type": "application/json"
-                          }
-                        });
-                        const result = await response.json();
-                        if (response.ok) {
-                          alert(`\u2705 ${result.message}
-
-Actualizate: ${result.updated}
-E\u0219uate: ${result.failed || 0}`);
-                          fetchProducts();
-                        } else {
-                          alert("\u274C Eroare: " + result.message);
-                        }
-                      } catch (error2) {
-                        console.error("Error generating codes:", error2);
-                        alert("\u274C Eroare la generarea codurilor");
-                      }
-                    },
-                    children: [
-                      "\u{1F522} ",
-                      t2("products.generateCodes")
                     ]
                   }
                 )

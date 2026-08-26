@@ -3077,37 +3077,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     >
                       📥 {t('products.downloadTemplate')}
                     </button>
-                    <button 
-                      className="btn" 
-                      style={{background: '#dc3545', width: 'auto', padding: '8px 16px'}}
-                      onClick={async () => {
-                        if (!confirm('Aceasta va genera coduri de produs pentru toate produsele care nu au cod. Continuați?')) return;
-                        
-                        try {
-                          const response = await fetch('/admin/api/products/bulk/generate-codes', {
-                            method: 'POST',
-                            headers: {
-                              'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-                              'Content-Type': 'application/json'
-                            }
-                          });
-                          
-                          const result = await response.json();
-                          
-                          if (response.ok) {
-                            alert(`✅ ${result.message}\n\nActualizate: ${result.updated}\nEșuate: ${result.failed || 0}`);
-                            fetchProducts();
-                          } else {
-                            alert('❌ Eroare: ' + result.message);
-                          }
-                        } catch (error) {
-                          console.error('Error generating codes:', error);
-                          alert('❌ Eroare la generarea codurilor');
-                        }
-                      }}
-                    >
-                      🔢 {t('products.generateCodes')}
-                    </button>
                   </div>
                 </div>
                 

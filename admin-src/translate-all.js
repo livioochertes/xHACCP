@@ -54,7 +54,6 @@ r(
 );
 r(`      📊 Analytics\n                    </button>\n                    <button \n                      className="btn" \n                      style={{background: '#28a745'`, `      📊 {t('common.analytics')}\n                    </button>\n                    <button \n                      className="btn" \n                      style={{background: '#28a745'`);
 r(`      📥 Download Excel Template\n                    </button>`, `      📥 {t('products.downloadTemplate')}\n                    </button>`);
-r(`      🔢 Generează Coduri Lipsă\n                    </button>`, `      🔢 {t('products.generateCodes')}\n                    </button>`);
 // Search filter panel
 r(`<h4 style={{color: '#333', marginBottom: '15px'}}>🔍 Search & Filter Products</h4>`, `<h4 style={{color: '#333', marginBottom: '15px'}}>🔍 {t('products.searchFilterTitle')}</h4>`);
 r(`<label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Search Products:</label>`, `<label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>{t('products.searchLabel')}:</label>`);
