@@ -7,4 +7,4 @@ Each product-market association owns its category assignment. Category slugs are
 
 **Why:** RO, FR, and COM categories must remain independently editable. A single global product category or global slug cache can leak another marketplace's category, hide valid products, or make an edit on one domain affect the others.
 
-**How to apply:** Store category ownership on the product-market association, validate that the category belongs to that market, scope navigation/counts to the domain, and block deletion while either global or market-specific product references exist.
+**How to apply:** Store category ownership on the product-market association, validate that the category belongs to that market, scope navigation/counts to the domain, and block deletion while either global or market-specific product references exist. When a same-slug category is recreated for FR/COM, copy any missing RO category translations into new rows for the new category ID; never share the RO row itself.

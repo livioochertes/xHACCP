@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { categories, categoryTranslations, products, users, orders, orderItems, invoices, invoiceItems, marketSettings } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 // Seed default market settings if not present
@@ -907,8 +907,26 @@ export async function seedCategoryTranslations() {
       }));
 
     if (toInsert.length > 0) {
-      await db.insert(categoryTranslations).values(toInsert);
-      console.log(`✅ Seeded ${toInsert.length} category translations`);
+      const insertedCount = await db.transaction(async tx => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(2026082601)`);
+        const existingTranslations = await tx
+          .select({
+            categoryId: categoryTranslations.categoryId,
+            language: categoryTranslations.language,
+          })
+          .from(categoryTranslations);
+        const existingKeys = new Set(
+          existingTranslations.map(item => `${item.categoryId}:${item.language}`),
+        );
+        const missingTranslations = toInsert.filter(
+          item => !existingKeys.has(`${item.categoryId}:${item.language}`),
+        );
+        if (missingTranslations.length > 0) {
+          await tx.insert(categoryTranslations).values(missingTranslations);
+        }
+        return missingTranslations.length;
+      });
+      console.log(`✅ Seeded ${insertedCount} category translations`);
     }
   } catch (error) {
     console.error("Error seeding category translations:", error);

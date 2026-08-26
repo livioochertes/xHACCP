@@ -640,17 +640,60 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCategoryTranslation(translation: InsertCategoryTranslation): Promise<CategoryTranslation> {
-    const [newTranslation] = await db.insert(categoryTranslations).values(translation).returning();
-    return newTranslation;
+    return db.transaction(async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(2026082601)`);
+      const [existingTranslation] = await tx
+        .select()
+        .from(categoryTranslations)
+        .where(and(
+          eq(categoryTranslations.categoryId, translation.categoryId),
+          eq(categoryTranslations.language, translation.language),
+        ))
+        .limit(1);
+      if (existingTranslation) return existingTranslation;
+
+      const [newTranslation] = await tx
+        .insert(categoryTranslations)
+        .values(translation)
+        .returning();
+      return newTranslation;
+    });
   }
 
   async updateCategoryTranslation(id: number, translation: Partial<InsertCategoryTranslation>): Promise<CategoryTranslation> {
-    const [updatedTranslation] = await db
-      .update(categoryTranslations)
-      .set({ ...translation, updatedAt: new Date() })
-      .where(eq(categoryTranslations.id, id))
-      .returning();
-    return updatedTranslation;
+    return db.transaction(async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(2026082601)`);
+      const [currentTranslation] = await tx
+        .select()
+        .from(categoryTranslations)
+        .where(eq(categoryTranslations.id, id))
+        .limit(1);
+      if (!currentTranslation) {
+        throw new Error("Category translation not found");
+      }
+
+      const targetCategoryId = translation.categoryId ?? currentTranslation.categoryId;
+      const targetLanguage = translation.language ?? currentTranslation.language;
+      const [conflictingTranslation] = await tx
+        .select({ id: categoryTranslations.id })
+        .from(categoryTranslations)
+        .where(and(
+          eq(categoryTranslations.categoryId, targetCategoryId),
+          eq(categoryTranslations.language, targetLanguage),
+          ne(categoryTranslations.id, id),
+        ))
+        .limit(1);
+      if (conflictingTranslation) {
+        throw new Error("A translation already exists for this category and language");
+      }
+
+      const [updatedTranslation] = await tx
+        .update(categoryTranslations)
+        .set({ ...translation, updatedAt: new Date() })
+        .where(eq(categoryTranslations.id, id))
+        .returning();
+      return updatedTranslation;
+    });
   }
 
   async deleteCategoryTranslation(id: number): Promise<void> {

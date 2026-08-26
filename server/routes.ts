@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users, invoiceItems, orders, invoices, type CompositeConfiguration, type InsertCartItem } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -368,6 +368,73 @@ async function backfillMarketplaceCategoryAssignments(
   }
 }
 
+let categoryTranslationBackfillInFlight: Promise<number> | null = null;
+
+async function backfillMarketplaceCategoryTranslations(): Promise<number> {
+  if (categoryTranslationBackfillInFlight) {
+    return categoryTranslationBackfillInFlight;
+  }
+
+  categoryTranslationBackfillInFlight = (async () => {
+    const result: any = await db.transaction(async tx => {
+      // Keep lock acquisition separate so the INSERT receives a fresh
+      // READ COMMITTED snapshot after any competing writer has committed.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(2026082601)`);
+      return tx.execute(sql`
+        WITH source_rows AS (
+          SELECT DISTINCT ON (category_id, language)
+            category_id,
+            language,
+            name,
+            description
+          FROM category_translations
+          ORDER BY category_id, language, updated_at DESC NULLS LAST, id DESC
+        ),
+        inserted AS (
+          INSERT INTO category_translations (
+            category_id,
+            language,
+            name,
+            description,
+            created_at,
+            updated_at
+          )
+          SELECT
+            target.id,
+            source_translation.language,
+            source_translation.name,
+            source_translation.description,
+            NOW(),
+            NOW()
+          FROM categories AS target
+          JOIN categories AS source_category
+            ON source_category.slug = target.slug
+           AND source_category.market_code = 'ro'
+          JOIN source_rows AS source_translation
+            ON source_translation.category_id = source_category.id
+          WHERE target.market_code IN ('fr', 'com')
+            AND NOT EXISTS (
+              SELECT 1
+              FROM category_translations AS existing
+              WHERE existing.category_id = target.id
+                AND existing.language = source_translation.language
+            )
+          RETURNING id
+        )
+        SELECT COUNT(*)::int AS created_count FROM inserted
+      `);
+    });
+    const row = result?.rows?.[0] ?? result?.[0];
+    return Number(row?.created_count || 0);
+  })();
+
+  try {
+    return await categoryTranslationBackfillInFlight;
+  } finally {
+    categoryTranslationBackfillInFlight = null;
+  }
+}
+
 async function backfillOrphanProductsToRomanianMarket(
   products: any[],
   categories: any[],
@@ -528,6 +595,10 @@ export async function loadAllDataIntoMemory() {
     
     // Load categories
     const rawCategories = await storage.getCategories();
+    const restoredCategoryTranslations = await backfillMarketplaceCategoryTranslations();
+    if (restoredCategoryTranslations > 0) {
+      console.log(`Restored ${restoredCategoryTranslations} marketplace category translations`);
+    }
     categoriesById = new Map(rawCategories.map(category => [category.id, category]));
     setCachedData('categories-all', rawCategories);
     
