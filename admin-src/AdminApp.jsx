@@ -7909,10 +7909,19 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           <label className="form-label">{t('products.modal.stockLabel')}</label>
                           <input
                             type="number"
+                            min="0"
                             className="form-input"
                             value={productFormData.stockQuantity}
                             onChange={(e) => setProductFormData({...productFormData, stockQuantity: e.target.value})}
+                            placeholder={productFormData.isComposite
+                              ? `Automat din componente: ${componentProducts.reduce((sum, product) => sum + (Number(product.stockQuantity) || 0), 0)}`
+                              : ''}
                           />
+                          {productFormData.isComposite && (
+                            <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>
+                              Lasă gol pentru a folosi automat suma stocurilor componentelor.
+                            </div>
+                          )}
                         </div>
                         <div className="form-group">
                           <label className="form-label">{t('products.modal.productCodeLabel')}</label>

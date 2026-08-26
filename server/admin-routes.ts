@@ -2585,7 +2585,11 @@ export async function registerAdminRoutes(app: Express) {
       const categoryId = productData.categoryId !== undefined
         ? await validateCategoryForMarket(productData.categoryId, targetMarket)
         : null;
-      const stockQuantity = safeParseInt(productData.stockQuantity) ?? 0;
+      const isComposite = productData.isComposite === true || productData.isComposite === 'true';
+      const parsedStockQuantity = safeParseInt(productData.stockQuantity);
+      const stockQuantity = isComposite && parsedStockQuantity === undefined
+        ? null
+        : (parsedStockQuantity ?? 0);
       const productInsert = {
         ...productData,
         slug,
@@ -2613,7 +2617,7 @@ export async function registerAdminRoutes(app: Express) {
         // Priority field for product display order (1 = highest, 0 = default)
         priority: productData.priority !== undefined ? parseInt(String(productData.priority)) || 0 : 0,
         isService: productData.isService === true || productData.isService === 'true',
-        isComposite: productData.isComposite === true || productData.isComposite === 'true'
+        isComposite
       };
 
       const { newProduct, productMarket } = await db.transaction(async (tx) => {
@@ -2633,7 +2637,7 @@ export async function registerAdminRoutes(app: Express) {
               ? String(productData.compareAtPrice)
               : null,
             currency: productData.currency || null,
-            inStock: stockQuantity > 0,
+            inStock: stockQuantity == null ? null : stockQuantity > 0,
             stockQuantity,
           })
           .returning();
@@ -2696,6 +2700,10 @@ export async function registerAdminRoutes(app: Express) {
       const nameChanged = productData.name !== undefined &&
         String(productData.name || '') !== String(existingProduct?.name || '');
       const descriptionNeedsFormatting = descriptionChanged || nameChanged || !existingProduct?.descriptionHtml;
+      const isComposite = productData.isComposite !== undefined
+        ? productData.isComposite === true || productData.isComposite === 'true'
+        : !!existingProduct?.isComposite;
+      const parsedStockQuantity = safeParseInt(productData.stockQuantity);
       const updatedProduct = await storage.updateProduct(productId, {
         ...productData,
         // Override fields that need special handling/normalization
@@ -2705,7 +2713,13 @@ export async function registerAdminRoutes(app: Express) {
           ? { categoryId: safeParseInt(productData.categoryId) }
           : {}),
         supplierId: safeParseInt(productData.supplierId),
-        stockQuantity: safeParseInt(productData.stockQuantity) ?? 0,
+        ...(productData.stockQuantity !== undefined
+          ? {
+              stockQuantity: isComposite && parsedStockQuantity === null
+                ? null
+                : (parsedStockQuantity ?? 0),
+            }
+          : {}),
         images: cleanImages,
         imageUrl: mainImageUrl,
         ...(descriptionNeedsFormatting
@@ -2725,7 +2739,7 @@ export async function registerAdminRoutes(app: Express) {
         // Priority field for product display order (1 = highest, 0 = default)
         priority: safeParseInt(productData.priority) ?? 0,
         ...(productData.isService !== undefined && { isService: productData.isService === true || productData.isService === 'true' }),
-        ...(productData.isComposite !== undefined && { isComposite: productData.isComposite === true || productData.isComposite === 'true' })
+        ...(productData.isComposite !== undefined && { isComposite })
       });
       
       console.log('Updated product result:', updatedProduct);

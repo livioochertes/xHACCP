@@ -7,6 +7,7 @@ export type CompositeComponentSource = {
   product: Product;
   marketPrice: string | null;
   marketCurrency: string | null;
+  marketStockQuantity?: number | null;
   sortOrder: number;
 };
 
@@ -14,6 +15,25 @@ export type RequestedCompositeComponent = {
   componentProductId: number;
   quantity: number;
 };
+
+export function calculateCompositeStockQuantity(available: CompositeComponentSource[]): number {
+  return available.reduce((total, source) => {
+    const rawStock = source.marketStockQuantity ?? source.product.stockQuantity ?? 0;
+    const stock = Number(rawStock);
+    return total + (Number.isFinite(stock) && stock > 0 ? Math.trunc(stock) : 0);
+  }, 0);
+}
+
+export function resolveCompositeStockQuantity(
+  manualStockQuantity: unknown,
+  available: CompositeComponentSource[],
+): number {
+  const manualStock = Number(manualStockQuantity);
+  if (Number.isFinite(manualStock) && manualStock > 0) {
+    return Math.trunc(manualStock);
+  }
+  return calculateCompositeStockQuantity(available);
+}
 
 export function normalizeRequestedCompositeComponents(input: unknown): RequestedCompositeComponent[] {
   if (!Array.isArray(input)) {

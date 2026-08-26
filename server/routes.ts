@@ -24,6 +24,7 @@ import {
 } from './contact-email.js';
 import {
   calculateCompositeConfiguration,
+  resolveCompositeStockQuantity,
   type CompositeComponentSource,
 } from "./composite-products";
 
@@ -207,9 +208,35 @@ function bumpDataVersion() {
 
 // Market data in memory: productId → { market → ProductMarket row }
 let productMarketsMap = new Map<number, Map<string, any>>();
+let compositeStockByMarket = new Map<string, number>();
 let categoriesById = new Map<number, any>();
 // Market settings in memory: market → MarketSettings row
 export let marketSettingsMap = new Map<string, any>();
+
+async function refreshCompositeStockCache(validMarkets: string[]): Promise<void> {
+  const nextStockByMarket = new Map<string, number>();
+  const compositeProducts = allProductsData.filter(product => product.isComposite);
+
+  await Promise.all(compositeProducts.flatMap(product =>
+    validMarkets.map(async market => {
+      const rows = await storage.getCompositeProductComponents(product.id, market);
+      if (rows.length === 0) return;
+      const sources: CompositeComponentSource[] = rows.map(row => ({
+        product: row.product,
+        marketPrice: row.marketPrice,
+        marketCurrency: row.marketCurrency,
+        marketStockQuantity: row.marketStockQuantity,
+        sortOrder: row.sortOrder,
+      }));
+      nextStockByMarket.set(
+        `${product.id}:${market}`,
+        resolveCompositeStockQuantity(null, sources),
+      );
+    })
+  ));
+
+  compositeStockByMarket = nextStockByMarket;
+}
 
 // Refresh only market caches from DB (called after admin CRUD on market settings / product markets)
 export async function refreshMarketCaches(): Promise<void> {
@@ -233,6 +260,7 @@ export async function refreshMarketCaches(): Promise<void> {
       }
       productMarketsMap.get(pm.productId)!.set(pm.market, pm);
     }
+    await refreshCompositeStockCache(validMarkets);
     // Product availability changed, so public product responses must not retain
     // an ETag generated for the previous marketplace catalog.
     bumpDataVersion();
@@ -282,9 +310,23 @@ export function applyMarketOverlay(product: any, market: string): any {
   const effectiveCurrency = product.isComposite
     ? (marketSettingsMap.get(market)?.currency ?? product.currency)
     : (marketRow.currency ?? marketSettingsMap.get(market)?.currency ?? product.currency);
+  const directCompositeStock = marketRow.stockQuantity ?? product.stockQuantity;
+  const effectiveCompositeStock = product.isComposite
+    ? resolveCompositeStockQuantity(
+        directCompositeStock,
+        [{
+          product,
+          marketPrice: null,
+          marketCurrency: null,
+          marketStockQuantity: compositeStockByMarket.get(`${product.id}:${market}`) ?? 0,
+          sortOrder: 0,
+        }],
+      )
+    : null;
   const hasOverrides = marketRow.price != null || marketRow.compareAtPrice != null ||
     marketRow.currency != null || marketRow.inStock != null || marketRow.stockQuantity != null ||
-    effectiveCurrency !== product.currency || effectiveCategory.id !== product.categoryId;
+    effectiveCurrency !== product.currency || effectiveCategory.id !== product.categoryId ||
+    product.isComposite;
   if (!hasOverrides) return product;
   return {
     ...product,
@@ -293,8 +335,12 @@ export function applyMarketOverlay(product: any, market: string): any {
     price: marketRow.price ?? product.price,
     compareAtPrice: marketRow.compareAtPrice ?? product.compareAtPrice,
     currency: effectiveCurrency,
-    inStock: marketRow.inStock ?? product.inStock,
-    stockQuantity: marketRow.stockQuantity ?? product.stockQuantity,
+    inStock: product.isComposite
+      ? (effectiveCompositeStock ?? 0) > 0
+      : (marketRow.inStock ?? product.inStock),
+    stockQuantity: product.isComposite
+      ? effectiveCompositeStock
+      : (marketRow.stockQuantity ?? product.stockQuantity),
     _marketOverride: market,
   };
 }
@@ -484,6 +530,7 @@ async function getCompositeSources(parentProductId: number, market: string): Pro
       product: translation?.name ? { ...row.product, name: translation.name } : row.product,
       marketPrice: row.marketPrice,
       marketCurrency: row.marketCurrency ?? marketSettingsMap.get(market)?.currency ?? row.product.currency,
+      marketStockQuantity: row.marketStockQuantity,
       sortOrder: row.sortOrder,
     };
   }));
@@ -532,6 +579,8 @@ async function decorateCompositeProduct(product: any, market: string): Promise<a
     status: source.product.status,
     price: source.marketPrice ?? source.product.price,
     currency: source.marketCurrency ?? marketSettingsMap.get(market)?.currency ?? source.product.currency,
+    stockQuantity: source.marketStockQuantity ?? source.product.stockQuantity ?? 0,
+    inStock: Number(source.marketStockQuantity ?? source.product.stockQuantity ?? 0) > 0,
     sortOrder: source.sortOrder,
   }));
   return { ...product, compositeComponents: components };

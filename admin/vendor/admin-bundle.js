@@ -20123,11 +20123,14 @@ Cordialement,`
                     "input",
                     {
                       type: "number",
+                      min: "0",
                       className: "form-input",
                       value: productFormData.stockQuantity,
-                      onChange: (e2) => setProductFormData({ ...productFormData, stockQuantity: e2.target.value })
+                      onChange: (e2) => setProductFormData({ ...productFormData, stockQuantity: e2.target.value }),
+                      placeholder: productFormData.isComposite ? `Automat din componente: ${componentProducts.reduce((sum, product) => sum + (Number(product.stockQuantity) || 0), 0)}` : ""
                     }
-                  )
+                  ),
+                  productFormData.isComposite && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "11px", color: "#64748b", marginTop: "4px" }, children: "Las\u0103 gol pentru a folosi automat suma stocurilor componentelor." })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.productCodeLabel") }),

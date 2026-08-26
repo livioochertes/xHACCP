@@ -14,3 +14,9 @@ The development and production databases do not automatically share marketplace 
 **Why:** Publishing code does not copy development records into production, so a newly introduced marketplace can otherwise have an empty Admin category selector even though the development database looks complete.
 
 **How to apply:** Keep category provisioning idempotent and never use shared-row or public fallback data as the persistent category structure for a marketplace.
+
+Composite stock is marketplace-specific. A positive stock entered on the composite parent is a manual override; an empty or zero parent stock is calculated as the sum of the configured components' effective stock in that marketplace.
+
+**Why:** The Admin form historically stores an untouched empty stock as zero, so zero must retain automatic-stock semantics for existing composites. Component marketplace overrides must be respected so one storefront cannot borrow stock from another.
+
+**How to apply:** Recalculate the effective parent stock whenever product-market data or component membership changes, and derive `inStock` from the resulting quantity.

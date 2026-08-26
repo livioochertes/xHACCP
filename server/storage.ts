@@ -1562,13 +1562,14 @@ export class DatabaseStorage implements IStorage {
     return rows.map(r => r.productId);
   }
 
-  async getCompositeProductComponents(parentProductId: number, market: string): Promise<Array<CompositeProductComponent & { product: Product; marketPrice: string | null; marketCurrency: string | null; marketIsActive: boolean | null }>> {
+  async getCompositeProductComponents(parentProductId: number, market: string): Promise<Array<CompositeProductComponent & { product: Product; marketPrice: string | null; marketCurrency: string | null; marketStockQuantity: number | null; marketIsActive: boolean | null }>> {
     const rows = await db
       .select({
         relation: compositeProductComponents,
         product: products,
         marketPrice: productMarkets.price,
         marketCurrency: productMarkets.currency,
+        marketStockQuantity: productMarkets.stockQuantity,
         marketIsActive: productMarkets.isActive,
       })
       .from(compositeProductComponents)
@@ -1588,6 +1589,7 @@ export class DatabaseStorage implements IStorage {
       product: row.product,
       marketPrice: row.marketPrice,
       marketCurrency: row.marketCurrency,
+      marketStockQuantity: row.marketStockQuantity,
       marketIsActive: row.marketIsActive,
     }));
   }
