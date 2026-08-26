@@ -2533,7 +2533,18 @@ export async function registerAdminRoutes(app: Express) {
 
   app.post("/admin/api/products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const productData = req.body;
+      const { market: requestedMarket, ...productData } = req.body || {};
+      const validMarkets = ['ro', 'fr', 'com'];
+      const allowedMarkets = req.adminMarkets || [];
+      const targetMarket = validMarkets.includes(requestedMarket)
+        ? requestedMarket
+        : allowedMarkets.length === 1
+          ? allowedMarkets[0]
+          : 'ro';
+
+      if (!canAccessMarket(req, targetMarket)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
       
       if (!productData.name || !productData.price) {
         return res.status(400).json({ message: "Name and price are required" });
@@ -2564,18 +2575,20 @@ export async function registerAdminRoutes(app: Express) {
         const parsed = parseInt(String(value));
         return isNaN(parsed) ? undefined : parsed;
       };
-      
-      const newProduct = await storage.createProduct({
+
+      const categoryId = productData.categoryId !== undefined
+        ? await validateCategoryForMarket(productData.categoryId, targetMarket)
+        : null;
+      const stockQuantity = parseInt(productData.stockQuantity || 0);
+      const productInsert = {
         ...productData,
         slug,
         productCode,
         price: parseFloat(productData.price),
         compareAtPrice: productData.compareAtPrice && productData.compareAtPrice !== '' ? parseFloat(productData.compareAtPrice) : undefined,
-        ...(productData.categoryId !== undefined
-          ? { categoryId: safeParseInt(productData.categoryId) }
-          : {}),
+        categoryId,
         supplierId: safeParseInt(productData.supplierId),
-        stockQuantity: parseInt(productData.stockQuantity || 0),
+        stockQuantity,
         images: cleanImages,
         imageUrl: mainImageUrl,
         // Convert logistics fields properly - weight must be minimum 1kg with 1kg increments
@@ -2588,6 +2601,30 @@ export async function registerAdminRoutes(app: Express) {
         priority: productData.priority !== undefined ? parseInt(String(productData.priority)) || 0 : 0,
         isService: productData.isService === true || productData.isService === 'true',
         isComposite: productData.isComposite === true || productData.isComposite === 'true'
+      };
+
+      const { newProduct, productMarket } = await db.transaction(async (tx) => {
+        const [createdProduct] = await tx
+          .insert(productsTable)
+          .values(productInsert as typeof productsTable.$inferInsert)
+          .returning();
+        const [createdMarket] = await tx
+          .insert(productMarkets)
+          .values({
+            productId: createdProduct.id,
+            market: targetMarket,
+            categoryId,
+            isActive: true,
+            price: String(productData.price),
+            compareAtPrice: productData.compareAtPrice && productData.compareAtPrice !== ''
+              ? String(productData.compareAtPrice)
+              : null,
+            currency: productData.currency || null,
+            inStock: stockQuantity > 0,
+            stockQuantity,
+          })
+          .returning();
+        return { newProduct: createdProduct, productMarket: createdMarket };
       });
 
       // Refresh memory cache so site shows new product immediately
@@ -2598,7 +2635,11 @@ export async function registerAdminRoutes(app: Express) {
         console.error("Cache refresh failed after product creation:", cacheError);
       }
 
-      res.json({ message: "Product created successfully", product: newProduct });
+      res.json({
+        message: `Produs creat și adăugat pe ${targetMarket.toUpperCase()}`,
+        product: newProduct,
+        productMarket,
+      });
     } catch (error) {
       console.error("Error creating product:", error);
       console.error("Product data that failed:", req.body);

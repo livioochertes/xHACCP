@@ -1555,7 +1555,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           
           if (response.ok) {
             fetchProducts(); // Refresh product list
-            return { success: true, message: data.message };
+            return { success: true, message: data.message, product: data.product, productMarket: data.productMarket };
           } else {
             return { success: false, message: data.message };
           }
@@ -7197,18 +7197,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
 
           } else if (!editingProduct && selectedMarketTab !== 'all') {
             // ── CREATING new product on specific market tab ─────────────────
-            // Create globally (all fields), then also set market-specific entry
-            const result = await createProduct(productData);
+            // The server creates the shared product and its marketplace row atomically.
+            const result = await createProduct({...productData, market: selectedMarketTab});
             if (result.success) {
-              // Get the new product's id from result
-              const newId = result.product?.id || result.id;
-              if (newId) {
-                try {
-                  await saveMarketData(newId, selectedMarketTab);
-                } catch (error) {
-                  alert('Produsul a fost creat, dar asocierea cu ' + selectedMarketTab.toUpperCase() + ' nu a fost salvată: ' + error.message);
-                  return;
-                }
+              if (!result.product?.id || result.productMarket?.market !== selectedMarketTab) {
+                alert('Produsul nu a fost confirmat pentru piața ' + selectedMarketTab.toUpperCase() + '. Formularul rămâne deschis.');
+                return;
               }
               alert(result.message);
               resetForm();

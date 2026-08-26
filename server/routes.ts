@@ -368,6 +368,46 @@ async function backfillMarketplaceCategoryAssignments(
   }
 }
 
+async function backfillOrphanProductsToRomanianMarket(
+  products: any[],
+  categories: any[],
+): Promise<void> {
+  const allMarketRows = (
+    await Promise.all(["ro", "fr", "com"].map(market => storage.getProductMarketsByMarket(market)))
+  ).flat();
+  const assignedProductIds = new Set(allMarketRows.map(row => row.productId));
+  const roCategoryBySlug = new Map(
+    categories
+      .filter(category => category.marketCode === "ro")
+      .map(category => [category.slug, category]),
+  );
+
+  for (const product of products) {
+    if (assignedProductIds.has(product.id)) continue;
+    const categoryId = product.category?.slug
+      ? roCategoryBySlug.get(product.category.slug)?.id ?? null
+      : null;
+    try {
+      await storage.setProductMarket({
+        productId: product.id,
+        market: "ro",
+        categoryId,
+        isActive: true,
+        price: null,
+        compareAtPrice: null,
+        currency: null,
+        inStock: null,
+        stockQuantity: null,
+      });
+      assignedProductIds.add(product.id);
+      console.log(`Reconciled orphan product ${product.id} into RO marketplace`);
+    } catch (error: any) {
+      // Multiple production instances can reconcile the same row concurrently.
+      if (error?.code !== "23505") throw error;
+    }
+  }
+}
+
 async function getCompositeSources(parentProductId: number, market: string): Promise<CompositeComponentSource[]> {
   const rows = await storage.getCompositeProductComponents(parentProductId, market);
   const language = market === "fr" ? "fr" : market === "com" ? "en" : "ro";
@@ -547,9 +587,10 @@ export async function loadAllDataIntoMemory() {
       return priorityA - priorityB;
     });
 
-    // Convert legacy global category assignments into stable, independent
-    // product-market category references. Existing assignments are untouched.
-    await backfillMarketplaceCategoryAssignments(allProductsData, rawCategories);
+    // Every product must belong to at least one marketplace. Repair legacy or
+    // interrupted two-step admin creates before backfilling their categories.
+    await backfillOrphanProductsToRomanianMarket(rawAllProducts, rawCategories);
+    await backfillMarketplaceCategoryAssignments(rawAllProducts, rawCategories);
     
     // Attach category translations to products
     for (const product of allProductsData) {

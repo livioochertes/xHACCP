@@ -13539,7 +13539,7 @@ Failed: ${result.failed}`);
         const data = await response.json();
         if (response.ok) {
           fetchProducts();
-          return { success: true, message: data.message };
+          return { success: true, message: data.message, product: data.product, productMarket: data.productMarket };
         } else {
           return { success: false, message: data.message };
         }
@@ -19430,16 +19430,11 @@ Cordialement,`
           alert("\u2705 Produs salvat! Pre\u021Bul/stocul au fost actualizate doar pentru pia\u021Ba " + selectedMarketTab.toUpperCase() + ".");
           resetForm();
         } else if (!editingProduct && selectedMarketTab !== "all") {
-          const result = await createProduct(productData);
+          const result = await createProduct({ ...productData, market: selectedMarketTab });
           if (result.success) {
-            const newId = result.product?.id || result.id;
-            if (newId) {
-              try {
-                await saveMarketData(newId, selectedMarketTab);
-              } catch (error2) {
-                alert("Produsul a fost creat, dar asocierea cu " + selectedMarketTab.toUpperCase() + " nu a fost salvat\u0103: " + error2.message);
-                return;
-              }
+            if (!result.product?.id || result.productMarket?.market !== selectedMarketTab) {
+              alert("Produsul nu a fost confirmat pentru pia\u021Ba " + selectedMarketTab.toUpperCase() + ". Formularul r\u0103m\xE2ne deschis.");
+              return;
             }
             alert(result.message);
             resetForm();

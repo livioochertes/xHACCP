@@ -6,3 +6,4 @@
 - [Marketplace product removal](marketplace-product-removal.md) — removing an item from one market must preserve the shared catalog record and historical invoices in other markets.
 - [Composite product invariants](composite-product-invariants.md) — components require an explicit same-market row; marketplace currency is authoritative and order configurations are immutable snapshots.
 - [Marketplace category filtering](market-category-filtering.md) — duplicate slugs across market-specific category rows must never use a global product cache.
+- [Atomic marketplace product creation](atomic-market-product-creation.md) — a new product and its first marketplace row must commit together; never confirm a global orphan.
