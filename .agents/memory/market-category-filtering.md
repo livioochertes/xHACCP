@@ -1,10 +1,10 @@
 ---
 name: Marketplace category filtering
-description: Category slugs can repeat across marketplace-specific category rows and must not be resolved through a global slug-only product cache.
+description: Product category assignments belong to product-market rows; category slugs can repeat and must never be resolved through a global cache.
 ---
 
-Category slugs are unique per marketplace, not globally. Public product filtering must match the requested slug against the product's category slug and then apply the current marketplace availability overlay; a global slug map can select an empty or incorrect duplicate category.
+Each product-market association owns its category assignment. Category slugs are unique per marketplace, not globally. Public filtering must first resolve the product's category for the current marketplace, then apply the requested slug.
 
-**Why:** Independent RO/FR/COM category rows share user-facing slugs, while products keep one category reference and marketplace availability is stored separately. A global slug cache makes valid products disappear when duplicate rows are loaded in a different order.
+**Why:** RO, FR, and COM categories must remain independently editable. A single global product category or global slug cache can leak another marketplace's category, hide valid products, or make an edit on one domain affect the others.
 
-**How to apply:** Keep storefront navigation scoped to the current marketplace, use the Shop visibility flag for the sidebar, and calculate category counts from products that are active in that same marketplace.
+**How to apply:** Store category ownership on the product-market association, validate that the category belongs to that market, scope navigation/counts to the domain, and block deletion while either global or market-specific product references exist.

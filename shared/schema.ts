@@ -163,6 +163,9 @@ export const productMarkets = pgTable("product_markets", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
   market: varchar("market", { length: 10 }).notNull(), // ro, com, fr
+  // Category assignment is marketplace-specific. A product may belong to a
+  // different independent category row on RO, FR, and COM.
+  categoryId: integer("category_id").references(() => categories.id, { onDelete: "set null" }),
   isActive: boolean("is_active").default(true),
   // Price overrides — null means fall back to product.price / product.compareAtPrice
   price: decimal("price", { precision: 10, scale: 2 }),

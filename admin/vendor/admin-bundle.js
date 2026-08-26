@@ -19375,7 +19375,7 @@ Cordialement,`
         };
         const saveMarketData = async (productId, market) => {
           try {
-            await fetch(`/admin/api/products/${productId}/markets/${market}`, {
+            const response = await fetch(`/admin/api/products/${productId}/markets/${market}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
               body: JSON.stringify({
@@ -19383,12 +19383,18 @@ Cordialement,`
                 price: productData.price || null,
                 compareAtPrice: productData.compareAtPrice || null,
                 currency: productData.currency || null,
+                categoryId: productData.categoryId ? parseInt(String(productData.categoryId)) : null,
                 stockQuantity: productData.stockQuantity !== "" && productData.stockQuantity !== null ? parseInt(String(productData.stockQuantity)) : null,
                 inStock: productData.stockQuantity ? parseInt(String(productData.stockQuantity)) > 0 : null
               })
             });
+            const result = await response.json();
+            if (!response.ok) {
+              throw new Error(result.message || "Datele marketplace-ului nu au putut fi salvate");
+            }
           } catch (err) {
             console.error("Failed to save market-specific data:", err);
+            throw err;
           }
         };
         const saveComponents = async (productId, market) => {
@@ -19401,13 +19407,18 @@ Cordialement,`
           if (!response.ok) throw new Error(result.message || "Failed to save components");
         };
         if (editingProduct && selectedMarketTab !== "all") {
-          const { price, compareAtPrice, currency, stockQuantity, inStock, ...globalFields } = productData;
+          const { price, compareAtPrice, currency, stockQuantity, inStock, categoryId, ...globalFields } = productData;
           const globalResult = await updateProduct(editingProduct.id, globalFields);
           if (!globalResult.success) {
             alert("Eroare la salvare: " + globalResult.message);
             return;
           }
-          await saveMarketData(editingProduct.id, selectedMarketTab);
+          try {
+            await saveMarketData(editingProduct.id, selectedMarketTab);
+          } catch (error2) {
+            alert("Produsul global a fost salvat, dar categoria/pre\u021Bul pentru " + selectedMarketTab.toUpperCase() + " nu au fost salvate: " + error2.message);
+            return;
+          }
           if (productData.isComposite) {
             try {
               await saveComponents(editingProduct.id, selectedMarketTab);
@@ -19423,7 +19434,12 @@ Cordialement,`
           if (result.success) {
             const newId = result.product?.id || result.id;
             if (newId) {
-              await saveMarketData(newId, selectedMarketTab);
+              try {
+                await saveMarketData(newId, selectedMarketTab);
+              } catch (error2) {
+                alert("Produsul a fost creat, dar asocierea cu " + selectedMarketTab.toUpperCase() + " nu a fost salvat\u0103: " + error2.message);
+                return;
+              }
             }
             alert(result.message);
             resetForm();

@@ -131,8 +131,8 @@ async function ensureMarketCategories(market: string): Promise<any[]> {
       slug: sourceCategory.slug,
       description: sourceCategory.description,
       imageUrl: sourceCategory.imageUrl,
-      showOnMainTop: false,
-      showOnMainShop: false,
+      showOnMainTop: sourceCategory.showOnMainTop,
+      showOnMainShop: sourceCategory.showOnMainShop,
       sortOrder: sourceCategory.sortOrder ?? 0,
       marketCode: market,
     });
@@ -145,6 +145,19 @@ async function ensureMarketCategories(market: string): Promise<any[]> {
   }
 
   return storage.getCategories(market);
+}
+
+async function validateCategoryForMarket(categoryId: unknown, market: string): Promise<number | null> {
+  if (categoryId === null || categoryId === undefined || categoryId === '') return null;
+  const parsedCategoryId = Number(categoryId);
+  if (!Number.isInteger(parsedCategoryId)) {
+    throw new Error("Invalid category");
+  }
+  const category = await storage.getCategory(parsedCategoryId);
+  if (!category || category.marketCode !== market) {
+    throw new Error(`Category must belong to the ${market.toUpperCase()} marketplace`);
+  }
+  return parsedCategoryId;
 }
 
 // Helper function to extract URL from image object or string
@@ -2470,6 +2483,9 @@ export async function registerAdminRoutes(app: Express) {
       // the values for the selected market (e.g. EUR prices on the FR tab).
       if (marketRowByProduct) {
         const effectiveMarket = (market && market !== 'all') ? (market as string) : allowedMarkets[0];
+        const marketCategories = await storage.getCategories(effectiveMarket);
+        const marketCategoriesById = new Map(marketCategories.map(category => [category.id, category]));
+        const marketCategoriesBySlug = new Map(marketCategories.map(category => [category.slug, category]));
         let defaultCurrency: string | null = null;
         try {
           const settings = await storage.getMarketSettings();
@@ -2480,8 +2496,14 @@ export async function registerAdminRoutes(app: Express) {
         filteredProducts = filteredProducts.map(p => {
           const row = (marketRowByProduct as Map<number, any>).get(p.id);
           if (!row) return p;
+          const marketCategory = row.categoryId != null
+            ? marketCategoriesById.get(row.categoryId)
+            : p.category?.slug
+              ? marketCategoriesBySlug.get(p.category.slug)
+              : undefined;
           return {
             ...p,
+            ...(marketCategory ? { categoryId: marketCategory.id, category: marketCategory } : {}),
             price: row.price ?? p.price,
             compareAtPrice: row.compareAtPrice ?? p.compareAtPrice,
             currency: row.currency ?? defaultCurrency ?? p.currency,
@@ -2549,7 +2571,9 @@ export async function registerAdminRoutes(app: Express) {
         productCode,
         price: parseFloat(productData.price),
         compareAtPrice: productData.compareAtPrice && productData.compareAtPrice !== '' ? parseFloat(productData.compareAtPrice) : undefined,
-        categoryId: safeParseInt(productData.categoryId),
+        ...(productData.categoryId !== undefined
+          ? { categoryId: safeParseInt(productData.categoryId) }
+          : {}),
         supplierId: safeParseInt(productData.supplierId),
         stockQuantity: parseInt(productData.stockQuantity || 0),
         images: cleanImages,
@@ -2617,7 +2641,9 @@ export async function registerAdminRoutes(app: Express) {
         // Override fields that need special handling/normalization
         price: productData.price ? String(parseFloat(productData.price)) : undefined,
         compareAtPrice: safeDecimalString(productData.compareAtPrice),
-        categoryId: safeParseInt(productData.categoryId),
+        ...(productData.categoryId !== undefined
+          ? { categoryId: safeParseInt(productData.categoryId) }
+          : {}),
         supplierId: safeParseInt(productData.supplierId),
         stockQuantity: safeParseInt(productData.stockQuantity) ?? 0,
         images: cleanImages,
@@ -3131,10 +3157,19 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
 
-      const assignedProducts = await storage.getProducts({ categoryId });
-      if (assignedProducts.length > 0) {
+      const [assignedProducts, assignedMarketProducts] = await Promise.all([
+        storage.getProducts({ categoryId }),
+        db.select({ productId: productMarkets.productId })
+          .from(productMarkets)
+          .where(eq(productMarkets.categoryId, categoryId)),
+      ]);
+      const assignedProductIds = new Set([
+        ...assignedProducts.map(product => product.id),
+        ...assignedMarketProducts.map(row => row.productId),
+      ]);
+      if (assignedProductIds.size > 0) {
         return res.status(409).json({
-          message: `Categoria nu poate fi ștearsă deoarece are ${assignedProducts.length} produs(e) asociat(e). Reasociază produsele la o altă categorie și încearcă din nou.`,
+          message: `Categoria nu poate fi ștearsă deoarece are ${assignedProductIds.size} produs(e) asociat(e) în acest marketplace. Reasociază produsele la o altă categorie și încearcă din nou.`,
         });
       }
 
@@ -5975,9 +6010,13 @@ export async function registerAdminRoutes(app: Express) {
       // Upsert all provided rows
       const results = [];
       for (const m of markets) {
+        const categoryId = m.categoryId === undefined
+          ? undefined
+          : await validateCategoryForMarket(m.categoryId, m.market);
         const pm = await storage.setProductMarket({
           productId,
           market: m.market,
+          ...(categoryId !== undefined ? { categoryId } : {}),
           isActive: m.isActive ?? true,
           price: m.price ?? null,
           compareAtPrice: m.compareAtPrice ?? null,
@@ -6000,7 +6039,7 @@ export async function registerAdminRoutes(app: Express) {
       const productId = parseInt(req.params.id);
       const market = req.params.market;
       const validMarkets = ['ro', 'fr', 'com'];
-      const { isActive, price, compareAtPrice, currency, inStock, stockQuantity } = req.body;
+      const { categoryId: rawCategoryId, isActive, price, compareAtPrice, currency, inStock, stockQuantity } = req.body;
 
       if (!validMarkets.includes(market)) {
         return res.status(400).json({ message: "Invalid market" });
@@ -6012,10 +6051,14 @@ export async function registerAdminRoutes(app: Express) {
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
+      const categoryId = rawCategoryId === undefined
+        ? undefined
+        : await validateCategoryForMarket(rawCategoryId, market);
 
       const pm = await storage.setProductMarket({
         productId,
         market,
+        ...(categoryId !== undefined ? { categoryId } : {}),
         isActive: isActive ?? true,
         price: price ?? null,
         compareAtPrice: compareAtPrice ?? null,
@@ -6026,7 +6069,8 @@ export async function registerAdminRoutes(app: Express) {
       await refreshMarketCaches();
       res.json(pm);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update product market" });
+      const message = error instanceof Error ? error.message : "Failed to update product market";
+      res.status(message.includes("Category") ? 400 : 500).json({ message });
     }
   });
 

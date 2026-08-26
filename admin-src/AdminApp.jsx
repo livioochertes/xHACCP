@@ -7131,7 +7131,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           // Helper: save market-specific fields (price/currency/stock) to product_markets
           const saveMarketData = async (productId, market) => {
             try {
-              await fetch(`/admin/api/products/${productId}/markets/${market}`, {
+              const response = await fetch(`/admin/api/products/${productId}/markets/${market}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
@@ -7139,12 +7139,18 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   price: productData.price || null,
                   compareAtPrice: productData.compareAtPrice || null,
                   currency: productData.currency || null,
+                  categoryId: productData.categoryId ? parseInt(String(productData.categoryId)) : null,
                   stockQuantity: productData.stockQuantity !== '' && productData.stockQuantity !== null ? parseInt(String(productData.stockQuantity)) : null,
                   inStock: productData.stockQuantity ? parseInt(String(productData.stockQuantity)) > 0 : null,
                 })
               });
+              const result = await response.json();
+              if (!response.ok) {
+                throw new Error(result.message || 'Datele marketplace-ului nu au putut fi salvate');
+              }
             } catch (err) {
               console.error('Failed to save market-specific data:', err);
+              throw err;
             }
           };
 
@@ -7162,7 +7168,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             // ── EDITING on specific market tab ──────────────────────────────
             // 1. Save global fields (name, desc, images, specs, weight, etc.)
             //    but NOT price/compareAtPrice/currency/stockQuantity — those are market-specific
-            const { price, compareAtPrice, currency, stockQuantity, inStock, ...globalFields } = productData;
+            const { price, compareAtPrice, currency, stockQuantity, inStock, categoryId, ...globalFields } = productData;
             const globalResult = await updateProduct(editingProduct.id, globalFields);
             
             if (!globalResult.success) {
@@ -7171,7 +7177,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             }
             
             // 2. Save price/currency/stock only to this market's product_markets row
-            await saveMarketData(editingProduct.id, selectedMarketTab);
+            try {
+              await saveMarketData(editingProduct.id, selectedMarketTab);
+            } catch (error) {
+              alert('Produsul global a fost salvat, dar categoria/prețul pentru ' + selectedMarketTab.toUpperCase() + ' nu au fost salvate: ' + error.message);
+              return;
+            }
             if (productData.isComposite) {
               try {
                 await saveComponents(editingProduct.id, selectedMarketTab);
@@ -7192,7 +7203,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               // Get the new product's id from result
               const newId = result.product?.id || result.id;
               if (newId) {
-                await saveMarketData(newId, selectedMarketTab);
+                try {
+                  await saveMarketData(newId, selectedMarketTab);
+                } catch (error) {
+                  alert('Produsul a fost creat, dar asocierea cu ' + selectedMarketTab.toUpperCase() + ' nu a fost salvată: ' + error.message);
+                  return;
+                }
               }
               alert(result.message);
               resetForm();

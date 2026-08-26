@@ -207,6 +207,7 @@ function bumpDataVersion() {
 
 // Market data in memory: productId → { market → ProductMarket row }
 let productMarketsMap = new Map<number, Map<string, any>>();
+let categoriesById = new Map<number, any>();
 // Market settings in memory: market → MarketSettings row
 export let marketSettingsMap = new Map<string, any>();
 
@@ -254,6 +255,25 @@ export function applyMarketOverlay(product: any, market: string): any {
   // on the French storefront after it was removed from that market.
   if (!marketRow) return null;
   if (marketRow.isActive === false) return null; // disabled for this market → hide
+  const marketCategory = marketRow.categoryId != null
+    ? categoriesById.get(marketRow.categoryId)
+    : null;
+  const legacyMarketCategory = marketRow.categoryId == null && product.category?.slug
+    ? categoriesData.find((category: any) =>
+        category.marketCode === market && category.slug === product.category.slug
+      )
+    : null;
+  // Never expose a category row from another storefront. Legacy rows may use
+  // the product's base category only when that category already belongs to the
+  // requested marketplace.
+  const effectiveCategory = marketCategory?.marketCode === market
+    ? marketCategory
+    : legacyMarketCategory
+      ? legacyMarketCategory
+    : product.category?.marketCode === market
+      ? product.category
+      : null;
+  if (!effectiveCategory) return null;
   // Currency priority: product_markets.currency → market_settings.currency → product.currency
   // Applied whenever a market row exists and is active (not only when other overrides are set)
   // A composite parent's own price is not charged; its configured components
@@ -264,10 +284,12 @@ export function applyMarketOverlay(product: any, market: string): any {
     : (marketRow.currency ?? marketSettingsMap.get(market)?.currency ?? product.currency);
   const hasOverrides = marketRow.price != null || marketRow.compareAtPrice != null ||
     marketRow.currency != null || marketRow.inStock != null || marketRow.stockQuantity != null ||
-    effectiveCurrency !== product.currency;
+    effectiveCurrency !== product.currency || effectiveCategory.id !== product.categoryId;
   if (!hasOverrides) return product;
   return {
     ...product,
+    categoryId: effectiveCategory.id,
+    category: effectiveCategory,
     price: marketRow.price ?? product.price,
     compareAtPrice: marketRow.compareAtPrice ?? product.compareAtPrice,
     currency: effectiveCurrency,
@@ -275,6 +297,75 @@ export function applyMarketOverlay(product: any, market: string): any {
     stockQuantity: marketRow.stockQuantity ?? product.stockQuantity,
     _marketOverride: market,
   };
+}
+
+async function provisionMissingMarketplaceCategories(): Promise<void> {
+  const products = await storage.getProducts({});
+  const productsById = new Map(products.map(product => [product.id, product]));
+
+  for (const market of ["fr", "com"]) {
+    const [targetCategories, marketProducts] = await Promise.all([
+      storage.getCategories(market),
+      storage.getProductMarketsByMarket(market),
+    ]);
+    if (marketProducts.length === 0) continue;
+    const targetSlugs = new Set(targetCategories.map(category => category.slug));
+    const requiredSourceCategories = new Map<number, any>();
+    for (const row of marketProducts) {
+      const sourceCategory = productsById.get(row.productId)?.category;
+      if (sourceCategory && !targetSlugs.has(sourceCategory.slug)) {
+        requiredSourceCategories.set(sourceCategory.id, sourceCategory);
+      }
+    }
+
+    for (const sourceCategory of requiredSourceCategories.values()) {
+      try {
+        await storage.createCategory({
+          name: sourceCategory.name,
+          slug: sourceCategory.slug,
+          description: sourceCategory.description,
+          imageUrl: sourceCategory.imageUrl,
+          showOnMainTop: sourceCategory.showOnMainTop,
+          showOnMainShop: sourceCategory.showOnMainShop,
+          sortOrder: sourceCategory.sortOrder ?? 0,
+          marketCode: market,
+        });
+      } catch (error: any) {
+        // Multiple app instances may provision at the same time. The unique
+        // (slug, market) constraint makes that race harmless.
+        if (error?.code !== "23505") throw error;
+      }
+    }
+  }
+}
+
+async function backfillMarketplaceCategoryAssignments(
+  products: any[],
+  categories: any[],
+): Promise<void> {
+  const productsById = new Map(products.map(product => [product.id, product]));
+  const categoryByMarketAndSlug = new Map(
+    categories.map(category => [`${category.marketCode}:${category.slug}`, category]),
+  );
+
+  for (const market of ["ro", "fr", "com"]) {
+    const marketRows = await storage.getProductMarketsByMarket(market);
+    for (const row of marketRows) {
+      if (row.categoryId != null) continue;
+      const product = productsById.get(row.productId);
+      const slug = product?.category?.slug;
+      const targetCategory = slug
+        ? categoryByMarketAndSlug.get(`${market}:${slug}`)
+        : undefined;
+      if (targetCategory) {
+        await storage.setProductMarketCategoryIfMissing(
+          row.productId,
+          market,
+          targetCategory.id,
+        );
+      }
+    }
+  }
 }
 
 async function getCompositeSources(parentProductId: number, market: string): Promise<CompositeComponentSource[]> {
@@ -392,9 +483,12 @@ export async function loadAllDataIntoMemory() {
     bumpDataVersion();
     productsByCategory.clear();
     productsBySlug.clear();
+
+    await provisionMissingMarketplaceCategories();
     
     // Load categories
     const rawCategories = await storage.getCategories();
+    categoriesById = new Map(rawCategories.map(category => [category.id, category]));
     setCachedData('categories-all', rawCategories);
     
     // Load products for each category and add product count
@@ -452,6 +546,10 @@ export async function loadAllDataIntoMemory() {
       const priorityB = b.priority || 999;
       return priorityA - priorityB;
     });
+
+    // Convert legacy global category assignments into stable, independent
+    // product-market category references. Existing assignments are untouched.
+    await backfillMarketplaceCategoryAssignments(allProductsData, rawCategories);
     
     // Attach category translations to products
     for (const product of allProductsData) {
@@ -1775,23 +1873,21 @@ Sitemap: https://${domain}/sitemap.xml
       'ETag': `categories-${dataVersion}`,
       'Content-Type': 'application/json'
     });
-    const queryMarket = req.query.market as string | undefined;
-    const market = queryMarket || getMarketFromRequest(req);
-    if (market && market !== 'all') {
+    const market = getMarketFromRequest(req);
+    {
       const filtered = categoriesData.filter((c: any) => (c.marketCode || 'ro') === market);
       // Category rows are independent per marketplace. Never expose another
       // market's rows as a fallback: that would make a category look available
       // on the wrong storefront and make its product links ambiguous.
       const withMarketCounts = filtered.map((category: any) => ({
         ...category,
-        productCount: allProductsData.filter((product: any) =>
-          product.category?.slug === category.slug &&
-          applyMarketOverlay(product, market) !== null
-        ).length,
+        productCount: allProductsData.filter((product: any) => {
+          const overlaid = applyMarketOverlay(product, market);
+          return overlaid?.categoryId === category.id;
+        }).length,
       }));
       return res.json(withMarketCounts);
     }
-    res.send(stringifiedCategoriesData);
   });
 
   app.post("/api/categories", authenticateToken, requireAdmin, async (req, res) => {
@@ -1838,20 +1934,9 @@ Sitemap: https://${domain}/sitemap.xml
     
     let products: any[] = [];
     
-    // Get from memory - no database queries, no async operations
-    if (categorySlug) {
-      // Category slugs are unique only within a marketplace. Products retain a
-      // single category reference, while each marketplace has its own category
-      // row, so the old global slug map could select a different market's
-      // category (or an empty duplicate). Match by slug first, then apply the
-      // current marketplace overlay below.
-      const requestedSlug = String(categorySlug);
-      products = allProductsData.filter((product: any) =>
-        product.category?.slug === requestedSlug
-      );
-    } else {
-      products = allProductsData;
-    }
+    // Start from the shared product records, then resolve each product's
+    // marketplace-specific category before applying category filters.
+    products = allProductsData;
     
     // Apply market overlay: filter out products disabled for this market, apply price overrides
     {
@@ -1861,6 +1946,13 @@ Sitemap: https://${domain}/sitemap.xml
         if (overlaid !== null) withOverlay.push(overlaid);
       }
       products = withOverlay;
+    }
+
+    if (categorySlug) {
+      const requestedSlug = String(categorySlug);
+      products = products.filter((product: any) =>
+        product.category?.slug === requestedSlug
+      );
     }
     
     // Apply featured filter if requested

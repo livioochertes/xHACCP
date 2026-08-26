@@ -192,6 +192,7 @@ export interface IStorage {
   getProductMarketsByMarket(market: string): Promise<ProductMarket[]>;
   setProductMarket(data: InsertProductMarket): Promise<ProductMarket>;
   updateProductMarket(productId: number, market: string, data: Partial<InsertProductMarket>): Promise<ProductMarket>;
+  setProductMarketCategoryIfMissing(productId: number, market: string, categoryId: number): Promise<ProductMarket | undefined>;
   deleteProductMarket(productId: number, market: string): Promise<void>;
   getProductsForMarket(market: string): Promise<number[]>;
 
@@ -326,6 +327,7 @@ export class DatabaseStorage implements IStorage {
           showOnMainTop: categories.showOnMainTop,
           showOnMainShop: categories.showOnMainShop,
           sortOrder: categories.sortOrder,
+          marketCode: categories.marketCode,
           createdAt: categories.createdAt,
         },
         supplier: {
@@ -419,6 +421,7 @@ export class DatabaseStorage implements IStorage {
           showOnMainTop: categories.showOnMainTop,
           showOnMainShop: categories.showOnMainShop,
           sortOrder: categories.sortOrder,
+          marketCode: categories.marketCode,
           createdAt: categories.createdAt,
         },
         supplier: {
@@ -1485,6 +1488,18 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(productMarkets)
       .set({ ...data, updatedAt: new Date() })
       .where(and(eq(productMarkets.productId, productId), eq(productMarkets.market, market)))
+      .returning();
+    return updated;
+  }
+
+  async setProductMarketCategoryIfMissing(productId: number, market: string, categoryId: number): Promise<ProductMarket | undefined> {
+    const [updated] = await db.update(productMarkets)
+      .set({ categoryId, updatedAt: new Date() })
+      .where(and(
+        eq(productMarkets.productId, productId),
+        eq(productMarkets.market, market),
+        isNull(productMarkets.categoryId),
+      ))
       .returning();
     return updated;
   }
