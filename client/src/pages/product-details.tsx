@@ -220,6 +220,15 @@ export default function ProductDetails() {
     });
   };
 
+  const selectedCompositeTotal = useMemo(() => {
+    if (!(product as any)?.isComposite) return 0;
+    return (((product as any).compositeComponents || []).slice(0, 8) as any[]).reduce(
+      (sum: number, component: any) =>
+        sum + (componentQuantities[component.id] || 0) * (parseFloat(component.price || "0") || 0),
+      0,
+    );
+  }, [product, componentQuantities]);
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
@@ -639,7 +648,7 @@ export default function ProductDetails() {
                   })}
                 </div>
                 <div className="flex items-center justify-between font-semibold">
-                  <span>Preț produs</span><span>{formatPrice(product.price, product.currency)}</span>
+                  <span>Total componente</span><span>{formatPrice(selectedCompositeTotal.toFixed(2), product.currency)}</span>
                 </div>
                 <Button size="lg" className="w-full kitchen-pro-secondary" onClick={handleAddToCart} disabled={!product.inStock}>
                   <ShoppingCart className="h-5 w-5 mr-2" />{t('products.addToCart')}
