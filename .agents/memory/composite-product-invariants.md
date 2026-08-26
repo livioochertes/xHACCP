@@ -5,9 +5,9 @@ description: Marketplace, currency, and history rules for configurable products 
 
 Composite products are configured independently per marketplace. Every component must have an explicit product-market association for that marketplace, although the component and its market row may be inactive when membership in the composite makes it available there. Composite products cannot be nested and one parent may expose at most eight components.
 
-**Why:** A missing market association or implicit currency fallback can silently sell an unavailable component or relabel a numeric price from one currency as another. The parent is the sellable product, so component selection must not replace its displayed or charged price.
+**Why:** A missing market association or implicit currency fallback can silently sell an unavailable component or relabel a numeric price from one currency as another. The parent price is the storefront reference, while the configurable contents determine the cart total.
 
-**How to apply:** Treat the composite parent's marketplace price as authoritative for display, cart, and checkout. Validate components server-side, then persist their names, quantities, unit prices, totals, and currency as an immutable configuration snapshot without replacing the parent price.
+**How to apply:** Display the composite parent's marketplace price on the catalog and product page. In the cart and checkout, validate the selected components server-side and use their summed total, persisting names, quantities, unit prices, totals, and currency as an immutable configuration snapshot.
 
 The development and production databases do not automatically share marketplace seed data. When a non-RO marketplace has no category rows, provision independent copies from RO through an authenticated Admin flow before configuring products there.
 

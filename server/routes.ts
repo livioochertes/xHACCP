@@ -569,7 +569,6 @@ async function getCompositeConfiguration(
     requestedComponents,
     defaultCurrency,
     applyVolumeDiscount,
-    effectiveProduct.price,
   );
 }
 

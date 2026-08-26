@@ -83,6 +83,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               totalPrice: ((component?.price ? parseFloat(component.price) : 0) * selection.quantity).toFixed(2),
             };
           });
+          const totalPrice = selectedComponents.reduce(
+            (sum, component) => sum + parseFloat(component.totalPrice || "0"),
+            0,
+          );
+          product.price = totalPrice.toFixed(2);
           return {
             product,
             quantity,

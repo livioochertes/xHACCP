@@ -137,15 +137,3 @@ test("sums marketplace component stock for an automatic composite stock", () => 
 test("a positive composite stock entered manually overrides the component sum", () => {
   assert.equal(resolveCompositeStockQuantity(5, available), 5);
 });
-
-test("uses the composite parent price when one is provided", () => {
-  const result = calculateCompositeConfiguration(
-    available,
-    [{ componentProductId: 1, quantity: 2 }],
-    "RON",
-    (price) => price,
-    "14.00",
-  );
-
-  assert.equal(result.totalPrice, "14.00");
-});
