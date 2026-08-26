@@ -30,9 +30,12 @@ export default function Cart() {
   });
 
   const validCart = cart.filter(item => item.product && item.product.price);
+  const getUnitPrice = (item: typeof validCart[number]) => item.compositeConfiguration
+    ? parseFloat(item.product.price)
+    : getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
 
   const subtotal = validCart.reduce((sum, item) => {
-    const unitPrice = getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+    const unitPrice = getUnitPrice(item);
     return sum + (unitPrice * item.quantity);
   }, 0);
   
@@ -143,8 +146,8 @@ export default function Cart() {
                           </Button>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
-                          {item.product?.price ? formatPrice(getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts).toFixed(2), item.product.currency) : "0.00"} {t('cart.each')}
-                          {(() => {
+                          {item.product?.price ? formatPrice(getUnitPrice(item).toFixed(2), item.product.currency) : "0.00"} {t('cart.each')}
+                          {!item.compositeConfiguration && (() => {
                             const vd = (item.product as any).volumeDiscounts;
                             if (!Array.isArray(vd) || vd.length === 0) return null;
                             const active = vd.filter((t: any) => t.minQty > 0 && t.discountPercent > 0).sort((a: any, b: any) => b.minQty - a.minQty).find((t: any) => item.quantity >= t.minQty);
@@ -152,6 +155,13 @@ export default function Cart() {
                             return <span className="ml-1 text-xs text-emerald-600 font-medium">(-{active.discountPercent}%)</span>;
                           })()}
                         </p>
+                        {item.compositeConfiguration?.components?.length ? (
+                          <div className="mb-2 text-xs text-muted-foreground space-y-1">
+                            {item.compositeConfiguration.components.map(component => (
+                              <div key={component.componentProductId}>• {component.name || component.productCode || `#${component.componentProductId}`} × {component.quantity}</div>
+                            ))}
+                          </div>
+                        ) : null}
                         
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center space-x-2">
@@ -176,7 +186,7 @@ export default function Cart() {
                           </div>
                           
                           <span className="font-semibold text-sm sm:text-base">
-                            {item.product?.price ? formatPrice((getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts) * item.quantity).toFixed(2), item.product.currency) : "0.00"}
+                            {item.product?.price ? formatPrice((getUnitPrice(item) * item.quantity).toFixed(2), item.product.currency) : "0.00"}
                           </span>
                         </div>
                       </div>

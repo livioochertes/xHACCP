@@ -3,6 +3,17 @@ import { storage } from './storage.js';
 import { getNextInvoiceNumber } from './invoice-counter.js';
 import { generateInvoicePdf, getInvoicePdfBuffer, pdfExists, type PdfInvoiceData } from './pdf-invoice-local.js';
 
+function invoiceProductName(item: any): string {
+  const productName = item.product?.name || item.productName || 'Product';
+  const components = Array.isArray(item.compositeConfiguration?.components)
+    ? item.compositeConfiguration.components
+    : [];
+  if (!components.length) return productName;
+  return `${productName} (${components
+    .map((component: any) => `${component.name || `#${component.componentProductId}`} x${component.quantity}`)
+    .join(', ')})`;
+}
+
 export interface InvoiceServiceConfig {
   smartbill: SmartbillConfig;
   defaultSeries: string;
@@ -277,7 +288,7 @@ export class InvoiceService {
       // Create invoice items for local storage
       const invoiceItems = order.items.map((item: any) => ({
         productId: item.productId,
-        productName: item.product.name,
+        productName: invoiceProductName(item),
         productCode: item.product.productCode || null,
         quantity: item.quantity,
         unitPrice: item.price,
@@ -370,7 +381,7 @@ export class InvoiceService {
       // Create invoice items with 21% VAT
       const invoiceItems: any[] = order.items.map((item: any) => ({
         productId: item.productId,
-        productName: item.product.name,
+        productName: invoiceProductName(item),
         productCode: item.product.productCode || null,
         quantity: item.quantity,
         unitPrice: item.price,
@@ -433,7 +444,7 @@ export class InvoiceService {
       // Build invoice items
       const items: any[] = (order.items || []).map((item: any) => ({
         productId: item.productId,
-        productName: item.product?.name || item.productName || 'Product',
+        productName: invoiceProductName(item),
         productCode: item.product?.productCode || null,
         quantity: item.quantity,
         unitPrice: parseFloat(item.price),

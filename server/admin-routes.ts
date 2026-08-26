@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "./storage";
 import { db, pool } from "./db";
-import { companySettings, suppliers, productMarkets, invoices } from "@shared/schema";
+import { companySettings, suppliers, productMarkets, invoices, products as productsTable } from "@shared/schema";
 import { desc, eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -2444,11 +2444,23 @@ export async function registerAdminRoutes(app: Express) {
             compareAtPrice: row.compareAtPrice ?? p.compareAtPrice,
             currency: row.currency ?? defaultCurrency ?? p.currency,
             stockQuantity: row.stockQuantity ?? p.stockQuantity,
+            marketIsActive: row.isActive,
           };
         });
       }
 
-      res.json(filteredProducts);
+      // storage's lightweight product projection intentionally omits this
+      // flag; include it for the composite-product admin controls.
+      const compositeRows = filteredProducts.length
+        ? await db.select({ id: productsTable.id, isComposite: productsTable.isComposite })
+          .from(productsTable)
+          .where(inArray(productsTable.id, filteredProducts.map(product => product.id)))
+        : [];
+      const compositeById = new Map(compositeRows.map(row => [row.id, row.isComposite]));
+      res.json(filteredProducts.map(product => ({
+        ...product,
+        isComposite: compositeById.get(product.id) ?? false,
+      })));
     } catch (error) {
       console.error("Error fetching products:", error);
       res.status(500).json({ message: "Failed to fetch products" });
@@ -2508,7 +2520,8 @@ export async function registerAdminRoutes(app: Express) {
         height: productData.height && String(productData.height).trim() !== '' ? parseFloat(String(productData.height)) : null,
         // Priority field for product display order (1 = highest, 0 = default)
         priority: productData.priority !== undefined ? parseInt(String(productData.priority)) || 0 : 0,
-        isService: productData.isService === true || productData.isService === 'true'
+        isService: productData.isService === true || productData.isService === 'true',
+        isComposite: productData.isComposite === true || productData.isComposite === 'true'
       });
 
       // Refresh memory cache so site shows new product immediately
@@ -2575,7 +2588,8 @@ export async function registerAdminRoutes(app: Express) {
         piecesPerPackage: safeParseInt(productData.piecesPerPackage),
         // Priority field for product display order (1 = highest, 0 = default)
         priority: safeParseInt(productData.priority) ?? 0,
-        ...(productData.isService !== undefined && { isService: productData.isService === true || productData.isService === 'true' })
+        ...(productData.isService !== undefined && { isService: productData.isService === true || productData.isService === 'true' }),
+        ...(productData.isComposite !== undefined && { isComposite: productData.isComposite === true || productData.isComposite === 'true' })
       });
       
       console.log('Updated product result:', updatedProduct);
@@ -5761,6 +5775,85 @@ export async function registerAdminRoutes(app: Express) {
       res.json(pms.filter(row => canAccessMarket(req, row.market)));
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch product markets" });
+    }
+  });
+
+  // Components are scoped to a marketplace so the same configurable product
+  // can offer a different selection in each market.
+  app.get("/admin/api/products/:id/components", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const productId = Number(req.params.id);
+      const market = req.query.market;
+      if (!Number.isInteger(productId) || !['ro', 'fr', 'com'].includes(String(market))) {
+        return res.status(400).json({ message: "A valid product id and market are required" });
+      }
+      if (!canAccessMarket(req, String(market))) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (!await storage.getProduct(productId)) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      res.json(await storage.getCompositeProductComponents(productId, String(market)));
+    } catch (error) {
+      console.error("Error fetching composite components:", error);
+      res.status(500).json({ message: "Failed to fetch composite components" });
+    }
+  });
+
+  app.put("/admin/api/products/:id/components", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const productId = Number(req.params.id);
+      const market = req.query.market;
+      const componentProductIds = req.body?.componentProductIds;
+      if (!Number.isInteger(productId) || !['ro', 'fr', 'com'].includes(String(market))) {
+        return res.status(400).json({ message: "A valid product id and market are required" });
+      }
+      if (!canAccessMarket(req, String(market))) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (!Array.isArray(componentProductIds) || componentProductIds.length > 8 ||
+          componentProductIds.some(id => !Number.isInteger(id))) {
+        return res.status(400).json({ message: "componentProductIds must be an array of at most 8 integer ids" });
+      }
+      if (new Set(componentProductIds).size !== componentProductIds.length) {
+        return res.status(400).json({ message: "Component products must be unique" });
+      }
+      if (componentProductIds.includes(productId)) {
+        return res.status(400).json({ message: "A product cannot be its own component" });
+      }
+
+      const parent = await storage.getProduct(productId);
+      if (!parent) return res.status(404).json({ message: "Product not found" });
+      if (!parent.isComposite) {
+        return res.status(400).json({ message: "Product must be marked as composite before components can be assigned" });
+      }
+      if (componentProductIds.length) {
+        const componentRows = await db.select({
+          id: productsTable.id,
+          isComposite: productsTable.isComposite,
+        }).from(productsTable).where(inArray(productsTable.id, componentProductIds));
+        if (componentRows.length !== componentProductIds.length) {
+          return res.status(400).json({ message: "One or more component products do not exist" });
+        }
+        if (componentRows.some(product => product.isComposite)) {
+          return res.status(400).json({ message: "Composite products cannot be components" });
+        }
+        const componentMarketRows = await Promise.all(
+          componentProductIds.map(id => storage.getProductMarkets(id)),
+        );
+        if (componentMarketRows.some(rows => !rows.some(row => row.market === String(market)))) {
+          return res.status(400).json({
+            message: "Every component must be explicitly assigned to this marketplace (the market row may be inactive)",
+          });
+        }
+      }
+
+      await storage.replaceCompositeProductComponents(productId, String(market), componentProductIds);
+      await refreshMarketCaches();
+      res.json({ success: true, componentProductIds });
+    } catch (error) {
+      console.error("Error replacing composite components:", error);
+      res.status(500).json({ message: "Failed to update composite components" });
     }
   });
 

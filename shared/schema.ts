@@ -64,6 +64,21 @@ export const categories = pgTable("categories", {
   slugMarketUnique: uniqueIndex("categories_slug_market_unique").on(t.slug, t.marketCode),
 }));
 
+export type CompositeSelectionItem = {
+  componentProductId: number;
+  quantity: number;
+  name?: string;
+  productCode?: string | null;
+  unitPrice?: string;
+  totalPrice?: string;
+};
+
+export type CompositeConfiguration = {
+  components: CompositeSelectionItem[];
+  currency?: string;
+  totalPrice?: string;
+};
+
 // Products table
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
@@ -98,6 +113,7 @@ export const products = pgTable("products", {
   specs: jsonb("specs").default([]), // Flexible product specs: [{label, value}, ...]
   volumeDiscounts: jsonb("volume_discounts").default([]), // Volume discount tiers: [{minQty, discountPercent}, ...]
   isService: boolean("is_service").default(false), // True for service/subscription products — hides volume discounts on storefront
+  isComposite: boolean("is_composite").default(false), // Configurable parent product whose price comes from selected components
   descriptionHtml: text("description_html"), // AI-formatted HTML description (generated once, stored permanently)
   priority: integer("priority").default(0), // Display priority: 1 = highest, 2, 3 = lower priorities, 0 = default order
   createdAt: timestamp("created_at").defaultNow(),
@@ -161,11 +177,26 @@ export const productMarkets = pgTable("product_markets", {
   productMarketUnique: uniqueIndex("product_markets_product_id_market_unique").on(table.productId, table.market),
 }));
 
+export const compositeProductComponents = pgTable("composite_product_components", {
+  id: serial("id").primaryKey(),
+  parentProductId: integer("parent_product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  componentProductId: integer("component_product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  market: varchar("market", { length: 10 }).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  parentComponentMarketUnique: uniqueIndex("composite_components_parent_component_market_unique")
+    .on(table.parentProductId, table.componentProductId, table.market),
+  parentMarketOrderIndex: index("composite_components_parent_market_order_idx")
+    .on(table.parentProductId, table.market, table.sortOrder),
+}));
+
 // Orders table
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   market: varchar("market", { length: 10 }).default("ro"), // which market the order was placed on
+  currency: varchar("currency", { length: 3 }).default("RON"),
   status: varchar("status", { length: 50 }).notNull().default("pending"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   shippingAddress: jsonb("shipping_address").notNull(),
@@ -198,6 +229,7 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  compositeConfiguration: jsonb("composite_configuration").$type<CompositeConfiguration | null>(),
 });
 
 // Cart items table (for persistent cart)
@@ -206,6 +238,7 @@ export const cartItems = pgTable("cart_items", {
   userId: integer("user_id").references(() => users.id),
   productId: integer("product_id").references(() => products.id),
   quantity: integer("quantity").notNull(),
+  compositeConfiguration: jsonb("composite_configuration").$type<CompositeConfiguration | null>(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -255,7 +288,7 @@ export const invoiceItems = pgTable("invoice_items", {
   id: serial("id").primaryKey(),
   invoiceId: integer("invoice_id").references(() => invoices.id).notNull(),
   productId: integer("product_id").references(() => products.id),
-  productName: varchar("product_name", { length: 255 }).notNull(),
+  productName: text("product_name").notNull(),
   productCode: varchar("product_code", { length: 100 }),
   quantity: integer("quantity").notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
@@ -387,6 +420,21 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   cartItems: many(cartItems),
   reviews: many(reviews),
   translations: many(productTranslations),
+  compositeParents: many(compositeProductComponents, { relationName: "compositeParent" }),
+  compositeComponents: many(compositeProductComponents, { relationName: "compositeComponent" }),
+}));
+
+export const compositeProductComponentsRelations = relations(compositeProductComponents, ({ one }) => ({
+  parentProduct: one(products, {
+    fields: [compositeProductComponents.parentProductId],
+    references: [products.id],
+    relationName: "compositeParent",
+  }),
+  componentProduct: one(products, {
+    fields: [compositeProductComponents.componentProductId],
+    references: [products.id],
+    relationName: "compositeComponent",
+  }),
 }));
 
 export const productTranslationsRelations = relations(productTranslations, ({ one }) => ({
@@ -577,6 +625,11 @@ export const insertProductMarketsSchema = createInsertSchema(productMarkets).omi
   updatedAt: true,
 });
 
+export const insertCompositeProductComponentSchema = createInsertSchema(compositeProductComponents).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -591,9 +644,13 @@ export type InsertCategoryTranslation = z.infer<typeof insertCategoryTranslation
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
-export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+export type InsertOrderItem = Omit<typeof orderItems.$inferInsert, "compositeConfiguration"> & {
+  compositeConfiguration?: CompositeConfiguration | null;
+};
 export type CartItem = typeof cartItems.$inferSelect;
-export type InsertCartItem = z.infer<typeof insertCartItemSchema>;
+export type InsertCartItem = Omit<typeof cartItems.$inferInsert, "compositeConfiguration"> & {
+  compositeConfiguration?: CompositeConfiguration | null;
+};
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Supplier = typeof suppliers.$inferSelect;
@@ -612,6 +669,8 @@ export type MarketSettings = typeof marketSettings.$inferSelect;
 export type InsertMarketSettings = z.infer<typeof insertMarketSettingsSchema>;
 export type ProductMarket = typeof productMarkets.$inferSelect;
 export type InsertProductMarket = z.infer<typeof insertProductMarketsSchema>;
+export type CompositeProductComponent = typeof compositeProductComponents.$inferSelect;
+export type InsertCompositeProductComponent = z.infer<typeof insertCompositeProductComponentSchema>;
 
 // Blog posts table
 export const blogPosts = pgTable("blog_posts", {

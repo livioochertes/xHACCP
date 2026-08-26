@@ -16,6 +16,7 @@ import {
   vouchers,
   marketSettings,
   productMarkets,
+  compositeProductComponents,
   type User,
   type InsertUser,
   type Category,
@@ -54,6 +55,8 @@ import {
   type InsertMarketSettings,
   type ProductMarket,
   type InsertProductMarket,
+  type CompositeProductComponent,
+  type CompositeConfiguration,
   blogPosts,
   blogPostTranslations,
   type BlogPost,
@@ -61,6 +64,7 @@ import {
   type BlogPostTranslation,
 } from "@shared/schema";
 import { db } from "./db";
+import { compositeConfigurationKey } from "./composite-products";
 import { eq, desc, like, and, or, sql, inArray, isNull, ne } from "drizzle-orm";
 
 export interface IStorage {
@@ -118,8 +122,8 @@ export interface IStorage {
   // Cart operations
   getCartItems(userId: number): Promise<CartItemWithProduct[]>;
   addToCart(item: InsertCartItem): Promise<CartItem>;
-  updateCartItem(id: number, quantity: number): Promise<CartItem>;
-  removeFromCart(id: number): Promise<void>;
+  updateCartItem(id: number, userId: number, quantity: number): Promise<CartItem | undefined>;
+  removeFromCart(id: number, userId: number): Promise<boolean>;
   clearCart(userId: number): Promise<void>;
 
   // Review operations
@@ -190,6 +194,10 @@ export interface IStorage {
   updateProductMarket(productId: number, market: string, data: Partial<InsertProductMarket>): Promise<ProductMarket>;
   deleteProductMarket(productId: number, market: string): Promise<void>;
   getProductsForMarket(market: string): Promise<number[]>;
+
+  // Composite product operations
+  getCompositeProductComponents(parentProductId: number, market: string): Promise<Array<CompositeProductComponent & { product: Product; marketPrice: string | null; marketCurrency: string | null; marketIsActive: boolean | null }>>;
+  replaceCompositeProductComponents(parentProductId: number, market: string, componentProductIds: number[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -298,6 +306,7 @@ export class DatabaseStorage implements IStorage {
         specs: products.specs,
         volumeDiscounts: products.volumeDiscounts,
         isService: products.isService,
+        isComposite: products.isComposite,
         descriptionHtml: products.descriptionHtml,
         priority: products.priority,
         createdAt: products.createdAt,
@@ -390,6 +399,7 @@ export class DatabaseStorage implements IStorage {
         specs: products.specs,
         volumeDiscounts: products.volumeDiscounts,
         isService: products.isService,
+        isComposite: products.isComposite,
         descriptionHtml: products.descriptionHtml,
         priority: products.priority,
         createdAt: products.createdAt,
@@ -466,6 +476,7 @@ export class DatabaseStorage implements IStorage {
       specs: products.specs,
       volumeDiscounts: products.volumeDiscounts,
       isService: products.isService,
+      isComposite: products.isComposite,
       priority: products.priority,
       createdAt: products.createdAt,
       updatedAt: products.updatedAt,
@@ -641,6 +652,7 @@ export class DatabaseStorage implements IStorage {
         id: orders.id,
         userId: orders.userId,
         market: orders.market,
+        currency: orders.currency,
         status: orders.status,
         totalAmount: orders.totalAmount,
         shippingCost: orders.shippingCost,
@@ -670,6 +682,7 @@ export class DatabaseStorage implements IStorage {
                 'quantity', ${orderItems.quantity},
                 'price', ${orderItems.price},
                 'totalPrice', ${orderItems.totalPrice},
+                'compositeConfiguration', ${orderItems.compositeConfiguration},
                 'product', json_build_object(
                   'id', ${products.id},
                   'name', ${products.name},
@@ -702,6 +715,7 @@ export class DatabaseStorage implements IStorage {
         id: orders.id,
         userId: orders.userId,
         market: orders.market,
+        currency: orders.currency,
         status: orders.status,
         totalAmount: orders.totalAmount,
         shippingCost: orders.shippingCost,
@@ -731,6 +745,7 @@ export class DatabaseStorage implements IStorage {
                 'quantity', ${orderItems.quantity},
                 'price', ${orderItems.price},
                 'totalPrice', ${orderItems.totalPrice},
+                'compositeConfiguration', ${orderItems.compositeConfiguration},
                 'product', json_build_object(
                   'id', ${products.id},
                   'name', ${products.name},
@@ -833,6 +848,7 @@ export class DatabaseStorage implements IStorage {
         userId: cartItems.userId,
         productId: cartItems.productId,
         quantity: cartItems.quantity,
+        compositeConfiguration: cartItems.compositeConfiguration,
         createdAt: cartItems.createdAt,
         product: products,
       })
@@ -844,11 +860,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addToCart(item: InsertCartItem): Promise<CartItem> {
-    // Check if item already exists in cart
-    const [existingItem] = await db
+    // Merge only identical configurations. Different selections of the same
+    // composite product must remain separate cart lines.
+    const candidateItems = await db
       .select()
       .from(cartItems)
       .where(and(eq(cartItems.userId, item.userId!), eq(cartItems.productId, item.productId!)));
+    const requestedConfiguration = compositeConfigurationKey(item.compositeConfiguration);
+    const existingItem = candidateItems.find(candidate =>
+      compositeConfigurationKey(candidate.compositeConfiguration) === requestedConfiguration
+    );
 
     if (existingItem) {
       // Update quantity if item exists
@@ -865,17 +886,20 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateCartItem(id: number, quantity: number): Promise<CartItem> {
+  async updateCartItem(id: number, userId: number, quantity: number): Promise<CartItem | undefined> {
     const [updatedItem] = await db
       .update(cartItems)
       .set({ quantity })
-      .where(eq(cartItems.id, id))
+      .where(and(eq(cartItems.id, id), eq(cartItems.userId, userId)))
       .returning();
     return updatedItem;
   }
 
-  async removeFromCart(id: number): Promise<void> {
-    await db.delete(cartItems).where(eq(cartItems.id, id));
+  async removeFromCart(id: number, userId: number): Promise<boolean> {
+    const deleted = await db.delete(cartItems)
+      .where(and(eq(cartItems.id, id), eq(cartItems.userId, userId)))
+      .returning({ id: cartItems.id });
+    return deleted.length > 0;
   }
 
   async clearCart(userId: number): Promise<void> {
@@ -1095,6 +1119,7 @@ export class DatabaseStorage implements IStorage {
       id: orders.id,
       userId: orders.userId,
       market: orders.market,
+      currency: orders.currency,
       status: orders.status,
       totalAmount: orders.totalAmount,
       shippingCost: orders.shippingCost,
@@ -1120,6 +1145,7 @@ export class DatabaseStorage implements IStorage {
         quantity: orderItems.quantity,
         price: orderItems.price,
         totalPrice: orderItems.totalPrice,
+        compositeConfiguration: orderItems.compositeConfiguration,
         product: {
           id: products.id,
           name: products.name,
@@ -1152,6 +1178,7 @@ export class DatabaseStorage implements IStorage {
           specs: products.specs,
           volumeDiscounts: products.volumeDiscounts,
           isService: products.isService,
+          isComposite: products.isComposite,
           createdAt: products.createdAt,
           updatedAt: products.updatedAt,
         }
@@ -1168,6 +1195,7 @@ export class DatabaseStorage implements IStorage {
           quantity: item.quantity,
           price: item.price,
           totalPrice: item.totalPrice,
+          compositeConfiguration: item.compositeConfiguration as CompositeConfiguration | null,
           product: item.product as unknown as Product
         }))
       } as unknown as OrderWithItems);
@@ -1465,6 +1493,55 @@ export class DatabaseStorage implements IStorage {
       .from(productMarkets)
       .where(and(eq(productMarkets.market, market), eq(productMarkets.isActive, true)));
     return rows.map(r => r.productId);
+  }
+
+  async getCompositeProductComponents(parentProductId: number, market: string): Promise<Array<CompositeProductComponent & { product: Product; marketPrice: string | null; marketCurrency: string | null; marketIsActive: boolean | null }>> {
+    const rows = await db
+      .select({
+        relation: compositeProductComponents,
+        product: products,
+        marketPrice: productMarkets.price,
+        marketCurrency: productMarkets.currency,
+        marketIsActive: productMarkets.isActive,
+      })
+      .from(compositeProductComponents)
+      .innerJoin(products, eq(compositeProductComponents.componentProductId, products.id))
+      .innerJoin(productMarkets, and(
+        eq(productMarkets.productId, products.id),
+        eq(productMarkets.market, market),
+      ))
+      .where(and(
+        eq(compositeProductComponents.parentProductId, parentProductId),
+        eq(compositeProductComponents.market, market),
+      ))
+      .orderBy(compositeProductComponents.sortOrder, compositeProductComponents.id);
+
+    return rows.map(row => ({
+      ...row.relation,
+      product: row.product,
+      marketPrice: row.marketPrice,
+      marketCurrency: row.marketCurrency,
+      marketIsActive: row.marketIsActive,
+    }));
+  }
+
+  async replaceCompositeProductComponents(parentProductId: number, market: string, componentProductIds: number[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.delete(compositeProductComponents).where(and(
+        eq(compositeProductComponents.parentProductId, parentProductId),
+        eq(compositeProductComponents.market, market),
+      ));
+      if (componentProductIds.length > 0) {
+        await tx.insert(compositeProductComponents).values(
+          componentProductIds.map((componentProductId, sortOrder) => ({
+            parentProductId,
+            componentProductId,
+            market,
+            sortOrder,
+          })),
+        );
+      }
+    });
   }
 }
 

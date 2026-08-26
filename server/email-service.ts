@@ -19,6 +19,34 @@ function getSenderForOrder(order: OrderWithItems): string {
   return getSenderForMarket((order as any).market);
 }
 
+function orderCurrency(order: OrderWithItems): string {
+  return (order as any).currency || ((order as any).market === "ro" ? "RON" : "EUR");
+}
+
+function orderItemComponents(item: any): any[] {
+  return Array.isArray(item?.compositeConfiguration?.components)
+    ? item.compositeConfiguration.components
+    : [];
+}
+
+function orderItemNameText(item: any): string {
+  const productName = item.product?.name || `Product ${item.productId}`;
+  const components = orderItemComponents(item);
+  if (!components.length) return productName;
+  return `${productName} [${components
+    .map(component => `${component.name || `#${component.componentProductId}`} × ${component.quantity}`)
+    .join(", ")}]`;
+}
+
+function orderItemNameHtml(item: any): string {
+  const productName = item.product?.name || `Product ${item.productId}`;
+  const components = orderItemComponents(item);
+  if (!components.length) return productName;
+  return `${productName}<div style="font-size:12px;color:#666;margin-top:4px;">${components
+    .map(component => `${component.name || `#${component.componentProductId}`} × ${component.quantity}`)
+    .join("<br>")}</div>`;
+}
+
 let mailService: MailService | null = null;
 
 if (!SENDGRID_API_KEY) {
@@ -106,10 +134,10 @@ export async function sendOrderConfirmationEmail(
   const orderItemsHtml = order.items
     .map(item => `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.product.name}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;">${orderItemNameHtml(item)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.price} lei</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} lei</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.price} ${orderCurrency(order)}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} ${orderCurrency(order)}</td>
       </tr>
     `)
     .join('');
@@ -175,11 +203,11 @@ export async function sendOrderConfirmationEmail(
                 ${discountRow}
                 <tr>
                   <td colspan="3" style="padding: 8px; text-align: right;">Transport:</td>
-                  <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' lei' : 'Gratuit'}</td>
+                  <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' ' + orderCurrency(order) : 'Gratuit'}</td>
                 </tr>
                 <tr>
                   <td colspan="3" style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">Total:</td>
-                  <td style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">${order.totalAmount} lei</td>
+                  <td style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">${order.totalAmount} ${orderCurrency(order)}</td>
                 </tr>
               `;
             })()}
@@ -247,7 +275,7 @@ export async function sendOrderConfirmationEmail(
     - Customer Email: ${user.email}
     - Contact Phone: ${shippingAddress.phone}
     - Payment: ${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}
-    - Total Amount: ${order.totalAmount} lei
+    - Total Amount: ${order.totalAmount} ${orderCurrency(order)}
     
     Delivery Address:
     ${shippingAddress.firstName} ${shippingAddress.lastName}
@@ -309,7 +337,7 @@ export async function sendNewOrderNotificationEmail(
   const adminOrderUrl = `https://xhaccp.com/admin#orders-${order.id}`;
   
   const orderItemsText = order.items
-    .map(item => `- ${item.product.name} (Qty: ${item.quantity}) - ${item.totalPrice} lei`)
+    .map(item => `- ${orderItemNameText(item)} (Qty: ${item.quantity}) - ${item.totalPrice} ${orderCurrency(order)}`)
     .join('\n');
 
   const html = `
@@ -372,10 +400,10 @@ export async function sendNewOrderNotificationEmail(
           <tbody>
             ${order.items.map(item => `
               <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.product.name}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">${orderItemNameHtml(item)}</td>
                 <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.price} lei</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} lei</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.price} ${orderCurrency(order)}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} ${orderCurrency(order)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -447,7 +475,7 @@ export async function sendNewOrderNotificationEmail(
     - Customer: ${user.firstName} ${user.lastName}
     - Customer Email: ${user.email}
     - Customer Phone: ${shippingAddress.phone}
-    - Total Amount: ${order.totalAmount} lei
+    - Total Amount: ${order.totalAmount} ${orderCurrency(order)}
     - Payment Method: ${order.paymentMethod}
     - Status: PENDING REVIEW
     
@@ -503,7 +531,7 @@ export async function sendLogisticsNotificationEmail(
   const customerPhone = shippingAddress?.phone || '';
 
   const orderItemsText = order.items
-    .map(item => `- ${item.product.name} (Qty: ${item.quantity}) - ${item.totalPrice} lei`)
+    .map(item => `- ${orderItemNameText(item)} (Qty: ${item.quantity}) - ${item.totalPrice} ${orderCurrency(order)}`)
     .join('\n');
 
   const html = `
@@ -555,10 +583,10 @@ export async function sendLogisticsNotificationEmail(
           <tbody>
             ${order.items.map(item => `
               <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.product.name}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">${orderItemNameHtml(item)}</td>
                 <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.price} lei</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} lei</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.price} ${orderCurrency(order)}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} ${orderCurrency(order)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -616,7 +644,7 @@ export async function sendLogisticsNotificationEmail(
     - Customer: ${customerName}
     - Customer Email: ${customerEmail}
     - Customer Phone: ${customerPhone}
-    - Total Amount: ${order.totalAmount} lei
+    - Total Amount: ${order.totalAmount} ${orderCurrency(order)}
     - Payment Method: ${order.paymentMethod}
     - Payment Status: ${order.paymentStatus}
     
@@ -862,9 +890,9 @@ export async function sendLogisticsAWBEmail(
   const orderItemsHtml = order.items
     .map(item => `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.product.name}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;">${orderItemNameHtml(item)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} lei</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} ${orderCurrency(order)}</td>
       </tr>
     `).join('');
 
@@ -969,7 +997,7 @@ export async function sendLogisticsAWBEmail(
     to: logisticsEmail,
     from: getSenderForOrder(order),
     subject: `📦 New Shipment - Order #${order.id} - AWB: ${awbNumber}`,
-    text: `New shipment for Order #${order.id}\nAWB: ${awbNumber}\nTracking: ${trackingUrl}\nRecipient: ${shippingAddress.firstName} ${shippingAddress.lastName}\nAddress: ${shippingAddress.address}, ${shippingAddress.city}\nTotal: ${order.totalAmount} lei`,
+    text: `New shipment for Order #${order.id}\nAWB: ${awbNumber}\nTracking: ${trackingUrl}\nRecipient: ${shippingAddress.firstName} ${shippingAddress.lastName}\nAddress: ${shippingAddress.address}, ${shippingAddress.city}\nTotal: ${order.totalAmount} ${orderCurrency(order)}`,
     html: html,
   };
 
@@ -1137,9 +1165,9 @@ export async function sendCustomerShipmentEmail(
 
   const orderItemsHtml = order.items.map(item => `
     <tr>
-      <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.product.name}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${orderItemNameHtml(item)}</td>
       <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-      <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} lei</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} ${orderCurrency(order)}</td>
     </tr>
   `).join('');
 
@@ -1204,13 +1232,13 @@ export async function sendCustomerShipmentEmail(
                 ${discountRow}
                 <tr>
                   <td style="padding: 8px;" colspan="2">Transport</td>
-                  <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' lei' : 'Gratuit'}</td>
+                  <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' ' + orderCurrency(order) : 'Gratuit'}</td>
                 </tr>
               `;
             })()}
             <tr style="font-weight: bold; background-color: #f0f0f0;">
               <td style="padding: 10px 8px;" colspan="2">Total</td>
-              <td style="padding: 10px 8px; text-align: right;">${order.totalAmount} lei</td>
+              <td style="padding: 10px 8px; text-align: right;">${order.totalAmount} ${orderCurrency(order)}</td>
             </tr>
           </tbody>
         </table>
@@ -1250,7 +1278,7 @@ export async function sendCustomerShipmentEmail(
     to: customerEmail,
     from: getSenderForOrder(order),
     subject: `✅ Order #${order.id} Accepted & Shipped - AWB: ${awbNumber}`,
-    text: `Your order #${order.id} has been accepted!\n\nAWB: ${awbNumber}\nTracking: ${trackingUrl}\nCourier: Sameday\n\nTotal: ${order.totalAmount} lei\n${invoiceNumber ? `Invoice: ${invoiceNumber}` : ''}\n\nThank you for your order!`,
+    text: `Your order #${order.id} has been accepted!\n\nAWB: ${awbNumber}\nTracking: ${trackingUrl}\nCourier: Sameday\n\nTotal: ${order.totalAmount} ${orderCurrency(order)}\n${invoiceNumber ? `Invoice: ${invoiceNumber}` : ''}\n\nThank you for your order!`,
     html,
   };
 
@@ -1317,7 +1345,7 @@ export async function sendInvoiceEmailFr(
 
   const orderItemsHtml = order.items.map(item => `
     <tr>
-      <td style="padding:8px 10px;border-bottom:1px solid #eee;">${item.product.name}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;">${orderItemNameHtml(item)}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${parseFloat(item.price).toFixed(2)} ${currency}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${parseFloat(item.totalPrice).toFixed(2)} ${currency}</td>

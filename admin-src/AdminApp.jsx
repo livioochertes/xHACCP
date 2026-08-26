@@ -531,7 +531,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             specs: Array.isArray(editingProduct.specs) ? editingProduct.specs : [],
             volumeDiscounts: Array.isArray(editingProduct.volumeDiscounts) ? editingProduct.volumeDiscounts : [],
             priority: editingProduct.priority || 0,
-            isService: editingProduct.isService || false
+            isService: editingProduct.isService || false,
+            isComposite: editingProduct.isComposite || false
           };
           
           // Trigger ModalsComponent to load the data
@@ -2986,7 +2987,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             specs: [],
                             volumeDiscounts: [],
                             priority: 0,
-                            isService: false
+                            isService: false,
+                            isComposite: false
                           };
                           
                           // Trigger ModalsComponent to load the data
@@ -6676,9 +6678,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           specs: [],
           volumeDiscounts: [],
           priority: 0,
-          isService: false
+          isService: false,
+          isComposite: false
         });
         const [uploadedImages, setUploadedImages] = useState([]);
+        const [componentProducts, setComponentProducts] = useState([]);
+        const [componentSearch, setComponentSearch] = useState('');
+        const [componentsLoading, setComponentsLoading] = useState(false);
         
         // Translation form states - local to ModalsComponent to prevent focus loss
         const [newTranslation, setNewTranslation] = useState({ language: '', name: '', description: '', sourceUrl: '' });
@@ -6707,6 +6713,41 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             stockQuantity: (mktData.stockQuantity !== null && mktData.stockQuantity !== undefined) ? String(mktData.stockQuantity) : prev.stockQuantity,
           }));
         }, [editingProductMarkets, selectedMarketTab]);
+
+        // Component choices only exist for saved products and are independent
+        // per marketplace. The product list deliberately includes inactive rows.
+        React.useEffect(() => {
+          if (!editingProduct || !productFormData.isComposite || selectedMarketTab === 'all') {
+            setComponentProducts([]);
+            return;
+          }
+          let cancelled = false;
+          const loadComponents = async () => {
+            setComponentsLoading(true);
+            try {
+              const response = await fetch(`/admin/api/products/${editingProduct.id}/components?market=${selectedMarketTab}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              const data = await response.json();
+              if (!response.ok) throw new Error(data.message || 'Failed to load components');
+              if (!cancelled) {
+                setComponentProducts(data.map(item => ({
+                  ...item.product,
+                  id: item.componentProductId,
+                  price: item.marketPrice ?? item.product.price,
+                  currency: item.marketCurrency ?? item.product.currency,
+                  marketIsActive: item.marketIsActive,
+                })));
+              }
+            } catch (error) {
+              if (!cancelled) alert(error.message || 'Failed to load components');
+            } finally {
+              if (!cancelled) setComponentsLoading(false);
+            }
+          };
+          loadComponents();
+          return () => { cancelled = true; };
+        }, [editingProduct?.id, productFormData.isComposite, selectedMarketTab]);
         
         const [userFormData, setUserFormData] = useState({
           email: '',
@@ -7070,7 +7111,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               featured: false, vatValue: '', vatPercentage: '21.00', currency: 'EUR',
               productCode: '', ncCode: '', cpvCode: '', status: 'active', images: [],
               weight: '', length: '', width: '', height: '', piecesPerPackage: '',
-              productQuantity: '', specs: [], volumeDiscounts: [], priority: 0, isService: false
+              productQuantity: '', specs: [], volumeDiscounts: [], priority: 0, isService: false, isComposite: false
             });
             setUploadedImages([]);
             setImportUrl('');
@@ -7100,6 +7141,16 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             }
           };
 
+          const saveComponents = async (productId, market) => {
+            const response = await fetch(`/admin/api/products/${productId}/components?market=${market}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ componentProductIds: componentProducts.map(product => product.id) })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to save components');
+          };
+
           if (editingProduct && selectedMarketTab !== 'all') {
             // ── EDITING on specific market tab ──────────────────────────────
             // 1. Save global fields (name, desc, images, specs, weight, etc.)
@@ -7114,6 +7165,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             
             // 2. Save price/currency/stock only to this market's product_markets row
             await saveMarketData(editingProduct.id, selectedMarketTab);
+            if (productData.isComposite) {
+              try {
+                await saveComponents(editingProduct.id, selectedMarketTab);
+              } catch (error) {
+                alert('Produsul a fost salvat, dar componentele nu: ' + error.message);
+                return;
+              }
+            }
             
             alert('✅ Produs salvat! Prețul/stocul au fost actualizate doar pentru piața ' + selectedMarketTab.toUpperCase() + '.');
             resetForm();
@@ -8162,6 +8221,62 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       </label>
                     </div>
 
+                    <div style={{marginTop: '10px', padding: '10px 14px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                      <input
+                        type="checkbox"
+                        id="isComposite"
+                        checked={!!productFormData.isComposite}
+                        onChange={(e) => setProductFormData({...productFormData, isComposite: e.target.checked})}
+                        style={{width: '16px', height: '16px', cursor: 'pointer', flexShrink: 0}}
+                      />
+                      <label htmlFor="isComposite" style={{margin: 0, cursor: 'pointer', fontSize: '13px', color: '#166534', fontWeight: '600'}}>
+                        🧩 Configurable composite product
+                      </label>
+                    </div>
+
+                    {productFormData.isComposite && editingProduct && selectedMarketTab !== 'all' && (
+                      <div style={{marginTop: '12px', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px'}}>
+                        <div style={{fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '8px'}}>
+                          Components for {selectedMarketTab.toUpperCase()} ({componentProducts.length}/8)
+                        </div>
+                        <input
+                          className="form-input"
+                          value={componentSearch}
+                          onChange={e => setComponentSearch(e.target.value)}
+                          placeholder="Search products to add…"
+                          disabled={componentProducts.length >= 8}
+                          style={{marginBottom: '6px'}}
+                        />
+                        {componentSearch.trim() && componentProducts.length < 8 && (
+                          <div style={{maxHeight: '130px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '4px', background: 'white', marginBottom: '8px'}}>
+                            {products.filter(product =>
+                              product.id !== editingProduct.id &&
+                              !product.isComposite &&
+                              !componentProducts.some(component => component.id === product.id) &&
+                              `${product.name} ${product.productCode || ''}`.toLowerCase().includes(componentSearch.toLowerCase())
+                            ).slice(0, 8).map(product => (
+                              <button key={product.id} type="button" onClick={() => {
+                                setComponentProducts([...componentProducts, product]);
+                                setComponentSearch('');
+                              }} style={{display: 'flex', width: '100%', justifyContent: 'space-between', gap: '8px', padding: '7px 9px', border: 'none', borderBottom: '1px solid #f1f5f9', background: 'white', cursor: 'pointer', textAlign: 'left', fontSize: '12px'}}>
+                                <span>{product.name} <span style={{color: '#64748b'}}>{product.productCode || ''}</span></span>
+                                <span style={{color: product.status === 'active' && product.marketIsActive !== false ? '#15803d' : '#b45309'}}>{product.status || 'active'}{product.marketIsActive === false ? ' / market inactive' : ''} · {product.price} {product.currency || ''}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {componentsLoading ? <div style={{fontSize: '12px', color: '#64748b'}}>Loading components…</div> : componentProducts.map((product, index) => (
+                          <div key={product.id} style={{display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 0', borderTop: '1px solid #e2e8f0', fontSize: '12px'}}>
+                            <span style={{color: '#64748b', width: '16px'}}>{index + 1}</span>
+                            <span style={{flex: 1}}>{product.name} <span style={{color: product.status === 'active' && product.marketIsActive !== false ? '#15803d' : '#b45309'}}>({product.status || 'active'}{product.marketIsActive === false ? ', market inactive' : ''} · {product.price} {product.currency || ''})</span></span>
+                            <button type="button" disabled={index === 0} onClick={() => setComponentProducts(componentProducts.map((item, i) => i === index ? componentProducts[i - 1] : i === index - 1 ? componentProducts[i] : item))} style={{border: 'none', background: 'none', cursor: 'pointer', color: '#475569'}}>↑</button>
+                            <button type="button" disabled={index === componentProducts.length - 1} onClick={() => setComponentProducts(componentProducts.map((item, i) => i === index ? componentProducts[i + 1] : i === index + 1 ? componentProducts[i] : item))} style={{border: 'none', background: 'none', cursor: 'pointer', color: '#475569'}}>↓</button>
+                            <button type="button" onClick={() => setComponentProducts(componentProducts.filter(item => item.id !== product.id))} style={{border: 'none', background: 'none', cursor: 'pointer', color: '#dc2626'}}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Volume Discounts Section */}
                     {!productFormData.isService && (
                     <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#fff8e1', borderRadius: '6px', border: '1px solid #ffd54f'}}>
@@ -8472,7 +8587,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             specs: [],
                             volumeDiscounts: [],
                             priority: 0,
-                            isService: false
+                            isService: false,
+                            isComposite: false
                           });
                           setUploadedImages([]);
                           // Reset import from URL state
@@ -8811,7 +8927,19 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                       style={{width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px'}}
                                     />
                                   )}
-                                  <span>{item.product ? item.product.name : `Product ID: ${item.productId}`}</span>
+                                  <span>
+                                    {item.product ? item.product.name : `Product ID: ${item.productId}`}
+                                    {item.compositeConfiguration?.components?.length ? (
+                                      <span style={{display: 'block', fontSize: '12px', color: '#64748b', marginTop: '4px'}}>
+                                        {item.compositeConfiguration.components.map(component => (
+                                          <span key={component.componentProductId} style={{display: 'block'}}>
+                                            {component.name || `#${component.componentProductId}`} × {component.quantity}
+                                            {component.unitPrice ? ` · ${component.unitPrice}` : ''}
+                                          </span>
+                                        ))}
+                                      </span>
+                                    ) : null}
+                                  </span>
                                 </div>
                               </td>
                               <td style={{padding: '10px'}}>{item.quantity}</td>

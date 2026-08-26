@@ -12619,7 +12619,8 @@
           specs: Array.isArray(editingProduct.specs) ? editingProduct.specs : [],
           volumeDiscounts: Array.isArray(editingProduct.volumeDiscounts) ? editingProduct.volumeDiscounts : [],
           priority: editingProduct.priority || 0,
-          isService: editingProduct.isService || false
+          isService: editingProduct.isService || false,
+          isComposite: editingProduct.isComposite || false
         };
         setProductLoadTrigger((prev) => prev + 1);
         setShowAddProductModal(true);
@@ -14890,7 +14891,8 @@ This action cannot be undone.`)) {
                           specs: [],
                           volumeDiscounts: [],
                           priority: 0,
-                          isService: false
+                          isService: false,
+                          isComposite: false
                         };
                         setProductLoadTrigger((prev) => prev + 1);
                         setProductTranslations([]);
@@ -18983,9 +18985,13 @@ Cordialement,`
         specs: [],
         volumeDiscounts: [],
         priority: 0,
-        isService: false
+        isService: false,
+        isComposite: false
       });
       const [uploadedImages, setUploadedImages] = (0, import_react13.useState)([]);
+      const [componentProducts, setComponentProducts] = (0, import_react13.useState)([]);
+      const [componentSearch, setComponentSearch] = (0, import_react13.useState)("");
+      const [componentsLoading, setComponentsLoading] = (0, import_react13.useState)(false);
       const [newTranslation, setNewTranslation] = (0, import_react13.useState)({ language: "", name: "", description: "", sourceUrl: "" });
       const [editingTranslation, setEditingTranslation] = (0, import_react13.useState)(null);
       import_react13.default.useEffect(() => {
@@ -19007,6 +19013,40 @@ Cordialement,`
           stockQuantity: mktData.stockQuantity !== null && mktData.stockQuantity !== void 0 ? String(mktData.stockQuantity) : prev.stockQuantity
         }));
       }, [editingProductMarkets, selectedMarketTab]);
+      import_react13.default.useEffect(() => {
+        if (!editingProduct || !productFormData.isComposite || selectedMarketTab === "all") {
+          setComponentProducts([]);
+          return;
+        }
+        let cancelled = false;
+        const loadComponents = async () => {
+          setComponentsLoading(true);
+          try {
+            const response = await fetch(`/admin/api/products/${editingProduct.id}/components?market=${selectedMarketTab}`, {
+              headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || "Failed to load components");
+            if (!cancelled) {
+              setComponentProducts(data.map((item) => ({
+                ...item.product,
+                id: item.componentProductId,
+                price: item.marketPrice ?? item.product.price,
+                currency: item.marketCurrency ?? item.product.currency,
+                marketIsActive: item.marketIsActive
+              })));
+            }
+          } catch (error2) {
+            if (!cancelled) alert(error2.message || "Failed to load components");
+          } finally {
+            if (!cancelled) setComponentsLoading(false);
+          }
+        };
+        loadComponents();
+        return () => {
+          cancelled = true;
+        };
+      }, [editingProduct?.id, productFormData.isComposite, selectedMarketTab]);
       const [userFormData, setUserFormData] = (0, import_react13.useState)({
         email: "",
         password: "",
@@ -19319,7 +19359,8 @@ Cordialement,`
             specs: [],
             volumeDiscounts: [],
             priority: 0,
-            isService: false
+            isService: false,
+            isComposite: false
           });
           setUploadedImages([]);
           setImportUrl("");
@@ -19346,6 +19387,15 @@ Cordialement,`
             console.error("Failed to save market-specific data:", err);
           }
         };
+        const saveComponents = async (productId, market) => {
+          const response = await fetch(`/admin/api/products/${productId}/components?market=${market}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ componentProductIds: componentProducts.map((product) => product.id) })
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || "Failed to save components");
+        };
         if (editingProduct && selectedMarketTab !== "all") {
           const { price, compareAtPrice, currency, stockQuantity, inStock, ...globalFields } = productData;
           const globalResult = await updateProduct(editingProduct.id, globalFields);
@@ -19354,6 +19404,14 @@ Cordialement,`
             return;
           }
           await saveMarketData(editingProduct.id, selectedMarketTab);
+          if (productData.isComposite) {
+            try {
+              await saveComponents(editingProduct.id, selectedMarketTab);
+            } catch (error2) {
+              alert("Produsul a fost salvat, dar componentele nu: " + error2.message);
+              return;
+            }
+          }
           alert("\u2705 Produs salvat! Pre\u021Bul/stocul au fost actualizate doar pentru pia\u021Ba " + selectedMarketTab.toUpperCase() + ".");
           resetForm();
         } else if (!editingProduct && selectedMarketTab !== "all") {
@@ -20460,6 +20518,79 @@ Cordialement,`
                 ] })
               ] })
             ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "10px", padding: "10px 14px", backgroundColor: "#f0fdf4", borderRadius: "6px", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: "10px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "input",
+                {
+                  type: "checkbox",
+                  id: "isComposite",
+                  checked: !!productFormData.isComposite,
+                  onChange: (e2) => setProductFormData({ ...productFormData, isComposite: e2.target.checked }),
+                  style: { width: "16px", height: "16px", cursor: "pointer", flexShrink: 0 }
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { htmlFor: "isComposite", style: { margin: 0, cursor: "pointer", fontSize: "13px", color: "#166534", fontWeight: "600" }, children: "\u{1F9E9} Configurable composite product" })
+            ] }),
+            productFormData.isComposite && editingProduct && selectedMarketTab !== "all" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "12px", padding: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "6px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "8px" }, children: [
+                "Components for ",
+                selectedMarketTab.toUpperCase(),
+                " (",
+                componentProducts.length,
+                "/8)"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "input",
+                {
+                  className: "form-input",
+                  value: componentSearch,
+                  onChange: (e2) => setComponentSearch(e2.target.value),
+                  placeholder: "Search products to add\u2026",
+                  disabled: componentProducts.length >= 8,
+                  style: { marginBottom: "6px" }
+                }
+              ),
+              componentSearch.trim() && componentProducts.length < 8 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { maxHeight: "130px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "4px", background: "white", marginBottom: "8px" }, children: products.filter(
+                (product) => product.id !== editingProduct.id && !product.isComposite && !componentProducts.some((component) => component.id === product.id) && `${product.name} ${product.productCode || ""}`.toLowerCase().includes(componentSearch.toLowerCase())
+              ).slice(0, 8).map((product) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { type: "button", onClick: () => {
+                setComponentProducts([...componentProducts, product]);
+                setComponentSearch("");
+              }, style: { display: "flex", width: "100%", justifyContent: "space-between", gap: "8px", padding: "7px 9px", border: "none", borderBottom: "1px solid #f1f5f9", background: "white", cursor: "pointer", textAlign: "left", fontSize: "12px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                  product.name,
+                  " ",
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#64748b" }, children: product.productCode || "" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: product.status === "active" && product.marketIsActive !== false ? "#15803d" : "#b45309" }, children: [
+                  product.status || "active",
+                  product.marketIsActive === false ? " / market inactive" : "",
+                  " \xB7 ",
+                  product.price,
+                  " ",
+                  product.currency || ""
+                ] })
+              ] }, product.id)) }),
+              componentsLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#64748b" }, children: "Loading components\u2026" }) : componentProducts.map((product, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "7px", padding: "6px 0", borderTop: "1px solid #e2e8f0", fontSize: "12px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#64748b", width: "16px" }, children: index + 1 }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { flex: 1 }, children: [
+                  product.name,
+                  " ",
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: product.status === "active" && product.marketIsActive !== false ? "#15803d" : "#b45309" }, children: [
+                    "(",
+                    product.status || "active",
+                    product.marketIsActive === false ? ", market inactive" : "",
+                    " \xB7 ",
+                    product.price,
+                    " ",
+                    product.currency || "",
+                    ")"
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", disabled: index === 0, onClick: () => setComponentProducts(componentProducts.map((item, i) => i === index ? componentProducts[i - 1] : i === index - 1 ? componentProducts[i] : item)), style: { border: "none", background: "none", cursor: "pointer", color: "#475569" }, children: "\u2191" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", disabled: index === componentProducts.length - 1, onClick: () => setComponentProducts(componentProducts.map((item, i) => i === index ? componentProducts[i + 1] : i === index + 1 ? componentProducts[i] : item)), style: { border: "none", background: "none", cursor: "pointer", color: "#475569" }, children: "\u2193" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", onClick: () => setComponentProducts(componentProducts.filter((item) => item.id !== product.id)), style: { border: "none", background: "none", cursor: "pointer", color: "#dc2626" }, children: "\xD7" })
+              ] }, product.id))
+            ] }),
             !productFormData.isService && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#fff8e1", borderRadius: "6px", border: "1px solid #ffd54f" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }, children: [
                 "\u{1F3F7}\uFE0F ",
@@ -20785,7 +20916,8 @@ Cordialement,`
                       specs: [],
                       volumeDiscounts: [],
                       priority: 0,
-                      isService: false
+                      isService: false,
+                      isComposite: false
                     });
                     setUploadedImages([]);
                     setImportUrl("");
@@ -21210,7 +21342,15 @@ Cordialement,`
                       style: { width: "40px", height: "40px", objectFit: "cover", borderRadius: "4px" }
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: item.product ? item.product.name : `Product ID: ${item.productId}` })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                    item.product ? item.product.name : `Product ID: ${item.productId}`,
+                    item.compositeConfiguration?.components?.length ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { display: "block", fontSize: "12px", color: "#64748b", marginTop: "4px" }, children: item.compositeConfiguration.components.map((component) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { display: "block" }, children: [
+                      component.name || `#${component.componentProductId}`,
+                      " \xD7 ",
+                      component.quantity,
+                      component.unitPrice ? ` \xB7 ${component.unitPrice}` : ""
+                    ] }, component.componentProductId)) }) : null
+                  ] })
                 ] }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px" }, children: item.quantity }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "10px" }, children: [

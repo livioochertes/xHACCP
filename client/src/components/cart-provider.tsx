@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
-import type { CartItemWithProduct } from "@shared/schema";
+import type { CartItemWithProduct, CompositeConfiguration } from "@shared/schema";
 
 interface CartContextType {
   cart: CartItemWithProduct[];
-  addToCart: (productId: number, quantity: number) => void;
+  addToCart: (productId: number, quantity: number, compositeConfiguration?: CompositeConfiguration) => void;
   updateQuantity: (itemId: number, quantity: number) => void;
   removeFromCart: (itemId: number) => void;
   clearCart: () => void;
@@ -60,33 +60,57 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addToCartMutation = useMutation<
     { product: any; quantity: number } | Response,
     Error,
-    { productId: number; quantity: number }
+    { productId: number; quantity: number; compositeConfiguration?: CompositeConfiguration }
   >({
-    mutationFn: async ({ productId, quantity }: { productId: number; quantity: number }) => {
+    mutationFn: async ({ productId, quantity, compositeConfiguration }: { productId: number; quantity: number; compositeConfiguration?: CompositeConfiguration }) => {
       if (isAuthenticated) {
-        return apiRequest("POST", "/api/cart", { productId, quantity });
+        return apiRequest("POST", "/api/cart", { productId, quantity, compositeConfiguration });
       } else {
         // Guest cart - get product details
         const response = await fetch(`/api/products/${productId}`, {
           headers: { 'X-Market': getMarketFromHostname() }
         });
         const product = await response.json();
-        return { product, quantity };
+        if (product.isComposite && compositeConfiguration) {
+          const components = (product.compositeComponents || []) as any[];
+          const selectedComponents = compositeConfiguration.components.map(selection => {
+            const component = components.find(c => c.id === selection.componentProductId);
+            return {
+              ...selection,
+              name: component?.name,
+              productCode: component?.productCode,
+              unitPrice: component?.price,
+              totalPrice: ((component?.price ? parseFloat(component.price) : 0) * selection.quantity).toFixed(2),
+            };
+          });
+          const totalPrice = selectedComponents.reduce((sum, component) => sum + parseFloat(component.totalPrice || "0"), 0);
+          product.price = totalPrice.toFixed(2);
+          return { product, quantity, compositeConfiguration: { ...compositeConfiguration, components: selectedComponents, currency: product.currency, totalPrice: product.price } };
+        }
+        return { product, quantity, compositeConfiguration };
       }
     },
     onSuccess: (data) => {
       if (isAuthenticated) {
         queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       } else {
-        const guestData = data as { product: any; quantity: number };
+        const guestData = data as { product: any; quantity: number; compositeConfiguration?: CompositeConfiguration };
         // Update guest cart in localStorage
         setLocalCart(prev => {
-          const existingItem = prev.find(item => item.productId === guestData.product.id);
+          const configurationKey = (configuration?: CompositeConfiguration | null) => JSON.stringify(
+            (configuration?.components || [])
+              .map(component => ({ componentProductId: component.componentProductId, quantity: component.quantity }))
+              .sort((a, b) => a.componentProductId - b.componentProductId)
+          );
+          const existingItem = prev.find(item =>
+            item.productId === guestData.product.id &&
+            configurationKey(item.compositeConfiguration) === configurationKey(guestData.compositeConfiguration)
+          );
           let newCart;
           
           if (existingItem) {
             newCart = prev.map(item =>
-              item.productId === guestData.product.id
+              item.id === existingItem.id
                 ? { ...item, quantity: item.quantity + guestData.quantity }
                 : item
             );
@@ -96,6 +120,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               userId: 0, // guest user
               productId: guestData.product.id,
               quantity: guestData.quantity,
+              compositeConfiguration: guestData.compositeConfiguration || null,
               createdAt: new Date(),
               product: guestData.product
             }];
@@ -182,8 +207,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const addToCart = (productId: number, quantity: number) => {
-    addToCartMutation.mutate({ productId, quantity });
+  const addToCart = (productId: number, quantity: number, compositeConfiguration?: CompositeConfiguration) => {
+    addToCartMutation.mutate({ productId, quantity, compositeConfiguration });
   };
 
   const updateQuantity = (itemId: number, quantity: number) => {

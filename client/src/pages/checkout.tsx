@@ -142,6 +142,9 @@ export default function Checkout() {
   const { cart, clearCart } = useCart();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const getUnitPrice = (item: typeof cart[number]) => item.compositeConfiguration
+    ? parseFloat(item.product.price)
+    : getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
   
   // Voucher state
   const [voucherCode, setVoucherCode] = useState("");
@@ -317,12 +320,13 @@ export default function Checkout() {
     mutationFn: async (data: CheckoutFormData) => {
       const token = localStorage.getItem("token");
       const orderItems = cart.map(item => {
-        const unitPrice = getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+        const unitPrice = getUnitPrice(item);
         return {
           productId: item.product.id,
           quantity: item.quantity,
           price: unitPrice.toFixed(2),
           totalPrice: (unitPrice * item.quantity).toFixed(2),
+          compositeConfiguration: item.compositeConfiguration,
         };
       });
 
@@ -366,7 +370,7 @@ export default function Checkout() {
 
   const subtotal = cart.reduce((sum, item) => {
     if (!item.product || !item.product.price) return sum;
-    const unitPrice = getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+    const unitPrice = getUnitPrice(item);
     return sum + (unitPrice * item.quantity);
   }, 0);
 
@@ -1492,8 +1496,9 @@ export default function Checkout() {
                           {mobileSummaryOpen && (
                             <div className="mt-3 pt-3 border-t space-y-2">
                               {cart.filter(item => item.product?.price).map((item) => (
-                                <div key={item.id} className="flex items-center justify-between text-sm">
-                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <div key={item.id}>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
                                     <img
                                       src={item.product?.imageUrl || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=40&h=40"}
                                       alt={item.product?.name || "Product"}
@@ -1501,10 +1506,18 @@ export default function Checkout() {
                                     />
                                     <span className="truncate">{item.product?.name || "Product"}</span>
                                     <span className="text-muted-foreground flex-shrink-0">x{item.quantity}</span>
+                                    </div>
+                                    <span className="font-medium flex-shrink-0 ml-2">
+                                      {(getUnitPrice(item) * item.quantity).toFixed(2)} {currencySymbol}
+                                    </span>
                                   </div>
-                                  <span className="font-medium flex-shrink-0 ml-2">
-                                    {(getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts) * item.quantity).toFixed(2)} {currencySymbol}
-                                  </span>
+                                  {item.compositeConfiguration?.components?.length ? (
+                                   <div className="ml-10 text-xs text-muted-foreground">
+                                     {item.compositeConfiguration.components.map(component => (
+                                       <div key={component.componentProductId}>• {component.name || component.productCode || `#${component.componentProductId}`} × {component.quantity}</div>
+                                     ))}
+                                   </div>
+                                  ) : null}
                                 </div>
                               ))}
                               <Separator />
@@ -1581,7 +1594,8 @@ export default function Checkout() {
                         cartItems={cart.map(item => ({
                           productId: item.product.id,
                           quantity: item.quantity,
-                          price: getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts).toFixed(2),
+                          price: getUnitPrice(item).toFixed(2),
+                          compositeConfiguration: item.compositeConfiguration,
                         }))}
                         voucherCode={appliedVoucher?.code}
                         orderData={(() => {
@@ -1597,12 +1611,13 @@ export default function Checkout() {
                             shippingAddress: { ...shippingAddr, email: values.email },
                             billingAddress: billingAddr,
                             items: cart.map(item => {
-                              const up = getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+                              const up = getUnitPrice(item);
                               return {
                                 productId: item.product.id,
                                 quantity: item.quantity,
                                 price: up.toFixed(2),
                                 totalPrice: (up * item.quantity).toFixed(2),
+                                compositeConfiguration: item.compositeConfiguration,
                               };
                             }),
                             notes: values.notes,
@@ -1749,9 +1764,16 @@ export default function Checkout() {
                         <p className="text-xs text-muted-foreground">
                           {t('checkout.qty')}: {item.quantity}
                         </p>
+                         {item.compositeConfiguration?.components?.length ? (
+                           <div className="mt-1 text-xs text-muted-foreground">
+                             {item.compositeConfiguration.components.map(component => (
+                               <div key={component.componentProductId}>• {component.name || component.productCode || `#${component.componentProductId}`} × {component.quantity}</div>
+                             ))}
+                           </div>
+                         ) : null}
                       </div>
                       <p className="text-sm font-medium flex-shrink-0">
-                        {(getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts) * item.quantity).toFixed(2)} {currencySymbol}
+                        {(getUnitPrice(item) * item.quantity).toFixed(2)} {currencySymbol}
                       </p>
                     </div>
                   ))}

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users, invoiceItems, orders, invoices } from "@shared/schema";
+import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users, invoiceItems, orders, invoices, type CompositeConfiguration, type InsertCartItem } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcrypt";
@@ -22,6 +22,10 @@ import {
   isValidEmailAddress,
   type ContactMarket,
 } from './contact-email.js';
+import {
+  calculateCompositeConfiguration,
+  type CompositeComponentSource,
+} from "./composite-products";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -252,9 +256,12 @@ export function applyMarketOverlay(product: any, market: string): any {
   if (marketRow.isActive === false) return null; // disabled for this market → hide
   // Currency priority: product_markets.currency → market_settings.currency → product.currency
   // Applied whenever a market row exists and is active (not only when other overrides are set)
-  const effectiveCurrency = marketRow.currency
-    ?? marketSettingsMap.get(market)?.currency
-    ?? product.currency;
+  // A composite parent's own price is not charged; its configured components
+  // define the amount. Keep one authoritative currency for the entire
+  // configuration so a parent override cannot relabel a RON sum as EUR.
+  const effectiveCurrency = product.isComposite
+    ? (marketSettingsMap.get(market)?.currency ?? product.currency)
+    : (marketRow.currency ?? marketSettingsMap.get(market)?.currency ?? product.currency);
   const hasOverrides = marketRow.price != null || marketRow.compareAtPrice != null ||
     marketRow.currency != null || marketRow.inStock != null || marketRow.stockQuantity != null ||
     effectiveCurrency !== product.currency;
@@ -267,6 +274,112 @@ export function applyMarketOverlay(product: any, market: string): any {
     inStock: marketRow.inStock ?? product.inStock,
     stockQuantity: marketRow.stockQuantity ?? product.stockQuantity,
     _marketOverride: market,
+  };
+}
+
+async function getCompositeSources(parentProductId: number, market: string): Promise<CompositeComponentSource[]> {
+  const rows = await storage.getCompositeProductComponents(parentProductId, market);
+  const language = market === "fr" ? "fr" : market === "com" ? "en" : "ro";
+  return Promise.all(rows.map(async row => {
+    const translation = await storage.getProductTranslation(row.product.id, language);
+    return {
+      product: translation?.name ? { ...row.product, name: translation.name } : row.product,
+      marketPrice: row.marketPrice,
+      marketCurrency: row.marketCurrency ?? marketSettingsMap.get(market)?.currency ?? row.product.currency,
+      sortOrder: row.sortOrder,
+    };
+  }));
+}
+
+function compositeSnapshotName(item: any): string {
+  const productName = item.product?.name || `Product ${item.productId}`;
+  const components = Array.isArray(item.compositeConfiguration?.components)
+    ? item.compositeConfiguration.components
+    : [];
+  if (!components.length) return productName;
+  return `${productName} (${components
+    .map((component: any) => `${component.name || `#${component.componentProductId}`} x${component.quantity}`)
+    .join(", ")})`;
+}
+
+async function getCompositeConfiguration(
+  product: any,
+  market: string,
+  requestedComponents: unknown,
+): Promise<CompositeConfiguration> {
+  if (!product?.isComposite) {
+    throw new Error("Product is not composite");
+  }
+  const sources = await getCompositeSources(product.id, market);
+  if (sources.length === 0) {
+    throw new Error("Composite product has no configured components for this market");
+  }
+  const defaultCurrency = marketSettingsMap.get(market)?.currency ?? product.currency ?? "RON";
+  return calculateCompositeConfiguration(
+    sources,
+    requestedComponents,
+    defaultCurrency,
+    applyVolumeDiscount,
+  );
+}
+
+async function decorateCompositeProduct(product: any, market: string): Promise<any> {
+  if (!product?.isComposite) return product;
+  const sources = await getCompositeSources(product.id, market);
+  const components = sources.map(source => ({
+    id: source.product.id,
+    name: source.product.name,
+    productCode: source.product.productCode,
+    imageUrl: source.product.imageUrl,
+    status: source.product.status,
+    price: source.marketPrice ?? source.product.price,
+    currency: source.marketCurrency ?? marketSettingsMap.get(market)?.currency ?? source.product.currency,
+    sortOrder: source.sortOrder,
+  }));
+  return { ...product, compositeComponents: components };
+}
+
+async function validateOrderItemForMarket(item: any, market: string) {
+  const quantity = parseInt(item.quantity);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 9999) {
+    throw new Error(`Invalid quantity for product ${item.productId}: must be between 1 and 9999`);
+  }
+
+  const product = await storage.getProduct(item.productId);
+  if (!product) throw new Error(`Product not found: ${item.productId}`);
+  if (product.status?.toLowerCase() !== "active") {
+    throw new Error(`Product is not available: ${product.name}`);
+  }
+
+  const effectiveProduct = applyMarketOverlay(product, market);
+  if (effectiveProduct === null) {
+    throw new Error(`Product is not available in this market: ${product.name}`);
+  }
+
+  if (product.isComposite) {
+    const requestedComponents = item.compositeConfiguration?.components ?? item.components;
+    const configuration = await getCompositeConfiguration(product, market, requestedComponents);
+    const unitPrice = Number(configuration.totalPrice);
+    return {
+      productId: item.productId,
+      quantity,
+      price: unitPrice.toFixed(2),
+      totalPrice: (unitPrice * quantity).toFixed(2),
+      compositeConfiguration: configuration,
+    };
+  }
+
+  const unitPrice = applyVolumeDiscount(
+    parseFloat(effectiveProduct.price),
+    quantity,
+    (product as any).volumeDiscounts,
+  );
+  return {
+    productId: item.productId,
+    quantity,
+    price: unitPrice.toFixed(2),
+    totalPrice: (unitPrice * quantity).toFixed(2),
+    compositeConfiguration: null,
   };
 }
 
@@ -1488,7 +1601,7 @@ Sitemap: https://${domain}/sitemap.xml
       const invoiceItems = order.items.map(item => ({
         invoiceId: 0, // Will be set after invoice creation
         productId: item.productId,
-        productName: item.product.name,
+        productName: compositeSnapshotName(item),
         productCode: item.product.productCode || null,
         quantity: item.quantity,
         unitPrice: item.price,
@@ -1787,7 +1900,7 @@ Sitemap: https://${domain}/sitemap.xml
       const market = getMarketFromRequest(req);
       const overlaid = applyMarketOverlay(product, market);
       if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
-      res.json(overlaid);
+      res.json(await decorateCompositeProduct(overlaid, market));
     } catch (error) {
       console.error("Get product error:", error);
       res.status(500).json({ message: "Failed to get product" });
@@ -1806,7 +1919,7 @@ Sitemap: https://${domain}/sitemap.xml
       if (product && product.status?.toLowerCase() === 'active') {
         const overlaid = applyMarketOverlay(product, market);
         if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
-        return res.json(overlaid);
+        return res.json(await decorateCompositeProduct(overlaid, market));
       }
 
       // Fall back to DB if not in memory (e.g. recently added product)
@@ -1815,7 +1928,7 @@ Sitemap: https://${domain}/sitemap.xml
         if (product && product.status?.toLowerCase() === 'active') {
           const overlaid = applyMarketOverlay(product, market);
           if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
-          return res.json(overlaid);
+          return res.json(await decorateCompositeProduct(overlaid, market));
         }
       }
 
@@ -1838,7 +1951,11 @@ Sitemap: https://${domain}/sitemap.xml
           // Apply market overlay to fuzzy match — filter unavailable products for this market
           const overlaid = applyMarketOverlay(scored[0].product, market);
           if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
-          return res.json({ ...overlaid, _redirected: true, _originalSlug: requestedSlug });
+          return res.json({
+            ...(await decorateCompositeProduct(overlaid, market)),
+            _redirected: true,
+            _originalSlug: requestedSlug,
+          });
         }
       }
 
@@ -1979,13 +2096,29 @@ Sitemap: https://${domain}/sitemap.xml
       // Apply market overlay to each cart item's product:
       // - items whose product is inactive for this market are filtered out
       // - surviving items get market-specific price, compareAtPrice, currency, stock
-      const marketItems = cartItems
-        .map((item) => {
+      const marketItems = (await Promise.all(cartItems
+        .map(async (item) => {
           if (!item.product) return item;
           const overlaid = applyMarketOverlay(item.product, market);
           if (overlaid === null) return null; // product inactive in this market
+          if (item.product.isComposite) {
+            try {
+              const configuration = await getCompositeConfiguration(
+                item.product,
+                market,
+                item.compositeConfiguration?.components,
+              );
+              return {
+                ...item,
+                compositeConfiguration: configuration,
+                product: { ...overlaid, price: configuration.totalPrice, currency: configuration.currency },
+              };
+            } catch {
+              return null;
+            }
+          }
           return { ...item, product: overlaid };
-        })
+        })))
         .filter((item): item is NonNullable<typeof item> => item !== null);
       res.json(marketItems);
     } catch (error) {
@@ -1996,10 +2129,32 @@ Sitemap: https://${domain}/sitemap.xml
 
   app.post("/api/cart", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const cartItemData = insertCartItemSchema.parse({
-        ...req.body,
+      const productId = Number(req.body?.productId);
+      const quantity = Number(req.body?.quantity);
+      if (!Number.isInteger(productId) || !Number.isInteger(quantity) || quantity < 1 || quantity > 9999) {
+        return res.status(400).json({ message: "Invalid cart item" });
+      }
+      const product = await storage.getProduct(productId);
+      if (!product || product.status?.toLowerCase() !== "active") {
+        return res.status(400).json({ message: "Product is not available" });
+      }
+      const market = getMarketFromRequest(req);
+      if (applyMarketOverlay(product, market) === null) {
+        return res.status(400).json({ message: "Product is not available in this market" });
+      }
+      const compositeConfiguration = product.isComposite
+        ? await getCompositeConfiguration(
+            product,
+            market,
+            req.body?.compositeConfiguration?.components ?? req.body?.components,
+          )
+        : null;
+      const cartItemData: InsertCartItem = {
         userId: req.userId,
-      });
+        productId,
+        quantity,
+        compositeConfiguration,
+      };
       const cartItem = await storage.addToCart(cartItemData);
       res.json(cartItem);
     } catch (error) {
@@ -2008,11 +2163,15 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
-  app.put("/api/cart/:id", authenticateToken, async (req, res) => {
+  app.put("/api/cart/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const cartItemId = parseInt(req.params.id);
-      const { quantity } = req.body;
-      const cartItem = await storage.updateCartItem(cartItemId, quantity);
+      const cartItemId = Number(req.params.id);
+      const quantity = Number(req.body?.quantity);
+      if (!Number.isInteger(cartItemId) || !Number.isInteger(quantity) || quantity < 1 || quantity > 9999) {
+        return res.status(400).json({ message: "Quantity must be an integer between 1 and 9999" });
+      }
+      const cartItem = await storage.updateCartItem(cartItemId, req.userId!, quantity);
+      if (!cartItem) return res.status(404).json({ message: "Cart item not found" });
       res.json(cartItem);
     } catch (error) {
       console.error("Update cart item error:", error);
@@ -2020,10 +2179,14 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
-  app.delete("/api/cart/:id", authenticateToken, async (req, res) => {
+  app.delete("/api/cart/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const cartItemId = parseInt(req.params.id);
-      await storage.removeFromCart(cartItemId);
+      const cartItemId = Number(req.params.id);
+      if (!Number.isInteger(cartItemId)) {
+        return res.status(400).json({ message: "Invalid cart item" });
+      }
+      const removed = await storage.removeFromCart(cartItemId, req.userId!);
+      if (!removed) return res.status(404).json({ message: "Cart item not found" });
       res.json({ message: "Item removed from cart" });
     } catch (error) {
       console.error("Remove from cart error:", error);
@@ -2127,6 +2290,9 @@ Sitemap: https://${domain}/sitemap.xml
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
+      if (order.userId !== req.userId && !req.isAdmin) {
+        return res.status(403).json({ message: "Not authorized to access this order" });
+      }
       res.json(order);
     } catch (error) {
       console.error("Get order error:", error);
@@ -2145,43 +2311,9 @@ Sitemap: https://${domain}/sitemap.xml
       
       // SECURITY: Look up product prices from database - NEVER trust client-provided prices or quantities
       const orderMarket = getMarketFromRequest(req);
-      const validatedItems = await Promise.all(items.map(async (item: any) => {
-        // Validate quantity - must be positive integer
-        const quantity = parseInt(item.quantity);
-        if (!Number.isInteger(quantity) || quantity < 1 || quantity > 9999) {
-          throw new Error(`Invalid quantity for product ${item.productId}: must be between 1 and 9999`);
-        }
-        
-        const product = await storage.getProduct(item.productId);
-        if (!product) {
-          throw new Error(`Product not found: ${item.productId}`);
-        }
-        
-        const productActive = product.status === 'active';
-        if (!productActive) {
-          throw new Error(`Product is not available: ${product.name}`);
-        }
-
-        // Apply market overlay: enforce per-market availability and price
-        const effectiveProduct = applyMarketOverlay(product, orderMarket);
-        if (effectiveProduct === null) {
-          throw new Error(`Product is not available in this market: ${product.name}`);
-        }
-        
-        // Apply volume discount tiers on top of effective market price
-        const unitPrice = applyVolumeDiscount(
-          parseFloat(effectiveProduct.price),
-          quantity,
-          (product as any).volumeDiscounts
-        );
-
-        return {
-          productId: item.productId,
-          quantity: quantity,
-          price: unitPrice.toFixed(2), // Effective price after volume discount
-          totalPrice: (unitPrice * quantity).toFixed(2),
-        };
-      }));
+      const validatedItems = await Promise.all(
+        items.map((item: any) => validateOrderItemForMarket(item, orderMarket)),
+      );
       
       // Calculate subtotal from validated items (using server-side prices with volume discounts)
       const subtotal = validatedItems.reduce((sum: number, item: any) => sum + parseFloat(item.price) * item.quantity, 0);
@@ -2248,7 +2380,8 @@ Sitemap: https://${domain}/sitemap.xml
 
       const orderData = {
         userId: req.userId || null,
-        market: getMarketFromRequest(req),
+        market: orderMarket,
+        currency: marketSettingsMap.get(orderMarket)?.currency ?? "RON",
         status: "pending",
         totalAmount: totalAmount.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
@@ -3330,41 +3463,21 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       let subtotal = 0;
       const vivaMarket = getMarketFromRequest(req);
-      const validatedVivaItems: Array<{ productId: number; quantity: number; price: string; totalPrice: string }> = [];
+      const serverCurrency = marketSettingsMap.get(vivaMarket)?.currency ?? (vivaMarket === "ro" ? "RON" : "EUR");
+      if (currency && String(currency).toUpperCase() !== serverCurrency) {
+        return res.status(400).json({ message: "Checkout currency does not match the current marketplace" });
+      }
+      const validatedVivaItems: Array<{
+        productId: number;
+        quantity: number;
+        price: string;
+        totalPrice: string;
+        compositeConfiguration: CompositeConfiguration | null;
+      }> = [];
       for (const item of cartItems) {
-        const quantity = parseInt(item.quantity);
-        if (!Number.isInteger(quantity) || quantity < 1 || quantity > 9999) {
-          return res.status(400).json({ message: `Invalid quantity for product ${item.productId}: must be between 1 and 9999` });
-        }
-        
-        const product = await storage.getProduct(item.productId);
-        if (!product) {
-          return res.status(400).json({ message: `Product not found: ${item.productId}` });
-        }
-        
-        if (product.status?.toLowerCase() !== 'active') {
-          return res.status(400).json({ message: `Product is not available: ${product.name}` });
-        }
-
-        // Apply market overlay: enforce per-market availability and use effective price
-        const effectiveProduct = applyMarketOverlay(product, vivaMarket);
-        if (effectiveProduct === null) {
-          return res.status(400).json({ message: `Product is not available in this market: ${product.name}` });
-        }
-
-        // Apply volume discount tiers on top of effective market price
-        const unitPrice = applyVolumeDiscount(
-          parseFloat(effectiveProduct.price),
-          quantity,
-          (product as any).volumeDiscounts
-        );
-        subtotal += unitPrice * quantity;
-        validatedVivaItems.push({
-          productId: item.productId,
-          quantity,
-          price: unitPrice.toFixed(2),
-          totalPrice: (unitPrice * quantity).toFixed(2),
-        });
+        const validatedItem = await validateOrderItemForMarket(item, vivaMarket);
+        subtotal += parseFloat(validatedItem.totalPrice);
+        validatedVivaItems.push(validatedItem);
       }
 
       const companySettings = await storage.getCompanySettings();
@@ -3433,6 +3546,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
         const newOrder = await storage.createOrder({
           userId: userId,
+          market: vivaMarket,
+          currency: serverCurrency,
           status: 'pending',
           totalAmount: (discountedSubtotal + shippingCost).toFixed(2),
           shippingCost: shippingCost.toFixed(2),
@@ -3486,6 +3601,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       const vivaOrderPayload: any = {
         amount: finalAmountCents,
+        currencyCode: serverCurrency === "EUR" ? 978 : 946,
         customerTrns: `xHACCP Order #${dbOrderId}`,
         merchantTrns: `order_${dbOrderId}`,
         sourceCode: sourceCode,
@@ -3568,6 +3684,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         checkoutUrl,
         dbOrderId,
         serverCalculatedAmount: finalAmountCents / 100,
+        currency: serverCurrency,
       });
     } catch (error) {
       console.error("Error creating Viva payment order:", error);

@@ -33,6 +33,7 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   );
 
   const isService = !!(product as any).isService;
+  const isComposite = !!(product as any).isComposite;
   const productSlug = localizedSlug || product.slug;
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -140,7 +141,7 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
               )}
 
               {/* CTA button */}
-              {isService ? (
+              {isService || isComposite ? (
                 <Button
                   onClick={handleViewDetails}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
@@ -190,6 +191,7 @@ export const ProductListItem = memo(function ProductListItem({ product }: Produc
   );
 
   const isService = !!(product as any).isService;
+  const isComposite = !!(product as any).isComposite;
   const productSlug = localizedSlug || product.slug;
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -301,7 +303,7 @@ export const ProductListItem = memo(function ProductListItem({ product }: Produc
               </div>
 
               <div className="flex items-center gap-2">
-                {isService ? (
+                {isService || isComposite ? (
                   <Button
                     onClick={handleViewDetails}
                     size="sm"

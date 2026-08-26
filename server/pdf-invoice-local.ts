@@ -160,8 +160,10 @@ export async function generateInvoicePdf(data: PdfInvoiceData): Promise<string> 
       let rowY = tableTop + 20;
       doc.font('Helvetica').fontSize(8.5).fillColor(darkGray);
       data.items.forEach((item, i) => {
+        const descriptionHeight = doc.heightOfString(item.productName, { width: 200 });
+        const rowHeight = Math.max(18, descriptionHeight + 10);
         if (i % 2 === 0) {
-          doc.rect(50, rowY, doc.page.width - 100, 18).fill(lightGray);
+          doc.rect(50, rowY, doc.page.width - 100, rowHeight).fill(lightGray);
         }
         doc.fillColor(darkGray);
         doc.text(item.productName, 55, rowY + 5, { width: 200 });
@@ -170,7 +172,7 @@ export async function generateInvoicePdf(data: PdfInvoiceData): Promise<string> 
         doc.text(formatCurrency(item.unitPrice, data.currency), 350, rowY + 5, { width: 65, align: 'right' });
         doc.text(`${item.vatRate}%`, 415, rowY + 5, { width: 35, align: 'right' });
         doc.text(formatCurrency(item.lineTotal, data.currency), 450, rowY + 5, { width: 95, align: 'right' });
-        rowY += 18;
+        rowY += rowHeight;
       });
 
       // Totals block

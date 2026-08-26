@@ -21,7 +21,7 @@ import { formatPrice } from "@/lib/utils";
 import { getSortedTiers, getActiveTier, getVolumePrice } from "@/lib/volume-price";
 import { formatProductDescription, stripFormatting } from "@/lib/format-description";
 import { Link } from "wouter";
-import type { ProductWithCategory, Review } from "@shared/schema";
+import type { ProductWithCategory, Review, CompositeConfiguration } from "@shared/schema";
 
 interface ShippingSettings {
   freeShippingThreshold: string;
@@ -37,6 +37,7 @@ export default function ProductDetails() {
   const { t } = useTranslation();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [componentQuantities, setComponentQuantities] = useState<Record<number, number>>({});
   const [descExpanded, setDescExpanded] = useState(false);
 
   const { data: product, isLoading } = useQuery<ProductWithCategory & { _redirected?: boolean }>({
@@ -109,6 +110,7 @@ export default function ProductDetails() {
     window.scrollTo(0, 0);
     setSelectedImageIndex(0);
     setQuantity(1);
+    setComponentQuantities({});
     setDescExpanded(false);
   }, [product?.id]);
 
@@ -200,7 +202,18 @@ export default function ProductDetails() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addToCart(product.id, quantity);
+    const components = ((product as any).compositeComponents || []).slice(0, 8);
+    const selected = components
+      .map((component: any) => ({ componentProductId: component.id, quantity: componentQuantities[component.id] || 0 }))
+      .filter((component: { quantity: number }) => component.quantity > 0);
+    if ((product as any).isComposite && selected.length === 0) {
+      toast({ title: t('messages.error') || 'Select components', description: 'Please select at least one component.', variant: "destructive" });
+      return;
+    }
+    const compositeConfiguration: CompositeConfiguration | undefined = (product as any).isComposite
+      ? { components: selected }
+      : undefined;
+    addToCart(product.id, (product as any).isComposite ? 1 : quantity, compositeConfiguration);
     toast({
       title: t('messages.addedToCart'),
       description: t('messages.addedToCartDesc').replace('{name}', translatedName),
@@ -353,7 +366,11 @@ export default function ProductDetails() {
 
             {/* Price — updates dynamically with quantity via volume discounts */}
             {(() => {
-              const vd = (product as any).volumeDiscounts;
+              const isComposite = !!(product as any).isComposite;
+              const compositeTotal = ((product as any).compositeComponents || []).slice(0, 8).reduce(
+                (sum: number, component: any) => sum + (componentQuantities[component.id] || 0) * parseFloat(component.price || "0"), 0
+              );
+              const vd = isComposite ? [] : (product as any).volumeDiscounts;
               const activeTier = getActiveTier(quantity, vd);
               const effectivePrice = activeTier
                 ? getVolumePrice(product.price, quantity, vd).toFixed(2)
@@ -361,7 +378,7 @@ export default function ProductDetails() {
               return (
                 <div className="flex items-baseline gap-3 flex-wrap">
                   <span className="text-3xl font-bold text-primary">
-                    {formatPrice(effectivePrice, product.currency)}
+                    {formatPrice(isComposite ? compositeTotal.toFixed(2) : effectivePrice, product.currency)}
                   </span>
                   {activeTier ? (
                     <>
@@ -527,7 +544,7 @@ export default function ProductDetails() {
             {/* Volume discount tiers — immediately above Add to Cart */}
             {(() => {
               const tiers = getSortedTiers((product as any).volumeDiscounts);
-              if (tiers.length === 0 || (product as any).isService) return null;
+              if (tiers.length === 0 || (product as any).isService || (product as any).isComposite) return null;
               const activeTier = getActiveTier(quantity, (product as any).volumeDiscounts);
               const effectiveUnitPrice = getVolumePrice(product.price, quantity, (product as any).volumeDiscounts);
               const cartTotal = (effectiveUnitPrice * quantity).toFixed(2);
@@ -602,6 +619,34 @@ export default function ProductDetails() {
                     {t('products.requestQuote')}
                   </Button>
                 </ContactModal>
+              </div>
+            ) : (product as any).isComposite ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border bg-white divide-y">
+                  {((product as any).compositeComponents || []).slice(0, 8).map((component: any) => {
+                    const componentQuantity = componentQuantities[component.id] || 0;
+                    return (
+                      <div key={component.id} className="flex items-center gap-3 p-3">
+                        {component.imageUrl && <img src={component.imageUrl} alt={component.name} className="h-12 w-12 rounded object-cover" />}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">{component.name}</p>
+                          <p className="text-xs text-muted-foreground">{component.productCode && `${component.productCode} · `}{formatPrice(component.price, component.currency || product.currency)}</p>
+                        </div>
+                        <div className="flex items-center border rounded-lg overflow-hidden">
+                          <button onClick={() => setComponentQuantities(current => ({ ...current, [component.id]: Math.max(0, (current[component.id] || 0) - 1) }))} className="px-2 py-2 hover:bg-gray-100" aria-label={`Decrease ${component.name}`}><Minus className="h-4 w-4" /></button>
+                          <input type="number" min="0" value={componentQuantity} onChange={(event) => setComponentQuantities(current => ({ ...current, [component.id]: Math.max(0, parseInt(event.target.value, 10) || 0) }))} className="w-12 border-x py-1 text-center" aria-label={`${component.name} quantity`} />
+                          <button onClick={() => setComponentQuantities(current => ({ ...current, [component.id]: (current[component.id] || 0) + 1 }))} className="px-2 py-2 hover:bg-gray-100" aria-label={`Increase ${component.name}`}><Plus className="h-4 w-4" /></button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center justify-between font-semibold">
+                  <span>Total</span><span>{formatPrice(((product as any).compositeComponents || []).slice(0, 8).reduce((sum: number, component: any) => sum + (componentQuantities[component.id] || 0) * parseFloat(component.price || "0"), 0).toFixed(2), product.currency)}</span>
+                </div>
+                <Button size="lg" className="w-full kitchen-pro-secondary" onClick={handleAddToCart} disabled={!product.inStock}>
+                  <ShoppingCart className="h-5 w-5 mr-2" />{t('products.addToCart')}
+                </Button>
               </div>
             ) : (
               <div className="space-y-3">
