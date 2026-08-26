@@ -240,9 +240,9 @@ export async function refreshMarketCaches(): Promise<void> {
 // Apply market-specific price/availability overlay to a product clone
 export function applyMarketOverlay(product: any, market: string): any {
   const productMarketRows = productMarketsMap.get(product.id);
-  // Legacy products that have never been assigned to any marketplace remain
-  // globally available until an administrator explicitly reconciles them.
-  if (!productMarketRows || productMarketRows.size === 0) return product;
+  // Marketplace availability is explicit. A product without any market row
+  // belongs to no storefront and must not bypass Admin marketplace filters.
+  if (!productMarketRows || productMarketRows.size === 0) return null;
 
   const marketRow = productMarketRows.get(market);
   // Once a product is assigned to at least one marketplace, its availability
@@ -1729,7 +1729,7 @@ Sitemap: https://${domain}/sitemap.xml
     }
     
     // Apply market overlay: filter out products disabled for this market, apply price overrides
-    if (productMarketsMap.size > 0) {
+    {
       const withOverlay: any[] = [];
       for (const p of products) {
         const overlaid = applyMarketOverlay(p, market);

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "./storage";
 import { db, pool } from "./db";
 import { companySettings, suppliers, productMarkets, invoices } from "@shared/schema";
-import { desc, eq, and, inArray, sql } from "drizzle-orm";
+import { desc, eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
@@ -4695,8 +4695,13 @@ export async function registerAdminRoutes(app: Express) {
       const defaultCurrency = companySettingsData?.defaultCurrency || 'RON';
       const defaultVatPercentage = companySettingsData?.defaultVatPercentage || 19;
 
-      // Build existing-product maps for duplicate detection
+      // Build existing-product maps for duplicate detection and market
+      // reassignment when an import repeats a legacy product by name.
       const existingNames = new Set(existingProducts.map((p: any) => p.name.toLowerCase()));
+      const existingNameMap = new Map<string, { id: number; name: string }>();
+      existingProducts.forEach((p: any) => {
+        existingNameMap.set(p.name.trim().toLowerCase(), { id: p.id, name: p.name });
+      });
       // product_code → { id, name } — only for non-empty codes
       const existingCodeMap = new Map<string, { id: number; name: string }>();
       existingProducts.forEach((p: any) => {
@@ -4878,7 +4883,33 @@ export async function registerAdminRoutes(app: Express) {
           // ── Skip if it's a code-duplicate with no strategy (shouldn't reach here) or name-dup ──
           if (existingId && !duplicateStrategy) { skipped++; continue; }
           if (!existingId && existingNames.has(productName.toLowerCase())) {
-            errors.push(`Rândul ${rowNumber}: Produsul "${productName}" există deja (după nume) — omis`);
+            const existingByName = existingNameMap.get(productName.toLowerCase());
+            if (!existingByName) {
+              errors.push(`Rândul ${rowNumber}: Produsul "${productName}" există deja — omis`);
+              skipped++;
+              continue;
+            }
+
+            // A repeated product name is an explicit import into the selected
+            // marketplace. Create/update only
+            // that product's target-market rows and leave other markets intact.
+            const existingMarkets = await storage.getProductMarkets(existingByName.id);
+            const productInAllowedMarket = isSuperAdmin ||
+              existingMarkets.some((pm: any) => adminAllowed.includes(pm.market));
+            if (!productInAllowedMarket) {
+              errors.push(`Rândul ${rowNumber}: Produsul #${existingByName.id} nu este în piețele autorizate — omis`);
+              skipped++;
+              continue;
+            }
+            for (const mkt of targetMarkets) {
+              await storage.setProductMarket({
+                productId: existingByName.id,
+                market: mkt,
+                isActive: true,
+              });
+            }
+            updated++;
+            console.log(`🔗 Re-associated existing product #${existingByName.id} "${productName}" → markets: ${targetMarkets.join(', ')}`);
             continue;
           }
           if (namesSeen.has(productName.toLowerCase())) {
@@ -5730,41 +5761,6 @@ export async function registerAdminRoutes(app: Express) {
       res.json(pms.filter(row => canAccessMarket(req, row.market)));
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch product markets" });
-    }
-  });
-
-  // POST /admin/api/products/fix-orphaned-markets
-  // Creates productMarkets rows (isActive: true) for every product that has NONE,
-  // so they become manageable from admin without changing live-site visibility.
-  // Body: { market: 'fr'|'ro'|'com' } — required, which market to register them under.
-  app.post("/admin/api/products/fix-orphaned-markets", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
-    try {
-      const { market } = req.body as { market?: string };
-      if (!market || !['ro', 'com', 'fr'].includes(market)) {
-        return res.status(400).json({ message: "market must be ro, com, or fr" });
-      }
-      if (!canAccessMarket(req, market)) {
-        return res.status(403).json({ message: `Acces interzis pentru piața ${market}` });
-      }
-
-      const orphaned = await db.execute(sql`
-        SELECT p.id, p.name FROM products p
-        WHERE NOT EXISTS (SELECT 1 FROM product_markets pm WHERE pm.product_id = p.id)
-        ORDER BY p.created_at DESC
-      `);
-
-      let fixed = 0;
-      for (const row of orphaned.rows as any[]) {
-        await storage.setProductMarket({ productId: row.id, market, isActive: true });
-        fixed++;
-      }
-
-      await loadAllDataIntoMemory();
-      await refreshMarketCaches();
-
-      res.json({ fixed, market, message: `${fixed} produse orfane înregistrate pe piața ${market} (active)` });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
     }
   });
 

@@ -3091,36 +3091,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     >
                       🔢 {t('products.generateCodes')}
                     </button>
-                    <button
-                      className="btn"
-                      style={{background: '#6f42c1', width: 'auto', padding: '8px 16px'}}
-                      title="Înregistrează în admin produsele importate care nu apar în lista de produse"
-                      onClick={async () => {
-                        const market = selectedMarketTab && selectedMarketTab !== 'all' ? selectedMarketTab : 'fr';
-                        if (!confirm(`Acest buton înregistrează în admin toate produsele fără piață asociată (importate cu sistemul vechi).\n\nPiața: ${market.toUpperCase()}\n\nContinuați?`)) return;
-                        try {
-                          const response = await fetch('/admin/api/products/fix-orphaned-markets', {
-                            method: 'POST',
-                            headers: {
-                              'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-                              'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ market })
-                          });
-                          const result = await response.json();
-                          if (response.ok) {
-                            alert(`✅ ${result.message}`);
-                            fetchProducts();
-                          } else {
-                            alert('❌ Eroare: ' + result.message);
-                          }
-                        } catch (error) {
-                          alert('❌ Eroare la repararea produselor orfane');
-                        }
-                      }}
-                    >
-                      🔧 Repară produse orfane
-                    </button>
                   </div>
                 </div>
                 
