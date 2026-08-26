@@ -2895,10 +2895,48 @@ export async function registerAdminRoutes(app: Express) {
       const html = await response.text();
       const $ = cheerio.load(html);
       
-      // Extract Open Graph meta tags
-      const ogTitle = $('meta[property="og:title"]').attr('content') || 
+      // Prefer structured Product data and product-specific headings over
+      // og:title. Some xHACCP pages inherit a generic site title in Open
+      // Graph metadata, which would otherwise rename the imported product.
+      const structuredItems: any[] = [];
+      $('script[type="application/ld+json"]').each((_, element) => {
+        try {
+          const parsed = JSON.parse($(element).contents().text());
+          const items = Array.isArray(parsed)
+            ? parsed
+            : Array.isArray(parsed?.["@graph"])
+              ? parsed["@graph"]
+              : [parsed];
+          structuredItems.push(...items);
+        } catch {
+          // Ignore malformed JSON-LD and continue with HTML fallbacks.
+        }
+      });
+      const productSchema = structuredItems.find(item => {
+        const type = item?.["@type"];
+        return type === "Product" || (Array.isArray(type) && type.includes("Product"));
+      });
+      const textFromFirst = (selectors: string[]): string => {
+        for (const selector of selectors) {
+          const value = $(selector).first().text().replace(/\s+/g, " ").trim();
+          if (value && !/^(products?|shop|catalog|all products)$/i.test(value)) return value;
+        }
+        return "";
+      };
+      const ogTitle = $('meta[property="og:title"]').attr('content') ||
                       $('meta[name="og:title"]').attr('content') ||
                       $('title').text() || '';
+      const structuredProductName = typeof productSchema?.name === "string"
+        ? productSchema.name.trim()
+        : "";
+      const productTitle = structuredProductName || textFromFirst([
+            '[itemprop="name"]',
+            '.product-title',
+            '.product-name',
+            '[data-product-title]',
+            'main h1',
+            'h1',
+          ]) || ogTitle.trim();
       
       // Try to get a fuller description from the page content first
       let fullDescription = '';
@@ -2939,11 +2977,19 @@ export async function registerAdminRoutes(app: Express) {
                             $('meta[name="og:description"]').attr('content') ||
                             $('meta[name="description"]').attr('content') || '';
       
-      let ogImage = $('meta[property="og:image"]').attr('content') || 
+      const structuredImage = Array.isArray(productSchema?.image)
+        ? productSchema.image[0]
+        : productSchema?.image;
+      let ogImage = typeof structuredImage === "string"
+        ? structuredImage
+        : typeof structuredImage?.url === "string"
+          ? structuredImage.url
+          : "";
+      ogImage = ogImage || $('meta[property="og:image"]').attr('content') ||
                     $('meta[name="og:image"]').attr('content') || '';
       
       // Make relative image URLs absolute
-      if (ogImage && !ogImage.startsWith('http')) {
+      if (typeof ogImage === "string" && ogImage && !ogImage.startsWith('http')) {
         ogImage = new URL(ogImage, parsedUrl.origin).href;
       }
       
@@ -2960,14 +3006,20 @@ export async function registerAdminRoutes(app: Express) {
       }
       
       // Try to extract price if available
-      const priceMatch = html.match(/["']price["']\s*:\s*["']?(\d+(?:[.,]\d{2})?)/i) ||
+      const structuredOffer = Array.isArray(productSchema?.offers)
+        ? productSchema.offers[0]
+        : productSchema?.offers;
+      const structuredPrice = structuredOffer?.price ?? structuredOffer?.lowPrice;
+      const priceMatch = structuredPrice != null
+        ? [null, String(structuredPrice)]
+        : html.match(/["']price["']\s*:\s*["']?(\d+(?:[.,]\d{2})?)/i) ||
                         html.match(/(\d+(?:[.,]\d{2})?)\s*(?:lei|ron|eur|€|RON|LEI)/i);
-      const price = priceMatch ? priceMatch[1].replace(',', '.') : null;
+      const price = priceMatch?.[1] ? priceMatch[1].replace(',', '.') : null;
       
       res.json({
         success: true,
         data: {
-          title: ogTitle.trim(),
+          title: productTitle,
           description: ogDescription.trim(),
           imageUrl: ogImage,
           price: price,

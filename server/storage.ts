@@ -351,7 +351,7 @@ export class DatabaseStorage implements IStorage {
         },
       })
       .from(products)
-      .innerJoin(categories, eq(products.categoryId, categories.id))
+      .leftJoin(categories, eq(products.categoryId, categories.id))
       .leftJoin(suppliers, eq(products.supplierId, suppliers.id));
 
     // Apply filters directly without building conditions array
@@ -365,9 +365,12 @@ export class DatabaseStorage implements IStorage {
       query.where(like(products.name, `%${options.search}%`));
     }
 
-    // Remove ordering for maximum speed
+    query.orderBy(desc(products.id));
     if (options?.limit) {
       query.limit(options.limit);
+    }
+    if (options?.offset) {
+      query.offset(options.offset);
     }
 
     return (await query) as unknown as ProductWithCategory[];

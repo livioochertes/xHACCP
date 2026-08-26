@@ -12498,6 +12498,7 @@
     const [productStatusFilter, setProductStatusFilter] = (0, import_react13.useState)("all");
     const [filteredProducts, setFilteredProducts] = (0, import_react13.useState)([]);
     const [productPage, setProductPage] = (0, import_react13.useState)(1);
+    const productsRequestIdRef = import_react13.default.useRef(0);
     const productsPerPage = 20;
     const [showProductAnalytics, setShowProductAnalytics] = (0, import_react13.useState)(false);
     const [analyticsData, setAnalyticsData] = (0, import_react13.useState)(null);
@@ -12678,10 +12679,12 @@
     (0, import_react13.useEffect)(() => {
       sessionStorage.setItem("adminMarketTab", selectedMarketTab);
       setMarketFilter(selectedMarketTab);
+      setProductCategoryFilter("all");
+      setProductPage(1);
       fetchStats(selectedMarketTab);
       if (activeView === "users") fetchUsers();
       else if (activeView === "products") {
-        fetchProducts();
+        fetchProducts(selectedMarketTab);
         fetchCategories();
       } else if (activeView === "categories") fetchCategories();
       else if (activeView === "suppliers") fetchSuppliers();
@@ -12804,9 +12807,11 @@
         console.error("Network error fetching orders:", err);
       }
     };
-    const fetchProducts = async () => {
+    const fetchProducts = async (marketOverride) => {
+      const requestId = ++productsRequestIdRef.current;
       try {
-        const marketParam = selectedMarketTab && selectedMarketTab !== "all" ? `?market=${selectedMarketTab}` : "";
+        const effectiveMarket = marketOverride !== void 0 ? marketOverride : selectedMarketTab;
+        const marketParam = effectiveMarket && effectiveMarket !== "all" ? `?market=${effectiveMarket}` : "";
         const response = await fetch(`/admin/api/products${marketParam}`, {
           headers: {
             "Authorization": `Bearer ${token}`
@@ -12814,7 +12819,10 @@
         });
         const data = await response.json();
         if (response.ok) {
-          setProducts(data);
+          if (requestId === productsRequestIdRef.current) {
+            setProducts(data);
+            setProductPage(1);
+          }
         } else {
           console.error("Failed to fetch products:", data.message);
         }
@@ -15324,7 +15332,7 @@ E\u0219uate: ${result.failed || 0}`);
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Actions" })
                 ] }) }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: (showProductSearchFilter ? filteredProducts : products).sort((a, b) => {
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: [...showProductSearchFilter ? filteredProducts : products].sort((a, b) => {
                   const priorityA = a.priority && a.priority > 0 ? a.priority : 9999;
                   const priorityB = b.priority && b.priority > 0 ? b.priority : 9999;
                   if (priorityA !== priorityB) return priorityA - priorityB;
@@ -19370,8 +19378,8 @@ Cordialement,`
           setImportUrl("");
           setImportedData(null);
           setUsageRightsConfirmed(false);
-          fetchProducts();
-          setTimeout(() => fetchProducts(), 1500);
+          fetchProducts(selectedMarketTab);
+          setTimeout(() => fetchProducts(selectedMarketTab), 1500);
         };
         const saveMarketData = async (productId, market) => {
           try {
