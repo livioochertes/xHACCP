@@ -105,6 +105,48 @@ async function buildCombinedParcels(items: any[], storageRef: typeof storage): P
   return parcels;
 }
 
+/**
+ * Provision the initial category structure for a marketplace without sharing
+ * category rows between markets. This is intentionally idempotent: existing
+ * target categories are never overwritten.
+ */
+async function ensureMarketCategories(market: string): Promise<any[]> {
+  const targetCategories = await storage.getCategories(market);
+  if (targetCategories.length > 0 || market === "ro") {
+    return targetCategories;
+  }
+
+  const sourceCategories = await storage.getCategories("ro");
+  if (sourceCategories.length === 0) {
+    return targetCategories;
+  }
+
+  const existingSlugs = new Set(targetCategories.map(category => category.slug));
+  let createdCount = 0;
+
+  for (const sourceCategory of sourceCategories) {
+    if (existingSlugs.has(sourceCategory.slug)) continue;
+    await storage.createCategory({
+      name: sourceCategory.name,
+      slug: sourceCategory.slug,
+      description: sourceCategory.description,
+      imageUrl: sourceCategory.imageUrl,
+      showOnMainTop: false,
+      showOnMainShop: false,
+      sortOrder: sourceCategory.sortOrder ?? 0,
+      marketCode: market,
+    });
+    existingSlugs.add(sourceCategory.slug);
+    createdCount += 1;
+  }
+
+  if (createdCount > 0) {
+    await loadAllDataIntoMemory();
+  }
+
+  return storage.getCategories(market);
+}
+
 // Helper function to extract URL from image object or string
 function extractImageUrl(image: any): string | null {
   if (!image) return null;
@@ -2942,7 +2984,9 @@ export async function registerAdminRoutes(app: Express) {
       if (!isSuperAdm && (!market || market === 'all')) {
         market = allowedMkts[0];
       }
-      const categories = await storage.getCategories(market);
+      const categories = market && market !== "all"
+        ? await ensureMarketCategories(market)
+        : await storage.getCategories(market);
       res.json(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
