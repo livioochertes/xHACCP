@@ -603,7 +603,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         setMarketFilter(selectedMarketTab);
         fetchStats(selectedMarketTab);
         if (activeView === 'users') fetchUsers();
-        else if (activeView === 'products') fetchProducts();
+        else if (activeView === 'products') {
+          fetchProducts();
+          fetchCategories();
+        }
         else if (activeView === 'categories') fetchCategories();
         else if (activeView === 'suppliers') fetchSuppliers();
         else if (activeView === 'vouchers') fetchVouchers();
@@ -2307,6 +2310,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           if (products.length === 0) {
             fetchProducts();
           }
+          // The product create/edit form uses the marketplace-scoped
+          // category list, so load it when entering Products as well.
+          fetchCategories();
           if (suppliers.length === 0) {
             fetchSuppliers();
           }

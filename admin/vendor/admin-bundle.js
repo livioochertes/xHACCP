@@ -12680,8 +12680,10 @@
       setMarketFilter(selectedMarketTab);
       fetchStats(selectedMarketTab);
       if (activeView === "users") fetchUsers();
-      else if (activeView === "products") fetchProducts();
-      else if (activeView === "categories") fetchCategories();
+      else if (activeView === "products") {
+        fetchProducts();
+        fetchCategories();
+      } else if (activeView === "categories") fetchCategories();
       else if (activeView === "suppliers") fetchSuppliers();
       else if (activeView === "vouchers") fetchVouchers();
       else if (activeView === "blog") fetchBlogPosts();
@@ -14191,6 +14193,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
         if (products.length === 0) {
           fetchProducts();
         }
+        fetchCategories();
         if (suppliers.length === 0) {
           fetchSuppliers();
         }
