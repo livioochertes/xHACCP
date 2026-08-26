@@ -18,6 +18,7 @@ import { readScheduleConfig, writeScheduleConfig } from "./blog-schedule-config"
 import { restartBlogScheduler } from "./blog-scheduler";
 import ExcelJS from "exceljs";
 import * as cheerio from "cheerio";
+import { formatProductDescription } from "@shared/format-product-description";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -2584,6 +2585,10 @@ export async function registerAdminRoutes(app: Express) {
         ...productData,
         slug,
         productCode,
+        descriptionHtml: formatProductDescription(
+          String(productData.description || ''),
+          String(productData.name || ''),
+        ),
         price: parseFloat(productData.price),
         compareAtPrice: productData.compareAtPrice && productData.compareAtPrice !== '' ? parseFloat(productData.compareAtPrice) : undefined,
         categoryId,
@@ -2677,6 +2682,12 @@ export async function registerAdminRoutes(app: Express) {
         return isNaN(parsed) ? null : parsed.toString();
       };
       
+      const existingProduct = await storage.getProduct(productId);
+      const descriptionChanged = productData.description !== undefined &&
+        String(productData.description || '') !== String(existingProduct?.description || '');
+      const nameChanged = productData.name !== undefined &&
+        String(productData.name || '') !== String(existingProduct?.name || '');
+      const descriptionNeedsFormatting = descriptionChanged || nameChanged || !existingProduct?.descriptionHtml;
       const updatedProduct = await storage.updateProduct(productId, {
         ...productData,
         // Override fields that need special handling/normalization
@@ -2689,6 +2700,14 @@ export async function registerAdminRoutes(app: Express) {
         stockQuantity: safeParseInt(productData.stockQuantity) ?? 0,
         images: cleanImages,
         imageUrl: mainImageUrl,
+        ...(descriptionNeedsFormatting
+          ? {
+              descriptionHtml: formatProductDescription(
+                String(productData.description || ''),
+                String(productData.name || existingProduct?.name || ''),
+              ),
+            }
+          : {}),
         // Convert logistics fields properly - weight must be minimum 1kg with 1kg increments (stored as string for decimal type)
         weight: productData.weight && String(productData.weight).trim() !== '' ? String(Math.max(1, Math.round(parseFloat(String(productData.weight))))) : null,
         length: safeDecimalString(productData.length),

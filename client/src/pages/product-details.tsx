@@ -230,8 +230,8 @@ export default function ProductDetails() {
   };
 
   const fallbackDesc = useMemo(
-    () => formatProductDescription(translatedDescription || ''),
-    [translatedDescription]
+    () => formatProductDescription(translatedDescription || '', translatedName),
+    [translatedDescription, translatedName]
   );
 
   const { data: aiDescData, isLoading: aiDescLoading } = useQuery<{ html: string }>({
