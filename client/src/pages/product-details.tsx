@@ -367,9 +367,6 @@ export default function ProductDetails() {
             {/* Price — updates dynamically with quantity via volume discounts */}
             {(() => {
               const isComposite = !!(product as any).isComposite;
-              const compositeTotal = ((product as any).compositeComponents || []).slice(0, 8).reduce(
-                (sum: number, component: any) => sum + (componentQuantities[component.id] || 0) * parseFloat(component.price || "0"), 0
-              );
               const vd = isComposite ? [] : (product as any).volumeDiscounts;
               const activeTier = getActiveTier(quantity, vd);
               const effectivePrice = activeTier
@@ -378,7 +375,7 @@ export default function ProductDetails() {
               return (
                 <div className="flex items-baseline gap-3 flex-wrap">
                   <span className="text-3xl font-bold text-primary">
-                    {formatPrice(isComposite ? compositeTotal.toFixed(2) : effectivePrice, product.currency)}
+                    {formatPrice(effectivePrice, product.currency)}
                   </span>
                   {activeTier ? (
                     <>
@@ -642,7 +639,7 @@ export default function ProductDetails() {
                   })}
                 </div>
                 <div className="flex items-center justify-between font-semibold">
-                  <span>Total</span><span>{formatPrice(((product as any).compositeComponents || []).slice(0, 8).reduce((sum: number, component: any) => sum + (componentQuantities[component.id] || 0) * parseFloat(component.price || "0"), 0).toFixed(2), product.currency)}</span>
+                  <span>Preț produs</span><span>{formatPrice(product.price, product.currency)}</span>
                 </div>
                 <Button size="lg" className="w-full kitchen-pro-secondary" onClick={handleAddToCart} disabled={!product.inStock}>
                   <ShoppingCart className="h-5 w-5 mr-2" />{t('products.addToCart')}

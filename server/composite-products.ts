@@ -72,6 +72,7 @@ export function calculateCompositeConfiguration(
   requestedInput: unknown,
   defaultCurrency: string,
   applyDiscount: (basePrice: number, quantity: number, tiers: unknown) => number,
+  compositePrice?: unknown,
 ): CompositeConfiguration {
   const requested = normalizeRequestedCompositeComponents(requestedInput);
   const requestedById = new Map(requested.map(item => [item.componentProductId, item.quantity]));
@@ -123,10 +124,16 @@ export function calculateCompositeConfiguration(
     throw new Error("All composite components must use the same currency");
   }
 
+  const configuredCompositePrice = Number(compositePrice);
+  const totalPrice = compositePrice !== undefined && compositePrice !== null &&
+    Number.isFinite(configuredCompositePrice) && configuredCompositePrice >= 0
+    ? configuredCompositePrice.toFixed(2)
+    : total.toFixed(2);
+
   return {
     components,
     currency: [...currencies][0] || defaultCurrency,
-    totalPrice: total.toFixed(2),
+    totalPrice,
   };
 }
 

@@ -304,9 +304,9 @@ export function applyMarketOverlay(product: any, market: string): any {
   if (!effectiveCategory) return null;
   // Currency priority: product_markets.currency → market_settings.currency → product.currency
   // Applied whenever a market row exists and is active (not only when other overrides are set)
-  // A composite parent's own price is not charged; its configured components
-  // define the amount. Keep one authoritative currency for the entire
-  // configuration so a parent override cannot relabel a RON sum as EUR.
+  // A composite uses its own marketplace price. Its configured components are
+  // used for the selection snapshot and validation, not to replace the parent
+  // product price.
   const effectiveCurrency = product.isComposite
     ? (marketSettingsMap.get(market)?.currency ?? product.currency)
     : (marketRow.currency ?? marketSettingsMap.get(market)?.currency ?? product.currency);
@@ -560,11 +560,16 @@ async function getCompositeConfiguration(
     throw new Error("Composite product has no configured components for this market");
   }
   const defaultCurrency = marketSettingsMap.get(market)?.currency ?? product.currency ?? "RON";
+  const effectiveProduct = applyMarketOverlay(product, market);
+  if (!effectiveProduct) {
+    throw new Error("Composite product is not available in this market");
+  }
   return calculateCompositeConfiguration(
     sources,
     requestedComponents,
     defaultCurrency,
     applyVolumeDiscount,
+    effectiveProduct.price,
   );
 }
 
