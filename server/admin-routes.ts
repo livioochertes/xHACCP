@@ -2576,11 +2576,16 @@ export async function registerAdminRoutes(app: Express) {
         const parsed = parseInt(String(value));
         return isNaN(parsed) ? undefined : parsed;
       };
+      const safeParseDecimal = (value: any): string | undefined => {
+        if (value === '' || value === undefined || value === null) return undefined;
+        const parsed = parseFloat(String(value));
+        return isNaN(parsed) ? undefined : parsed.toString();
+      };
 
       const categoryId = productData.categoryId !== undefined
         ? await validateCategoryForMarket(productData.categoryId, targetMarket)
         : null;
-      const stockQuantity = parseInt(productData.stockQuantity || 0);
+      const stockQuantity = safeParseInt(productData.stockQuantity) ?? 0;
       const productInsert = {
         ...productData,
         slug,
@@ -2591,9 +2596,12 @@ export async function registerAdminRoutes(app: Express) {
         ),
         price: parseFloat(productData.price),
         compareAtPrice: productData.compareAtPrice && productData.compareAtPrice !== '' ? parseFloat(productData.compareAtPrice) : undefined,
+        vatValue: safeParseDecimal(productData.vatValue),
+        vatPercentage: safeParseDecimal(productData.vatPercentage),
         categoryId,
         supplierId: safeParseInt(productData.supplierId),
         stockQuantity,
+        piecesPerPackage: safeParseInt(productData.piecesPerPackage),
         images: cleanImages,
         imageUrl: mainImageUrl,
         // Convert logistics fields properly - weight must be minimum 1kg with 1kg increments

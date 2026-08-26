@@ -9,3 +9,4 @@
 - [Atomic marketplace product creation](atomic-market-product-creation.md) — a new product and its first marketplace row must commit together; never confirm a global orphan.
 - [Product URL import metadata](product-url-import-metadata.md) — prefer Product JSON-LD and page headings; xHACCP product pages can expose a generic og:title.
 - [Product description formatting](product-description-formatting.md) — keep editable source text plain; generate storefront HTML deterministically when products are saved.
+- [Admin numeric form fields](admin-numeric-form-fields.md) — optional numeric inputs can arrive as empty strings; normalize them server-side before database writes.
