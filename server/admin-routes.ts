@@ -3120,12 +3120,22 @@ export async function registerAdminRoutes(app: Express) {
   app.delete("/admin/api/categories/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const categoryId = parseInt(req.params.id);
+      if (!Number.isInteger(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
 
       // Record-level market ownership check
       const catToDelete = await storage.getCategory(categoryId);
       if (!catToDelete) return res.status(404).json({ message: "Category not found" });
       if (!canAccessMarket(req as AdminAuthRequest, catToDelete.marketCode || 'ro')) {
         return res.status(403).json({ message: "Access denied for this market" });
+      }
+
+      const assignedProducts = await storage.getProducts({ categoryId });
+      if (assignedProducts.length > 0) {
+        return res.status(409).json({
+          message: `Categoria nu poate fi ștearsă deoarece are ${assignedProducts.length} produs(e) asociat(e). Reasociază produsele la o altă categorie și încearcă din nou.`,
+        });
       }
 
       await storage.deleteCategory(categoryId);
@@ -4366,8 +4376,26 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(400).json({ message: "Maximum 3 categories allowed for main shop section" });
       }
 
-      // Reset all categories
-      const allCategories = await storage.getCategories();
+      const allowedMkts = req.adminMarkets || [];
+      const isSuperAdmin = allowedMkts.length === 0;
+      const requestedMarket = req.body?.marketCode;
+      if (requestedMarket !== undefined &&
+          (!['ro', 'fr', 'com'].includes(requestedMarket) ||
+           !canAccessMarket(req, requestedMarket))) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const targetMarket = requestedMarket ||
+        (isSuperAdmin ? 'ro' : allowedMkts[0]);
+
+      // Homepage flags are marketplace-specific. Never reset or update
+      // categories belonging to another storefront.
+      const allCategories = await storage.getCategories(targetMarket);
+      const categoryIds = new Set(allCategories.map(category => category.id));
+      const requestedIds = [...mainTopCategories, ...mainShopCategories].map((id: unknown) => parseInt(String(id), 10));
+      if (requestedIds.some(id => !categoryIds.has(id))) {
+        return res.status(400).json({ message: "One or more categories do not belong to the selected marketplace" });
+      }
+
       const resetPromises = allCategories.map(category => 
         storage.updateCategory(category.id, { 
           showOnMainTop: false, 
@@ -4401,7 +4429,8 @@ export async function registerAdminRoutes(app: Express) {
       res.json({ 
         message: "Homepage categories updated successfully",
         mainTopCount: mainTopCategories.length,
-        mainShopCount: mainShopCategories.length
+        mainShopCount: mainShopCategories.length,
+        marketCode: targetMarket,
       });
     } catch (error) {
       console.error("Error updating homepage categories:", error);

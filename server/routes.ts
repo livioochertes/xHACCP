@@ -1779,13 +1779,17 @@ Sitemap: https://${domain}/sitemap.xml
     const market = queryMarket || getMarketFromRequest(req);
     if (market && market !== 'all') {
       const filtered = categoriesData.filter((c: any) => (c.marketCode || 'ro') === market);
-      // If no market-specific categories found (e.g. production DB only has RO rows),
-      // fall back to RO base categories so FR/COM markets are never empty.
-      if (filtered.length > 0) {
-        return res.json(filtered);
-      }
-      const fallback = categoriesData.filter((c: any) => (c.marketCode || 'ro') === 'ro');
-      return res.json(fallback);
+      // Category rows are independent per marketplace. Never expose another
+      // market's rows as a fallback: that would make a category look available
+      // on the wrong storefront and make its product links ambiguous.
+      const withMarketCounts = filtered.map((category: any) => ({
+        ...category,
+        productCount: allProductsData.filter((product: any) =>
+          product.category?.slug === category.slug &&
+          applyMarketOverlay(product, market) !== null
+        ).length,
+      }));
+      return res.json(withMarketCounts);
     }
     res.send(stringifiedCategoriesData);
   });
@@ -1836,7 +1840,15 @@ Sitemap: https://${domain}/sitemap.xml
     
     // Get from memory - no database queries, no async operations
     if (categorySlug) {
-      products = productsByCategory.get(categorySlug as string) || [];
+      // Category slugs are unique only within a marketplace. Products retain a
+      // single category reference, while each marketplace has its own category
+      // row, so the old global slug map could select a different market's
+      // category (or an empty duplicate). Match by slug first, then apply the
+      // current marketplace overlay below.
+      const requestedSlug = String(categorySlug);
+      products = allProductsData.filter((product: any) =>
+        product.category?.slug === requestedSlug
+      );
     } else {
       products = allProductsData;
     }

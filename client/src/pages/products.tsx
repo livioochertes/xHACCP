@@ -91,6 +91,16 @@ export default function Products() {
     categories as any
   );
 
+  // The sidebar is the storefront's curated category navigation. Categories
+  // not selected for the Shop section remain manageable in Admin but are not
+  // exposed as public navigation links.
+  const sidebarCategories = useMemo(
+    () => categories
+      .filter(category => category.showOnMainShop)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+    [categories]
+  );
+
   const getCategoryName = (category: Category | null | undefined) => {
     if (!category) return '';
     return getTranslatedCategoryName(category.id, category.name);
@@ -206,7 +216,7 @@ export default function Products() {
                     >
                       {t('nav.products')}
                     </Link>
-                    {categories.map((category) => (
+                    {sidebarCategories.map((category) => (
                       <Link
                         key={category.id}
                         href={buildCategoryUrl(category.slug)}

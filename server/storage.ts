@@ -267,7 +267,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCategory(id: number): Promise<void> {
-    await db.delete(categories).where(eq(categories.id, id));
+    // Category translations have a foreign key to the category without an
+    // automatic database cascade. Remove them in the same transaction so an
+    // otherwise valid empty category can be deleted from Admin safely.
+    await db.transaction(async (tx) => {
+      await tx.delete(categoryTranslations).where(eq(categoryTranslations.categoryId, id));
+      await tx.delete(categories).where(eq(categories.id, id));
+    });
   }
 
   // Product operations

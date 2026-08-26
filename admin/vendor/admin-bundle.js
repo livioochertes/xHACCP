@@ -14042,7 +14042,8 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
               },
               body: JSON.stringify({
                 mainTopCategories,
-                mainShopCategories
+                mainShopCategories,
+                marketCode: selectedMarketTab && selectedMarketTab !== "all" ? selectedMarketTab : void 0
               })
             });
             const data2 = await response2.json();
@@ -23162,7 +23163,8 @@ ${selectedOrders.map((id) => {
                       },
                       body: JSON.stringify({
                         mainTopCategories: homepageConfig.mainTop,
-                        mainShopCategories: homepageConfig.mainShop
+                        mainShopCategories: homepageConfig.mainShop,
+                        marketCode: selectedMarketTab && selectedMarketTab !== "all" ? selectedMarketTab : void 0
                       })
                     });
                     const data = await response.json();

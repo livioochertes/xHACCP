@@ -2124,7 +2124,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             },
             body: JSON.stringify({
               mainTopCategories,
-              mainShopCategories
+              mainShopCategories,
+              marketCode: selectedMarketTab && selectedMarketTab !== 'all' ? selectedMarketTab : undefined
             })
           });
           
@@ -10748,7 +10749,8 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                             },
                             body: JSON.stringify({
                               mainTopCategories: homepageConfig.mainTop,
-                              mainShopCategories: homepageConfig.mainShop
+                              mainShopCategories: homepageConfig.mainShop,
+                              marketCode: selectedMarketTab && selectedMarketTab !== 'all' ? selectedMarketTab : undefined
                             })
                           });
                           
