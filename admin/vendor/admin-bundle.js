@@ -10683,6 +10683,42 @@
       volumeDiscountPercent: "Discount (%)",
       volumeDiscountAddTier: "Add discount tier",
       volumeDiscountEmpty: "No tiers defined. Example: from 5 pcs \u2192 10% discount, from 10 pcs \u2192 20% discount",
+      bulkUpdatePrices: "Update Prices",
+      bulkUpdateCategories: "Update Categories",
+      bulkUpdateStatus: "Update Status",
+      bulkUpdateStock: "Update Stock",
+      bulkExport: "Export Products",
+      bulkDelete: "Delete Products",
+      bulkPriceRequired: "Enter a price multiplier or fixed price.",
+      bulkCategoryRequired: "Select a category.",
+      bulkStatusRequired: "Select a status.",
+      bulkStockRequired: "Enter a stock value.",
+      bulkInvalidAction: "Invalid action.",
+      bulkConfirmDeleteMarket: "Remove {{count}} products from the {{market}} marketplace?\n\nThey will remain in other marketplaces and historical orders will be preserved.",
+      bulkConfirmDeleteAll: "Are you sure you want to delete {{count}} products from all marketplaces?\n\nThis action cannot be undone.",
+      bulkConfirmAction: "Confirm the action \u201C{{action}}\u201D for {{count}} selected products?",
+      bulkSuccess: "{{action}} completed successfully for {{count}} products.",
+      bulkNoSelection: "Select at least one product to use this action.",
+      bulkSelectAction: "Select an action.",
+      bulkSelectActionFor: "Select an action for {{count}} selected products",
+      bulkNoSelectionHint: "Select an action. You must select at least one product before using it.",
+      bulkBack: "Back",
+      bulkPriceMultiplierLabel: "Price multiplier (e.g. 1.1 for a 10% increase)",
+      bulkPriceMultiplierPlaceholder: "Enter multiplier (e.g. 1.1)",
+      bulkFixedPriceLabel: "OR set a fixed price",
+      bulkFixedPricePlaceholder: "Enter fixed price",
+      bulkNewCategory: "New category",
+      bulkSelectCategory: "Select category...",
+      bulkNewStatus: "New status",
+      bulkSelectStatus: "Select status...",
+      bulkStockOperation: "Stock operation",
+      bulkStockSet: "Set stock to",
+      bulkStockAdd: "Add to stock",
+      bulkStockSubtract: "Subtract from stock",
+      bulkStockValue: "Stock value",
+      bulkStockValuePlaceholder: "Enter stock value",
+      bulkConfirmExecute: "Confirm and Execute",
+      bulkProcessing: "Processing...",
       modal: {
         editTitle: "Edit Product",
         addTitle: "Add New Product",
@@ -11230,6 +11266,42 @@
       volumeDiscountPercent: "Discount (%)",
       volumeDiscountAddTier: "Adaug\u0103 treapt\u0103 discount",
       volumeDiscountEmpty: "Nicio treapt\u0103 definit\u0103. Exemplu: de la 5 buc \u2192 10% discount, de la 10 buc \u2192 20% discount",
+      bulkUpdatePrices: "Actualizeaz\u0103 pre\u021Burile",
+      bulkUpdateCategories: "Actualizeaz\u0103 categoriile",
+      bulkUpdateStatus: "Actualizeaz\u0103 statusul",
+      bulkUpdateStock: "Actualizeaz\u0103 stocul",
+      bulkExport: "Export\u0103 produsele",
+      bulkDelete: "\u0218terge produsele",
+      bulkPriceRequired: "Introdu un multiplicator de pre\u021B sau un pre\u021B fix.",
+      bulkCategoryRequired: "Selecteaz\u0103 o categorie.",
+      bulkStatusRequired: "Selecteaz\u0103 un status.",
+      bulkStockRequired: "Introdu o valoare pentru stoc.",
+      bulkInvalidAction: "Ac\u021Biune invalid\u0103.",
+      bulkConfirmDeleteMarket: "Elimini {{count}} produse din marketplace-ul {{market}}?\n\nVor r\u0103m\xE2ne \xEEn celelalte marketplace-uri, iar comenzile istorice vor fi p\u0103strate.",
+      bulkConfirmDeleteAll: "Sigur vrei s\u0103 \u0219tergi {{count}} produse din toate marketplace-urile?\n\nAceast\u0103 ac\u021Biune nu poate fi anulat\u0103.",
+      bulkConfirmAction: "Confirmi ac\u021Biunea \u201E{{action}}\u201D pentru {{count}} produse selectate?",
+      bulkSuccess: "{{action}} finalizat\u0103 cu succes pentru {{count}} produse.",
+      bulkNoSelection: "Selecteaz\u0103 cel pu\u021Bin un produs pentru a folosi aceast\u0103 ac\u021Biune.",
+      bulkSelectAction: "Selecteaz\u0103 o ac\u021Biune.",
+      bulkSelectActionFor: "Selecteaz\u0103 ac\u021Biunea pentru {{count}} produse selectate",
+      bulkNoSelectionHint: "Selecteaz\u0103 o ac\u021Biune. Mai \xEEnt\xE2i va trebui s\u0103 selectezi cel pu\u021Bin un produs.",
+      bulkBack: "\xCEnapoi",
+      bulkPriceMultiplierLabel: "Multiplicator pre\u021B (ex.: 1,1 pentru o cre\u0219tere de 10%)",
+      bulkPriceMultiplierPlaceholder: "Introdu multiplicatorul (ex.: 1,1)",
+      bulkFixedPriceLabel: "SAU seteaz\u0103 un pre\u021B fix",
+      bulkFixedPricePlaceholder: "Introdu pre\u021Bul fix",
+      bulkNewCategory: "Categorie nou\u0103",
+      bulkSelectCategory: "Selecteaz\u0103 categoria...",
+      bulkNewStatus: "Status nou",
+      bulkSelectStatus: "Selecteaz\u0103 statusul...",
+      bulkStockOperation: "Opera\u021Biune stoc",
+      bulkStockSet: "Seteaz\u0103 stocul la",
+      bulkStockAdd: "Adaug\u0103 la stoc",
+      bulkStockSubtract: "Scade din stoc",
+      bulkStockValue: "Valoare stoc",
+      bulkStockValuePlaceholder: "Introdu valoarea stocului",
+      bulkConfirmExecute: "Confirm\u0103 \u0219i execut\u0103",
+      bulkProcessing: "Se proceseaz\u0103...",
       modal: {
         editTitle: "Editeaz\u0103 produs",
         addTitle: "Adaug\u0103 produs nou",
@@ -11777,6 +11849,42 @@
       volumeDiscountPercent: "Remise (%)",
       volumeDiscountAddTier: "Ajouter un palier de remise",
       volumeDiscountEmpty: "Aucun palier d\xE9fini. Exemple : d\xE8s 5 pcs \u2192 10% de remise, d\xE8s 10 pcs \u2192 20% de remise",
+      bulkUpdatePrices: "Mettre \xE0 jour les prix",
+      bulkUpdateCategories: "Mettre \xE0 jour les cat\xE9gories",
+      bulkUpdateStatus: "Mettre \xE0 jour le statut",
+      bulkUpdateStock: "Mettre \xE0 jour le stock",
+      bulkExport: "Exporter les produits",
+      bulkDelete: "Supprimer les produits",
+      bulkPriceRequired: "Saisissez un multiplicateur de prix ou un prix fixe.",
+      bulkCategoryRequired: "S\xE9lectionnez une cat\xE9gorie.",
+      bulkStatusRequired: "S\xE9lectionnez un statut.",
+      bulkStockRequired: "Saisissez une valeur de stock.",
+      bulkInvalidAction: "Action invalide.",
+      bulkConfirmDeleteMarket: "Supprimer {{count}} produits du marketplace {{market}} ?\n\nIls resteront dans les autres marketplaces et les commandes historiques seront conserv\xE9es.",
+      bulkConfirmDeleteAll: "Voulez-vous vraiment supprimer {{count}} produits de tous les marketplaces ?\n\nCette action est irr\xE9versible.",
+      bulkConfirmAction: "Confirmer l\u2019action \xAB {{action}} \xBB pour {{count}} produits s\xE9lectionn\xE9s ?",
+      bulkSuccess: "{{action}} termin\xE9 avec succ\xE8s pour {{count}} produits.",
+      bulkNoSelection: "S\xE9lectionnez au moins un produit pour utiliser cette action.",
+      bulkSelectAction: "S\xE9lectionnez une action.",
+      bulkSelectActionFor: "S\xE9lectionnez une action pour {{count}} produits s\xE9lectionn\xE9s",
+      bulkNoSelectionHint: "S\xE9lectionnez une action. Vous devez d\u2019abord s\xE9lectionner au moins un produit.",
+      bulkBack: "Retour",
+      bulkPriceMultiplierLabel: "Multiplicateur de prix (ex. : 1,1 pour une hausse de 10 %)",
+      bulkPriceMultiplierPlaceholder: "Saisissez le multiplicateur (ex. : 1,1)",
+      bulkFixedPriceLabel: "OU d\xE9finissez un prix fixe",
+      bulkFixedPricePlaceholder: "Saisissez le prix fixe",
+      bulkNewCategory: "Nouvelle cat\xE9gorie",
+      bulkSelectCategory: "S\xE9lectionnez une cat\xE9gorie...",
+      bulkNewStatus: "Nouveau statut",
+      bulkSelectStatus: "S\xE9lectionnez un statut...",
+      bulkStockOperation: "Op\xE9ration de stock",
+      bulkStockSet: "D\xE9finir le stock \xE0",
+      bulkStockAdd: "Ajouter au stock",
+      bulkStockSubtract: "Soustraire du stock",
+      bulkStockValue: "Valeur du stock",
+      bulkStockValuePlaceholder: "Saisissez la valeur du stock",
+      bulkConfirmExecute: "Confirmer et ex\xE9cuter",
+      bulkProcessing: "Traitement en cours...",
       modal: {
         editTitle: "Modifier le produit",
         addTitle: "Ajouter un nouveau produit",
@@ -14887,13 +14995,8 @@ This action cannot be undone.`)) {
                           boxShadow: showProductBulkActions ? "0 0 0 3px rgba(0, 123, 255, 0.2)" : "none"
                         },
                         onClick: () => {
-                          if (selectedProducts.length === 0) {
-                            alert("Please select products first by checking the boxes in the product list.");
-                            return;
-                          }
                           setShowProductBulkActions(!showProductBulkActions);
                         },
-                        disabled: selectedProducts.length === 0,
                         "aria-haspopup": "menu",
                         "aria-expanded": showProductBulkActions,
                         children: [
@@ -17870,23 +17973,23 @@ This action cannot be undone.`)) {
       const [stockOperation, setStockOperation] = (0, import_react13.useState)("set");
       const [stockValue, setStockValue] = (0, import_react13.useState)("");
       const operationLabels = {
-        "update-prices": "Update Prices",
-        "update-categories": "Update Categories",
-        "update-status": "Update Status",
-        "update-stock": "Update Stock",
-        export: "Export Products",
-        delete: "Delete Products"
+        "update-prices": t2("products.bulkUpdatePrices"),
+        "update-categories": t2("products.bulkUpdateCategories"),
+        "update-status": t2("products.bulkUpdateStatus"),
+        "update-stock": t2("products.bulkUpdateStock"),
+        export: t2("products.bulkExport"),
+        delete: t2("products.bulkDelete")
       };
       const handleOperation = async () => {
         if (!selectedOperation) {
-          alert("Please select an operation");
+          alert(t2("products.bulkSelectAction"));
           return;
         }
         let payload = {};
         switch (selectedOperation) {
           case "update-prices":
             if (!priceMultiplier && !fixedPrice) {
-              alert("Please enter a price multiplier or fixed price");
+              alert(t2("products.bulkPriceRequired"));
               return;
             }
             payload = {
@@ -17896,21 +17999,21 @@ This action cannot be undone.`)) {
             break;
           case "update-categories":
             if (!newCategoryId) {
-              alert("Please select a category");
+              alert(t2("products.bulkCategoryRequired"));
               return;
             }
             payload = { categoryId: parseInt(newCategoryId) };
             break;
           case "update-status":
             if (!newStatus) {
-              alert("Please select a status");
+              alert(t2("products.bulkStatusRequired"));
               return;
             }
             payload = { status: newStatus };
             break;
           case "update-stock":
             if (!stockValue) {
-              alert("Please enter a stock value");
+              alert(t2("products.bulkStockRequired"));
               return;
             }
             payload = {
@@ -17922,22 +18025,18 @@ This action cannot be undone.`)) {
           case "delete":
             break;
           default:
-            alert("Invalid operation");
+            alert(t2("products.bulkInvalidAction"));
             return;
         }
         const marketScoped = selectedMarketTab && selectedMarketTab !== "all";
-        const confirmation = selectedOperation === "delete" ? marketScoped ? `Remove ${selectedProducts.length} products from the ${selectedMarketTab.toUpperCase()} marketplace?
-
-They will remain in other marketplaces and historical orders will be preserved.` : `Are you sure you want to delete ${selectedProducts.length} products from all marketplaces?
-
-This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}" for ${selectedProducts.length} selected products?`;
+        const confirmation = selectedOperation === "delete" ? marketScoped ? t2("products.bulkConfirmDeleteMarket", { count: selectedProducts.length, market: selectedMarketTab.toUpperCase() }) : t2("products.bulkConfirmDeleteAll", { count: selectedProducts.length }) : t2("products.bulkConfirmAction", { action: operationLabels[selectedOperation], count: selectedProducts.length });
         if (!window.confirm(confirmation)) {
           return;
         }
         setIsProcessing(true);
         const result = await performProductBulkOperation(selectedOperation, selectedProducts, payload);
         if (result.success) {
-          alert(`${operationLabels[selectedOperation]} completed successfully for ${selectedProducts.length} products`);
+          alert(t2("products.bulkSuccess", { action: operationLabels[selectedOperation], count: selectedProducts.length }));
           setSelectedProducts([]);
           setShowProductBulkActions(false);
           setSelectedOperation("");
@@ -17962,22 +18061,22 @@ This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}
         fontSize: "14px"
       };
       const chooseOperation = (operation) => {
+        if (selectedProducts.length === 0) {
+          alert(t2("products.bulkNoSelection"));
+          return;
+        }
         setSelectedOperation(operation);
       };
       return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { children: !selectedOperation ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "4px 10px 8px", color: "#666", fontSize: "13px", borderBottom: "1px solid #eee", marginBottom: "4px" }, children: [
-          "Select action for ",
-          selectedProducts.length,
-          " selected products"
-        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "4px 10px 8px", color: "#666", fontSize: "13px", borderBottom: "1px solid #eee", marginBottom: "4px" }, children: selectedProducts.length > 0 ? t2("products.bulkSelectActionFor", { count: selectedProducts.length }) : t2("products.bulkNoSelectionHint") }),
         [
-          ["update-prices", "\u{1F4B0} Update Prices"],
-          ["update-categories", "\u{1F4C1} Update Categories"],
-          ["update-status", "\u{1F504} Update Status"],
-          ["update-stock", "\u{1F4E6} Update Stock"],
-          ["export", "\u{1F4E4} Export Products"],
-          ["delete", "\u{1F5D1}\uFE0F Delete Products"]
-        ].map(([operation, label]) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          ["update-prices", "\u{1F4B0}", operationLabels["update-prices"]],
+          ["update-categories", "\u{1F4C1}", operationLabels["update-categories"]],
+          ["update-status", "\u{1F504}", operationLabels["update-status"]],
+          ["update-stock", "\u{1F4E6}", operationLabels["update-stock"]],
+          ["export", "\u{1F4E4}", operationLabels.export],
+          ["delete", "\u{1F5D1}\uFE0F", operationLabels.delete]
+        ].map(([operation, icon, label]) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
           "button",
           {
             type: "button",
@@ -17993,26 +18092,33 @@ This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}
             onMouseLeave: (e2) => {
               e2.currentTarget.style.background = "transparent";
             },
-            children: label
+            children: [
+              icon,
+              " ",
+              label
+            ]
           },
           operation
         ))
       ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", padding: "4px 2px 10px", borderBottom: "1px solid #eee", marginBottom: "10px" }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#333", fontSize: "14px" }, children: operationLabels[selectedOperation] }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
             "button",
             {
               type: "button",
               onClick: () => setSelectedOperation(""),
               style: { border: "none", background: "transparent", color: "#6c757d", cursor: "pointer", fontSize: "13px", padding: "2px 4px" },
-              children: "\u2190 Back"
+              children: [
+                "\u2190 ",
+                t2("products.bulkBack")
+              ]
             }
           )
         ] }),
         selectedOperation === "update-prices" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Price Multiplier (e.g., 1.1 for 10% increase)" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.bulkPriceMultiplierLabel") }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "input",
               {
@@ -18021,12 +18127,12 @@ This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}
                 className: "form-input",
                 value: priceMultiplier,
                 onChange: (e2) => setPriceMultiplier(e2.target.value),
-                placeholder: "Enter multiplier (e.g., 1.1)"
+                placeholder: t2("products.bulkPriceMultiplierPlaceholder")
               }
             )
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "OR Set Fixed Price" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.bulkFixedPriceLabel") }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "input",
               {
@@ -18035,13 +18141,13 @@ This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}
                 className: "form-input",
                 value: fixedPrice,
                 onChange: (e2) => setFixedPrice(e2.target.value),
-                placeholder: "Enter fixed price"
+                placeholder: t2("products.bulkFixedPricePlaceholder")
               }
             )
           ] })
         ] }),
         selectedOperation === "update-categories" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "New Category" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.bulkNewCategory") }),
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
             "select",
             {
@@ -18049,14 +18155,14 @@ This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}
               value: newCategoryId,
               onChange: (e2) => setNewCategoryId(e2.target.value),
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Select Category..." }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("products.bulkSelectCategory") }),
                 categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: category.id, children: category.name }, category.id))
               ]
             }
           )
         ] }),
         selectedOperation === "update-status" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "New Status" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.bulkNewStatus") }),
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
             "select",
             {
@@ -18064,18 +18170,18 @@ This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}
               value: newStatus,
               onChange: (e2) => setNewStatus(e2.target.value),
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Select Status..." }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "active", children: "Active" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "inactive", children: "Inactive" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "draft", children: "Draft" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "discontinued", children: "Discontinued" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("products.bulkSelectStatus") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "active", children: t2("common.active") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "inactive", children: t2("common.inactive") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "draft", children: t2("common.draft") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "discontinued", children: t2("common.discontinued") })
               ]
             }
           )
         ] }),
         selectedOperation === "update-stock" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Stock Operation" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.bulkStockOperation") }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
               "select",
               {
@@ -18083,15 +18189,15 @@ This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}
                 value: stockOperation,
                 onChange: (e2) => setStockOperation(e2.target.value),
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "set", children: "Set Stock To" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "add", children: "Add To Stock" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "subtract", children: "Subtract From Stock" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "set", children: t2("products.bulkStockSet") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "add", children: t2("products.bulkStockAdd") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "subtract", children: t2("products.bulkStockSubtract") })
                 ]
               }
             )
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Stock Value" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.bulkStockValue") }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "input",
               {
@@ -18099,7 +18205,7 @@ This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}
                 className: "form-input",
                 value: stockValue,
                 onChange: (e2) => setStockValue(e2.target.value),
-                placeholder: "Enter stock value"
+                placeholder: t2("products.bulkStockValuePlaceholder")
               }
             )
           ] })
@@ -18112,12 +18218,12 @@ This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}
             style: { background: selectedOperation === "delete" ? "#dc3545" : "#28a745", width: "100%", marginTop: "6px" },
             onClick: handleOperation,
             disabled: isProcessing,
-            children: isProcessing ? "Processing..." : "Confirm and Execute"
+            children: isProcessing ? t2("products.bulkProcessing") : t2("products.bulkConfirmExecute")
           }
         ),
         isProcessing && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { textAlign: "center", marginTop: "12px" }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "loading" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: "Processing operation..." })
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: t2("products.bulkProcessing") })
         ] })
       ] }) });
     };

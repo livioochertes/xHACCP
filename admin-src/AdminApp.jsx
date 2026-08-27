@@ -2997,13 +2997,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           boxShadow: showProductBulkActions ? '0 0 0 3px rgba(0, 123, 255, 0.2)' : 'none'
                         }}
                         onClick={() => {
-                          if (selectedProducts.length === 0) {
-                            alert('Please select products first by checking the boxes in the product list.');
-                            return;
-                          }
                           setShowProductBulkActions(!showProductBulkActions);
                         }}
-                        disabled={selectedProducts.length === 0}
                         aria-haspopup="menu"
                         aria-expanded={showProductBulkActions}
                       >
@@ -5723,17 +5718,17 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         const [stockValue, setStockValue] = useState('');
 
         const operationLabels = {
-          'update-prices': 'Update Prices',
-          'update-categories': 'Update Categories',
-          'update-status': 'Update Status',
-          'update-stock': 'Update Stock',
-          export: 'Export Products',
-          delete: 'Delete Products'
+          'update-prices': t('products.bulkUpdatePrices'),
+          'update-categories': t('products.bulkUpdateCategories'),
+          'update-status': t('products.bulkUpdateStatus'),
+          'update-stock': t('products.bulkUpdateStock'),
+          export: t('products.bulkExport'),
+          delete: t('products.bulkDelete')
         };
 
         const handleOperation = async () => {
           if (!selectedOperation) {
-            alert('Please select an operation');
+            alert(t('products.bulkSelectAction'));
             return;
           }
 
@@ -5741,7 +5736,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           switch (selectedOperation) {
             case 'update-prices':
               if (!priceMultiplier && !fixedPrice) {
-                alert('Please enter a price multiplier or fixed price');
+                alert(t('products.bulkPriceRequired'));
                 return;
               }
               payload = {
@@ -5751,21 +5746,21 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               break;
             case 'update-categories':
               if (!newCategoryId) {
-                alert('Please select a category');
+                alert(t('products.bulkCategoryRequired'));
                 return;
               }
               payload = { categoryId: parseInt(newCategoryId) };
               break;
             case 'update-status':
               if (!newStatus) {
-                alert('Please select a status');
+                alert(t('products.bulkStatusRequired'));
                 return;
               }
               payload = { status: newStatus };
               break;
             case 'update-stock':
               if (!stockValue) {
-                alert('Please enter a stock value');
+                alert(t('products.bulkStockRequired'));
                 return;
               }
               payload = {
@@ -5777,16 +5772,16 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             case 'delete':
               break;
             default:
-              alert('Invalid operation');
+              alert(t('products.bulkInvalidAction'));
               return;
           }
 
           const marketScoped = selectedMarketTab && selectedMarketTab !== 'all';
           const confirmation = selectedOperation === 'delete'
             ? marketScoped
-              ? `Remove ${selectedProducts.length} products from the ${selectedMarketTab.toUpperCase()} marketplace?\n\nThey will remain in other marketplaces and historical orders will be preserved.`
-              : `Are you sure you want to delete ${selectedProducts.length} products from all marketplaces?\n\nThis action cannot be undone.`
-            : `Confirm "${operationLabels[selectedOperation]}" for ${selectedProducts.length} selected products?`;
+              ? t('products.bulkConfirmDeleteMarket', { count: selectedProducts.length, market: selectedMarketTab.toUpperCase() })
+              : t('products.bulkConfirmDeleteAll', { count: selectedProducts.length })
+            : t('products.bulkConfirmAction', { action: operationLabels[selectedOperation], count: selectedProducts.length });
 
           if (!window.confirm(confirmation)) {
             return;
@@ -5796,7 +5791,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           const result = await performProductBulkOperation(selectedOperation, selectedProducts, payload);
 
           if (result.success) {
-            alert(`${operationLabels[selectedOperation]} completed successfully for ${selectedProducts.length} products`);
+            alert(t('products.bulkSuccess', { action: operationLabels[selectedOperation], count: selectedProducts.length }));
             setSelectedProducts([]);
             setShowProductBulkActions(false);
             setSelectedOperation('');
@@ -5824,6 +5819,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         };
 
         const chooseOperation = (operation) => {
+          if (selectedProducts.length === 0) {
+            alert(t('products.bulkNoSelection'));
+            return;
+          }
           setSelectedOperation(operation);
         };
 
@@ -5832,16 +5831,18 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             {!selectedOperation ? (
               <>
                 <div style={{padding: '4px 10px 8px', color: '#666', fontSize: '13px', borderBottom: '1px solid #eee', marginBottom: '4px'}}>
-                  Select action for {selectedProducts.length} selected products
+                  {selectedProducts.length > 0
+                    ? t('products.bulkSelectActionFor', { count: selectedProducts.length })
+                    : t('products.bulkNoSelectionHint')}
                 </div>
                 {[
-                  ['update-prices', '💰 Update Prices'],
-                  ['update-categories', '📁 Update Categories'],
-                  ['update-status', '🔄 Update Status'],
-                  ['update-stock', '📦 Update Stock'],
-                  ['export', '📤 Export Products'],
-                  ['delete', '🗑️ Delete Products']
-                ].map(([operation, label]) => (
+                  ['update-prices', '💰', operationLabels['update-prices']],
+                  ['update-categories', '📁', operationLabels['update-categories']],
+                  ['update-status', '🔄', operationLabels['update-status']],
+                  ['update-stock', '📦', operationLabels['update-stock']],
+                  ['export', '📤', operationLabels.export],
+                  ['delete', '🗑️', operationLabels.delete]
+                ].map(([operation, icon, label]) => (
                   <button
                     key={operation}
                     type="button"
@@ -5854,7 +5855,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f3f5'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                   >
-                    {label}
+                    {icon} {label}
                   </button>
                 ))}
               </>
@@ -5867,32 +5868,32 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     onClick={() => setSelectedOperation('')}
                     style={{border: 'none', background: 'transparent', color: '#6c757d', cursor: 'pointer', fontSize: '13px', padding: '2px 4px'}}
                   >
-                    ← Back
+                    ← {t('products.bulkBack')}
                   </button>
                 </div>
 
                 {selectedOperation === 'update-prices' && (
                   <div>
                     <div className="form-group">
-                      <label className="form-label">Price Multiplier (e.g., 1.1 for 10% increase)</label>
+                      <label className="form-label">{t('products.bulkPriceMultiplierLabel')}</label>
                       <input
                         type="number"
                         step="0.01"
                         className="form-input"
                         value={priceMultiplier}
                         onChange={(e) => setPriceMultiplier(e.target.value)}
-                        placeholder="Enter multiplier (e.g., 1.1)"
+                        placeholder={t('products.bulkPriceMultiplierPlaceholder')}
                       />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">OR Set Fixed Price</label>
+                      <label className="form-label">{t('products.bulkFixedPriceLabel')}</label>
                       <input
                         type="number"
                         step="0.01"
                         className="form-input"
                         value={fixedPrice}
                         onChange={(e) => setFixedPrice(e.target.value)}
-                        placeholder="Enter fixed price"
+                        placeholder={t('products.bulkFixedPricePlaceholder')}
                       />
                     </div>
                   </div>
@@ -5900,13 +5901,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
 
                 {selectedOperation === 'update-categories' && (
                   <div className="form-group">
-                    <label className="form-label">New Category</label>
+                    <label className="form-label">{t('products.bulkNewCategory')}</label>
                     <select
                       className="form-input"
                       value={newCategoryId}
                       onChange={(e) => setNewCategoryId(e.target.value)}
                     >
-                      <option value="">Select Category...</option>
+                      <option value="">{t('products.bulkSelectCategory')}</option>
                       {categories.map(category => (
                         <option key={category.id} value={category.id}>{category.name}</option>
                       ))}
@@ -5916,17 +5917,17 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
 
                 {selectedOperation === 'update-status' && (
                   <div className="form-group">
-                    <label className="form-label">New Status</label>
+                    <label className="form-label">{t('products.bulkNewStatus')}</label>
                     <select
                       className="form-input"
                       value={newStatus}
                       onChange={(e) => setNewStatus(e.target.value)}
                     >
-                      <option value="">Select Status...</option>
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                      <option value="draft">Draft</option>
-                      <option value="discontinued">Discontinued</option>
+                      <option value="">{t('products.bulkSelectStatus')}</option>
+                      <option value="active">{t('common.active')}</option>
+                      <option value="inactive">{t('common.inactive')}</option>
+                      <option value="draft">{t('common.draft')}</option>
+                      <option value="discontinued">{t('common.discontinued')}</option>
                     </select>
                   </div>
                 )}
@@ -5934,25 +5935,25 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 {selectedOperation === 'update-stock' && (
                   <div>
                     <div className="form-group">
-                      <label className="form-label">Stock Operation</label>
+                      <label className="form-label">{t('products.bulkStockOperation')}</label>
                       <select
                         className="form-input"
                         value={stockOperation}
                         onChange={(e) => setStockOperation(e.target.value)}
                       >
-                        <option value="set">Set Stock To</option>
-                        <option value="add">Add To Stock</option>
-                        <option value="subtract">Subtract From Stock</option>
+                        <option value="set">{t('products.bulkStockSet')}</option>
+                        <option value="add">{t('products.bulkStockAdd')}</option>
+                        <option value="subtract">{t('products.bulkStockSubtract')}</option>
                       </select>
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Stock Value</label>
+                      <label className="form-label">{t('products.bulkStockValue')}</label>
                       <input
                         type="number"
                         className="form-input"
                         value={stockValue}
                         onChange={(e) => setStockValue(e.target.value)}
-                        placeholder="Enter stock value"
+                        placeholder={t('products.bulkStockValuePlaceholder')}
                       />
                     </div>
                   </div>
@@ -5965,13 +5966,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   onClick={handleOperation}
                   disabled={isProcessing}
                 >
-                  {isProcessing ? 'Processing...' : 'Confirm and Execute'}
+                  {isProcessing ? t('products.bulkProcessing') : t('products.bulkConfirmExecute')}
                 </button>
 
                 {isProcessing && (
                   <div style={{textAlign: 'center', marginTop: '12px'}}>
                     <div className="loading"></div>
-                    <p>Processing operation...</p>
+                    <p>{t('products.bulkProcessing')}</p>
                   </div>
                 )}
               </>
