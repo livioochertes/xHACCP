@@ -14921,8 +14921,20 @@ This action cannot be undone.`)) {
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
+                      type: "button",
                       className: "btn",
-                      style: { background: "#6c757d", width: "auto", padding: "8px 16px" },
+                      "aria-pressed": showProductAnalytics,
+                      "aria-label": `${t2("common.analytics")} - ${showProductAnalytics ? t2("common.active") : t2("common.inactive")}`,
+                      title: `${t2("common.analytics")} - ${showProductAnalytics ? t2("common.active") : t2("common.inactive")}`,
+                      style: {
+                        background: showProductAnalytics ? "#198754" : "#6c757d",
+                        border: showProductAnalytics ? "2px solid #146c43" : "2px solid #565e64",
+                        boxShadow: showProductAnalytics ? "0 0 0 3px rgba(25, 135, 84, 0.2)" : "none",
+                        width: "auto",
+                        padding: "7px 16px",
+                        fontWeight: "600",
+                        cursor: "pointer"
+                      },
                       onClick: () => {
                         setShowProductAnalytics(!showProductAnalytics);
                         if (!showProductAnalytics) {
@@ -14931,8 +14943,11 @@ This action cannot be undone.`)) {
                         console.log("Product analytics toggled:", !showProductAnalytics);
                       },
                       children: [
-                        "\u{1F4CA} ",
-                        t2("common.analytics")
+                        showProductAnalytics ? "\u2713" : "\u{1F4CA}",
+                        " ",
+                        t2("common.analytics"),
+                        " \xB7 ",
+                        showProductAnalytics ? t2("common.active") : t2("common.inactive")
                       ]
                     }
                   )

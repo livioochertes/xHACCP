@@ -3032,9 +3032,21 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     >
                       🔄 {t('common.bulkOps')} {selectedProducts.length > 0 && `(${selectedProducts.length})`}
                     </button>
-                    <button 
-                      className="btn" 
-                      style={{background: '#6c757d', width: 'auto', padding: '8px 16px'}}
+                    <button
+                      type="button"
+                      className="btn"
+                      aria-pressed={showProductAnalytics}
+                      aria-label={`${t('common.analytics')} - ${showProductAnalytics ? t('common.active') : t('common.inactive')}`}
+                      title={`${t('common.analytics')} - ${showProductAnalytics ? t('common.active') : t('common.inactive')}`}
+                      style={{
+                        background: showProductAnalytics ? '#198754' : '#6c757d',
+                        border: showProductAnalytics ? '2px solid #146c43' : '2px solid #565e64',
+                        boxShadow: showProductAnalytics ? '0 0 0 3px rgba(25, 135, 84, 0.2)' : 'none',
+                        width: 'auto',
+                        padding: '7px 16px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
                       onClick={() => {
                         setShowProductAnalytics(!showProductAnalytics);
                         if (!showProductAnalytics) {
@@ -3043,7 +3055,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         console.log('Product analytics toggled:', !showProductAnalytics);
                       }}
                     >
-                      📊 {t('common.analytics')}
+                      {showProductAnalytics ? '✓' : '📊'} {t('common.analytics')} · {showProductAnalytics ? t('common.active') : t('common.inactive')}
                     </button>
                      </div>
                      <div style={{position: 'relative'}}>
