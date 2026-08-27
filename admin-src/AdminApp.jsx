@@ -2416,8 +2416,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 
                 <div style={{marginBottom: '20px'}}>
                   <h4 style={{color: '#333', marginBottom: '15px'}}>Order Actions</h4>
-                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap'}}>
-                     <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                   <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
                     <button 
                       className="btn" 
                       style={{background: '#007bff', width: 'auto', padding: '8px 16px'}}
@@ -3017,7 +3016,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 
                 <div style={{marginBottom: '20px'}}>
                   <h4 style={{color: '#333', marginBottom: '15px'}}>{t('products.actions')}</h4>
-                  <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap'}}>
+                     <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
                     <button 
                       className="btn" 
                       style={{background: '#007bff', width: 'auto', padding: '8px 16px'}}
