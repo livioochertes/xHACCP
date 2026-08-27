@@ -385,6 +385,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const productsPerPage = 20;
       const [showProductAnalytics, setShowProductAnalytics] = useState(false);
       const [analyticsData, setAnalyticsData] = useState(null);
+      const [showExcelActions, setShowExcelActions] = useState(false);
       const [editingSupplier, setEditingSupplier] = useState(null);
       const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
       const [viewingSupplier, setViewingSupplier] = useState(null);
@@ -2944,20 +2945,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   <div style={{display: 'flex', gap: '10px'}}>
                     <button 
                       className="btn" 
-                      style={{background: '#fd7e14', width: 'auto', padding: '8px 16px'}}
-                      onClick={() => setShowExcelImportModal(true)}
-                    >
-                      📤 {t('products.importExcel')}
-                    </button>
-                    <button 
-                      className="btn" 
-                      style={{background: '#17a2b8', width: 'auto', padding: '8px 16px'}}
-                      onClick={exportProductsToExcel}
-                    >
-                      📥 {t('products.exportExcel')}
-                    </button>
-                    <button 
-                      className="btn" 
                       style={{background: '#28a745', width: 'auto', padding: '8px 16px'}}
                       onClick={() => {
                         fetchCategories();
@@ -3070,13 +3057,99 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     >
                       📊 {t('common.analytics')}
                     </button>
-                    <button 
-                      className="btn" 
-                      style={{background: '#28a745', width: 'auto', padding: '8px 16px'}}
-                      onClick={downloadExcelTemplate}
-                    >
-                      📥 {t('products.downloadTemplate')}
-                    </button>
+                     <div style={{position: 'relative'}}>
+                       <button
+                         type="button"
+                         className="btn"
+                         style={{background: '#6f42c1', width: 'auto', padding: '8px 16px'}}
+                         onClick={() => setShowExcelActions(!showExcelActions)}
+                         aria-haspopup="menu"
+                         aria-expanded={showExcelActions}
+                       >
+                         📊 Excel ▾
+                       </button>
+                       {showExcelActions && (
+                         <div
+                           role="menu"
+                           style={{
+                             position: 'absolute',
+                             top: 'calc(100% + 5px)',
+                             right: 0,
+                             zIndex: 20,
+                             minWidth: '220px',
+                             padding: '6px',
+                             background: 'white',
+                             border: '1px solid #dee2e6',
+                             borderRadius: '6px',
+                             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                           }}
+                         >
+                           <button
+                             type="button"
+                             role="menuitem"
+                             onClick={() => {
+                               setShowExcelActions(false);
+                               setShowExcelImportModal(true);
+                             }}
+                             style={{
+                               display: 'block',
+                               width: '100%',
+                               padding: '9px 10px',
+                               border: 'none',
+                               borderRadius: '4px',
+                               background: 'transparent',
+                               color: '#333',
+                               textAlign: 'left',
+                               cursor: 'pointer'
+                             }}
+                           >
+                             📤 {t('products.importExcel')}
+                           </button>
+                           <button
+                             type="button"
+                             role="menuitem"
+                             onClick={() => {
+                               setShowExcelActions(false);
+                               exportProductsToExcel();
+                             }}
+                             style={{
+                               display: 'block',
+                               width: '100%',
+                               padding: '9px 10px',
+                               border: 'none',
+                               borderRadius: '4px',
+                               background: 'transparent',
+                               color: '#333',
+                               textAlign: 'left',
+                               cursor: 'pointer'
+                             }}
+                           >
+                             📥 {t('products.exportExcel')}
+                           </button>
+                           <button
+                             type="button"
+                             role="menuitem"
+                             onClick={() => {
+                               setShowExcelActions(false);
+                               downloadExcelTemplate();
+                             }}
+                             style={{
+                               display: 'block',
+                               width: '100%',
+                               padding: '9px 10px',
+                               border: 'none',
+                               borderRadius: '4px',
+                               background: 'transparent',
+                               color: '#333',
+                               textAlign: 'left',
+                               cursor: 'pointer'
+                             }}
+                           >
+                             📥 {t('products.downloadTemplate')}
+                           </button>
+                         </div>
+                       )}
+                     </div>
                   </div>
                 </div>
                 

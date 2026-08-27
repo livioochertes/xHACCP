@@ -12499,6 +12499,7 @@
     const productsPerPage = 20;
     const [showProductAnalytics, setShowProductAnalytics] = (0, import_react13.useState)(false);
     const [analyticsData, setAnalyticsData] = (0, import_react13.useState)(null);
+    const [showExcelActions, setShowExcelActions] = (0, import_react13.useState)(false);
     const [editingSupplier, setEditingSupplier] = (0, import_react13.useState)(null);
     const [showEditSupplierModal, setShowEditSupplierModal] = (0, import_react13.useState)(false);
     const [viewingSupplier, setViewingSupplier] = (0, import_react13.useState)(null);
@@ -14834,89 +14835,63 @@ This action cannot be undone.`)) {
                 "\u{1F4E6} ",
                 t2("products.title")
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "button",
-                  {
-                    className: "btn",
-                    style: { background: "#fd7e14", width: "auto", padding: "8px 16px" },
-                    onClick: () => setShowExcelImportModal(true),
-                    children: [
-                      "\u{1F4E4} ",
-                      t2("products.importExcel")
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "button",
-                  {
-                    className: "btn",
-                    style: { background: "#17a2b8", width: "auto", padding: "8px 16px" },
-                    onClick: exportProductsToExcel,
-                    children: [
-                      "\u{1F4E5} ",
-                      t2("products.exportExcel")
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "button",
-                  {
-                    className: "btn",
-                    style: { background: "#28a745", width: "auto", padding: "8px 16px" },
-                    onClick: () => {
-                      fetchCategories();
-                      fetchSuppliers();
-                      setEditingProduct(null);
-                      const timestamp = Date.now().toString(36).toUpperCase();
-                      const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-                      const generatedCode = `PRD-${timestamp}${random}`;
-                      fetchCompanyDefaults().then((defaults) => {
-                        console.log("Company defaults for new product:", defaults);
-                        initialProductDataRef.current = {
-                          name: "",
-                          description: "",
-                          price: "",
-                          compareAtPrice: "",
-                          categoryId: "",
-                          supplierId: "",
-                          imageUrl: "",
-                          stockQuantity: "",
-                          featured: false,
-                          vatValue: "",
-                          vatPercentage: defaults.vatPercentage || (selectedMarketTab === "fr" ? "20.00" : selectedMarketTab === "ro" ? "19.00" : "0.00"),
-                          currency: defaults.currency || "RON",
-                          productCode: generatedCode,
-                          ncCode: "",
-                          cpvCode: "",
-                          status: "active",
-                          images: [],
-                          weight: "",
-                          length: "",
-                          width: "",
-                          height: "",
-                          piecesPerPackage: "",
-                          productQuantity: "",
-                          specs: [],
-                          volumeDiscounts: [],
-                          priority: 0,
-                          isService: false,
-                          isComposite: false
-                        };
-                        setProductLoadTrigger((prev) => prev + 1);
-                        setProductTranslations([]);
-                        setShowTranslationsTab(false);
-                        lastLoadedProductIdRef.current = null;
-                        setShowAddProductModal(true);
-                      });
-                    },
-                    children: [
-                      "\u2795 ",
-                      t2("products.addNew")
-                    ]
-                  }
-                )
-              ] })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", gap: "10px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                "button",
+                {
+                  className: "btn",
+                  style: { background: "#28a745", width: "auto", padding: "8px 16px" },
+                  onClick: () => {
+                    fetchCategories();
+                    fetchSuppliers();
+                    setEditingProduct(null);
+                    const timestamp = Date.now().toString(36).toUpperCase();
+                    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+                    const generatedCode = `PRD-${timestamp}${random}`;
+                    fetchCompanyDefaults().then((defaults) => {
+                      console.log("Company defaults for new product:", defaults);
+                      initialProductDataRef.current = {
+                        name: "",
+                        description: "",
+                        price: "",
+                        compareAtPrice: "",
+                        categoryId: "",
+                        supplierId: "",
+                        imageUrl: "",
+                        stockQuantity: "",
+                        featured: false,
+                        vatValue: "",
+                        vatPercentage: defaults.vatPercentage || (selectedMarketTab === "fr" ? "20.00" : selectedMarketTab === "ro" ? "19.00" : "0.00"),
+                        currency: defaults.currency || "RON",
+                        productCode: generatedCode,
+                        ncCode: "",
+                        cpvCode: "",
+                        status: "active",
+                        images: [],
+                        weight: "",
+                        length: "",
+                        width: "",
+                        height: "",
+                        piecesPerPackage: "",
+                        productQuantity: "",
+                        specs: [],
+                        volumeDiscounts: [],
+                        priority: 0,
+                        isService: false,
+                        isComposite: false
+                      };
+                      setProductLoadTrigger((prev) => prev + 1);
+                      setProductTranslations([]);
+                      setShowTranslationsTab(false);
+                      lastLoadedProductIdRef.current = null;
+                      setShowAddProductModal(true);
+                    });
+                  },
+                  children: [
+                    "\u2795 ",
+                    t2("products.addNew")
+                  ]
+                }
+              ) })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: t2("products.actions") }),
@@ -14975,18 +14950,118 @@ This action cannot be undone.`)) {
                     ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "button",
-                  {
-                    className: "btn",
-                    style: { background: "#28a745", width: "auto", padding: "8px 16px" },
-                    onClick: downloadExcelTemplate,
-                    children: [
-                      "\u{1F4E5} ",
-                      t2("products.downloadTemplate")
-                    ]
-                  }
-                )
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "button",
+                    {
+                      type: "button",
+                      className: "btn",
+                      style: { background: "#6f42c1", width: "auto", padding: "8px 16px" },
+                      onClick: () => setShowExcelActions(!showExcelActions),
+                      "aria-haspopup": "menu",
+                      "aria-expanded": showExcelActions,
+                      children: "\u{1F4CA} Excel \u25BE"
+                    }
+                  ),
+                  showExcelActions && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "div",
+                    {
+                      role: "menu",
+                      style: {
+                        position: "absolute",
+                        top: "calc(100% + 5px)",
+                        right: 0,
+                        zIndex: 20,
+                        minWidth: "220px",
+                        padding: "6px",
+                        background: "white",
+                        border: "1px solid #dee2e6",
+                        borderRadius: "6px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+                      },
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                          "button",
+                          {
+                            type: "button",
+                            role: "menuitem",
+                            onClick: () => {
+                              setShowExcelActions(false);
+                              setShowExcelImportModal(true);
+                            },
+                            style: {
+                              display: "block",
+                              width: "100%",
+                              padding: "9px 10px",
+                              border: "none",
+                              borderRadius: "4px",
+                              background: "transparent",
+                              color: "#333",
+                              textAlign: "left",
+                              cursor: "pointer"
+                            },
+                            children: [
+                              "\u{1F4E4} ",
+                              t2("products.importExcel")
+                            ]
+                          }
+                        ),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                          "button",
+                          {
+                            type: "button",
+                            role: "menuitem",
+                            onClick: () => {
+                              setShowExcelActions(false);
+                              exportProductsToExcel();
+                            },
+                            style: {
+                              display: "block",
+                              width: "100%",
+                              padding: "9px 10px",
+                              border: "none",
+                              borderRadius: "4px",
+                              background: "transparent",
+                              color: "#333",
+                              textAlign: "left",
+                              cursor: "pointer"
+                            },
+                            children: [
+                              "\u{1F4E5} ",
+                              t2("products.exportExcel")
+                            ]
+                          }
+                        ),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                          "button",
+                          {
+                            type: "button",
+                            role: "menuitem",
+                            onClick: () => {
+                              setShowExcelActions(false);
+                              downloadExcelTemplate();
+                            },
+                            style: {
+                              display: "block",
+                              width: "100%",
+                              padding: "9px 10px",
+                              border: "none",
+                              borderRadius: "4px",
+                              background: "transparent",
+                              color: "#333",
+                              textAlign: "left",
+                              cursor: "pointer"
+                            },
+                            children: [
+                              "\u{1F4E5} ",
+                              t2("products.downloadTemplate")
+                            ]
+                          }
+                        )
+                      ]
+                    }
+                  )
+                ] })
               ] })
             ] }),
             showProductSearchFilter && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", marginBottom: "20px", border: "1px solid #dee2e6" }, children: [
