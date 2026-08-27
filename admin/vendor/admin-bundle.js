@@ -12487,8 +12487,7 @@
     const [statusChangeValue, setStatusChangeValue] = (0, import_react13.useState)("");
     const [showOrderTools, setShowOrderTools] = (0, import_react13.useState)(false);
     const [selectedProducts, setSelectedProducts] = (0, import_react13.useState)([]);
-    const [showProductBulkModal, setShowProductBulkModal] = (0, import_react13.useState)(false);
-    const [productBulkOperation, setProductBulkOperation] = (0, import_react13.useState)("");
+    const [showProductBulkActions, setShowProductBulkActions] = (0, import_react13.useState)(false);
     const [productSearchTerm, setProductSearchTerm] = (0, import_react13.useState)("");
     const [productCategoryFilter, setProductCategoryFilter] = (0, import_react13.useState)("all");
     const [productStatusFilter, setProductStatusFilter] = (0, import_react13.useState)("all");
@@ -13945,130 +13944,108 @@ Failed: ${result.failed}`);
           },
           body: JSON.stringify(payload)
         });
-        const createCategory2 = async (categoryData) => {
+        if (!response.ok) {
+          let errorMessage = "Bulk operation failed";
           try {
-            const response2 = await fetch("/admin/api/categories", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-              },
-              body: JSON.stringify(categoryData)
-            });
-            const data2 = await response2.json();
-            if (response2.ok) {
-              fetchCategories();
-              return { success: true, message: "Category created successfully" };
-            } else {
-              return { success: false, message: data2.message };
-            }
-          } catch (err) {
-            return { success: false, message: "Network error" };
+            const errorResult = await response.json();
+            errorMessage = errorResult.message || errorMessage;
+          } catch {
           }
+          return { success: false, message: errorMessage };
+        }
+        if (operation === "export") {
+          const blob = await response.blob();
+          const downloadUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = "products_export.csv";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(downloadUrl);
+          return { success: true, message: "Products exported successfully" };
+        }
+        const result = await response.json();
+        return {
+          success: true,
+          message: result.message || "Bulk operation completed successfully",
+          results: result.results
         };
-        const initializeMarketCategories2 = async () => {
-          const targetMarket = selectedMarketTab && selectedMarketTab !== "all" ? selectedMarketTab : null;
-          if (!targetMarket) {
-            return { success: false, message: "Selecteaz\u0103 mai \xEEnt\xE2i o pia\u021B\u0103 concret\u0103." };
-          }
-          if (!confirm(`Creeaz\u0103 \xEEn ${targetMarket.toUpperCase()} copii independente ale categoriilor RO?
+      } catch (err) {
+        console.error("Product bulk operation failed:", err);
+        return { success: false, message: "Network error" };
+      }
+    };
+    const initializeMarketCategories = async () => {
+      const targetMarket = selectedMarketTab && selectedMarketTab !== "all" ? selectedMarketTab : null;
+      if (!targetMarket) {
+        return { success: false, message: "Selecteaz\u0103 mai \xEEnt\xE2i o pia\u021B\u0103 concret\u0103." };
+      }
+      if (!confirm(`Creeaz\u0103 \xEEn ${targetMarket.toUpperCase()} copii independente ale categoriilor RO?
 
 Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modificate.`)) {
-            return { success: false, message: "Ac\u021Biune anulat\u0103" };
-          }
-          try {
-            const response2 = await fetch("/admin/api/categories/initialize-market", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-              },
-              body: JSON.stringify({ sourceMarket: "ro", targetMarket })
-            });
-            const data2 = await response2.json();
-            if (response2.ok) {
-              await fetchCategories();
-              return { success: true, message: data2.message };
-            }
-            return { success: false, message: data2.message || "Nu s-au putut ini\u021Bializa categoriile" };
-          } catch (err) {
-            return { success: false, message: "Network error" };
-          }
-        };
-        const updateCategory2 = async (categoryId, categoryData) => {
-          try {
-            const token2 = localStorage.getItem("adminToken");
-            const response2 = await fetch(`/admin/api/categories/${categoryId}`, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token2}`
-              },
-              body: JSON.stringify(categoryData)
-            });
-            const data2 = await response2.json();
-            if (response2.ok) {
-              fetchCategories();
-              return { success: true, message: "Category updated successfully" };
-            } else {
-              return { success: false, message: data2.message };
-            }
-          } catch (err) {
-            return { success: false, message: "Network error" };
-          }
-        };
-        const deleteCategory2 = async (categoryId) => {
-          try {
-            const token2 = localStorage.getItem("adminToken");
-            const response2 = await fetch(`/admin/api/categories/${categoryId}`, {
-              method: "DELETE",
-              headers: {
-                "Authorization": `Bearer ${token2}`
-              }
-            });
-            const data2 = await response2.json();
-            if (response2.ok) {
-              fetchCategories();
-              return { success: true, message: data2.message };
-            } else {
-              return { success: false, message: data2.message };
-            }
-          } catch (err) {
-            return { success: false, message: "Network error" };
-          }
-        };
-        const updateHomepageCategories = async (mainTopCategories, mainShopCategories) => {
-          try {
-            const token2 = localStorage.getItem("adminToken");
-            const response2 = await fetch("/admin/api/categories/bulk/homepage", {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token2}`
-              },
-              body: JSON.stringify({
-                mainTopCategories,
-                mainShopCategories,
-                marketCode: selectedMarketTab && selectedMarketTab !== "all" ? selectedMarketTab : void 0
-              })
-            });
-            const data2 = await response2.json();
-            if (response2.ok) {
-              fetchCategories();
-              return { success: true, message: data2.message };
-            } else {
-              return { success: false, message: data2.message };
-            }
-          } catch (err) {
-            return { success: false, message: "Network error" };
-          }
-        };
-        const result = await response.json();
+        return { success: false, message: "Ac\u021Biune anulat\u0103" };
+      }
+      try {
+        const response = await fetch("/admin/api/categories/initialize-market", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({ sourceMarket: "ro", targetMarket })
+        });
+        const data = await response.json();
         if (response.ok) {
-          fetchProducts();
-          return { success: true, message: result.message, results: result.results };
+          await fetchCategories();
+          return { success: true, message: data.message };
+        }
+        return { success: false, message: data.message || "Nu s-au putut ini\u021Bializa categoriile" };
+      } catch (err) {
+        return { success: false, message: "Network error" };
+      }
+    };
+    const deleteCategory = async (categoryId) => {
+      try {
+        const token2 = localStorage.getItem("adminToken");
+        const response = await fetch(`/admin/api/categories/${categoryId}`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token2}`
+          }
+        });
+        const data = await response.json();
+        if (response.ok) {
+          fetchCategories();
+          return { success: true, message: data.message };
         } else {
-          return { success: false, message: result.message };
+          return { success: false, message: data.message };
+        }
+      } catch (err) {
+        return { success: false, message: "Network error" };
+      }
+    };
+    const updateHomepageCategories = async (mainTopCategories, mainShopCategories) => {
+      try {
+        const token2 = localStorage.getItem("adminToken");
+        const response = await fetch("/admin/api/categories/bulk/homepage", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token2}`
+          },
+          body: JSON.stringify({
+            mainTopCategories,
+            mainShopCategories,
+            marketCode: selectedMarketTab && selectedMarketTab !== "all" ? selectedMarketTab : void 0
+          })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          fetchCategories();
+          return { success: true, message: data.message };
+        } else {
+          return { success: false, message: data.message };
         }
       } catch (err) {
         return { success: false, message: "Network error" };
@@ -14897,27 +14874,58 @@ This action cannot be undone.`)) {
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: t2("products.actions") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", flexWrap: "wrap" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                    "button",
-                    {
-                      className: "btn",
-                      style: { background: "#007bff", width: "auto", padding: "8px 16px" },
-                      onClick: () => {
-                        if (selectedProducts.length === 0) {
-                          alert("Please select products first by checking the boxes in the product list.");
-                          return;
-                        }
-                        setShowProductBulkModal(true);
-                      },
-                      disabled: selectedProducts.length === 0,
-                      children: [
-                        "\u{1F504} ",
-                        t2("common.bulkOps"),
-                        " ",
-                        selectedProducts.length > 0 && `(${selectedProducts.length})`
-                      ]
-                    }
-                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                      "button",
+                      {
+                        type: "button",
+                        className: "btn",
+                        style: {
+                          background: showProductBulkActions ? "#0056b3" : "#007bff",
+                          width: "auto",
+                          padding: "8px 16px",
+                          boxShadow: showProductBulkActions ? "0 0 0 3px rgba(0, 123, 255, 0.2)" : "none"
+                        },
+                        onClick: () => {
+                          if (selectedProducts.length === 0) {
+                            alert("Please select products first by checking the boxes in the product list.");
+                            return;
+                          }
+                          setShowProductBulkActions(!showProductBulkActions);
+                        },
+                        disabled: selectedProducts.length === 0,
+                        "aria-haspopup": "menu",
+                        "aria-expanded": showProductBulkActions,
+                        children: [
+                          "\u{1F504} ",
+                          t2("common.bulkOps"),
+                          " ",
+                          selectedProducts.length > 0 && `(${selectedProducts.length})`,
+                          " \u25BE"
+                        ]
+                      }
+                    ),
+                    showProductBulkActions && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "div",
+                      {
+                        role: "menu",
+                        style: {
+                          position: "absolute",
+                          top: "calc(100% + 5px)",
+                          left: 0,
+                          zIndex: 20,
+                          minWidth: "320px",
+                          maxWidth: "min(380px, calc(100vw - 32px))",
+                          padding: "8px",
+                          background: "white",
+                          border: "1px solid #dee2e6",
+                          borderRadius: "6px",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+                        },
+                        children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ProductBulkOperationsComponent, {})
+                      }
+                    )
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
@@ -17861,80 +17869,78 @@ This action cannot be undone.`)) {
       const [newStatus, setNewStatus] = (0, import_react13.useState)("");
       const [stockOperation, setStockOperation] = (0, import_react13.useState)("set");
       const [stockValue, setStockValue] = (0, import_react13.useState)("");
+      const operationLabels = {
+        "update-prices": "Update Prices",
+        "update-categories": "Update Categories",
+        "update-status": "Update Status",
+        "update-stock": "Update Stock",
+        export: "Export Products",
+        delete: "Delete Products"
+      };
       const handleOperation = async () => {
         if (!selectedOperation) {
           alert("Please select an operation");
           return;
         }
-        setIsProcessing(true);
-        let result;
+        let payload = {};
         switch (selectedOperation) {
           case "update-prices":
             if (!priceMultiplier && !fixedPrice) {
               alert("Please enter a price multiplier or fixed price");
-              setIsProcessing(false);
               return;
             }
-            result = await performProductBulkOperation("update-prices", selectedProducts, {
+            payload = {
               multiplier: priceMultiplier ? parseFloat(priceMultiplier) : null,
               fixedPrice: fixedPrice ? parseFloat(fixedPrice) : null
-            });
+            };
             break;
           case "update-categories":
             if (!newCategoryId) {
               alert("Please select a category");
-              setIsProcessing(false);
               return;
             }
-            result = await performProductBulkOperation("update-categories", selectedProducts, {
-              categoryId: parseInt(newCategoryId)
-            });
+            payload = { categoryId: parseInt(newCategoryId) };
             break;
           case "update-status":
             if (!newStatus) {
               alert("Please select a status");
-              setIsProcessing(false);
               return;
             }
-            result = await performProductBulkOperation("update-status", selectedProducts, {
-              status: newStatus
-            });
+            payload = { status: newStatus };
             break;
           case "update-stock":
             if (!stockValue) {
               alert("Please enter a stock value");
-              setIsProcessing(false);
               return;
             }
-            result = await performProductBulkOperation("update-stock", selectedProducts, {
+            payload = {
               operation: stockOperation,
               value: parseInt(stockValue)
-            });
+            };
             break;
           case "export":
-            result = await performProductBulkOperation("export", selectedProducts);
-            break;
           case "delete":
-            const marketScoped = selectedMarketTab && selectedMarketTab !== "all";
-            const confirmation = marketScoped ? `Remove ${selectedProducts.length} products from the ${selectedMarketTab.toUpperCase()} marketplace?
+            break;
+          default:
+            alert("Invalid operation");
+            return;
+        }
+        const marketScoped = selectedMarketTab && selectedMarketTab !== "all";
+        const confirmation = selectedOperation === "delete" ? marketScoped ? `Remove ${selectedProducts.length} products from the ${selectedMarketTab.toUpperCase()} marketplace?
 
 They will remain in other marketplaces and historical orders will be preserved.` : `Are you sure you want to delete ${selectedProducts.length} products from all marketplaces?
 
-This action cannot be undone.`;
-            if (!confirm(confirmation)) {
-              setIsProcessing(false);
-              return;
-            }
-            result = await performProductBulkOperation("delete", selectedProducts);
-            break;
-          default:
-            result = { success: false, message: "Invalid operation" };
+This action cannot be undone.` : `Confirm "${operationLabels[selectedOperation]}" for ${selectedProducts.length} selected products?`;
+        if (!window.confirm(confirmation)) {
+          return;
         }
+        setIsProcessing(true);
+        const result = await performProductBulkOperation(selectedOperation, selectedProducts, payload);
         if (result.success) {
-          alert(`${selectedOperation} operation completed successfully for ${selectedProducts.length} products`);
+          alert(`${operationLabels[selectedOperation]} completed successfully for ${selectedProducts.length} products`);
           setSelectedProducts([]);
-          setShowProductBulkModal(false);
-          setProductBulkOperation("");
+          setShowProductBulkActions(false);
+          setSelectedOperation("");
           setTimeout(() => {
             fetchProducts();
           }, 1e3);
@@ -17943,24 +17949,64 @@ This action cannot be undone.`;
         }
         setIsProcessing(false);
       };
-      return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Select Operation" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-            "select",
+      const menuButtonStyle = {
+        display: "block",
+        width: "100%",
+        padding: "9px 10px",
+        border: "none",
+        borderRadius: "4px",
+        background: "transparent",
+        color: "#333",
+        textAlign: "left",
+        cursor: "pointer",
+        fontSize: "14px"
+      };
+      const chooseOperation = (operation) => {
+        setSelectedOperation(operation);
+      };
+      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { children: !selectedOperation ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "4px 10px 8px", color: "#666", fontSize: "13px", borderBottom: "1px solid #eee", marginBottom: "4px" }, children: [
+          "Select action for ",
+          selectedProducts.length,
+          " selected products"
+        ] }),
+        [
+          ["update-prices", "\u{1F4B0} Update Prices"],
+          ["update-categories", "\u{1F4C1} Update Categories"],
+          ["update-status", "\u{1F504} Update Status"],
+          ["update-stock", "\u{1F4E6} Update Stock"],
+          ["export", "\u{1F4E4} Export Products"],
+          ["delete", "\u{1F5D1}\uFE0F Delete Products"]
+        ].map(([operation, label]) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "button",
+          {
+            type: "button",
+            role: "menuitem",
+            style: {
+              ...menuButtonStyle,
+              color: operation === "delete" ? "#b02a37" : "#333"
+            },
+            onClick: () => chooseOperation(operation),
+            onMouseEnter: (e2) => {
+              e2.currentTarget.style.background = "#f1f3f5";
+            },
+            onMouseLeave: (e2) => {
+              e2.currentTarget.style.background = "transparent";
+            },
+            children: label
+          },
+          operation
+        ))
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", padding: "4px 2px 10px", borderBottom: "1px solid #eee", marginBottom: "10px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { color: "#333", fontSize: "14px" }, children: operationLabels[selectedOperation] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+            "button",
             {
-              className: "form-input",
-              value: selectedOperation,
-              onChange: (e2) => setSelectedOperation(e2.target.value),
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Choose Operation..." }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "update-prices", children: "\u{1F4B0} Update Prices" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "update-categories", children: "\u{1F4C1} Update Categories" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "update-status", children: "\u{1F504} Update Status" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "update-stock", children: "\u{1F4E6} Update Stock" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "export", children: "\u{1F4E4} Export Products" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "delete", children: "\u{1F5D1}\uFE0F Delete Products" })
-              ]
+              type: "button",
+              onClick: () => setSelectedOperation(""),
+              style: { border: "none", background: "transparent", color: "#6c757d", cursor: "pointer", fontSize: "13px", padding: "2px 4px" },
+              children: "\u2190 Back"
             }
           )
         ] }),
@@ -18061,18 +18107,19 @@ This action cannot be undone.`;
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "button",
           {
+            type: "button",
             className: "btn",
-            style: { background: "#28a745" },
+            style: { background: selectedOperation === "delete" ? "#dc3545" : "#28a745", width: "100%", marginTop: "6px" },
             onClick: handleOperation,
             disabled: isProcessing,
-            children: isProcessing ? "Processing..." : "Execute Operation"
+            children: isProcessing ? "Processing..." : "Confirm and Execute"
           }
         ),
-        isProcessing && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { textAlign: "center", marginTop: "20px" }, children: [
+        isProcessing && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { textAlign: "center", marginTop: "12px" }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "loading" }),
           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: "Processing operation..." })
         ] })
-      ] });
+      ] }) });
     };
     const MarketSettingCard = ({ market, marketsData: marketsData2, saveMarket: saveMarket2 }) => {
       const defaults = {
@@ -21018,47 +21065,6 @@ Cordialement,`
                 setShowBulkModal(false);
                 setBulkOperation("");
                 setBulkResults(null);
-              },
-              children: "Cancel"
-            }
-          ) })
-        ] }) }),
-        showProductBulkModal && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          zIndex: 1e3
-        }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-          backgroundColor: "white",
-          padding: "30px",
-          borderRadius: "8px",
-          width: "90%",
-          maxWidth: "600px",
-          maxHeight: "80vh",
-          overflow: "auto"
-        }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { marginBottom: "20px", color: "#333" }, children: "\u{1F4E6} Product Bulk Operations" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { marginBottom: "20px", color: "#666" }, children: [
-            "Selected ",
-            selectedProducts.length,
-            " products for bulk operation."
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(ProductBulkOperationsComponent, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", gap: "10px", marginTop: "20px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "button",
-            {
-              type: "button",
-              className: "btn",
-              style: { background: "#6c757d" },
-              onClick: () => {
-                setShowProductBulkModal(false);
-                setProductBulkOperation("");
               },
               children: "Cancel"
             }

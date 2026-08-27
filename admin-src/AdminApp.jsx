@@ -373,8 +373,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [statusChangeValue, setStatusChangeValue] = useState('');
       const [showOrderTools, setShowOrderTools] = useState(false);
       const [selectedProducts, setSelectedProducts] = useState([]);
-      const [showProductBulkModal, setShowProductBulkModal] = useState(false);
-      const [productBulkOperation, setProductBulkOperation] = useState('');
+      const [showProductBulkActions, setShowProductBulkActions] = useState(false);
       const [productSearchTerm, setProductSearchTerm] = useState('');
       const [productCategoryFilter, setProductCategoryFilter] = useState('all');
       const [productStatusFilter, setProductStatusFilter] = useState('all');
@@ -2018,28 +2017,38 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             body: JSON.stringify(payload)
           });
 
-      // Category management API functions (fetchCategories moved to global scope)
-
-      const createCategory = async (categoryData) => {
-        try {
-          const response = await fetch('/admin/api/categories', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(categoryData)
-          });
-          
-          const data = await response.json();
-          
-          if (response.ok) {
-            fetchCategories(); // Refresh category list
-            return { success: true, message: 'Category created successfully' };
-          } else {
-            return { success: false, message: data.message };
+          if (!response.ok) {
+            let errorMessage = 'Bulk operation failed';
+            try {
+              const errorResult = await response.json();
+              errorMessage = errorResult.message || errorMessage;
+            } catch {
+              // Keep the generic message when the server does not return JSON.
+            }
+            return { success: false, message: errorMessage };
           }
+
+          if (operation === 'export') {
+            const blob = await response.blob();
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = 'products_export.csv';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(downloadUrl);
+            return { success: true, message: 'Products exported successfully' };
+          }
+
+          const result = await response.json();
+          return {
+            success: true,
+            message: result.message || 'Bulk operation completed successfully',
+            results: result.results
+          };
         } catch (err) {
+          console.error('Product bulk operation failed:', err);
           return { success: false, message: 'Network error' };
         }
       };
@@ -2071,33 +2080,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           return { success: false, message: 'Network error' };
         }
       };
-
-      const updateCategory = async (categoryId, categoryData) => {
-        try {
-          const token = localStorage.getItem('adminToken');
-          const response = await fetch(`/admin/api/categories/${categoryId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(categoryData)
-          });
-          
-          const data = await response.json();
-          
-          if (response.ok) {
-            fetchCategories(); // Refresh category list
-            return { success: true, message: 'Category updated successfully' };
-          } else {
-            return { success: false, message: data.message };
-          }
-        } catch (err) {
-          return { success: false, message: 'Network error' };
-        }
-      };
-
-
 
       const deleteCategory = async (categoryId) => {
         try {
@@ -2150,20 +2132,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           return { success: false, message: 'Network error' };
         }
       };
-          
-          const result = await response.json();
-          
-          if (response.ok) {
-            fetchProducts(); // Refresh product list
-            return { success: true, message: result.message, results: result.results };
-          } else {
-            return { success: false, message: result.message };
-          }
-        } catch (err) {
-          return { success: false, message: 'Network error' };
-        }
-      };
-
       // Fetch company settings
       const fetchCompanySettings = async () => {
         try {
@@ -3018,20 +2986,50 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   <h4 style={{color: '#333', marginBottom: '15px'}}>{t('products.actions')}</h4>
                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap'}}>
                      <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                    <button 
-                      className="btn" 
-                      style={{background: '#007bff', width: 'auto', padding: '8px 16px'}}
-                      onClick={() => {
-                        if (selectedProducts.length === 0) {
-                          alert('Please select products first by checking the boxes in the product list.');
-                          return;
-                        }
-                        setShowProductBulkModal(true);
-                      }}
-                      disabled={selectedProducts.length === 0}
-                    >
-                      🔄 {t('common.bulkOps')} {selectedProducts.length > 0 && `(${selectedProducts.length})`}
-                    </button>
+                    <div style={{position: 'relative'}}>
+                      <button
+                        type="button"
+                        className="btn"
+                        style={{
+                          background: showProductBulkActions ? '#0056b3' : '#007bff',
+                          width: 'auto',
+                          padding: '8px 16px',
+                          boxShadow: showProductBulkActions ? '0 0 0 3px rgba(0, 123, 255, 0.2)' : 'none'
+                        }}
+                        onClick={() => {
+                          if (selectedProducts.length === 0) {
+                            alert('Please select products first by checking the boxes in the product list.');
+                            return;
+                          }
+                          setShowProductBulkActions(!showProductBulkActions);
+                        }}
+                        disabled={selectedProducts.length === 0}
+                        aria-haspopup="menu"
+                        aria-expanded={showProductBulkActions}
+                      >
+                        🔄 {t('common.bulkOps')} {selectedProducts.length > 0 && `(${selectedProducts.length})`} ▾
+                      </button>
+                      {showProductBulkActions && (
+                        <div
+                          role="menu"
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 5px)',
+                            left: 0,
+                            zIndex: 20,
+                            minWidth: '320px',
+                            maxWidth: 'min(380px, calc(100vw - 32px))',
+                            padding: '8px',
+                            background: 'white',
+                            border: '1px solid #dee2e6',
+                            borderRadius: '6px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                          }}
+                        >
+                          <ProductBulkOperationsComponent />
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
                       className="btn"
@@ -5723,82 +5721,85 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         const [newStatus, setNewStatus] = useState('');
         const [stockOperation, setStockOperation] = useState('set');
         const [stockValue, setStockValue] = useState('');
-        
+
+        const operationLabels = {
+          'update-prices': 'Update Prices',
+          'update-categories': 'Update Categories',
+          'update-status': 'Update Status',
+          'update-stock': 'Update Stock',
+          export: 'Export Products',
+          delete: 'Delete Products'
+        };
+
         const handleOperation = async () => {
           if (!selectedOperation) {
             alert('Please select an operation');
             return;
           }
-          
-          setIsProcessing(true);
-          let result;
-          
+
+          let payload = {};
           switch (selectedOperation) {
             case 'update-prices':
               if (!priceMultiplier && !fixedPrice) {
                 alert('Please enter a price multiplier or fixed price');
-                setIsProcessing(false);
                 return;
               }
-              result = await performProductBulkOperation('update-prices', selectedProducts, {
+              payload = {
                 multiplier: priceMultiplier ? parseFloat(priceMultiplier) : null,
                 fixedPrice: fixedPrice ? parseFloat(fixedPrice) : null
-              });
+              };
               break;
             case 'update-categories':
               if (!newCategoryId) {
                 alert('Please select a category');
-                setIsProcessing(false);
                 return;
               }
-              result = await performProductBulkOperation('update-categories', selectedProducts, {
-                categoryId: parseInt(newCategoryId)
-              });
+              payload = { categoryId: parseInt(newCategoryId) };
               break;
             case 'update-status':
               if (!newStatus) {
                 alert('Please select a status');
-                setIsProcessing(false);
                 return;
               }
-              result = await performProductBulkOperation('update-status', selectedProducts, {
-                status: newStatus
-              });
+              payload = { status: newStatus };
               break;
             case 'update-stock':
               if (!stockValue) {
                 alert('Please enter a stock value');
-                setIsProcessing(false);
                 return;
               }
-              result = await performProductBulkOperation('update-stock', selectedProducts, {
+              payload = {
                 operation: stockOperation,
                 value: parseInt(stockValue)
-              });
+              };
               break;
             case 'export':
-              result = await performProductBulkOperation('export', selectedProducts);
-              break;
             case 'delete':
-              const marketScoped = selectedMarketTab && selectedMarketTab !== 'all';
-              const confirmation = marketScoped
-                ? `Remove ${selectedProducts.length} products from the ${selectedMarketTab.toUpperCase()} marketplace?\n\nThey will remain in other marketplaces and historical orders will be preserved.`
-                : `Are you sure you want to delete ${selectedProducts.length} products from all marketplaces?\n\nThis action cannot be undone.`;
-              if (!confirm(confirmation)) {
-                setIsProcessing(false);
-                return;
-              }
-              result = await performProductBulkOperation('delete', selectedProducts);
               break;
             default:
-              result = { success: false, message: 'Invalid operation' };
+              alert('Invalid operation');
+              return;
           }
-          
+
+          const marketScoped = selectedMarketTab && selectedMarketTab !== 'all';
+          const confirmation = selectedOperation === 'delete'
+            ? marketScoped
+              ? `Remove ${selectedProducts.length} products from the ${selectedMarketTab.toUpperCase()} marketplace?\n\nThey will remain in other marketplaces and historical orders will be preserved.`
+              : `Are you sure you want to delete ${selectedProducts.length} products from all marketplaces?\n\nThis action cannot be undone.`
+            : `Confirm "${operationLabels[selectedOperation]}" for ${selectedProducts.length} selected products?`;
+
+          if (!window.confirm(confirmation)) {
+            return;
+          }
+
+          setIsProcessing(true);
+          const result = await performProductBulkOperation(selectedOperation, selectedProducts, payload);
+
           if (result.success) {
-            alert(`${selectedOperation} operation completed successfully for ${selectedProducts.length} products`);
+            alert(`${operationLabels[selectedOperation]} completed successfully for ${selectedProducts.length} products`);
             setSelectedProducts([]);
-            setShowProductBulkModal(false);
-            setProductBulkOperation('');
+            setShowProductBulkActions(false);
+            setSelectedOperation('');
             // Force refresh of products after bulk operations
             setTimeout(() => {
               fetchProducts();
@@ -5808,127 +5809,172 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           }
           setIsProcessing(false);
         };
-        
+
+        const menuButtonStyle = {
+          display: 'block',
+          width: '100%',
+          padding: '9px 10px',
+          border: 'none',
+          borderRadius: '4px',
+          background: 'transparent',
+          color: '#333',
+          textAlign: 'left',
+          cursor: 'pointer',
+          fontSize: '14px'
+        };
+
+        const chooseOperation = (operation) => {
+          setSelectedOperation(operation);
+        };
+
         return (
           <div>
-            <div className="form-group">
-              <label className="form-label">Select Operation</label>
-              <select
-                className="form-input"
-                value={selectedOperation}
-                onChange={(e) => setSelectedOperation(e.target.value)}
-              >
-                <option value="">Choose Operation...</option>
-                <option value="update-prices">💰 Update Prices</option>
-                <option value="update-categories">📁 Update Categories</option>
-                <option value="update-status">🔄 Update Status</option>
-                <option value="update-stock">📦 Update Stock</option>
-                <option value="export">📤 Export Products</option>
-                <option value="delete">🗑️ Delete Products</option>
-              </select>
-            </div>
-            
-            {selectedOperation === 'update-prices' && (
-              <div>
-                <div className="form-group">
-                  <label className="form-label">Price Multiplier (e.g., 1.1 for 10% increase)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-input"
-                    value={priceMultiplier}
-                    onChange={(e) => setPriceMultiplier(e.target.value)}
-                    placeholder="Enter multiplier (e.g., 1.1)"
-                  />
+            {!selectedOperation ? (
+              <>
+                <div style={{padding: '4px 10px 8px', color: '#666', fontSize: '13px', borderBottom: '1px solid #eee', marginBottom: '4px'}}>
+                  Select action for {selectedProducts.length} selected products
                 </div>
-                <div className="form-group">
-                  <label className="form-label">OR Set Fixed Price</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-input"
-                    value={fixedPrice}
-                    onChange={(e) => setFixedPrice(e.target.value)}
-                    placeholder="Enter fixed price"
-                  />
-                </div>
-              </div>
-            )}
-            
-            {selectedOperation === 'update-categories' && (
-              <div className="form-group">
-                <label className="form-label">New Category</label>
-                <select
-                  className="form-input"
-                  value={newCategoryId}
-                  onChange={(e) => setNewCategoryId(e.target.value)}
-                >
-                  <option value="">Select Category...</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>{category.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            
-            {selectedOperation === 'update-status' && (
-              <div className="form-group">
-                <label className="form-label">New Status</label>
-                <select
-                  className="form-input"
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                >
-                  <option value="">Select Status...</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="draft">Draft</option>
-                  <option value="discontinued">Discontinued</option>
-                </select>
-              </div>
-            )}
-            
-            {selectedOperation === 'update-stock' && (
-              <div>
-                <div className="form-group">
-                  <label className="form-label">Stock Operation</label>
-                  <select
-                    className="form-input"
-                    value={stockOperation}
-                    onChange={(e) => setStockOperation(e.target.value)}
+                {[
+                  ['update-prices', '💰 Update Prices'],
+                  ['update-categories', '📁 Update Categories'],
+                  ['update-status', '🔄 Update Status'],
+                  ['update-stock', '📦 Update Stock'],
+                  ['export', '📤 Export Products'],
+                  ['delete', '🗑️ Delete Products']
+                ].map(([operation, label]) => (
+                  <button
+                    key={operation}
+                    type="button"
+                    role="menuitem"
+                    style={{
+                      ...menuButtonStyle,
+                      color: operation === 'delete' ? '#b02a37' : '#333'
+                    }}
+                    onClick={() => chooseOperation(operation)}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f3f5'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                   >
-                    <option value="set">Set Stock To</option>
-                    <option value="add">Add To Stock</option>
-                    <option value="subtract">Subtract From Stock</option>
-                  </select>
+                    {label}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '4px 2px 10px', borderBottom: '1px solid #eee', marginBottom: '10px'}}>
+                  <strong style={{color: '#333', fontSize: '14px'}}>{operationLabels[selectedOperation]}</strong>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOperation('')}
+                    style={{border: 'none', background: 'transparent', color: '#6c757d', cursor: 'pointer', fontSize: '13px', padding: '2px 4px'}}
+                  >
+                    ← Back
+                  </button>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Stock Value</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={stockValue}
-                    onChange={(e) => setStockValue(e.target.value)}
-                    placeholder="Enter stock value"
-                  />
-                </div>
-              </div>
-            )}
-            
-            <button
-              className="btn"
-              style={{background: '#28a745'}}
-              onClick={handleOperation}
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Processing...' : 'Execute Operation'}
-            </button>
-            
-            {isProcessing && (
-              <div style={{textAlign: 'center', marginTop: '20px'}}>
-                <div className="loading"></div>
-                <p>Processing operation...</p>
-              </div>
+
+                {selectedOperation === 'update-prices' && (
+                  <div>
+                    <div className="form-group">
+                      <label className="form-label">Price Multiplier (e.g., 1.1 for 10% increase)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="form-input"
+                        value={priceMultiplier}
+                        onChange={(e) => setPriceMultiplier(e.target.value)}
+                        placeholder="Enter multiplier (e.g., 1.1)"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">OR Set Fixed Price</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="form-input"
+                        value={fixedPrice}
+                        onChange={(e) => setFixedPrice(e.target.value)}
+                        placeholder="Enter fixed price"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selectedOperation === 'update-categories' && (
+                  <div className="form-group">
+                    <label className="form-label">New Category</label>
+                    <select
+                      className="form-input"
+                      value={newCategoryId}
+                      onChange={(e) => setNewCategoryId(e.target.value)}
+                    >
+                      <option value="">Select Category...</option>
+                      {categories.map(category => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {selectedOperation === 'update-status' && (
+                  <div className="form-group">
+                    <label className="form-label">New Status</label>
+                    <select
+                      className="form-input"
+                      value={newStatus}
+                      onChange={(e) => setNewStatus(e.target.value)}
+                    >
+                      <option value="">Select Status...</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="draft">Draft</option>
+                      <option value="discontinued">Discontinued</option>
+                    </select>
+                  </div>
+                )}
+
+                {selectedOperation === 'update-stock' && (
+                  <div>
+                    <div className="form-group">
+                      <label className="form-label">Stock Operation</label>
+                      <select
+                        className="form-input"
+                        value={stockOperation}
+                        onChange={(e) => setStockOperation(e.target.value)}
+                      >
+                        <option value="set">Set Stock To</option>
+                        <option value="add">Add To Stock</option>
+                        <option value="subtract">Subtract From Stock</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Stock Value</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={stockValue}
+                        onChange={(e) => setStockValue(e.target.value)}
+                        placeholder="Enter stock value"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  className="btn"
+                  style={{background: selectedOperation === 'delete' ? '#dc3545' : '#28a745', width: '100%', marginTop: '6px'}}
+                  onClick={handleOperation}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? 'Processing...' : 'Confirm and Execute'}
+                </button>
+
+                {isProcessing && (
+                  <div style={{textAlign: 'center', marginTop: '12px'}}>
+                    <div className="loading"></div>
+                    <p>Processing operation...</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         );
@@ -8726,55 +8772,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         setShowBulkModal(false);
                         setBulkOperation('');
                         setBulkResults(null);
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Product Bulk Operations Modal */}
-            {showProductBulkModal && (
-              <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 1000
-              }}>
-                <div style={{
-                  backgroundColor: 'white',
-                  padding: '30px',
-                  borderRadius: '8px',
-                  width: '90%',
-                  maxWidth: '600px',
-                  maxHeight: '80vh',
-                  overflow: 'auto'
-                }}>
-                  <h3 style={{marginBottom: '20px', color: '#333'}}>
-                    📦 Product Bulk Operations
-                  </h3>
-                  <p style={{marginBottom: '20px', color: '#666'}}>
-                    Selected {selectedProducts.length} products for bulk operation.
-                  </p>
-                  
-                  <ProductBulkOperationsComponent />
-                  
-                  <div style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
-                    <button
-                      type="button"
-                      className="btn"
-                      style={{background: '#6c757d'}}
-                      onClick={() => {
-                        setShowProductBulkModal(false);
-                        setProductBulkOperation('');
                       }}
                     >
                       Cancel
