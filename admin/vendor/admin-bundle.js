@@ -14284,7 +14284,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: "Order Actions" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", flexWrap: "wrap" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                   "button",
                   {
@@ -14325,180 +14325,446 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                     children: "\u{1F6E0}\uFE0F Order Tools"
                   }
                 )
-              ] })
-            ] }),
-            showSearchFilter && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "8px", marginBottom: "20px", border: "1px solid #dee2e6" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: "\u{1F50D} Search & Filter Orders" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "15px", flexWrap: "wrap", alignItems: "center" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flex: "1", minWidth: "200px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "input",
-                  {
-                    type: "text",
-                    placeholder: "Caut\u0103 dup\u0103 ID, client, ora\u0219...",
-                    value: searchTerm,
-                    onChange: (e2) => setSearchTerm(e2.target.value),
-                    style: {
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "4px",
-                      border: "1px solid #ddd",
-                      fontSize: "14px"
+              ] }) }),
+              showSearchFilter && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "8px", marginBottom: "20px", border: "1px solid #dee2e6" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: "\u{1F50D} Search & Filter Orders" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "15px", flexWrap: "wrap", alignItems: "center" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flex: "1", minWidth: "200px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      placeholder: "Caut\u0103 dup\u0103 ID, client, ora\u0219...",
+                      value: searchTerm,
+                      onChange: (e2) => setSearchTerm(e2.target.value),
+                      style: {
+                        width: "100%",
+                        padding: "10px",
+                        borderRadius: "4px",
+                        border: "1px solid #ddd",
+                        fontSize: "14px"
+                      }
                     }
-                  }
-                ) }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flex: "1", minWidth: "180px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "input",
-                  {
-                    type: "text",
-                    placeholder: "Caut\u0103 dup\u0103 firm\u0103...",
-                    value: companySearch,
-                    onChange: (e2) => setCompanySearch(e2.target.value),
-                    style: {
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "4px",
-                      border: "1px solid #ddd",
-                      fontSize: "14px"
+                  ) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flex: "1", minWidth: "180px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      placeholder: "Caut\u0103 dup\u0103 firm\u0103...",
+                      value: companySearch,
+                      onChange: (e2) => setCompanySearch(e2.target.value),
+                      style: {
+                        width: "100%",
+                        padding: "10px",
+                        borderRadius: "4px",
+                        border: "1px solid #ddd",
+                        fontSize: "14px"
+                      }
                     }
-                  }
-                ) }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { minWidth: "150px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "select",
-                  {
-                    value: statusFilter,
-                    onChange: (e2) => setStatusFilter(e2.target.value),
-                    style: {
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "4px",
-                      border: "1px solid #ddd",
-                      fontSize: "14px"
-                    },
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: t2("common.allStatus") }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "pending", children: "Pending" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "accepted", children: "Accepted" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "processing", children: "Processing" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "shipped", children: "Shipped" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "in_delivery", children: "In Delivery" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "delivered", children: "Delivered" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "cancelled", children: "Cancelled" })
-                    ]
-                  }
-                ) }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { minWidth: "130px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "select",
-                  {
-                    value: marketFilter,
-                    onChange: (e2) => setMarketFilter(e2.target.value),
-                    style: {
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "4px",
-                      border: "1px solid #ddd",
-                      fontSize: "14px"
-                    },
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: "\u{1F30D} Toate pie\u021Bele" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "ro", children: "\u{1F1F7}\u{1F1F4} .ro" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "fr", children: "\u{1F1EB}\u{1F1F7} .fr" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "com", children: "\u{1F310} .com" })
-                    ]
-                  }
-                ) }),
+                  ) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { minWidth: "150px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "select",
+                    {
+                      value: statusFilter,
+                      onChange: (e2) => setStatusFilter(e2.target.value),
+                      style: {
+                        width: "100%",
+                        padding: "10px",
+                        borderRadius: "4px",
+                        border: "1px solid #ddd",
+                        fontSize: "14px"
+                      },
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: t2("common.allStatus") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "pending", children: "Pending" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "accepted", children: "Accepted" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "processing", children: "Processing" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "shipped", children: "Shipped" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "in_delivery", children: "In Delivery" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "delivered", children: "Delivered" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "cancelled", children: "Cancelled" })
+                      ]
+                    }
+                  ) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { minWidth: "130px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "select",
+                    {
+                      value: marketFilter,
+                      onChange: (e2) => setMarketFilter(e2.target.value),
+                      style: {
+                        width: "100%",
+                        padding: "10px",
+                        borderRadius: "4px",
+                        border: "1px solid #ddd",
+                        fontSize: "14px"
+                      },
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: "\u{1F30D} Toate pie\u021Bele" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "ro", children: "\u{1F1F7}\u{1F1F4} .ro" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "fr", children: "\u{1F1EB}\u{1F1F7} .fr" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "com", children: "\u{1F310} .com" })
+                      ]
+                    }
+                  ) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "button",
+                    {
+                      className: "btn",
+                      style: { background: "#6c757d", width: "auto", padding: "8px 16px" },
+                      onClick: () => {
+                        setSearchTerm("");
+                        setCompanySearch("");
+                        setStatusFilter("all");
+                        setMarketFilter("all");
+                      },
+                      children: "Clear"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "10px", color: "#666", fontSize: "14px" }, children: [
+                  "Showing ",
+                  filteredOrders.length,
+                  " of ",
+                  orders.length,
+                  " orders"
+                ] })
+              ] }),
+              orders.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { overflowX: "auto" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "center", borderBottom: "2px solid #ddd", width: "40px", minWidth: "40px", whiteSpace: "nowrap" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "input",
+                      {
+                        type: "checkbox",
+                        onChange: (e2) => {
+                          if (e2.target.checked) {
+                            setSelectedOrders(filteredOrders.map((order) => order.id));
+                          } else {
+                            setSelectedOrders([]);
+                          }
+                        },
+                        checked: selectedOrders.length === filteredOrders.length && filteredOrders.length > 0
+                      }
+                    ) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "70px" }, children: "Order ID" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "150px" }, children: "Client" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "280px" }, children: "Firm\u0103" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "90px" }, children: "Total" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "100px" }, children: "Status" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "90px" }, children: "Dat\u0103" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Ac\u021Biuni" })
+                  ] }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: filteredOrders.slice((ordersPage - 1) * 50, ordersPage * 50).map((order, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px", textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "input",
+                      {
+                        type: "checkbox",
+                        checked: selectedOrders.includes(order.id),
+                        onChange: (e2) => {
+                          if (e2.target.checked) {
+                            setSelectedOrders([...selectedOrders, order.id]);
+                          } else {
+                            setSelectedOrders(selectedOrders.filter((id) => id !== order.id));
+                          }
+                        }
+                      }
+                    ) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "8px 12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: [
+                      "#",
+                      order.id,
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "1px 5px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: (order.market || "ro") === "ro" ? "#fff3cd" : order.market === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: (order.market || "ro").toUpperCase() })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, title: (() => {
+                      const sa = order.shippingAddress;
+                      const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(" ");
+                      return name || `#${order.userId}`;
+                    })(), children: (() => {
+                      const sa = order.shippingAddress;
+                      const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(" ");
+                      return name || `#${order.userId}`;
+                    })() }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "280px" }, title: order.billingAddress?.companyName || "", children: order.billingAddress?.companyName || "" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "8px 12px", color: "#28a745", fontWeight: "bold", whiteSpace: "nowrap" }, children: [
+                      parseFloat(order.totalAmount).toFixed(2),
+                      " lei"
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                        backgroundColor: order.status === "pending" ? "#fff3cd" : order.status === "accepted" ? "#d1ecf1" : order.status === "processing" ? "#cce5ff" : order.status === "shipped" ? "#d4edda" : order.status === "in_delivery" ? "#d4f4f4" : order.status === "delivered" ? "#d4edda" : order.status === "cancelled" ? "#f8d7da" : order.status === "manual_processing" ? "#fff0d6" : order.status === "manual_failed" ? "#f8d7da" : "#e2e3e5",
+                        color: order.status === "pending" ? "#856404" : order.status === "accepted" ? "#0c5460" : order.status === "processing" ? "#0056b3" : order.status === "shipped" ? "#155724" : order.status === "in_delivery" ? "#0e7c7b" : order.status === "delivered" ? "#155724" : order.status === "cancelled" ? "#721c24" : order.status === "manual_processing" ? "#8a4a00" : order.status === "manual_failed" ? "#7a1a1a" : "#383d41"
+                      }, children: order.status === "in_delivery" ? "In Delivery" : order.status === "manual_processing" ? "\u23F3 Manual..." : order.status === "manual_failed" ? "\u274C Manual e\u0219uat" : order.status === "cash_on_delivery" ? "COD" : order.status }),
+                      order.source === "manual_admin" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { display: "inline-block", marginLeft: "4px", padding: "2px 5px", borderRadius: "3px", backgroundColor: "#fd7e14", color: "white", fontSize: "10px", fontWeight: "bold", verticalAlign: "middle" }, title: "Comanda procesata manual de admin", children: "\u{1F590} Manual" })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: new Date(order.createdAt).toLocaleDateString() }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px", flexWrap: "wrap" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#007bff",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: () => {
+                            setSelectedOrder(order);
+                            setShowOrderDetails(true);
+                          },
+                          children: "\u{1F441}\uFE0F View"
+                        }
+                      ),
+                      order.status === "pending" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#17a2b8",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: async () => {
+                            if (confirm(`Accept order #${order.id}?
+
+This will:
+\u2022 Update order status to 'processing'
+\u2022 Send confirmation email to customer
+\u2022 Send notification to logistics team
+\u2022 Enable AWB generation button`)) {
+                              const result = await acceptOrder(order.id);
+                              if (result.success) {
+                                let message = "Order accepted successfully!";
+                                if (result.notifications) {
+                                  message += "\n\nEmail notifications:";
+                                  message += result.notifications.customerEmail ? "\n\u2705 Customer confirmation sent" : "\n\u274C Customer email failed";
+                                  message += result.notifications.logisticsEmail ? "\n\u2705 Logistics notification sent" : "\n\u274C Logistics email failed";
+                                }
+                                alert(message);
+                              } else {
+                                alert("Error: " + result.message);
+                              }
+                            }
+                          },
+                          children: "\u2705 Accept"
+                        }
+                      ),
+                      order.status === "pending" && !order.awbNumber && order.source !== "manual_admin" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#e67e22", color: "white", cursor: "pointer", fontSize: "12px" },
+                          onClick: () => {
+                            if (confirm("\u{1F590} Procesare manuala comanda #" + order.id + "\n\nVa genera AWB + factura\nFara mailuri trimise.\n\nContinui?")) {
+                              processManualOrder(order.id);
+                            }
+                          },
+                          children: "\u{1F590} Manual"
+                        }
+                      ),
+                      order.source === "manual_admin" && order.status === "manual_failed" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#dc3545", color: "white", cursor: "pointer", fontSize: "12px" },
+                          onClick: () => {
+                            if (confirm("\u{1F504} Re\xEEncearc\u0103 procesarea manual\u0103 pentru comanda #" + order.id + "?\n\nVa relua generarea AWB/facturii (cele deja existente NU se duplic\u0103).")) {
+                              processManualOrder(order.id);
+                            }
+                          },
+                          children: "\u{1F504} Retry Manual"
+                        }
+                      ),
+                      !["delivered", "cancelled"].includes(order.status) && (!order.awbNumber || order.awbNumber.includes("-API") || order.awbNumber.includes("-MANUAL-")) && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#8e44ad",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: () => generateAWB(order.id),
+                          children: "\u{1F69B} Generate AWB"
+                        }
+                      ),
+                      order.awbNumber && !order.awbNumber.includes("-API") && !order.awbNumber.includes("-MANUAL-") && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#17a2b8",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: () => window.open(`https://sameday.ro/status-colet/?awb=${order.awbNumber}`, "_blank"),
+                          children: "\u{1F4E6} Track Package"
+                        }
+                      ),
+                      order.awbNumber && !order.awbNumber.includes("-API") && !order.awbNumber.includes("-MANUAL-") && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#20c997", color: "white", cursor: "pointer", fontSize: "12px" },
+                          onClick: () => {
+                            if (confirm("\u2709\uFE0F Trimite mail acceptare comanda #" + order.id + "?\n\nVa trimite mailul cu AWB atasat catre client.")) {
+                              sendAcceptanceEmailFn(order.id);
+                            }
+                          },
+                          children: "\u2709\uFE0F Mail AWB"
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#fd7e14",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: () => forwardOrderToSuppliers(order.id),
+                          children: "\u{1F4E4} Forward to Suppliers"
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#28a745",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: () => {
+                            setStatusChangeOrderId(order.id);
+                            setStatusChangeValue(order.status);
+                          },
+                          children: "\u270F\uFE0F Update"
+                        }
+                      )
+                    ] }) })
+                  ] }, index)) })
+                ] }),
+                filteredOrders.length > 50 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderTop: "1px solid #dee2e6", background: "#f8f9fa" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "button",
+                    {
+                      onClick: () => setOrdersPage((p) => Math.max(1, p - 1)),
+                      disabled: ordersPage === 1,
+                      style: { padding: "6px 14px", border: "1px solid #ced4da", borderRadius: "4px", background: ordersPage === 1 ? "#e9ecef" : "white", cursor: ordersPage === 1 ? "default" : "pointer", color: ordersPage === 1 ? "#aaa" : "#333" },
+                      children: "\u2190 Anterior"
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "13px", color: "#555" }, children: [
+                    "Pagina ",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: ordersPage }),
+                    " din ",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: Math.ceil(filteredOrders.length / 50) }),
+                    " \xA0\xB7\xA0 ",
+                    filteredOrders.length,
+                    " comenzi total"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "button",
+                    {
+                      onClick: () => setOrdersPage((p) => Math.min(Math.ceil(filteredOrders.length / 50), p + 1)),
+                      disabled: ordersPage >= Math.ceil(filteredOrders.length / 50),
+                      style: { padding: "6px 14px", border: "1px solid #ced4da", borderRadius: "4px", background: ordersPage >= Math.ceil(filteredOrders.length / 50) ? "#e9ecef" : "white", cursor: ordersPage >= Math.ceil(filteredOrders.length / 50) ? "default" : "pointer", color: ordersPage >= Math.ceil(filteredOrders.length / 50) ? "#aaa" : "#333" },
+                      children: "Urm\u0103tor \u2192"
+                    }
+                  )
+                ] })
+              ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: "No orders found" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: "Orders will appear here once customers start purchasing your products." }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                   "button",
                   {
                     className: "btn",
-                    style: { background: "#6c757d", width: "auto", padding: "8px 16px" },
-                    onClick: () => {
-                      setSearchTerm("");
-                      setCompanySearch("");
-                      setStatusFilter("all");
-                      setMarketFilter("all");
-                    },
-                    children: "Clear"
+                    style: { background: "#007bff", width: "auto", padding: "12px 24px" },
+                    onClick: () => setActiveView("dashboard"),
+                    children: "\u{1F4CA} View Dashboard"
+                  }
+                )
+              ] })
+            ] }),
+            "); case 'users': return (",
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0" }, children: "\u{1F465} User Management" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "button",
+                  {
+                    className: "btn",
+                    style: { background: "#28a745", width: "auto", padding: "8px 16px" },
+                    onClick: () => setShowAddUserModal(true),
+                    children: "\u2795 Add New User"
                   }
                 )
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "10px", color: "#666", fontSize: "14px" }, children: [
-                "Showing ",
-                filteredOrders.length,
-                " of ",
-                orders.length,
-                " orders"
-              ] })
-            ] }),
-            orders.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { overflowX: "auto" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginBottom: "20px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: "Total Users" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#007bff", margin: "0" }, children: stats?.totalUsers || "0" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: "Regular Users" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#28a745", margin: "0" }, children: users.filter((u) => !u.isAdmin).length })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: "Admin Users" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#dc3545", margin: "0" }, children: users.filter((u) => u.isAdmin).length })
+                ] })
+              ] }),
+              users.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "center", borderBottom: "2px solid #ddd", width: "40px", minWidth: "40px", whiteSpace: "nowrap" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                    "input",
-                    {
-                      type: "checkbox",
-                      onChange: (e2) => {
-                        if (e2.target.checked) {
-                          setSelectedOrders(filteredOrders.map((order) => order.id));
-                        } else {
-                          setSelectedOrders([]);
-                        }
-                      },
-                      checked: selectedOrders.length === filteredOrders.length && filteredOrders.length > 0
-                    }
-                  ) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "70px" }, children: "Order ID" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "150px" }, children: "Client" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "280px" }, children: "Firm\u0103" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "90px" }, children: "Total" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "100px" }, children: "Status" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "90px" }, children: "Dat\u0103" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Ac\u021Biuni" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "User ID" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Name" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Email" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Role" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Actions" })
                 ] }) }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: filteredOrders.slice((ordersPage - 1) * 50, ordersPage * 50).map((order, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px", textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                    "input",
-                    {
-                      type: "checkbox",
-                      checked: selectedOrders.includes(order.id),
-                      onChange: (e2) => {
-                        if (e2.target.checked) {
-                          setSelectedOrders([...selectedOrders, order.id]);
-                        } else {
-                          setSelectedOrders(selectedOrders.filter((id) => id !== order.id));
-                        }
-                      }
-                    }
-                  ) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "8px 12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: users.map((user, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
                     "#",
-                    order.id,
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "1px 5px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: (order.market || "ro") === "ro" ? "#fff3cd" : order.market === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: (order.market || "ro").toUpperCase() })
+                    user.id
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, title: (() => {
-                    const sa = order.shippingAddress;
-                    const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(" ");
-                    return name || `#${order.userId}`;
-                  })(), children: (() => {
-                    const sa = order.shippingAddress;
-                    const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(" ");
-                    return name || `#${order.userId}`;
-                  })() }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "280px" }, title: order.billingAddress?.companyName || "", children: order.billingAddress?.companyName || "" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "8px 12px", color: "#28a745", fontWeight: "bold", whiteSpace: "nowrap" }, children: [
-                    parseFloat(order.totalAmount).toFixed(2),
-                    " lei"
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px", fontWeight: "500" }, children: [
+                    user.firstName,
+                    " ",
+                    user.lastName
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: user.email }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
                       padding: "4px 8px",
                       borderRadius: "4px",
-                      backgroundColor: order.status === "pending" ? "#fff3cd" : order.status === "accepted" ? "#d1ecf1" : order.status === "processing" ? "#cce5ff" : order.status === "shipped" ? "#d4edda" : order.status === "in_delivery" ? "#d4f4f4" : order.status === "delivered" ? "#d4edda" : order.status === "cancelled" ? "#f8d7da" : order.status === "manual_processing" ? "#fff0d6" : order.status === "manual_failed" ? "#f8d7da" : "#e2e3e5",
-                      color: order.status === "pending" ? "#856404" : order.status === "accepted" ? "#0c5460" : order.status === "processing" ? "#0056b3" : order.status === "shipped" ? "#155724" : order.status === "in_delivery" ? "#0e7c7b" : order.status === "delivered" ? "#155724" : order.status === "cancelled" ? "#721c24" : order.status === "manual_processing" ? "#8a4a00" : order.status === "manual_failed" ? "#7a1a1a" : "#383d41"
-                    }, children: order.status === "in_delivery" ? "In Delivery" : order.status === "manual_processing" ? "\u23F3 Manual..." : order.status === "manual_failed" ? "\u274C Manual e\u0219uat" : order.status === "cash_on_delivery" ? "COD" : order.status }),
-                    order.source === "manual_admin" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { display: "inline-block", marginLeft: "4px", padding: "2px 5px", borderRadius: "3px", backgroundColor: "#fd7e14", color: "white", fontSize: "10px", fontWeight: "bold", verticalAlign: "middle" }, title: "Comanda procesata manual de admin", children: "\u{1F590} Manual" })
+                      backgroundColor: user.isAdmin ? "#f8d7da" : "#d4edda",
+                      color: user.isAdmin ? "#721c24" : "#155724"
+                    }, children: user.isAdmin ? "Admin" : "User" }),
+                    user.isAdmin && (user.adminMarkets || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: "#f8d7da", color: "#721c24" }, children: "SUPER" }),
+                    user.isAdmin && (user.adminMarkets || []).map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m)),
+                    !user.isAdmin && (() => {
+                      const userMarkets = [...new Set(orders.filter((o) => o.userId === user.id).map((o) => o.market || "ro"))];
+                      return userMarkets.map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 4px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m));
+                    })()
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: new Date(order.createdAt).toLocaleDateString() }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px", flexWrap: "wrap" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                       "button",
                       {
@@ -14511,445 +14777,179 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                           cursor: "pointer",
                           fontSize: "12px"
                         },
-                        onClick: () => {
-                          setSelectedOrder(order);
-                          setShowOrderDetails(true);
-                        },
-                        children: "\u{1F441}\uFE0F View"
+                        onClick: () => setEditingUser(user),
+                        children: "\u270F\uFE0F Edit"
                       }
                     ),
-                    order.status === "pending" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                       "button",
                       {
                         style: {
                           padding: "4px 8px",
                           border: "none",
                           borderRadius: "3px",
-                          backgroundColor: "#17a2b8",
+                          backgroundColor: "#dc3545",
                           color: "white",
                           cursor: "pointer",
                           fontSize: "12px"
                         },
                         onClick: async () => {
-                          if (confirm(`Accept order #${order.id}?
+                          if (confirm(`Delete user "${user.firstName} ${user.lastName}"?
 
-This will:
-\u2022 Update order status to 'processing'
-\u2022 Send confirmation email to customer
-\u2022 Send notification to logistics team
-\u2022 Enable AWB generation button`)) {
-                            const result = await acceptOrder(order.id);
+This action cannot be undone.`)) {
+                            const result = await deleteUser(user.id);
                             if (result.success) {
-                              let message = "Order accepted successfully!";
-                              if (result.notifications) {
-                                message += "\n\nEmail notifications:";
-                                message += result.notifications.customerEmail ? "\n\u2705 Customer confirmation sent" : "\n\u274C Customer email failed";
-                                message += result.notifications.logisticsEmail ? "\n\u2705 Logistics notification sent" : "\n\u274C Logistics email failed";
-                              }
-                              alert(message);
+                              alert("User deleted successfully");
                             } else {
                               alert("Error: " + result.message);
                             }
                           }
                         },
-                        children: "\u2705 Accept"
-                      }
-                    ),
-                    order.status === "pending" && !order.awbNumber && order.source !== "manual_admin" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "button",
-                      {
-                        style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#e67e22", color: "white", cursor: "pointer", fontSize: "12px" },
-                        onClick: () => {
-                          if (confirm("\u{1F590} Procesare manuala comanda #" + order.id + "\n\nVa genera AWB + factura\nFara mailuri trimise.\n\nContinui?")) {
-                            processManualOrder(order.id);
-                          }
-                        },
-                        children: "\u{1F590} Manual"
-                      }
-                    ),
-                    order.source === "manual_admin" && order.status === "manual_failed" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "button",
-                      {
-                        style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#dc3545", color: "white", cursor: "pointer", fontSize: "12px" },
-                        onClick: () => {
-                          if (confirm("\u{1F504} Re\xEEncearc\u0103 procesarea manual\u0103 pentru comanda #" + order.id + "?\n\nVa relua generarea AWB/facturii (cele deja existente NU se duplic\u0103).")) {
-                            processManualOrder(order.id);
-                          }
-                        },
-                        children: "\u{1F504} Retry Manual"
-                      }
-                    ),
-                    !["delivered", "cancelled"].includes(order.status) && (!order.awbNumber || order.awbNumber.includes("-API") || order.awbNumber.includes("-MANUAL-")) && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "button",
-                      {
-                        style: {
-                          padding: "4px 8px",
-                          border: "none",
-                          borderRadius: "3px",
-                          backgroundColor: "#8e44ad",
-                          color: "white",
-                          cursor: "pointer",
-                          fontSize: "12px"
-                        },
-                        onClick: () => generateAWB(order.id),
-                        children: "\u{1F69B} Generate AWB"
-                      }
-                    ),
-                    order.awbNumber && !order.awbNumber.includes("-API") && !order.awbNumber.includes("-MANUAL-") && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "button",
-                      {
-                        style: {
-                          padding: "4px 8px",
-                          border: "none",
-                          borderRadius: "3px",
-                          backgroundColor: "#17a2b8",
-                          color: "white",
-                          cursor: "pointer",
-                          fontSize: "12px"
-                        },
-                        onClick: () => window.open(`https://sameday.ro/status-colet/?awb=${order.awbNumber}`, "_blank"),
-                        children: "\u{1F4E6} Track Package"
-                      }
-                    ),
-                    order.awbNumber && !order.awbNumber.includes("-API") && !order.awbNumber.includes("-MANUAL-") && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "button",
-                      {
-                        style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#20c997", color: "white", cursor: "pointer", fontSize: "12px" },
-                        onClick: () => {
-                          if (confirm("\u2709\uFE0F Trimite mail acceptare comanda #" + order.id + "?\n\nVa trimite mailul cu AWB atasat catre client.")) {
-                            sendAcceptanceEmailFn(order.id);
-                          }
-                        },
-                        children: "\u2709\uFE0F Mail AWB"
-                      }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "button",
-                      {
-                        style: {
-                          padding: "4px 8px",
-                          border: "none",
-                          borderRadius: "3px",
-                          backgroundColor: "#fd7e14",
-                          color: "white",
-                          cursor: "pointer",
-                          fontSize: "12px"
-                        },
-                        onClick: () => forwardOrderToSuppliers(order.id),
-                        children: "\u{1F4E4} Forward to Suppliers"
-                      }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "button",
-                      {
-                        style: {
-                          padding: "4px 8px",
-                          border: "none",
-                          borderRadius: "3px",
-                          backgroundColor: "#28a745",
-                          color: "white",
-                          cursor: "pointer",
-                          fontSize: "12px"
-                        },
-                        onClick: () => {
-                          setStatusChangeOrderId(order.id);
-                          setStatusChangeValue(order.status);
-                        },
-                        children: "\u270F\uFE0F Update"
+                        children: [
+                          "\u{1F5D1}\uFE0F ",
+                          t2("common.delete")
+                        ]
                       }
                     )
                   ] }) })
                 ] }, index)) })
-              ] }),
-              filteredOrders.length > 50 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderTop: "1px solid #dee2e6", background: "#f8f9fa" }, children: [
+              ] }) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: "No users found" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: "Create your first user to get started with user management." }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                   "button",
                   {
-                    onClick: () => setOrdersPage((p) => Math.max(1, p - 1)),
-                    disabled: ordersPage === 1,
-                    style: { padding: "6px 14px", border: "1px solid #ced4da", borderRadius: "4px", background: ordersPage === 1 ? "#e9ecef" : "white", cursor: ordersPage === 1 ? "default" : "pointer", color: ordersPage === 1 ? "#aaa" : "#333" },
-                    children: "\u2190 Anterior"
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "13px", color: "#555" }, children: [
-                  "Pagina ",
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: ordersPage }),
-                  " din ",
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: Math.ceil(filteredOrders.length / 50) }),
-                  " \xA0\xB7\xA0 ",
-                  filteredOrders.length,
-                  " comenzi total"
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "button",
-                  {
-                    onClick: () => setOrdersPage((p) => Math.min(Math.ceil(filteredOrders.length / 50), p + 1)),
-                    disabled: ordersPage >= Math.ceil(filteredOrders.length / 50),
-                    style: { padding: "6px 14px", border: "1px solid #ced4da", borderRadius: "4px", background: ordersPage >= Math.ceil(filteredOrders.length / 50) ? "#e9ecef" : "white", cursor: ordersPage >= Math.ceil(filteredOrders.length / 50) ? "default" : "pointer", color: ordersPage >= Math.ceil(filteredOrders.length / 50) ? "#aaa" : "#333" },
-                    children: "Urm\u0103tor \u2192"
+                    className: "btn",
+                    style: { background: "#28a745", width: "auto", padding: "12px 24px" },
+                    onClick: () => setShowAddUserModal(true),
+                    children: "\u2795 Add Your First User"
                   }
                 )
               ] })
-            ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: "No orders found" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: "Orders will appear here once customers start purchasing your products." }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "button",
-                {
-                  className: "btn",
-                  style: { background: "#007bff", width: "auto", padding: "12px 24px" },
-                  onClick: () => setActiveView("dashboard"),
-                  children: "\u{1F4CA} View Dashboard"
-                }
-              )
-            ] })
-          ] });
-        case "users":
-          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0" }, children: "\u{1F465} User Management" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "button",
-                {
-                  className: "btn",
-                  style: { background: "#28a745", width: "auto", padding: "8px 16px" },
-                  onClick: () => setShowAddUserModal(true),
-                  children: "\u2795 Add New User"
-                }
-              )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: "Total Users" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#007bff", margin: "0" }, children: stats?.totalUsers || "0" })
+            "); case 'products': return (",
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0" }, children: [
+                  "\u{1F4E6} ",
+                  t2("products.title")
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", gap: "10px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  "button",
+                  {
+                    className: "btn",
+                    style: { background: "#28a745", width: "auto", padding: "8px 16px" },
+                    onClick: () => {
+                      fetchCategories();
+                      fetchSuppliers();
+                      setEditingProduct(null);
+                      const timestamp = Date.now().toString(36).toUpperCase();
+                      const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+                      const generatedCode = `PRD-${timestamp}${random}`;
+                      fetchCompanyDefaults().then((defaults) => {
+                        console.log("Company defaults for new product:", defaults);
+                        initialProductDataRef.current = {
+                          name: "",
+                          description: "",
+                          price: "",
+                          compareAtPrice: "",
+                          categoryId: "",
+                          supplierId: "",
+                          imageUrl: "",
+                          stockQuantity: "",
+                          featured: false,
+                          vatValue: "",
+                          vatPercentage: defaults.vatPercentage || (selectedMarketTab === "fr" ? "20.00" : selectedMarketTab === "ro" ? "19.00" : "0.00"),
+                          currency: defaults.currency || "RON",
+                          productCode: generatedCode,
+                          ncCode: "",
+                          cpvCode: "",
+                          status: "active",
+                          images: [],
+                          weight: "",
+                          length: "",
+                          width: "",
+                          height: "",
+                          piecesPerPackage: "",
+                          productQuantity: "",
+                          specs: [],
+                          volumeDiscounts: [],
+                          priority: 0,
+                          isService: false,
+                          isComposite: false
+                        };
+                        setProductLoadTrigger((prev) => prev + 1);
+                        setProductTranslations([]);
+                        setShowTranslationsTab(false);
+                        lastLoadedProductIdRef.current = null;
+                        setShowAddProductModal(true);
+                      });
+                    },
+                    children: [
+                      "\u2795 ",
+                      t2("products.addNew")
+                    ]
+                  }
+                ) })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: "Regular Users" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#28a745", margin: "0" }, children: users.filter((u) => !u.isAdmin).length })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: "Admin Users" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#dc3545", margin: "0" }, children: users.filter((u) => u.isAdmin).length })
-              ] })
-            ] }),
-            users.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "User ID" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Name" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Email" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Role" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Actions" })
-              ] }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: users.map((user, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
-                  "#",
-                  user.id
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px", fontWeight: "500" }, children: [
-                  user.firstName,
-                  " ",
-                  user.lastName
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: user.email }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
-                    padding: "4px 8px",
-                    borderRadius: "4px",
-                    backgroundColor: user.isAdmin ? "#f8d7da" : "#d4edda",
-                    color: user.isAdmin ? "#721c24" : "#155724"
-                  }, children: user.isAdmin ? "Admin" : "User" }),
-                  user.isAdmin && (user.adminMarkets || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: "#f8d7da", color: "#721c24" }, children: "SUPER" }),
-                  user.isAdmin && (user.adminMarkets || []).map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m)),
-                  !user.isAdmin && (() => {
-                    const userMarkets = [...new Set(orders.filter((o) => o.userId === user.id).map((o) => o.market || "ro"))];
-                    return userMarkets.map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 4px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m));
-                  })()
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: t2("products.actions") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "button",
+                    {
+                      className: "btn",
+                      style: { background: "#007bff", width: "auto", padding: "8px 16px" },
+                      onClick: () => {
+                        if (selectedProducts.length === 0) {
+                          alert("Please select products first by checking the boxes in the product list.");
+                          return;
+                        }
+                        setShowProductBulkModal(true);
+                      },
+                      disabled: selectedProducts.length === 0,
+                      children: [
+                        "\u{1F504} ",
+                        t2("common.bulkOps"),
+                        " ",
+                        selectedProducts.length > 0 && `(${selectedProducts.length})`
+                      ]
+                    }
+                  ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "button",
                     {
-                      style: {
-                        padding: "4px 8px",
-                        border: "none",
-                        borderRadius: "3px",
-                        backgroundColor: "#007bff",
-                        color: "white",
-                        cursor: "pointer",
-                        fontSize: "12px"
+                      className: "btn",
+                      style: { background: "#17a2b8", width: "auto", padding: "8px 16px" },
+                      onClick: () => {
+                        setShowProductSearchFilter(!showProductSearchFilter);
+                        if (!showProductSearchFilter) {
+                          fetchCategories();
+                        }
+                        console.log("Product search filter toggled:", !showProductSearchFilter);
                       },
-                      onClick: () => setEditingUser(user),
-                      children: "\u270F\uFE0F Edit"
+                      children: "\u{1F50D} Search & Filter"
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
-                      style: {
-                        padding: "4px 8px",
-                        border: "none",
-                        borderRadius: "3px",
-                        backgroundColor: "#dc3545",
-                        color: "white",
-                        cursor: "pointer",
-                        fontSize: "12px"
-                      },
-                      onClick: async () => {
-                        if (confirm(`Delete user "${user.firstName} ${user.lastName}"?
-
-This action cannot be undone.`)) {
-                          const result = await deleteUser(user.id);
-                          if (result.success) {
-                            alert("User deleted successfully");
-                          } else {
-                            alert("Error: " + result.message);
-                          }
+                      className: "btn",
+                      style: { background: "#6c757d", width: "auto", padding: "8px 16px" },
+                      onClick: () => {
+                        setShowProductAnalytics(!showProductAnalytics);
+                        if (!showProductAnalytics) {
+                          generateProductAnalytics();
                         }
+                        console.log("Product analytics toggled:", !showProductAnalytics);
                       },
                       children: [
-                        "\u{1F5D1}\uFE0F ",
-                        t2("common.delete")
+                        "\u{1F4CA} ",
+                        t2("common.analytics")
                       ]
                     }
                   )
-                ] }) })
-              ] }, index)) })
-            ] }) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: "No users found" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: "Create your first user to get started with user management." }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "button",
-                {
-                  className: "btn",
-                  style: { background: "#28a745", width: "auto", padding: "12px 24px" },
-                  onClick: () => setShowAddUserModal(true),
-                  children: "\u2795 Add Your First User"
-                }
-              )
-            ] })
-          ] });
-        case "products":
-          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0" }, children: [
-                "\u{1F4E6} ",
-                t2("products.title")
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", gap: "10px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                "button",
-                {
-                  className: "btn",
-                  style: { background: "#28a745", width: "auto", padding: "8px 16px" },
-                  onClick: () => {
-                    fetchCategories();
-                    fetchSuppliers();
-                    setEditingProduct(null);
-                    const timestamp = Date.now().toString(36).toUpperCase();
-                    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-                    const generatedCode = `PRD-${timestamp}${random}`;
-                    fetchCompanyDefaults().then((defaults) => {
-                      console.log("Company defaults for new product:", defaults);
-                      initialProductDataRef.current = {
-                        name: "",
-                        description: "",
-                        price: "",
-                        compareAtPrice: "",
-                        categoryId: "",
-                        supplierId: "",
-                        imageUrl: "",
-                        stockQuantity: "",
-                        featured: false,
-                        vatValue: "",
-                        vatPercentage: defaults.vatPercentage || (selectedMarketTab === "fr" ? "20.00" : selectedMarketTab === "ro" ? "19.00" : "0.00"),
-                        currency: defaults.currency || "RON",
-                        productCode: generatedCode,
-                        ncCode: "",
-                        cpvCode: "",
-                        status: "active",
-                        images: [],
-                        weight: "",
-                        length: "",
-                        width: "",
-                        height: "",
-                        piecesPerPackage: "",
-                        productQuantity: "",
-                        specs: [],
-                        volumeDiscounts: [],
-                        priority: 0,
-                        isService: false,
-                        isComposite: false
-                      };
-                      setProductLoadTrigger((prev) => prev + 1);
-                      setProductTranslations([]);
-                      setShowTranslationsTab(false);
-                      lastLoadedProductIdRef.current = null;
-                      setShowAddProductModal(true);
-                    });
-                  },
-                  children: [
-                    "\u2795 ",
-                    t2("products.addNew")
-                  ]
-                }
-              ) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: t2("products.actions") }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "button",
-                  {
-                    className: "btn",
-                    style: { background: "#007bff", width: "auto", padding: "8px 16px" },
-                    onClick: () => {
-                      if (selectedProducts.length === 0) {
-                        alert("Please select products first by checking the boxes in the product list.");
-                        return;
-                      }
-                      setShowProductBulkModal(true);
-                    },
-                    disabled: selectedProducts.length === 0,
-                    children: [
-                      "\u{1F504} ",
-                      t2("common.bulkOps"),
-                      " ",
-                      selectedProducts.length > 0 && `(${selectedProducts.length})`
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "button",
-                  {
-                    className: "btn",
-                    style: { background: "#17a2b8", width: "auto", padding: "8px 16px" },
-                    onClick: () => {
-                      setShowProductSearchFilter(!showProductSearchFilter);
-                      if (!showProductSearchFilter) {
-                        fetchCategories();
-                      }
-                      console.log("Product search filter toggled:", !showProductSearchFilter);
-                    },
-                    children: "\u{1F50D} Search & Filter"
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                  "button",
-                  {
-                    className: "btn",
-                    style: { background: "#6c757d", width: "auto", padding: "8px 16px" },
-                    onClick: () => {
-                      setShowProductAnalytics(!showProductAnalytics);
-                      if (!showProductAnalytics) {
-                        generateProductAnalytics();
-                      }
-                      console.log("Product analytics toggled:", !showProductAnalytics);
-                    },
-                    children: [
-                      "\u{1F4CA} ",
-                      t2("common.analytics")
-                    ]
-                  }
-                ),
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "button",
