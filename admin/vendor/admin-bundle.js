@@ -13511,47 +13511,45 @@ Failed: ${result.failed}`);
       }
     };
     const generateProductAnalytics = () => {
-      console.log("Generating product analytics with data:", products.length, "products");
+      const activeProducts = products.filter((product) => (product.status || "active") === "active");
+      console.log("Generating product analytics with data:", activeProducts.length, "active products");
       console.log("Categories available:", categories.length, "categories");
-      if (products.length === 0) {
+      if (activeProducts.length === 0) {
         setAnalyticsData({
-          error: "No products found to analyze"
+          error: "No active products found to analyze"
         });
         return;
       }
       if (categories.length === 0) {
         fetchCategories();
       }
-      const currencyCounts = products.reduce((acc, p) => {
+      const currencyCounts = activeProducts.reduce((acc, p) => {
         const cur = p.currency || "RON";
         acc[cur] = (acc[cur] || 0) + 1;
         return acc;
       }, {});
       const displayCurrency = Object.entries(currencyCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "RON";
       const analytics = {
-        totalProducts: products.length,
+        totalProducts: activeProducts.length,
         currency: displayCurrency,
         // Category analysis
         categoryBreakdown: categories.reduce((acc, cat) => {
-          const categoryProducts = products.filter((p) => p.categoryId === cat.id);
+          const categoryProducts = activeProducts.filter((p) => p.categoryId === cat.id);
           if (categoryProducts.length > 0) {
             acc[cat.name] = {
               count: categoryProducts.length,
-              percentage: (categoryProducts.length / products.length * 100).toFixed(1)
+              percentage: (categoryProducts.length / activeProducts.length * 100).toFixed(1)
             };
           }
           return acc;
         }, {}),
         // Status analysis
         statusBreakdown: {
-          active: products.filter((p) => (p.status || "active") === "active").length,
-          inactive: products.filter((p) => p.status === "inactive").length,
-          draft: products.filter((p) => p.status === "draft").length,
-          discontinued: products.filter((p) => p.status === "discontinued").length
+          active: activeProducts.length
         },
         // Price analysis
         priceAnalysis: (() => {
-          const prices = products.map((p) => parseFloat(p.price) || 0).filter((p) => p > 0);
+          const prices = activeProducts.map((p) => parseFloat(p.price) || 0).filter((p) => p > 0);
           if (prices.length === 0) return { avg: 0, min: 0, max: 0 };
           return {
             avg: (prices.reduce((sum, p) => sum + p, 0) / prices.length).toFixed(2),
@@ -13561,13 +13559,13 @@ Failed: ${result.failed}`);
         })(),
         // Stock analysis
         stockAnalysis: {
-          totalStock: products.reduce((sum, p) => sum + (p.stockQuantity || 0), 0),
-          inStock: products.filter((p) => (p.stockQuantity || 0) > 0).length,
-          outOfStock: products.filter((p) => (p.stockQuantity || 0) === 0).length,
-          lowStock: products.filter((p) => (p.stockQuantity || 0) > 0 && (p.stockQuantity || 0) < 10).length
+          totalStock: activeProducts.reduce((sum, p) => sum + (p.stockQuantity || 0), 0),
+          inStock: activeProducts.filter((p) => (p.stockQuantity || 0) > 0).length,
+          outOfStock: activeProducts.filter((p) => (p.stockQuantity || 0) === 0).length,
+          lowStock: activeProducts.filter((p) => (p.stockQuantity || 0) > 0 && (p.stockQuantity || 0) < 10).length
         },
         // Top products by price
-        topPriceProducts: products.filter((p) => p.price && parseFloat(p.price) > 0).sort((a, b) => parseFloat(b.price) - parseFloat(a.price)).slice(0, 5).map((p) => ({
+        topPriceProducts: activeProducts.filter((p) => p.price && parseFloat(p.price) > 0).sort((a, b) => parseFloat(b.price) - parseFloat(a.price)).slice(0, 5).map((p) => ({
           name: p.name,
           price: parseFloat(p.price).toFixed(2),
           category: categories.find((c) => c.id === p.categoryId)?.name || "Unknown"
