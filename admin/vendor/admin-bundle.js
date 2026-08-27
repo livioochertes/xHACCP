@@ -12489,9 +12489,11 @@
     const [selectedProducts, setSelectedProducts] = (0, import_react13.useState)([]);
     const [showProductBulkModal, setShowProductBulkModal] = (0, import_react13.useState)(false);
     const [productBulkOperation, setProductBulkOperation] = (0, import_react13.useState)("");
+    const [showProductSearchFilter, setShowProductSearchFilter] = (0, import_react13.useState)(false);
     const [productSearchTerm, setProductSearchTerm] = (0, import_react13.useState)("");
     const [productCategoryFilter, setProductCategoryFilter] = (0, import_react13.useState)("all");
     const [productStatusFilter, setProductStatusFilter] = (0, import_react13.useState)("all");
+    const [filteredProducts, setFilteredProducts] = (0, import_react13.useState)([]);
     const [productPage, setProductPage] = (0, import_react13.useState)(1);
     const productsRequestIdRef = import_react13.default.useRef(0);
     const productsPerPage = 20;
@@ -12722,25 +12724,29 @@
       setFilteredOrders(filtered);
       setOrdersPage(1);
     }, [orders, searchTerm, companySearch, statusFilter, marketFilter]);
-    const filteredProducts = (0, import_react13.useMemo)(() => {
-      let filtered = Array.isArray(products) ? products : [];
-      const normalizedSearch = productSearchTerm.trim().toLowerCase();
-      if (normalizedSearch) {
+    (0, import_react13.useEffect)(() => {
+      let filtered = products;
+      if (productSearchTerm) {
         filtered = filtered.filter(
-          (product) => String(product.name || "").toLowerCase().includes(normalizedSearch) || String(product.id || "").includes(productSearchTerm.trim()) || String(product.category?.name || "").toLowerCase().includes(normalizedSearch) || String(product.description || "").toLowerCase().includes(normalizedSearch)
+          (product) => product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) || product.id.toString().includes(productSearchTerm) || product.category?.name?.toLowerCase().includes(productSearchTerm.toLowerCase()) || product.description?.toLowerCase().includes(productSearchTerm.toLowerCase())
         );
       }
       if (productCategoryFilter !== "all") {
-        filtered = filtered.filter((product) => product.categoryId === parseInt(productCategoryFilter, 10));
+        filtered = filtered.filter((product) => product.categoryId === parseInt(productCategoryFilter));
       }
       if (productStatusFilter !== "all") {
         filtered = filtered.filter((product) => (product.status || "active") === productStatusFilter);
       }
-      return filtered;
-    }, [products, productSearchTerm, productCategoryFilter, productStatusFilter]);
-    (0, import_react13.useEffect)(() => {
+      setFilteredProducts(filtered);
       setProductPage(1);
-    }, [productSearchTerm, productCategoryFilter, productStatusFilter]);
+      console.log("Products filtered:", {
+        searchTerm: productSearchTerm,
+        categoryFilter: productCategoryFilter,
+        statusFilter: productStatusFilter,
+        totalProducts: products.length,
+        filteredProducts: filtered.length
+      });
+    }, [products, productSearchTerm, productCategoryFilter, productStatusFilter]);
     const fetchStats = async (market) => {
       const mkt = market !== void 0 ? market : selectedMarketTab;
       const marketParam = mkt && mkt !== "all" ? `?market=${mkt}` : "";
@@ -14910,6 +14916,21 @@ This action cannot be undone.`)) {
                       ]
                     }
                   ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "button",
+                    {
+                      className: "btn",
+                      style: { background: "#17a2b8", width: "auto", padding: "8px 16px" },
+                      onClick: () => {
+                        setShowProductSearchFilter(!showProductSearchFilter);
+                        if (!showProductSearchFilter) {
+                          fetchCategories();
+                        }
+                        console.log("Product search filter toggled:", !showProductSearchFilter);
+                      },
+                      children: "\u{1F50D} Search & Filter"
+                    }
+                  ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
@@ -15043,7 +15064,7 @@ This action cannot be undone.`)) {
                 ] })
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", marginBottom: "20px", border: "1px solid #dee2e6" }, children: [
+            showProductSearchFilter && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", marginBottom: "20px", border: "1px solid #dee2e6" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#333", marginBottom: "15px" }, children: [
                 "\u{1F50D} ",
                 t2("products.searchFilterTitle")
@@ -15108,8 +15129,46 @@ This action cannot be undone.`)) {
                   )
                 ] })
               ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  "button",
+                  {
+                    className: "btn",
+                    style: { background: "#28a745", width: "auto", padding: "6px 12px", fontSize: "14px" },
+                    onClick: () => {
+                      console.log("Search applied with filters:", {
+                        searchTerm: productSearchTerm,
+                        categoryFilter: productCategoryFilter,
+                        statusFilter: productStatusFilter
+                      });
+                      alert(`Search applied! Found ${filteredProducts.length} products out of ${products.length} total.`);
+                    },
+                    children: [
+                      "\u2705 ",
+                      t2("common.applySearch")
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  "button",
+                  {
+                    className: "btn",
+                    style: { background: "#6c757d", width: "auto", padding: "6px 12px", fontSize: "14px" },
+                    onClick: () => {
+                      setProductSearchTerm("");
+                      setProductCategoryFilter("all");
+                      setProductStatusFilter("all");
+                      console.log("Product filters cleared");
+                    },
+                    children: [
+                      "\u{1F5D1}\uFE0F ",
+                      t2("common.clearFilters")
+                    ]
+                  }
+                )
+              ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "10px", fontSize: "14px", color: "#666" }, children: t2("products.showing", { count: filteredProducts.length, total: products.length }) })
-            ] }) }),
+            ] }),
             showProductAnalytics && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#f8f9fa", padding: "20px", borderRadius: "6px", marginBottom: "20px", border: "1px solid #dee2e6" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#333", marginBottom: "20px" }, children: [
                 "\u{1F4CA} ",
@@ -15261,16 +15320,16 @@ This action cannot be undone.`)) {
                 )
               ] })
             ] }),
-            filteredProducts.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_react13.default.Fragment, { children: [
+            (showProductSearchFilter ? filteredProducts : products).length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_react13.default.Fragment, { children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "50px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "input",
                     {
                       type: "checkbox",
-                      checked: selectedProducts.length === filteredProducts.length && filteredProducts.length > 0,
+                      checked: selectedProducts.length === (showProductSearchFilter ? filteredProducts : products).length && (showProductSearchFilter ? filteredProducts : products).length > 0,
                       onChange: (e2) => {
-                        const currentProducts = filteredProducts;
+                        const currentProducts = showProductSearchFilter ? filteredProducts : products;
                         if (e2.target.checked) {
                           setSelectedProducts(currentProducts.map((p) => p.id));
                         } else {
@@ -15307,7 +15366,7 @@ This action cannot be undone.`)) {
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Actions" })
                 ] }) }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: [...filteredProducts].sort((a, b) => {
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: [...showProductSearchFilter ? filteredProducts : products].sort((a, b) => {
                   const priorityA = a.priority && a.priority > 0 ? a.priority : 9999;
                   const priorityB = b.priority && b.priority > 0 ? b.priority : 9999;
                   if (priorityA !== priorityB) return priorityA - priorityB;
@@ -15521,14 +15580,14 @@ This action cannot be undone.`;
                   ] }) })
                 ] }, index)) })
               ] }) }),
-              Math.ceil(filteredProducts.length / productsPerPage) > 1 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px 0", borderTop: "1px solid #eee", marginTop: "10px", flexWrap: "wrap", gap: "10px" }, children: [
+              Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) > 1 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px 0", borderTop: "1px solid #eee", marginTop: "10px", flexWrap: "wrap", gap: "10px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#666", fontSize: "14px" }, children: [
                   "Showing ",
                   (productPage - 1) * productsPerPage + 1,
                   "-",
-                  Math.min(productPage * productsPerPage, filteredProducts.length),
+                  Math.min(productPage * productsPerPage, (showProductSearchFilter ? filteredProducts : products).length),
                   " of ",
-                  filteredProducts.length,
+                  (showProductSearchFilter ? filteredProducts : products).length,
                   " products"
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px", alignItems: "center", flexWrap: "wrap" }, children: [
@@ -15550,7 +15609,7 @@ This action cannot be undone.`;
                       children: "\u2039 Prev"
                     }
                   ),
-                  Array.from({ length: Math.ceil(filteredProducts.length / productsPerPage) }, (_, i) => i + 1).map((p) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  Array.from({ length: Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) }, (_, i) => i + 1).map((p) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "button",
                     {
                       onClick: () => setProductPage(p),
@@ -15562,18 +15621,18 @@ This action cannot be undone.`;
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "button",
                     {
-                      onClick: () => setProductPage(Math.min(Math.ceil(filteredProducts.length / productsPerPage), productPage + 1)),
-                      disabled: productPage === Math.ceil(filteredProducts.length / productsPerPage),
-                      style: { padding: "6px 12px", border: "1px solid #ddd", borderRadius: "4px", background: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? "#f5f5f5" : "white", cursor: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? "not-allowed" : "pointer", color: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? "#ccc" : "#333" },
+                      onClick: () => setProductPage(Math.min(Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage), productPage + 1)),
+                      disabled: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage),
+                      style: { padding: "6px 12px", border: "1px solid #ddd", borderRadius: "4px", background: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? "#f5f5f5" : "white", cursor: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? "not-allowed" : "pointer", color: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? "#ccc" : "#333" },
                       children: "Next \u203A"
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "button",
                     {
-                      onClick: () => setProductPage(Math.ceil(filteredProducts.length / productsPerPage)),
-                      disabled: productPage === Math.ceil(filteredProducts.length / productsPerPage),
-                      style: { padding: "6px 12px", border: "1px solid #ddd", borderRadius: "4px", background: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? "#f5f5f5" : "white", cursor: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? "not-allowed" : "pointer", color: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? "#ccc" : "#333" },
+                      onClick: () => setProductPage(Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage)),
+                      disabled: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage),
+                      style: { padding: "6px 12px", border: "1px solid #ddd", borderRadius: "4px", background: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? "#f5f5f5" : "white", cursor: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? "not-allowed" : "pointer", color: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? "#ccc" : "#333" },
                       children: "\xBB"
                     }
                   )

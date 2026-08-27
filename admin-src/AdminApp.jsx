@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { useTranslation, I18nextProvider } from "react-i18next";
 import i18n from "./i18n.js";
@@ -375,9 +375,11 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [selectedProducts, setSelectedProducts] = useState([]);
       const [showProductBulkModal, setShowProductBulkModal] = useState(false);
       const [productBulkOperation, setProductBulkOperation] = useState('');
+      const [showProductSearchFilter, setShowProductSearchFilter] = useState(false);
       const [productSearchTerm, setProductSearchTerm] = useState('');
       const [productCategoryFilter, setProductCategoryFilter] = useState('all');
       const [productStatusFilter, setProductStatusFilter] = useState('all');
+      const [filteredProducts, setFilteredProducts] = useState([]);
       const [productPage, setProductPage] = useState(1);
       const productsRequestIdRef = React.useRef(0);
       const productsPerPage = 20;
@@ -655,35 +657,37 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         setOrdersPage(1);
       }, [orders, searchTerm, companySearch, statusFilter, marketFilter]);
       
-      // Derive the visible list directly from the loaded products so the table
-      // can never remain empty while waiting for a second state update.
-      const filteredProducts = useMemo(() => {
-        let filtered = Array.isArray(products) ? products : [];
-        const normalizedSearch = productSearchTerm.trim().toLowerCase();
-
-        if (normalizedSearch) {
-          filtered = filtered.filter(product =>
-            String(product.name || '').toLowerCase().includes(normalizedSearch) ||
-            String(product.id || '').includes(productSearchTerm.trim()) ||
-            String(product.category?.name || '').toLowerCase().includes(normalizedSearch) ||
-            String(product.description || '').toLowerCase().includes(normalizedSearch)
+      // Filter products based on search and filters
+      useEffect(() => {
+        let filtered = products;
+        
+        if (productSearchTerm) {
+          filtered = filtered.filter(product => 
+            product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+            product.id.toString().includes(productSearchTerm) ||
+            product.category?.name?.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+            product.description?.toLowerCase().includes(productSearchTerm.toLowerCase())
           );
         }
-
+        
         if (productCategoryFilter !== 'all') {
-          filtered = filtered.filter(product => product.categoryId === parseInt(productCategoryFilter, 10));
+          filtered = filtered.filter(product => product.categoryId === parseInt(productCategoryFilter));
         }
-
+        
         if (productStatusFilter !== 'all') {
           filtered = filtered.filter(product => (product.status || 'active') === productStatusFilter);
         }
-
-        return filtered;
-      }, [products, productSearchTerm, productCategoryFilter, productStatusFilter]);
-
-      useEffect(() => {
+        
+        setFilteredProducts(filtered);
         setProductPage(1);
-      }, [productSearchTerm, productCategoryFilter, productStatusFilter]);
+        console.log('Products filtered:', {
+          searchTerm: productSearchTerm,
+          categoryFilter: productCategoryFilter,
+          statusFilter: productStatusFilter,
+          totalProducts: products.length,
+          filteredProducts: filtered.length
+        });
+      }, [products, productSearchTerm, productCategoryFilter, productStatusFilter]);
       
       const fetchStats = async (market) => {
         const mkt = market !== undefined ? market : selectedMarketTab;
@@ -3030,6 +3034,19 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     </button>
                     <button 
                       className="btn" 
+                      style={{background: '#17a2b8', width: 'auto', padding: '8px 16px'}}
+                      onClick={() => {
+                        setShowProductSearchFilter(!showProductSearchFilter);
+                        if (!showProductSearchFilter) {
+                          fetchCategories(); // Fetch categories when opening search filter
+                        }
+                        console.log('Product search filter toggled:', !showProductSearchFilter);
+                      }}
+                    >
+                      🔍 Search & Filter
+                    </button>
+                    <button 
+                      className="btn" 
                       style={{background: '#6c757d', width: 'auto', padding: '8px 16px'}}
                       onClick={() => {
                         setShowProductAnalytics(!showProductAnalytics);
@@ -3138,7 +3155,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   </div>
                 </div>
                 
-                <div>
+                {showProductSearchFilter && (
                   <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #dee2e6'}}>
                     <h4 style={{color: '#333', marginBottom: '15px'}}>🔍 {t('products.searchFilterTitle')}</h4>
                     <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '15px'}}>
@@ -3183,11 +3200,39 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         </select>
                       </div>
                     </div>
+                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                      <button 
+                        className="btn" 
+                        style={{background: '#28a745', width: 'auto', padding: '6px 12px', fontSize: '14px'}}
+                        onClick={() => {
+                          console.log('Search applied with filters:', {
+                            searchTerm: productSearchTerm,
+                            categoryFilter: productCategoryFilter,
+                            statusFilter: productStatusFilter
+                          });
+                          alert(`Search applied! Found ${filteredProducts.length} products out of ${products.length} total.`);
+                        }}
+                      >
+                        ✅ {t('common.applySearch')}
+                      </button>
+                      <button 
+                        className="btn" 
+                        style={{background: '#6c757d', width: 'auto', padding: '6px 12px', fontSize: '14px'}}
+                        onClick={() => {
+                          setProductSearchTerm('');
+                          setProductCategoryFilter('all');
+                          setProductStatusFilter('all');
+                          console.log('Product filters cleared');
+                        }}
+                      >
+                        🗑️ {t('common.clearFilters')}
+                      </button>
+                    </div>
                     <div style={{marginTop: '10px', fontSize: '14px', color: '#666'}}>
                       {t('products.showing', {count: filteredProducts.length, total: products.length})}
                     </div>
                   </div>
-                </div>
+                )}
                 
                 {showProductAnalytics && (
                   <div style={{background: '#f8f9fa', padding: '20px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #dee2e6'}}>
@@ -3323,7 +3368,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   </div>
                 )}
                 
-                {filteredProducts.length > 0 ? (
+                {(showProductSearchFilter ? filteredProducts : products).length > 0 ? (
                   <React.Fragment>
                   <div style={{overflowX: 'auto'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse'}}>
@@ -3332,9 +3377,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '50px'}}>
                             <input 
                               type="checkbox" 
-                              checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                              checked={selectedProducts.length === (showProductSearchFilter ? filteredProducts : products).length && (showProductSearchFilter ? filteredProducts : products).length > 0}
                               onChange={(e) => {
-                                const currentProducts = filteredProducts;
+                                const currentProducts = showProductSearchFilter ? filteredProducts : products;
                                 if (e.target.checked) {
                                   setSelectedProducts(currentProducts.map(p => p.id));
                                 } else {
@@ -3361,7 +3406,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         </tr>
                       </thead>
                       <tbody>
-                        {[...filteredProducts].sort((a, b) => {
+                        {[...(showProductSearchFilter ? filteredProducts : products)].sort((a, b) => {
                           // Sort by priority first (1=highest, 2, 3, etc. 0 or null = no priority, goes last)
                           const priorityA = a.priority && a.priority > 0 ? a.priority : 9999;
                           const priorityB = b.priority && b.priority > 0 ? b.priority : 9999;
@@ -3589,10 +3634,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       </tbody>
                     </table>
                   </div>
-                  {Math.ceil(filteredProducts.length / productsPerPage) > 1 && (
+                  {Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) > 1 && (
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 0', borderTop: '1px solid #eee', marginTop: '10px', flexWrap: 'wrap', gap: '10px'}}>
                       <span style={{color: '#666', fontSize: '14px'}}>
-                        Showing {((productPage - 1) * productsPerPage) + 1}-{Math.min(productPage * productsPerPage, filteredProducts.length)} of {filteredProducts.length} products
+                        Showing {((productPage - 1) * productsPerPage) + 1}-{Math.min(productPage * productsPerPage, (showProductSearchFilter ? filteredProducts : products).length)} of {(showProductSearchFilter ? filteredProducts : products).length} products
                       </span>
                       <div style={{display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'wrap'}}>
                         <button
@@ -3605,7 +3650,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           disabled={productPage === 1}
                           style={{padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', background: productPage === 1 ? '#f5f5f5' : 'white', cursor: productPage === 1 ? 'not-allowed' : 'pointer', color: productPage === 1 ? '#ccc' : '#333'}}
                         >&lsaquo; Prev</button>
-                        {Array.from({length: Math.ceil(filteredProducts.length / productsPerPage)}, (_, i) => i + 1).map(p => (
+                        {Array.from({length: Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage)}, (_, i) => i + 1).map(p => (
                           <button
                             key={p}
                             onClick={() => setProductPage(p)}
@@ -3613,14 +3658,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           >{p}</button>
                         ))}
                         <button
-                          onClick={() => setProductPage(Math.min(Math.ceil(filteredProducts.length / productsPerPage), productPage + 1))}
-                          disabled={productPage === Math.ceil(filteredProducts.length / productsPerPage)}
-                          style={{padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', background: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? '#f5f5f5' : 'white', cursor: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? 'not-allowed' : 'pointer', color: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? '#ccc' : '#333'}}
+                          onClick={() => setProductPage(Math.min(Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage), productPage + 1))}
+                          disabled={productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage)}
+                          style={{padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', background: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? '#f5f5f5' : 'white', cursor: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? 'not-allowed' : 'pointer', color: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? '#ccc' : '#333'}}
                         >Next &rsaquo;</button>
                         <button
-                          onClick={() => setProductPage(Math.ceil(filteredProducts.length / productsPerPage))}
-                          disabled={productPage === Math.ceil(filteredProducts.length / productsPerPage)}
-                          style={{padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', background: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? '#f5f5f5' : 'white', cursor: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? 'not-allowed' : 'pointer', color: productPage === Math.ceil(filteredProducts.length / productsPerPage) ? '#ccc' : '#333'}}
+                          onClick={() => setProductPage(Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage))}
+                          disabled={productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage)}
+                          style={{padding: '6px 12px', border: '1px solid #ddd', borderRadius: '4px', background: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? '#f5f5f5' : 'white', cursor: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? 'not-allowed' : 'pointer', color: productPage === Math.ceil((showProductSearchFilter ? filteredProducts : products).length / productsPerPage) ? '#ccc' : '#333'}}
                         >&raquo;</button>
                       </div>
                     </div>
