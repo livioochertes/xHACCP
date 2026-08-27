@@ -34,6 +34,13 @@ Outputs to `admin/vendor/admin-bundle.js` (format: IIFE, ~939KB unminified).
 Minimal: only CSS styles, loading overlay, Excel CDN preload, `admin-bundle.js` script.
 NO separate react/react-dom vendor scripts (all bundled into admin-bundle.js).
 
+### Admin bundle cache version
+After rebuilding the Admin bundle, change the version query on its script URL.
+
+**Why:** Browsers or intermediary caches can continue serving an older Admin bundle even when the generated file on disk is current, making verified source changes appear ineffective.
+
+**How to apply:** Whenever Admin behavior changes and the bundle is rebuilt, assign a new version query before verifying the served page.
+
 **Why:** Original JSX source was in git history but was compiled into admin-bundle.js
 in commit 5b40995 and source was never saved separately. DOM-based translation approach
 was fragile (setInterval + walkDOM failed on React re-renders). Proper solution is
