@@ -10635,7 +10635,7 @@
       downloadTemplate: "Download Excel Template",
       searchFilterTitle: "Search & Filter Products",
       searchLabel: "Search Products",
-      searchPlaceholder: "Search by name, ID, category, or description...",
+      searchPlaceholder: "Search by name, ID, or category...",
       allCategories: "All Categories",
       analyticsDashboard: "Product Analytics Dashboard",
       totalProducts: "Total Products",
@@ -11218,7 +11218,7 @@
       downloadTemplate: "Descarc\u0103 \u0218ablon Excel",
       searchFilterTitle: "C\u0103utare & Filtrare Produse",
       searchLabel: "Caut\u0103 Produse",
-      searchPlaceholder: "Caut\u0103 dup\u0103 nume, ID, categorie sau descriere...",
+      searchPlaceholder: "Caut\u0103 dup\u0103 nume, ID sau categorie...",
       allCategories: "Toate Categoriile",
       analyticsDashboard: "Tablou Analiz\u0103 Produse",
       totalProducts: "Total Produse",
@@ -11801,7 +11801,7 @@
       downloadTemplate: "T\xE9l\xE9charger le mod\xE8le Excel",
       searchFilterTitle: "Recherche & Filtres produits",
       searchLabel: "Rechercher des produits",
-      searchPlaceholder: "Rechercher par nom, ID, cat\xE9gorie ou description...",
+      searchPlaceholder: "Rechercher par nom, ID ou cat\xE9gorie...",
       allCategories: "Toutes les cat\xE9gories",
       analyticsDashboard: "Tableau analytique des produits",
       totalProducts: "Total produits",
@@ -12835,7 +12835,7 @@
       const normalizedSearchTerm = productSearchTerm.trim().toLowerCase();
       if (normalizedSearchTerm.length >= 3) {
         filtered = filtered.filter(
-          (product) => product.name.toLowerCase().includes(normalizedSearchTerm) || product.id.toString().includes(normalizedSearchTerm) || product.category?.name?.toLowerCase().includes(normalizedSearchTerm) || product.description?.toLowerCase().includes(normalizedSearchTerm)
+          (product) => product.name.toLowerCase().includes(normalizedSearchTerm) || product.id.toString().includes(normalizedSearchTerm) || product.category?.name?.toLowerCase().includes(normalizedSearchTerm)
         );
       }
       if (productCategoryFilter !== "all") {

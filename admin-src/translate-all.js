@@ -57,7 +57,7 @@ r(`      📥 Download Excel Template\n                    </button>`, `      �
 // Search filter panel
 r(`<h4 style={{color: '#333', marginBottom: '15px'}}>🔍 Search & Filter Products</h4>`, `<h4 style={{color: '#333', marginBottom: '15px'}}>🔍 {t('products.searchFilterTitle')}</h4>`);
 r(`<label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Search Products:</label>`, `<label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>{t('products.searchLabel')}:</label>`);
-r(`placeholder="Search by name, ID, category, or description..."`, `placeholder={t('products.searchPlaceholder')}`);
+r(`placeholder="Search by name, ID, or category..."`, `placeholder={t('products.searchPlaceholder')}`);
 r(`<label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Category:</label>`, `<label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>{t('common.category')}:</label>`);
 r(`<option value="all">All Categories</option>`, `<option value="all">{t('products.allCategories')}</option>`);
 r(`<label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>Status:</label>`, `<label style={{display: 'block', marginBottom: '5px', fontWeight: '500'}}>{t('common.status')}:</label>`);

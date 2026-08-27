@@ -208,7 +208,7 @@
     "downloadTemplate": "Télécharger le modèle Excel",
     "searchFilterTitle": "Recherche & Filtres produits",
     "searchLabel": "Rechercher des produits",
-    "searchPlaceholder": "Rechercher par nom, ID, catégorie ou description...",
+    "searchPlaceholder": "Rechercher par nom, ID ou catégorie...",
     "allCategories": "Toutes les catégories",
     "analyticsDashboard": "Tableau analytique des produits",
     "totalProducts": "Total produits",

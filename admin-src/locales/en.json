@@ -208,7 +208,7 @@
     "downloadTemplate": "Download Excel Template",
     "searchFilterTitle": "Search & Filter Products",
     "searchLabel": "Search Products",
-    "searchPlaceholder": "Search by name, ID, category, or description...",
+    "searchPlaceholder": "Search by name, ID, or category...",
     "allCategories": "All Categories",
     "analyticsDashboard": "Product Analytics Dashboard",
     "totalProducts": "Total Products",

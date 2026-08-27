@@ -664,8 +664,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           filtered = filtered.filter(product => 
             product.name.toLowerCase().includes(normalizedSearchTerm) ||
             product.id.toString().includes(normalizedSearchTerm) ||
-            product.category?.name?.toLowerCase().includes(normalizedSearchTerm) ||
-            product.description?.toLowerCase().includes(normalizedSearchTerm)
+            product.category?.name?.toLowerCase().includes(normalizedSearchTerm)
           );
         }
         
