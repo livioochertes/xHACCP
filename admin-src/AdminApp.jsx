@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import ReactDOM from "react-dom/client";
 import { useTranslation, I18nextProvider } from "react-i18next";
 import i18n from "./i18n.js";
@@ -378,7 +378,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [productSearchTerm, setProductSearchTerm] = useState('');
       const [productCategoryFilter, setProductCategoryFilter] = useState('all');
       const [productStatusFilter, setProductStatusFilter] = useState('all');
-      const [filteredProducts, setFilteredProducts] = useState([]);
       const [productPage, setProductPage] = useState(1);
       const productsRequestIdRef = React.useRef(0);
       const productsPerPage = 20;
@@ -656,37 +655,35 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         setOrdersPage(1);
       }, [orders, searchTerm, companySearch, statusFilter, marketFilter]);
       
-      // Filter products based on search and filters
-      useEffect(() => {
-        let filtered = products;
-        
-        if (productSearchTerm) {
-          filtered = filtered.filter(product => 
-            product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
-            product.id.toString().includes(productSearchTerm) ||
-            product.category?.name?.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
-            product.description?.toLowerCase().includes(productSearchTerm.toLowerCase())
+      // Derive the visible list directly from the loaded products so the table
+      // can never remain empty while waiting for a second state update.
+      const filteredProducts = useMemo(() => {
+        let filtered = Array.isArray(products) ? products : [];
+        const normalizedSearch = productSearchTerm.trim().toLowerCase();
+
+        if (normalizedSearch) {
+          filtered = filtered.filter(product =>
+            String(product.name || '').toLowerCase().includes(normalizedSearch) ||
+            String(product.id || '').includes(productSearchTerm.trim()) ||
+            String(product.category?.name || '').toLowerCase().includes(normalizedSearch) ||
+            String(product.description || '').toLowerCase().includes(normalizedSearch)
           );
         }
-        
+
         if (productCategoryFilter !== 'all') {
-          filtered = filtered.filter(product => product.categoryId === parseInt(productCategoryFilter));
+          filtered = filtered.filter(product => product.categoryId === parseInt(productCategoryFilter, 10));
         }
-        
+
         if (productStatusFilter !== 'all') {
           filtered = filtered.filter(product => (product.status || 'active') === productStatusFilter);
         }
-        
-        setFilteredProducts(filtered);
-        setProductPage(1);
-        console.log('Products filtered:', {
-          searchTerm: productSearchTerm,
-          categoryFilter: productCategoryFilter,
-          statusFilter: productStatusFilter,
-          totalProducts: products.length,
-          filteredProducts: filtered.length
-        });
+
+        return filtered;
       }, [products, productSearchTerm, productCategoryFilter, productStatusFilter]);
+
+      useEffect(() => {
+        setProductPage(1);
+      }, [productSearchTerm, productCategoryFilter, productStatusFilter]);
       
       const fetchStats = async (market) => {
         const mkt = market !== undefined ? market : selectedMarketTab;

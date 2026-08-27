@@ -12492,7 +12492,6 @@
     const [productSearchTerm, setProductSearchTerm] = (0, import_react13.useState)("");
     const [productCategoryFilter, setProductCategoryFilter] = (0, import_react13.useState)("all");
     const [productStatusFilter, setProductStatusFilter] = (0, import_react13.useState)("all");
-    const [filteredProducts, setFilteredProducts] = (0, import_react13.useState)([]);
     const [productPage, setProductPage] = (0, import_react13.useState)(1);
     const productsRequestIdRef = import_react13.default.useRef(0);
     const productsPerPage = 20;
@@ -12723,29 +12722,25 @@
       setFilteredOrders(filtered);
       setOrdersPage(1);
     }, [orders, searchTerm, companySearch, statusFilter, marketFilter]);
-    (0, import_react13.useEffect)(() => {
-      let filtered = products;
-      if (productSearchTerm) {
+    const filteredProducts = (0, import_react13.useMemo)(() => {
+      let filtered = Array.isArray(products) ? products : [];
+      const normalizedSearch = productSearchTerm.trim().toLowerCase();
+      if (normalizedSearch) {
         filtered = filtered.filter(
-          (product) => product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) || product.id.toString().includes(productSearchTerm) || product.category?.name?.toLowerCase().includes(productSearchTerm.toLowerCase()) || product.description?.toLowerCase().includes(productSearchTerm.toLowerCase())
+          (product) => String(product.name || "").toLowerCase().includes(normalizedSearch) || String(product.id || "").includes(productSearchTerm.trim()) || String(product.category?.name || "").toLowerCase().includes(normalizedSearch) || String(product.description || "").toLowerCase().includes(normalizedSearch)
         );
       }
       if (productCategoryFilter !== "all") {
-        filtered = filtered.filter((product) => product.categoryId === parseInt(productCategoryFilter));
+        filtered = filtered.filter((product) => product.categoryId === parseInt(productCategoryFilter, 10));
       }
       if (productStatusFilter !== "all") {
         filtered = filtered.filter((product) => (product.status || "active") === productStatusFilter);
       }
-      setFilteredProducts(filtered);
-      setProductPage(1);
-      console.log("Products filtered:", {
-        searchTerm: productSearchTerm,
-        categoryFilter: productCategoryFilter,
-        statusFilter: productStatusFilter,
-        totalProducts: products.length,
-        filteredProducts: filtered.length
-      });
+      return filtered;
     }, [products, productSearchTerm, productCategoryFilter, productStatusFilter]);
+    (0, import_react13.useEffect)(() => {
+      setProductPage(1);
+    }, [productSearchTerm, productCategoryFilter, productStatusFilter]);
     const fetchStats = async (market) => {
       const mkt = market !== void 0 ? market : selectedMarketTab;
       const marketParam = mkt && mkt !== "all" ? `?market=${mkt}` : "";
