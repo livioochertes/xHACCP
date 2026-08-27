@@ -3324,8 +3324,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>VAT %</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('products.currency')}</th>
                           <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('products.productCode')}</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>NC Code</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>CPV Code</th>
                           <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>🇷🇴 .ro<br/><small style={{color:'#888',fontWeight:'normal'}}>RON (lei)</small></th>
                           <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>🇫🇷 .fr<br/><small style={{color:'#888',fontWeight:'normal'}}>EUR (€)</small></th>
                           <th style={{padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd'}}>🌐 .com<br/><small style={{color:'#888',fontWeight:'normal'}}>EUR (€)</small></th>
@@ -3464,8 +3462,6 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             <td style={{padding: '12px', color: '#6c757d', fontSize: '14px'}}>{product.vatPercentage || product.vatValue || 'N/A'}%</td>
                             <td style={{padding: '12px', color: '#007bff', fontSize: '14px', fontWeight: '500'}}>{product.currency || 'EUR'}</td>
                             <td style={{padding: '12px', color: '#6c757d', fontSize: '14px', fontFamily: 'monospace'}}>{product.productCode || 'N/A'}</td>
-                            <td style={{padding: '12px', color: '#6c757d', fontSize: '14px', fontFamily: 'monospace'}}>{product.ncCode || 'N/A'}</td>
-                            <td style={{padding: '12px', color: '#6c757d', fontSize: '14px', fontFamily: 'monospace'}}>{product.cpvCode || 'N/A'}</td>
                             {['ro', 'fr', 'com'].map(market => {
                               const pm = productMarketsMap[product.id]?.[market];
                               const isActive = pm ? pm.isActive : true;

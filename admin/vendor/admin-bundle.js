@@ -15274,8 +15274,6 @@ This action cannot be undone.`)) {
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "VAT %" }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("products.currency") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("products.productCode") }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "NC Code" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "CPV Code" }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("th", { style: { padding: "12px", textAlign: "center", borderBottom: "2px solid #ddd" }, children: [
                     "\u{1F1F7}\u{1F1F4} .ro",
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("br", {}),
@@ -15405,8 +15403,6 @@ This action cannot be undone.`)) {
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", color: "#007bff", fontSize: "14px", fontWeight: "500" }, children: product.currency || "EUR" }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", color: "#6c757d", fontSize: "14px", fontFamily: "monospace" }, children: product.productCode || "N/A" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", color: "#6c757d", fontSize: "14px", fontFamily: "monospace" }, children: product.ncCode || "N/A" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", color: "#6c757d", fontSize: "14px", fontFamily: "monospace" }, children: product.cpvCode || "N/A" }),
                   ["ro", "fr", "com"].map((market) => {
                     const pm = productMarketsMap[product.id]?.[market];
                     const isActive = pm ? pm.isActive : true;
