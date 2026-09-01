@@ -2584,6 +2584,9 @@ Sitemap: https://${domain}/sitemap.xml
       
       // SECURITY: Look up product prices from database - NEVER trust client-provided prices or quantities
       const orderMarket = getMarketFromRequest(req);
+      if (orderMarket === "fr" && paymentMethod !== "viva") {
+        return res.status(400).json({ message: "Only online card payment is available on the French marketplace" });
+      }
       const validatedItems = await Promise.all(
         items.map((item: any) => validateOrderItemForMarket(item, orderMarket)),
       );

@@ -134,6 +134,7 @@ type CheckoutFormData = z.infer<ReturnType<typeof createCheckoutSchema>>;
 export default function Checkout() {
   const { t } = useTranslation();
   const checkoutSchema = useMemo(() => createCheckoutSchema(t), [t]);
+  const isFrenchMarket = getMarketFromHostname() === "fr";
   const { user, isAuthenticated, login } = useAuth();
   const [step, setStep] = useState(isAuthenticated ? 2 : 1);
   const checkoutTopRef = useRef<HTMLDivElement>(null);
@@ -1576,15 +1577,17 @@ export default function Checkout() {
                                       </div>
                                     </Label>
                                   </div>
-                                  <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'cash' ? 'border-green-500 bg-green-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
-                                    <RadioGroupItem value="cash" id="cash" />
-                                    <Label htmlFor="cash" className="flex-1 cursor-pointer">
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-medium">{t('checkout.cashOnDelivery')}</span>
-                                        <Badge variant="outline" className="text-xs">{t('checkout.payWhenDelivered')}</Badge>
-                                      </div>
-                                    </Label>
-                                  </div>
+                                   {!isFrenchMarket && (
+                                     <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'cash' ? 'border-green-500 bg-green-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
+                                       <RadioGroupItem value="cash" id="cash" />
+                                       <Label htmlFor="cash" className="flex-1 cursor-pointer">
+                                         <div className="flex items-center gap-2">
+                                           <span className="font-medium">{t('checkout.cashOnDelivery')}</span>
+                                           <Badge variant="outline" className="text-xs">{t('checkout.payWhenDelivered')}</Badge>
+                                         </div>
+                                       </Label>
+                                     </div>
+                                   )}
                                 </RadioGroup>
                               </FormControl>
                               <FormMessage />
@@ -1643,7 +1646,7 @@ export default function Checkout() {
                     )}
 
                     {/* Cash on Delivery Information */}
-                    {form.watch("paymentMethod") === "cash" && (
+                     {!isFrenchMarket && form.watch("paymentMethod") === "cash" && (
                       <Card className="border-green-200 bg-green-50">
                         <CardHeader>
                           <CardTitle className="flex items-center text-green-800">
@@ -1727,7 +1730,7 @@ export default function Checkout() {
                         <div className="text-sm text-gray-600">
                           {t('checkout.usePaymentForm')}
                         </div>
-                      ) : form.watch("paymentMethod") === "cash" ? (
+                      ) : !isFrenchMarket && form.watch("paymentMethod") === "cash" ? (
                         <Button
                           type="submit"
                           disabled={createOrderMutation.isPending}
