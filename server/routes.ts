@@ -3743,6 +3743,21 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (currency && String(currency).toUpperCase() !== serverCurrency) {
         return res.status(400).json({ message: "Checkout currency does not match the current marketplace" });
       }
+
+      // Each Viva source is configured for a specific merchant/currency setup.
+      // The RO source cannot be reused for the FR EUR marketplace.
+      const sourceCode = vivaMarket === "fr"
+        ? process.env.VIVA_FR_SOURCE_CODE
+        : process.env.VIVA_SOURCE_CODE;
+      const merchantId = process.env.VIVA_MERCHANT_ID;
+      if (!sourceCode || !merchantId) {
+        return res.status(503).json({
+          message: vivaMarket === "fr"
+            ? "Viva EUR payments are not configured for the French marketplace"
+            : "Viva payment source not configured",
+        });
+      }
+
       const validatedVivaItems: Array<{
         productId: number;
         quantity: number;
@@ -3801,6 +3816,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         return res.status(400).json({ message: "Order data is required" });
       }
 
+      // Validate Viva credentials before creating the local pending order.
+      const accessToken = await getVivaAccessToken();
+
       const token = req.headers.authorization?.replace('Bearer ', '');
       let userId: number | null = null;
       if (token) {
@@ -3843,37 +3861,12 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         return res.status(500).json({ message: "Failed to create order" });
       }
 
-      const accessToken = await getVivaAccessToken();
-      const sourceCode = process.env.VIVA_SOURCE_CODE;
-      const merchantId = process.env.VIVA_MERCHANT_ID;
-
-      if (!sourceCode || !merchantId) {
-        return res.status(500).json({ message: "Viva payment source not configured" });
-      }
-
-      const ALLOWED_DOMAINS = ['xhaccp.ro', 'www.xhaccp.ro', 'xhaccp.fr', 'www.xhaccp.fr', 'xhaccp.com', 'www.xhaccp.com'];
-      const CANONICAL_FALLBACK = 'https://www.xhaccp.ro';
-      const originHeader = req.headers['origin'] as string | undefined;
-      const refererHeader = req.headers['referer'] as string | undefined;
-      const host = req.headers['x-forwarded-host'] || req.headers.host || '';
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      let baseUrl: string;
-      const candidateFromOrigin = originHeader ? originHeader.replace(/\/$/, '') : null;
-      const candidateFromReferer = (() => {
-        if (!refererHeader) return null;
-        try {
-          const refUrl = new URL(refererHeader);
-          return `${refUrl.protocol}//${refUrl.host}`;
-        } catch { return null; }
-      })();
-      const hostBase = host && ALLOWED_DOMAINS.includes(String(host).split(':')[0]) ? `${protocol}://${host}` : null;
-      const rawCandidate = candidateFromOrigin || candidateFromReferer || hostBase || CANONICAL_FALLBACK;
-      try {
-        const parsed = new URL(rawCandidate);
-        baseUrl = ALLOWED_DOMAINS.includes(parsed.hostname) ? rawCandidate : CANONICAL_FALLBACK;
-      } catch {
-        baseUrl = CANONICAL_FALLBACK;
-      }
+      const baseUrlByMarket: Record<string, string> = {
+        ro: "https://www.xhaccp.ro",
+        fr: "https://www.xhaccp.fr",
+        com: "https://www.xhaccp.com",
+      };
+      const baseUrl = baseUrlByMarket[vivaMarket] || baseUrlByMarket.ro;
 
       const vivaOrderPayload: any = {
         amount: finalAmountCents,
