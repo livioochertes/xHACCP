@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "@/hooks/useTranslation";
 import { usePageSeo } from "@/lib/use-page-seo";
 import { toSeoText } from "@/lib/seo-utils";
+import { getPublicCategorySlug } from "@/lib/category-slugs";
 
 import ProductCard, { ProductListItem } from "@/components/product-card";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
@@ -42,6 +43,16 @@ export default function Products() {
     setSelectedCategory(newSelectedCategory);
     setCurrentPage(newPage);
   }, [location, urlChangeCounter]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const currentSlug = url.searchParams.get("category");
+    if (!currentSlug) return;
+    const publicSlug = getPublicCategorySlug(currentSlug);
+    if (publicSlug === currentSlug) return;
+    url.searchParams.set("category", publicSlug);
+    navigate(`${url.pathname}${url.search}`, { replace: true });
+  }, [location, navigate]);
 
   useEffect(() => {
     const handleUrlChange = (e?: Event) => {
@@ -159,7 +170,7 @@ export default function Products() {
   const buildCategoryUrl = (slug?: string) => {
     const params = new URLSearchParams();
     if (searchQuery) params.set("search", searchQuery);
-    if (slug) params.set("category", slug);
+    if (slug) params.set("category", getPublicCategorySlug(slug));
     const qs = params.toString();
     return `/products${qs ? `?${qs}` : ""}`;
   };
@@ -222,13 +233,13 @@ export default function Products() {
                         href={buildCategoryUrl(category.slug)}
                         onClick={() => window.dispatchEvent(new CustomEvent('urlchange'))}
                         className={`w-full justify-start inline-flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
-                          selectedCategory === category.slug
+                          selectedCategory === getPublicCategorySlug(category.slug)
                             ? "bg-primary text-primary-foreground font-medium"
                             : "hover:bg-accent hover:text-accent-foreground"
                         }`}
                       >
                         {getCategoryName(category)}
-                        {selectedCategory === category.slug && isLoading && (
+                        {selectedCategory === getPublicCategorySlug(category.slug) && isLoading && (
                           <div className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
                         )}
                       </Link>
@@ -263,7 +274,7 @@ export default function Products() {
               <div className="flex items-center gap-4">
                 <h1 className="text-2xl font-bold text-primary flex items-center">
                   {selectedCategory
-                    ? getCategoryName(categories.find(c => c.slug === selectedCategory)) || t('nav.products')
+                    ? getCategoryName(categories.find(c => getPublicCategorySlug(c.slug) === selectedCategory)) || t('nav.products')
                     : searchQuery
                     ? `${t('search.results')} "${searchQuery}"`
                     : t('nav.products')

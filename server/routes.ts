@@ -885,6 +885,7 @@ ${urlEntries.join('')}
     res.send(`User-agent: *
 Disallow: /admin
 Disallow: /checkout
+Disallow: /merci
 Disallow: /cart
 Disallow: /account
 Disallow: /api/
@@ -2114,7 +2115,10 @@ Sitemap: https://${domain}/sitemap.xml
     }
 
     if (categorySlug) {
-      const requestedSlug = String(categorySlug);
+      const publicSlug = String(categorySlug);
+      const requestedSlug = market === "fr" && publicSlug === "etiquettes-alimentaires"
+        ? "food-labels"
+        : publicSlug;
       products = products.filter((product: any) =>
         product.category?.slug === requestedSlug
       );
@@ -3844,7 +3848,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         return res.status(500).json({ message: "Viva payment source not configured" });
       }
 
-      const ALLOWED_DOMAINS = ['xhaccp.ro', 'www.xhaccp.ro', 'xhaccp.com', 'www.xhaccp.com'];
+      const ALLOWED_DOMAINS = ['xhaccp.ro', 'www.xhaccp.ro', 'xhaccp.fr', 'www.xhaccp.fr', 'xhaccp.com', 'www.xhaccp.com'];
       const CANONICAL_FALLBACK = 'https://www.xhaccp.ro';
       const originHeader = req.headers['origin'] as string | undefined;
       const refererHeader = req.headers['referer'] as string | undefined;
@@ -3919,7 +3923,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           fullName: `${orderData.shippingAddress.firstName || ''} ${orderData.shippingAddress.lastName || ''}`.trim(),
           phone: orderData.contactPhone || orderData.shippingAddress.phone || '',
           countryCode: isoCode,
-          requestLang: 'ro-RO',
+          requestLang: vivaMarket === 'fr' ? 'fr-FR' : vivaMarket === 'com' ? 'en-US' : 'ro-RO',
         };
       }
 
@@ -4134,7 +4138,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       console.log(`Viva callback full query params:`, JSON.stringify(req.query));
 
       if (transactionId) {
-        res.redirect("/?payment=success");
+        const successUrl = getMarketFromRequest(req) === "fr"
+          ? "/merci?payment=success"
+          : "/?payment=success";
+        res.redirect(successUrl);
 
         (async () => {
           try {
@@ -4789,7 +4796,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   // Serves a real HTTP 404 for paths that don't match any known SPA route or
   // API endpoint, so crawlers receive the correct status immediately.
   const KNOWN_SPA_EXACT = new Set([
-    '/cart', '/checkout', '/login', '/account',
+    '/cart', '/checkout', '/merci', '/login', '/account',
     '/products', '/blog', '/about', '/b2b', '/terms', '/privacy',
     '/ai-assistant', '/',
   ]);
@@ -4798,7 +4805,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     '/api/', '/r2/', '/uploads/', '/attached_assets/', '/assets/',
     '/admin', '/admin/vendor', '/@', '/__', '/_vite',
     '/products/', '/blog/', '/about', '/b2b', '/terms', '/privacy',
-    '/ai-assistant', '/cart', '/checkout', '/login',
+    '/ai-assistant', '/cart', '/checkout', '/merci', '/login',
   ];
 
   app.get('*', (req, res, next) => {

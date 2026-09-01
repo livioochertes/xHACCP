@@ -357,6 +357,13 @@ export default function Checkout() {
       const orderId = order?.id ?? null;
       const summary = { ...currentOrderSummaryRef.current, orderId };
       clearCart();
+      if (getMarketFromHostname() === "fr") {
+        localStorage.setItem("xhaccp_pending_order_summary", JSON.stringify(summary));
+        const params = new URLSearchParams({ payment: "cash" });
+        if (orderId) params.set("orderId", String(orderId));
+        window.location.assign(`/merci?${params.toString()}`);
+        return;
+      }
       setConfirmedOrder(summary);
     },
     onError: (error) => {

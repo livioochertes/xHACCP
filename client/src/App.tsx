@@ -12,6 +12,7 @@ import Products from "@/pages/products";
 import ProductDetails from "@/pages/product-details";
 import Cart from "@/pages/cart";
 import Checkout from "@/pages/checkout";
+import ThankYou from "@/pages/thank-you";
 import Login from "@/pages/login";
 import Account from "@/pages/account";
 import AIAssistant from "@/pages/ai-assistant";
@@ -45,6 +46,7 @@ function Router() {
         <Route path="/products/:slug" component={ProductDetails} />
         <Route path="/cart" component={Cart} />
         <Route path="/checkout" component={Checkout} />
+        <Route path="/merci" component={ThankYou} />
         <Route path="/login" component={Login} />
         <Route path="/account" component={Account} />
         <Route path="/ai-assistant" component={AIAssistant} />

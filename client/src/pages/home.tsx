@@ -18,6 +18,7 @@ import { useCart } from "@/hooks/use-cart";
 import ProductCard from "@/components/product-card";
 import ContactModal from "@/components/contact-modal";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
+import { getPublicCategorySlug } from "@/lib/category-slugs";
 import type { Category, ProductWithCategory, BlogPost } from "@shared/schema";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { getMarketFromHostname } from "@/lib/queryClient";
@@ -341,7 +342,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {categories.filter(category => category.showOnMainShop).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).map((category) => (
               <Card key={category.id} className="category-card group cursor-pointer">
-                <Link href={`/products?category=${category.slug}`}>
+                <Link href={`/products?category=${getPublicCategorySlug(category.slug)}`}>
                   <CardContent className="p-0">
                     <div className="relative overflow-hidden">
                       <img
@@ -705,7 +706,7 @@ export default function Home() {
               <ul className="space-y-2">
                 {categories.map((category) => (
                   <li key={category.id}>
-                    <Link href={`/products?category=${category.slug}`} className="text-slate-300 hover:text-white transition-colors">
+                    <Link href={`/products?category=${getPublicCategorySlug(category.slug)}`} className="text-slate-300 hover:text-white transition-colors">
                       {getCategoryName(category)}
                     </Link>
                   </li>
