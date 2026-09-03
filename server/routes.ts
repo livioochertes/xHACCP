@@ -3700,13 +3700,42 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
   // ============ VIVA PAYMENTS INTEGRATION ============
 
+  type VivaMarket = "ro" | "fr" | "com";
+  type VivaCredentials = {
+    apiKey?: string;
+    clientId?: string;
+    clientSecret?: string;
+    merchantId?: string;
+    sourceCode?: string;
+  };
+
+  // VIVA_* is the RO credential set. FR uses a separate merchant/account.
+  function getVivaCredentials(market: VivaMarket): VivaCredentials {
+    if (market === "fr") {
+      return {
+        apiKey: process.env.VIVA_FR_API_KEY,
+        clientId: process.env.VIVA_FR_CLIENT_ID,
+        clientSecret: process.env.VIVA_FR_CLIENT_SECRET,
+        merchantId: process.env.VIVA_FR_MERCHANT_ID,
+        sourceCode: process.env.VIVA_FR_SOURCE_CODE,
+      };
+    }
+
+    return {
+      apiKey: process.env.VIVA_API_KEY,
+      clientId: process.env.VIVA_CLIENT_ID,
+      clientSecret: process.env.VIVA_CLIENT_SECRET,
+      merchantId: process.env.VIVA_MERCHANT_ID,
+      sourceCode: process.env.VIVA_SOURCE_CODE,
+    };
+  }
+
   // Helper: Get Viva OAuth2 access token
-  async function getVivaAccessToken(): Promise<string> {
-    const clientId = process.env.VIVA_CLIENT_ID;
-    const clientSecret = process.env.VIVA_CLIENT_SECRET;
+  async function getVivaAccessToken(market: VivaMarket): Promise<string> {
+    const { clientId, clientSecret } = getVivaCredentials(market);
     
     if (!clientId || !clientSecret) {
-      throw new Error("Viva credentials not configured");
+      throw new Error(`Viva ${market} OAuth credentials not configured`);
     }
 
     const response = await fetch("https://accounts.vivapayments.com/connect/token", {
@@ -3746,11 +3775,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       // Each Viva source is configured for a specific merchant/currency setup.
       // The RO source cannot be reused for the FR EUR marketplace.
-      const sourceCode = vivaMarket === "fr"
-        ? process.env.VIVA_FR_SOURCE_CODE
-        : process.env.VIVA_SOURCE_CODE;
-      const merchantId = process.env.VIVA_MERCHANT_ID;
-      if (!sourceCode || !merchantId) {
+      const { sourceCode, merchantId, clientId, clientSecret } = getVivaCredentials(vivaMarket);
+      if (!sourceCode || !merchantId || !clientId || !clientSecret) {
         return res.status(503).json({
           message: vivaMarket === "fr"
             ? "Viva EUR payments are not configured for the French marketplace"
@@ -3817,7 +3843,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }
 
       // Validate Viva credentials before creating the local pending order.
-      const accessToken = await getVivaAccessToken();
+      const accessToken = await getVivaAccessToken(vivaMarket);
 
       const token = req.headers.authorization?.replace('Bearer ', '');
       let userId: number | null = null;
@@ -4129,19 +4155,20 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   app.get("/api/payments/viva/callback", async (req, res) => {
     try {
       const { s: transactionId, t: vivaOrderCode, lang } = req.query;
+      const callbackMarket = getMarketFromRequest(req);
       
       console.log(`Viva callback received - transactionId: ${transactionId}, orderCode: ${vivaOrderCode}, lang: ${lang}`);
       console.log(`Viva callback full query params:`, JSON.stringify(req.query));
 
       if (transactionId) {
-        const successUrl = getMarketFromRequest(req) === "fr"
+        const successUrl = callbackMarket === "fr"
           ? "/merci?payment=success"
           : "/?payment=success";
         res.redirect(successUrl);
 
         (async () => {
           try {
-            const accessToken = await getVivaAccessToken();
+            const accessToken = await getVivaAccessToken(callbackMarket);
             
             const txResponse = await fetch(`https://api.vivapayments.com/checkout/v2/transactions/${transactionId}`, {
               headers: {
@@ -4559,11 +4586,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   // Viva webhook verification endpoint (GET - Viva sends verification key check)
   app.get("/api/payments/viva/webhook", async (req, res) => {
     try {
-      const merchantId = process.env.VIVA_MERCHANT_ID;
-      const apiKey = process.env.VIVA_API_KEY;
+      const webhookMarket = getMarketFromRequest(req);
+      const { merchantId, apiKey } = getVivaCredentials(webhookMarket);
 
       if (!merchantId || !apiKey) {
-        return res.status(500).json({ message: "Viva credentials not configured" });
+        return res.status(500).json({ message: `Viva ${webhookMarket} webhook credentials not configured` });
       }
 
       const verificationResponse = await fetch("https://www.vivapayments.com/api/messages/config/token", {
