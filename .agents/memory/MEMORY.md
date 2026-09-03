@@ -11,3 +11,4 @@
 - [Product description formatting](product-description-formatting.md) — keep editable source text plain; generate storefront HTML deterministically when products are saved.
 - [Admin numeric form fields](admin-numeric-form-fields.md) — optional numeric inputs can arrive as empty strings; normalize them server-side before database writes.
 - [Product bulk-action UX](product-bulk-action-ux.md) — expose actions in a dropdown, keep required inputs inline, and confirm explicitly before execution.
+- [Viva currency-specific sources](viva-currency-specific-sources.md) — Viva source codes can reject currencies they do not support; never reuse the RO source for FR EUR payments.
