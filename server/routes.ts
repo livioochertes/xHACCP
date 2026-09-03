@@ -3775,8 +3775,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       // Each Viva source is configured for a specific merchant/currency setup.
       // The RO source cannot be reused for the FR EUR marketplace.
-      const { sourceCode, merchantId, clientId, clientSecret } = getVivaCredentials(vivaMarket);
-      if (!sourceCode || !merchantId || !clientId || !clientSecret) {
+      const { apiKey, sourceCode, merchantId, clientId, clientSecret } = getVivaCredentials(vivaMarket);
+      if (!apiKey || !sourceCode || !merchantId || !clientId || !clientSecret) {
         return res.status(503).json({
           message: vivaMarket === "fr"
             ? "Viva EUR payments are not configured for the French marketplace"
