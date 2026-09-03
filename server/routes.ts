@@ -3732,7 +3732,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
   // Helper: Get Viva OAuth2 access token
   async function getVivaAccessToken(market: VivaMarket): Promise<string> {
-    const { clientId, clientSecret } = getVivaCredentials(market);
+    const credentials = getVivaCredentials(market);
+    const clientId = credentials.clientId?.trim();
+    const clientSecret = credentials.clientSecret?.trim();
     
     if (!clientId || !clientSecret) {
       throw new Error(`Viva ${market} OAuth credentials not configured`);
@@ -3741,10 +3743,12 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     const response = await fetch("https://accounts.vivapayments.com/connect/token", {
       method: "POST",
       headers: {
+        "Accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "xHACCP-Viva-Integration/1.0",
         "Authorization": "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64"),
       },
-      body: "grant_type=client_credentials",
+      body: new URLSearchParams({ grant_type: "client_credentials" }).toString(),
     });
 
     if (!response.ok) {
@@ -3983,6 +3987,12 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       });
     } catch (error) {
       console.error("Error creating Viva payment order:", error);
+      const errorMessage = error instanceof Error ? error.message : "";
+      if (errorMessage.includes("Viva authentication failed: 403")) {
+        return res.status(502).json({
+          message: "Viva FR a respins autentificarea Production. Verifică Smart Checkout Client ID și Client Secret pentru contul FR.",
+        });
+      }
       res.status(500).json({ message: "Failed to create payment order" });
     }
   });
