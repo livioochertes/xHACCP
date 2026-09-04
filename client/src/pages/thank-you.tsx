@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { CheckCircle, Copy } from "lucide-react";
+import { CheckCircle, Copy, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +34,8 @@ export default function ThankYou() {
   const { clearCart } = useCart();
   const { toast } = useToast();
   const params = new URLSearchParams(window.location.search);
+  const paymentResult = params.get("payment");
+  const paymentFailed = paymentResult === "failed" || paymentResult === "error";
   const orderIdFromUrl = Number(params.get("orderId")) || null;
   const [summary] = useState<OrderSummary | null>(() => {
     const stored = readOrderSummary();
@@ -44,8 +46,10 @@ export default function ThankYou() {
   const orderId = orderIdFromUrl || summary?.orderId || null;
 
   usePageSeo({
-    title: "Merci pour votre commande | xHACCP",
-    description: "Votre commande xHACCP a été enregistrée avec succès.",
+    title: paymentFailed ? "Paiement non abouti | xHACCP" : "Merci pour votre commande | xHACCP",
+    description: paymentFailed
+      ? "Le paiement de votre commande xHACCP n'a pas abouti."
+      : "Votre commande xHACCP a été enregistrée avec succès.",
   });
 
   useEffect(() => {
@@ -61,11 +65,19 @@ export default function ThankYou() {
       <Card className="max-w-lg mx-auto">
         <CardContent className="pt-8 pb-8 text-center space-y-6">
           <div className="flex justify-center">
-            <CheckCircle className="h-16 w-16 text-green-500" />
+            {paymentFailed ? (
+              <XCircle className="h-16 w-16 text-red-500" />
+            ) : (
+              <CheckCircle className="h-16 w-16 text-green-500" />
+            )}
           </div>
           <div>
-            <h1 className="text-2xl font-semibold mb-1">{t("checkout.orderSuccess")}</h1>
-            <p className="text-muted-foreground text-sm">{t("checkout.orderSuccessDesc")}</p>
+            <h1 className="text-2xl font-semibold mb-1">
+              {paymentFailed ? t("checkout.paymentFailed") : t("checkout.orderSuccess")}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {paymentFailed ? t("checkout.paymentFailedDesc") : t("checkout.orderSuccessDesc")}
+            </p>
             {orderId && (
               <div className="mt-3 inline-flex items-center gap-1.5">
                 <div className="inline-flex items-center gap-1.5 bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">

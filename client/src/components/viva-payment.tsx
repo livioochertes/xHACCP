@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiRequest } from '@/lib/queryClient';
 import { CreditCard, Loader2, ExternalLink } from 'lucide-react';
+import { SiPaypal } from 'react-icons/si';
 
 interface CartItem {
   productId: number;
@@ -19,11 +21,13 @@ interface VivaPaymentProps {
   cartItems?: CartItem[];
   voucherCode?: string | null;
   orderData?: any;
+  isFrenchMarket?: boolean;
 }
 
-export default function VivaPayment({ amount, currency, onError, disabled, cartItems, voucherCode, orderData }: VivaPaymentProps) {
+export default function VivaPayment({ amount, currency, onError, disabled, cartItems, voucherCode, orderData, isFrenchMarket = false }: VivaPaymentProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handlePayment = async () => {
     if (isLoading || disabled) return;
@@ -78,11 +82,23 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
         <div className="space-y-4">
           <div className="flex items-center gap-3 flex-wrap">
             <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-9" />
+            {isFrenchMarket && (
+              <div className="inline-flex items-center gap-1.5 rounded-md border border-[#d7e0eb] bg-white px-2.5 py-1.5 text-[#003087]">
+                <SiPaypal className="h-6 w-6" aria-hidden="true" />
+                <span className="text-sm font-semibold">PayPal</span>
+              </div>
+            )}
           </div>
+          {isFrenchMarket && (
+            <div className="rounded-lg border border-[#d7e0eb] bg-[#f5f8fc] p-4 text-sm text-slate-700">
+              <p className="font-medium">{t('checkout.paypalAvailable')}</p>
+              <p className="mt-1 text-slate-600">{t('checkout.paypalAvailableDesc')}</p>
+            </div>
+          )}
           <div className="p-4 border rounded-lg bg-gray-50 text-sm text-gray-600">
             <p className="flex items-center gap-2">
               <ExternalLink className="w-4 h-4 flex-shrink-0" />
-              You will be redirected to a secure payment page to complete your payment.
+              {t('checkout.vivaRedirectNotice')}
             </p>
           </div>
           <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
@@ -98,10 +114,10 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
             {isLoading ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Redirecting to payment...
+                {t('checkout.redirectingToPayment')}
               </span>
             ) : (
-              `Pay ${amount.toFixed(2)} ${currency}`
+              `${t('checkout.pay')} ${amount.toFixed(2)} ${currency}`
             )}
           </Button>
         </div>

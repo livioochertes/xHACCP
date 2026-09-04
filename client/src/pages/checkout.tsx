@@ -1564,11 +1564,14 @@ export default function Checkout() {
                                   onValueChange={field.onChange}
                                   className="space-y-3"
                                 >
-                                  <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'viva' ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
+                                    <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'viva' ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
                                     <RadioGroupItem value="viva" id="viva" />
                                     <Label htmlFor="viva" className="flex-1 cursor-pointer">
                                       <div className="flex items-center gap-3">
                                         <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-9" />
+                                          {isFrenchMarket && (
+                                            <span className="font-medium">{t('checkout.cardOrPayPal')}</span>
+                                          )}
                                         <Badge variant="secondary" className="text-xs">{t('checkout.recommended')}</Badge>
                                       </div>
                                       <div className="flex items-center gap-1.5 mt-2">
@@ -1608,6 +1611,7 @@ export default function Checkout() {
                           compositeConfiguration: item.compositeConfiguration,
                         }))}
                         voucherCode={appliedVoucher?.code}
+                        isFrenchMarket={isFrenchMarket}
                         orderData={(() => {
                           const values = form.getValues();
                           const shippingAddr = { ...values.shippingAddress };

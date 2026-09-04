@@ -4163,18 +4163,16 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
   // Viva payment success/failure callback
   app.get("/api/payments/viva/callback", async (req, res) => {
+    const callbackMarket = getMarketFromRequest(req);
+    const resultPath = callbackMarket === "fr" ? "/merci" : "/";
     try {
       const { s: transactionId, t: vivaOrderCode, lang } = req.query;
-      const callbackMarket = getMarketFromRequest(req);
       
       console.log(`Viva callback received - transactionId: ${transactionId}, orderCode: ${vivaOrderCode}, lang: ${lang}`);
       console.log(`Viva callback full query params:`, JSON.stringify(req.query));
 
       if (transactionId) {
-        const successUrl = callbackMarket === "fr"
-          ? "/merci?payment=success"
-          : "/?payment=success";
-        res.redirect(successUrl);
+        res.redirect(`${resultPath}?payment=success`);
 
         (async () => {
           try {
@@ -4195,14 +4193,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
               if (orderIdMatch) {
                 const orderId = parseInt(orderIdMatch[1]);
                 
-                const existingCallbackOrder = await storage.getOrder(orderId);
-                if (existingCallbackOrder && existingCallbackOrder.paymentStatus === 'paid') {
+                const claimedOrder = await storage.markOrderPaid(orderId);
+                if (!claimedOrder) {
                   console.log(`Viva callback: Order ${orderId} already processed (paid), skipping duplicate`);
                 } else {
-                await storage.updateOrder(orderId, {
-                  paymentStatus: 'paid',
-                  status: 'processing',
-                });
 
                 console.log(`Viva payment verified and order ${orderId} updated to paid`);
 
@@ -4368,11 +4362,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         })();
       } else {
         console.log("Viva callback without transactionId - payment likely failed/cancelled");
-        res.redirect("/?payment=failed");
+        res.redirect(`${resultPath}?payment=failed`);
       }
     } catch (error) {
       console.error("Error processing Viva callback:", error);
-      res.redirect("/?payment=error");
+      res.redirect(`${resultPath}?payment=error`);
     }
   });
 
@@ -4395,15 +4389,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           const orderId = parseInt(orderIdMatch[1]);
           console.log(`Viva webhook: Payment succeeded for order ${orderId}, transaction ${transactionId}`);
 
-          const existingOrder = await storage.getOrder(orderId);
-          if (existingOrder && existingOrder.paymentStatus === 'paid') {
+          const claimedOrder = await storage.markOrderPaid(orderId);
+          if (!claimedOrder) {
             console.log(`Viva webhook: Order ${orderId} already processed (paid), skipping duplicate`);
           } else {
-            await storage.updateOrder(orderId, {
-              paymentStatus: 'paid',
-              status: 'processing',
-            });
-
             (async () => {
               try {
                 let invoiceGenerated = false;

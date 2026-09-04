@@ -40,7 +40,9 @@ The platform features a modern React frontend with Radix UI components styled wi
 - **Authentication**: `jsonwebtoken`, `bcrypt`, Google OAuth 2.0, Apple Sign-In (JWT client_secret generation with ES256)
 - **Email Service**: SendGrid
 - **Payment Gateways**:
-    - Viva Payments (Smart Checkout - hosted payment page with card, Apple Pay, Google Pay support)
+    - Viva Payments (Smart Checkout - hosted payment page with card, Apple Pay, Google Pay, and PayPal support on the FR merchant when activated)
+      - To enable PayPal for `.fr`: sign in to the Viva Production account → `Settings > API Access` → `PayPal (Payment Method)` → `Enable PayPal as a payment method`, then complete or link the PayPal Business Account. PayPal is shown by Viva after approval; no separate PayPal API credentials are used by the app.
+      - FR payments must continue using the matching `VIVA_FR_*` credentials and EUR source code. The app presents PayPal as part of the same Viva checkout and processes the existing Viva callback/webhook flow.
     - Cash on Delivery
 - **Invoicing API**: Smartbill API
 - **Shipping API**: Sameday Courier API

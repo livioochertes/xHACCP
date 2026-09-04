@@ -115,6 +115,7 @@ export interface IStorage {
   getOrder(id: number): Promise<OrderWithItems | undefined>;
   createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order>;
   updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order>;
+  markOrderPaid(id: number): Promise<Order | null>;
   updateOrderStatus(id: number, status: string): Promise<Order>;
   acceptOrder(id: number): Promise<Order | null>;
   linkGuestOrdersToUser(email: string, userId: number): Promise<number>;
@@ -842,6 +843,21 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orders.id, id))
       .returning();
     return updatedOrder;
+  }
+
+  async markOrderPaid(id: number): Promise<Order | null> {
+    // Callback and webhook can arrive at the same time. Claim the transition
+    // atomically so only one of them performs invoice/email side effects.
+    const [updatedOrder] = await db
+      .update(orders)
+      .set({
+        paymentStatus: "paid",
+        status: "processing",
+        updatedAt: new Date(),
+      })
+      .where(and(eq(orders.id, id), ne(orders.paymentStatus, "paid")))
+      .returning();
+    return updatedOrder ?? null;
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {

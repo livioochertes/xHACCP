@@ -153,6 +153,7 @@ export interface TranslationKeys {
   'checkout.orderFailed': string;
   'checkout.orderFailedDesc': string;
   'checkout.paymentFailed': string;
+  'checkout.paymentFailedDesc': string;
   'checkout.orderSuccess': string;
   'checkout.orderSuccessDesc': string;
   'checkout.payWhenDelivered': string;
@@ -204,6 +205,12 @@ export interface TranslationKeys {
   'checkout.poweredBy': string;
   'checkout.recommended': string;
   'checkout.voucher': string;
+  'checkout.cardOrPayPal': string;
+  'checkout.paypalAvailable': string;
+  'checkout.paypalAvailableDesc': string;
+  'checkout.vivaRedirectNotice': string;
+  'checkout.redirectingToPayment': string;
+  'checkout.pay': string;
   
   // Account
   'account.title': string;
@@ -850,6 +857,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.orderFailed': 'We couldn\'t process your order',
     'checkout.orderFailedDesc': 'Something unexpected happened. Please try again — your cart is safe!',
     'checkout.paymentFailed': 'Payment didn\'t go through',
+    'checkout.paymentFailedDesc': 'The payment was cancelled or could not be completed. Your order was not marked as paid.',
     'checkout.orderSuccess': 'Order placed successfully!',
     'checkout.orderSuccessDesc': 'Thank you for your order. You will receive a confirmation email shortly.',
     'checkout.payWhenDelivered': 'Pay when delivered',
@@ -901,6 +909,12 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.poweredBy': 'powered by',
     'checkout.recommended': 'Recommended',
     'checkout.voucher': 'Voucher',
+    'checkout.cardOrPayPal': 'Card or PayPal',
+    'checkout.paypalAvailable': 'PayPal is available on the secure Viva Wallet payment page.',
+    'checkout.paypalAvailableDesc': 'Choose PayPal after you are redirected. Your order remains in the same secure Viva checkout flow.',
+    'checkout.vivaRedirectNotice': 'You will be redirected to a secure payment page to complete your payment.',
+    'checkout.redirectingToPayment': 'Redirecting to payment...',
+    'checkout.pay': 'Pay',
     
     // Account
     'account.title': 'My Account',
@@ -2193,6 +2207,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.orderFailed': 'Nous n\'avons pas pu traiter votre commande',
     'checkout.orderFailedDesc': 'Quelque chose d\'inattendu s\'est produit. Réessayez — votre panier est en sécurité !',
     'checkout.paymentFailed': 'Le paiement n\'a pas abouti',
+    'checkout.paymentFailedDesc': 'Le paiement a été annulé ou n’a pas pu être finalisé. Votre commande n’a pas été marquée comme payée.',
     'checkout.orderSuccess': 'Commande passée avec succès !',
     'checkout.orderSuccessDesc': 'Merci pour votre commande. Vous recevrez un e-mail de confirmation sous peu.',
     'checkout.payWhenDelivered': 'Paiement à la livraison',
@@ -2244,6 +2259,12 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.poweredBy': 'propulsé par',
     'checkout.recommended': 'Recommandé',
     'checkout.voucher': 'Bon de réduction',
+    'checkout.cardOrPayPal': 'Carte bancaire ou PayPal',
+    'checkout.paypalAvailable': 'PayPal est disponible sur la page de paiement sécurisée Viva Wallet.',
+    'checkout.paypalAvailableDesc': 'Choisissez PayPal après la redirection. Votre commande reste dans le même parcours de paiement sécurisé Viva.',
+    'checkout.vivaRedirectNotice': 'Vous serez redirigé vers une page de paiement sécurisée pour finaliser votre paiement.',
+    'checkout.redirectingToPayment': 'Redirection vers le paiement...',
+    'checkout.pay': 'Payer',
     
     // Account
     'account.title': 'Mon Compte',
