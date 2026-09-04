@@ -163,6 +163,7 @@ export default function Checkout() {
   // Confirmed order summary shown after COD placement
   const [confirmedOrder, setConfirmedOrder] = useState<{
     orderId: number | null;
+    buyerName: string;
     subtotal: number;
     discountAmount: number;
     voucherCode: string | null;
@@ -173,13 +174,14 @@ export default function Checkout() {
 
   // Ref to always hold the latest order summary (used by mutation onSuccess & Viva localStorage)
   const currentOrderSummaryRef = useRef<{
+    buyerName: string;
     subtotal: number;
     discountAmount: number;
     voucherCode: string | null;
     shipping: number;
     total: number;
     currencySymbol: string;
-  }>({ subtotal: 0, discountAmount: 0, voucherCode: null, shipping: 0, total: 0, currencySymbol: '' });
+  }>({ buyerName: '', subtotal: 0, discountAmount: 0, voucherCode: null, shipping: 0, total: 0, currencySymbol: '' });
 
   // Fetch shipping settings (includes VAT percentage)
   const { data: shippingSettings } = useQuery({
@@ -418,6 +420,10 @@ export default function Checkout() {
   // Keep ref current so onSuccess / Viva-redirect path can read the latest summary
   useEffect(() => {
     const summary = {
+      buyerName: [form.getValues("shippingAddress.firstName"), form.getValues("shippingAddress.lastName")]
+        .map(value => value?.trim())
+        .filter(Boolean)
+        .join(" "),
       subtotal,
       discountAmount: voucherDiscount,
       voucherCode: appliedVoucher?.code ?? null,
@@ -669,6 +675,14 @@ export default function Checkout() {
       return;
     }
     console.log("Submitting order from payment step");
+    const buyerName = [data.shippingAddress.firstName, data.shippingAddress.lastName]
+      .map(value => value?.trim())
+      .filter(Boolean)
+      .join(" ");
+    currentOrderSummaryRef.current = {
+      ...currentOrderSummaryRef.current,
+      buyerName,
+    };
     createOrderMutation.mutate(data);
   };
 
@@ -1623,6 +1637,10 @@ export default function Checkout() {
                             : { ...values.billingAddress };
                           return {
                             shippingAddress: { ...shippingAddr, email: values.email },
+                            buyerName: [shippingAddr.firstName, shippingAddr.lastName]
+                              .map(value => value?.trim())
+                              .filter(Boolean)
+                              .join(" "),
                             billingAddress: billingAddr,
                             items: cart.map(item => {
                               const up = getUnitPrice(item);

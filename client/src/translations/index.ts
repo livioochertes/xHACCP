@@ -102,6 +102,7 @@ export interface TranslationKeys {
   'checkout.shippingAddress': string;
   'checkout.paymentMethod': string;
   'checkout.orderSummary': string;
+  'checkout.buyerName': string;
   'checkout.placeOrder': string;
   'checkout.processing': string;
   'checkout.success': string;
@@ -806,6 +807,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.shippingAddress': 'Shipping Address',
     'checkout.paymentMethod': 'Payment Method',
     'checkout.orderSummary': 'Order Summary',
+    'checkout.buyerName': 'Customer name',
     'checkout.placeOrder': 'Place Order',
     'checkout.processing': 'Processing...',
     'checkout.success': 'Order placed successfully!',
@@ -1501,6 +1503,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.shippingAddress': 'Dirección de Envío',
     'checkout.paymentMethod': 'Método de Pago',
     'checkout.orderSummary': 'Resumen del Pedido',
+    'checkout.buyerName': 'Nombre del cliente',
     'checkout.placeOrder': 'Realizar Pedido',
     'checkout.processing': 'Procesando...',
     'checkout.success': '¡Pedido realizado con éxito!',
@@ -2156,6 +2159,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.shippingAddress': 'Adresse de Livraison',
     'checkout.paymentMethod': 'Méthode de Paiement',
     'checkout.orderSummary': 'Résumé de la Commande',
+    'checkout.buyerName': 'Nom du client',
     'checkout.placeOrder': 'Passer Commande',
     'checkout.processing': 'Traitement...',
     'checkout.success': 'Commande passée avec succès!',
@@ -2827,6 +2831,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.shippingAddress': 'Lieferadresse',
     'checkout.paymentMethod': 'Zahlungsart',
     'checkout.orderSummary': 'Bestellübersicht',
+    'checkout.buyerName': 'Name des Kunden',
     'checkout.placeOrder': 'Bestellung aufgeben',
     'checkout.processing': 'Verarbeitung...',
     'checkout.success': 'Bestellung erfolgreich aufgegeben!',
@@ -3330,6 +3335,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.shippingAddress': 'Adresa de Livrare',
     'checkout.paymentMethod': 'Metoda de Plată',
     'checkout.orderSummary': 'Rezumatul Comenzii',
+    'checkout.buyerName': 'Numele cumpărătorului',
     'checkout.placeOrder': 'Plasează Comanda',
     'checkout.processing': 'Se procesează...',
     'checkout.success': 'Comandă plasată cu succes!',

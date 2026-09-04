@@ -51,6 +51,9 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
             if (stored) {
               const summary = JSON.parse(stored);
               summary.orderId = data.dbOrderId;
+              if (!summary.buyerName && orderData?.buyerName) {
+                summary.buyerName = orderData.buyerName;
+              }
               localStorage.setItem('xhaccp_pending_order_summary', JSON.stringify(summary));
             }
           } catch (_) {}

@@ -12,6 +12,7 @@ import { usePageSeo } from "@/lib/use-page-seo";
 
 interface OrderSummary {
   orderId: number | null;
+  buyerName?: string;
   subtotal: number;
   discountAmount: number;
   voucherCode: string | null;
@@ -101,6 +102,12 @@ export default function ThankYou() {
           {summary && (
             <div className="border rounded-lg p-4 text-left space-y-2">
               <h2 className="font-semibold text-sm mb-3">{t("checkout.orderSummary")}</h2>
+              {summary.buyerName && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t("checkout.buyerName")}:</span>
+                  <span className="font-medium">{summary.buyerName}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">{t("checkout.subtotal")}:</span>
                 <span>{summary.subtotal.toFixed(2)} {summary.currencySymbol}</span>
