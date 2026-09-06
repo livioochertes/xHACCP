@@ -285,7 +285,9 @@ export const reviews = pgTable("reviews", {
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   invoiceNumber: varchar("invoice_number", { length: 100 }).notNull().unique(),
-  orderId: integer("order_id").references(() => orders.id).unique(),
+  // An order can have an earlier local/fallback invoice and a later
+  // SmartBill or reissued invoice, so this relationship is not unique.
+  orderId: integer("order_id").references(() => orders.id),
   userId: integer("user_id").references(() => users.id),
   issueDate: timestamp("issue_date").defaultNow().notNull(),
   supplyDate: timestamp("supply_date"),

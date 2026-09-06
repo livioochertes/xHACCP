@@ -13,3 +13,4 @@
 - [Product bulk-action UX](product-bulk-action-ux.md) — expose actions in a dropdown, keep required inputs inline, and confirm explicitly before execution.
 - [Viva currency-specific sources](viva-currency-specific-sources.md) — Viva source codes can reject currencies they do not support; never reuse the RO source for FR EUR payments.
 - [Payment callback idempotency](payment-callback-idempotency.md) — callbacks and webhooks must atomically claim the paid transition before invoice/email side effects.
+- [Invoice order cardinality](invoice-order-cardinality.md) — one order can retain multiple invoice records across fallback, issuance, and reissuance flows.
