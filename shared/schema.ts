@@ -272,7 +272,22 @@ export const cartItems = pgTable("cart_items", {
   quantity: integer("quantity").notNull(),
   compositeConfiguration: jsonb("composite_configuration").$type<CompositeConfiguration | null>(),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// One reminder state per authenticated user and marketplace. The cart snapshot
+// prevents a scheduler restart from sending the same reminder repeatedly.
+export const abandonedCartReminders = pgTable("abandoned_cart_reminders", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  market: varchar("market", { length: 10 }).notNull(),
+  cartUpdatedAt: timestamp("cart_updated_at").notNull(),
+  lastSentAt: timestamp("last_sent_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userMarketUnique: uniqueIndex("abandoned_cart_reminders_user_market_unique").on(table.userId, table.market),
+}));
 
 // Reviews table
 export const reviews = pgTable("reviews", {
@@ -692,6 +707,7 @@ export type CartItem = typeof cartItems.$inferSelect;
 export type InsertCartItem = Omit<typeof cartItems.$inferInsert, "compositeConfiguration"> & {
   compositeConfiguration?: CompositeConfiguration | null;
 };
+export type AbandonedCartReminder = typeof abandonedCartReminders.$inferSelect;
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Supplier = typeof suppliers.$inferSelect;
