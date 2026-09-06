@@ -35,6 +35,16 @@ export interface TranslationKeys {
   'products.specifications': string;
   'products.reviews': string;
   'products.writeReview': string;
+  'products.reviewRating': string;
+  'products.reviewComment': string;
+  'products.reviewCommentPlaceholder': string;
+  'products.reviewLoginRequired': string;
+  'products.reviewRatingRequired': string;
+  'products.reviewCommentRequired': string;
+  'products.submitReview': string;
+  'products.submittingReview': string;
+  'products.reviewsLoading': string;
+  'products.reviewsLoadError': string;
   'products.noReviews': string;
   'products.noDescription': string;
   'products.sku': string;
@@ -754,6 +764,16 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'products.fdaCompliant': 'FDA compliant',
     'products.reviews': 'Reviews',
     'products.writeReview': 'Write a Review',
+    'products.reviewRating': 'Rating',
+    'products.reviewComment': 'Your review',
+    'products.reviewCommentPlaceholder': 'Tell us about your experience with this product',
+    'products.reviewLoginRequired': 'Please log in to leave a review.',
+    'products.reviewRatingRequired': 'Please select a rating.',
+    'products.reviewCommentRequired': 'Please write a review before submitting.',
+    'products.submitReview': 'Submit review',
+    'products.submittingReview': 'Submitting…',
+    'products.reviewsLoading': 'Loading reviews…',
+    'products.reviewsLoadError': 'Reviews could not be loaded.',
     'products.noProducts': 'No products found.',
     'products.clearFilters': 'Clear Filters',
     'products.sortNewest': 'Newest First',
@@ -2108,6 +2128,16 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'products.fdaCompliant': 'Conforme FDA',
     'products.reviews': 'Avis',
     'products.writeReview': 'Écrire un Avis',
+    'products.reviewRating': 'Note',
+    'products.reviewComment': 'Votre avis',
+    'products.reviewCommentPlaceholder': 'Partagez votre expérience avec ce produit',
+    'products.reviewLoginRequired': 'Connectez-vous pour laisser un avis.',
+    'products.reviewRatingRequired': 'Veuillez sélectionner une note.',
+    'products.reviewCommentRequired': 'Veuillez rédiger un avis avant de l’envoyer.',
+    'products.submitReview': 'Envoyer l’avis',
+    'products.submittingReview': 'Envoi…',
+    'products.reviewsLoading': 'Chargement des avis…',
+    'products.reviewsLoadError': 'Impossible de charger les avis.',
     'products.noProducts': 'Aucun produit trouvé.',
     'products.clearFilters': 'Effacer les Filtres',
     'products.sortNewest': 'Plus Récents',
@@ -3284,6 +3314,16 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'products.fdaCompliant': 'Conform FDA',
     'products.reviews': 'Recenzii',
     'products.writeReview': 'Scrie o Recenzie',
+    'products.reviewRating': 'Evaluare',
+    'products.reviewComment': 'Recenzia ta',
+    'products.reviewCommentPlaceholder': 'Spune-ne experiența ta cu acest produs',
+    'products.reviewLoginRequired': 'Autentifică-te pentru a lăsa o recenzie.',
+    'products.reviewRatingRequired': 'Selectează un număr de stele.',
+    'products.reviewCommentRequired': 'Scrie o recenzie înainte de trimitere.',
+    'products.submitReview': 'Trimite recenzia',
+    'products.submittingReview': 'Se trimite…',
+    'products.reviewsLoading': 'Se încarcă recenziile…',
+    'products.reviewsLoadError': 'Recenziile nu au putut fi încărcate.',
     'products.noProducts': 'Nu au fost găsite produse.',
     'products.clearFilters': 'Șterge Filtrele',
     'products.sortNewest': 'Cel Mai Noi',

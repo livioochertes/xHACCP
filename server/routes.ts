@@ -3421,10 +3421,27 @@ ${product.description}`;
   app.post("/api/products/:id/reviews", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const productId = parseInt(req.params.id);
+      const rating = Number(req.body?.rating);
+      const comment = typeof req.body?.comment === "string" ? req.body.comment.trim() : "";
+
+      if (!Number.isInteger(productId) || productId <= 0) {
+        return res.status(400).json({ message: "Invalid product" });
+      }
+      if (!req.userId) {
+        return res.status(401).json({ message: "Authentication required to leave a review" });
+      }
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: "Rating must be an integer between 1 and 5" });
+      }
+      if (!comment) {
+        return res.status(400).json({ message: "Review comment is required" });
+      }
+
       const reviewData = insertReviewSchema.parse({
-        ...req.body,
         productId,
         userId: req.userId,
+        rating,
+        comment,
       });
       const review = await storage.createReview(reviewData);
       res.json(review);

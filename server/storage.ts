@@ -1170,9 +1170,26 @@ export class DatabaseStorage implements IStorage {
   // Review operations
   async getProductReviews(productId: number): Promise<Review[]> {
     return await db
-      .select()
+      .select({
+        id: reviews.id,
+        productId: reviews.productId,
+        userId: reviews.userId,
+        rating: reviews.rating,
+        comment: reviews.comment,
+        createdAt: reviews.createdAt,
+        authorName: sql<string>`coalesce(
+          nullif(trim(concat_ws(' ', ${users.firstName}, ${users.lastName})), ''),
+          'Client'
+        )`,
+      })
       .from(reviews)
-      .where(eq(reviews.productId, productId))
+      .innerJoin(users, eq(reviews.userId, users.id))
+      .where(and(
+        eq(reviews.productId, productId),
+        gte(reviews.rating, 1),
+        lte(reviews.rating, 5),
+        sql`btrim(coalesce(${reviews.comment}, '')) <> ''`,
+      ))
       .orderBy(desc(reviews.createdAt));
   }
 

@@ -16,3 +16,4 @@
 - [Invoice order cardinality](invoice-order-cardinality.md) — one order can retain multiple invoice records across fallback, issuance, and reissuance flows.
 - [Abandoned cart reminders](abandoned-cart-reminders.md) — send one market-specific reminder after 24h of cart inactivity; cart changes reset eligibility.
 - [Marketing automation](marketing-automation.md) — reminder thresholds, segments, and campaigns are market-scoped and require both email and promotions consent.
+- [Review query URL convention](review-query-keys.md) — nested review endpoints must be complete in queryKey[0]; extra key segments are not converted into URL paths.

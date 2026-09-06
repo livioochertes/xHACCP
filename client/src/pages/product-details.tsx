@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useJsonLd } from "@/lib/use-json-ld";
 import { usePageSeo } from "@/lib/use-page-seo";
 import { toSeoText, truncateDesc } from "@/lib/seo-utils";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { Star, ShoppingCart, Truck, Shield, ArrowLeft, Plus, Minus, Package, Phone, FileText, CheckCircle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
 import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import ContactModal from "@/components/contact-modal";
@@ -19,6 +20,7 @@ import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { formatPrice } from "@/lib/utils";
 import { getMarketFromHostname } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { getSortedTiers, getActiveTier, getVolumePrice } from "@/lib/volume-price";
 import { formatProductDescription, stripFormatting } from "@/lib/format-description";
@@ -35,8 +37,10 @@ const SHORT_DESC_LIMIT = 220;
 export default function ProductDetails() {
   const [, params] = useRoute("/products/:slug");
   const { addToCart } = useCart();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [componentQuantities, setComponentQuantities] = useState<Record<number, number>>({});
@@ -72,10 +76,33 @@ export default function ProductDetails() {
     });
   }, [product]);
 
-  const { data: reviews = [] } = useQuery<Review[]>({
-    queryKey: ["/api/products", product?.id, "reviews"],
+  const reviewsQueryKey = product?.id
+    ? `/api/products/${product.id}/reviews`
+    : "/api/products/0/reviews";
+  const { data: reviews = [], isLoading: reviewsLoading, isError: reviewsError } = useQuery<Review[]>({
+    queryKey: [reviewsQueryKey],
     enabled: !!product?.id,
   });
+
+  const validReviews = useMemo(
+    () => reviews.filter((review) => {
+      const rating = Number(review.rating);
+      const comment = typeof review.comment === "string" ? review.comment.trim() : "";
+      return (
+        review.userId != null &&
+        Number.isInteger(rating) &&
+        rating >= 1 &&
+        rating <= 5 &&
+        comment.length > 0
+      );
+    }),
+    [reviews],
+  );
+
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
 
   const { name: translatedName, description: translatedDescription, localizedSlug, hasLocalizedDescription } = useProductTranslation(
     product?.id,
@@ -249,6 +276,39 @@ export default function ProductDetails() {
         className={`h-4 w-4 ${i < Math.round(rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200 fill-gray-200'}`}
       />
     ));
+  };
+
+  const submitReview = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!isAuthenticated || !product) return;
+
+    if (reviewRating < 1 || reviewRating > 5) {
+      setReviewError(t('products.reviewRatingRequired'));
+      return;
+    }
+    const comment = reviewComment.trim();
+    if (!comment) {
+      setReviewError(t('products.reviewCommentRequired'));
+      return;
+    }
+
+    setReviewError("");
+    setReviewSubmitting(true);
+    try {
+      await apiRequest("POST", `/api/products/${product.id}/reviews`, {
+        rating: reviewRating,
+        comment,
+      });
+      await queryClient.invalidateQueries({ queryKey: [reviewsQueryKey] });
+      setReviewRating(0);
+      setReviewComment("");
+      toast({ title: t('messages.reviewSubmitted') });
+    } catch (error) {
+      console.error("Submit review error:", error);
+      setReviewError(t('messages.networkError'));
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   const fallbackDesc = useMemo(
@@ -731,7 +791,7 @@ export default function ProductDetails() {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="description">{t('products.description')}</TabsTrigger>
               <TabsTrigger value="specifications">{t('products.specifications')}</TabsTrigger>
-              <TabsTrigger value="reviews">{t('products.reviews')} ({reviews.length})</TabsTrigger>
+              <TabsTrigger value="reviews">{t('products.reviews')} ({validReviews.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="description" className="mt-6">
@@ -823,9 +883,18 @@ export default function ProductDetails() {
             <TabsContent value="reviews" className="mt-6">
               <Card>
                 <CardContent className="p-8">
-                  {reviews.length > 0 ? (
+                  {reviewsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="loading-spinner mx-auto mb-4" />
+                      <p className="text-muted-foreground">{t('products.reviewsLoading')}</p>
+                    </div>
+                  ) : reviewsError ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">{t('products.reviewsLoadError')}</p>
+                    </div>
+                  ) : validReviews.length > 0 ? (
                     <div className="space-y-6">
-                      {reviews.map((review) => (
+                      {validReviews.map((review) => (
                         <div key={review.id} className="space-y-2">
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-0.5">
@@ -848,6 +917,68 @@ export default function ProductDetails() {
                       <p className="text-muted-foreground">{t('products.noReviews')}</p>
                     </div>
                   )}
+
+                  <div className="mt-8 border-t pt-6">
+                    <h4 className="font-semibold text-gray-900 mb-3">{t('products.writeReview')}</h4>
+                    {authLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="loading-spinner h-4 w-4" />
+                        <span>{t('products.reviewsLoading')}</span>
+                      </div>
+                    ) : isAuthenticated ? (
+                      <form onSubmit={submitReview} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t('products.reviewRating')}
+                          </label>
+                          <div className="flex items-center gap-1" role="radiogroup" aria-label={t('products.reviewRating')}>
+                            {Array.from({ length: 5 }, (_, index) => {
+                              const value = index + 1;
+                              return (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  aria-label={`${value}/5`}
+                                  aria-pressed={reviewRating === value}
+                                  onClick={() => setReviewRating(value)}
+                                  className="rounded p-1 hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                                >
+                                  <Star className={`h-6 w-6 ${value <= reviewRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <label htmlFor="review-comment" className="block text-sm font-medium text-gray-700 mb-2">
+                            {t('products.reviewComment')}
+                          </label>
+                          <textarea
+                            id="review-comment"
+                            value={reviewComment}
+                            onChange={(event) => setReviewComment(event.target.value)}
+                            placeholder={t('products.reviewCommentPlaceholder')}
+                            minLength={2}
+                            maxLength={5000}
+                            rows={4}
+                            required
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                        {reviewError && <p className="text-sm text-red-600">{reviewError}</p>}
+                        <Button type="submit" disabled={reviewSubmitting}>
+                          {reviewSubmitting ? t('products.submittingReview') : t('products.submitReview')}
+                        </Button>
+                      </form>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {t('products.reviewLoginRequired')}{" "}
+                        <Link href="/login" className="font-medium text-primary hover:underline">
+                          {t('nav.login')}
+                        </Link>
+                      </p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
