@@ -2633,6 +2633,10 @@ export async function registerAdminRoutes(app: Express) {
         ? await validateCategoryForMarket(productData.categoryId, targetMarket)
         : null;
       const isComposite = productData.isComposite === true || productData.isComposite === 'true';
+      const requestedProductType = String(productData.productType || '').toLowerCase();
+      const productType = ['standard', 'service', 'subscription'].includes(requestedProductType)
+        ? requestedProductType
+        : (productData.isService === true || productData.isService === 'true' ? 'service' : 'standard');
       const parsedStockQuantity = safeParseInt(productData.stockQuantity);
       const stockQuantity = isComposite && parsedStockQuantity === undefined
         ? null
@@ -2663,7 +2667,8 @@ export async function registerAdminRoutes(app: Express) {
         height: productData.height && String(productData.height).trim() !== '' ? parseFloat(String(productData.height)) : null,
         // Priority field for product display order (1 = highest, 0 = default)
         priority: productData.priority !== undefined ? parseInt(String(productData.priority)) || 0 : 0,
-        isService: productData.isService === true || productData.isService === 'true',
+        productType,
+        isService: productType === 'service',
         isComposite
       };
 
@@ -2750,6 +2755,14 @@ export async function registerAdminRoutes(app: Express) {
       const isComposite = productData.isComposite !== undefined
         ? productData.isComposite === true || productData.isComposite === 'true'
         : !!existingProduct?.isComposite;
+      const requestedProductType = productData.productType !== undefined
+        ? String(productData.productType || '').toLowerCase()
+        : String((existingProduct as any)?.productType || '').toLowerCase();
+      const productType = ['standard', 'service', 'subscription'].includes(requestedProductType)
+        ? requestedProductType
+        : (productData.isService !== undefined
+          ? (productData.isService === true || productData.isService === 'true' ? 'service' : 'standard')
+          : (existingProduct?.isService ? 'service' : 'standard'));
       const parsedStockQuantity = safeParseInt(productData.stockQuantity);
       const updatedProduct = await storage.updateProduct(productId, {
         ...productData,
@@ -2785,7 +2798,8 @@ export async function registerAdminRoutes(app: Express) {
         piecesPerPackage: safeParseInt(productData.piecesPerPackage),
         // Priority field for product display order (1 = highest, 0 = default)
         priority: safeParseInt(productData.priority) ?? 0,
-        ...(productData.isService !== undefined && { isService: productData.isService === true || productData.isService === 'true' }),
+        productType,
+        isService: productType === 'service',
         ...(productData.isComposite !== undefined && { isComposite })
       });
       

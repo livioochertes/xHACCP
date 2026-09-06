@@ -24,9 +24,10 @@ interface VivaPaymentProps {
   voucherCode?: string | null;
   orderData?: any;
   isFrenchMarket?: boolean;
+  isRecurring?: boolean;
 }
 
-export default function VivaPayment({ amount, currency, onError, disabled, cartItems, voucherCode, orderData, isFrenchMarket = false }: VivaPaymentProps) {
+export default function VivaPayment({ amount, currency, onError, disabled, cartItems, voucherCode, orderData, isFrenchMarket = false, isRecurring = false }: VivaPaymentProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -42,6 +43,7 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
         cartItems: cartItems || [],
         voucherCode: voucherCode || null,
         orderData: orderData || null,
+        allowRecurring: isRecurring,
       });
 
       const data = await response.json();

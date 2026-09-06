@@ -551,6 +551,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             specs: Array.isArray(editingProduct.specs) ? editingProduct.specs : [],
             volumeDiscounts: Array.isArray(editingProduct.volumeDiscounts) ? editingProduct.volumeDiscounts : [],
             priority: editingProduct.priority || 0,
+            productType: editingProduct.productType || (editingProduct.isService ? 'service' : 'standard'),
             isService: editingProduct.isService || false,
             isComposite: editingProduct.isComposite || false
           };
@@ -3169,6 +3170,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             specs: [],
                             volumeDiscounts: [],
                             priority: 0,
+                            productType: 'standard',
                             isService: false,
                             isComposite: false
                           };
@@ -7259,6 +7261,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           specs: [],
           volumeDiscounts: [],
           priority: 0,
+          productType: 'standard',
           isService: false,
           isComposite: false
         });
@@ -7692,7 +7695,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               featured: false, vatValue: '', vatPercentage: '21.00', currency: 'EUR',
               productCode: '', ncCode: '', cpvCode: '', status: 'active', images: [],
               weight: '', length: '', width: '', height: '', piecesPerPackage: '',
-              productQuantity: '', specs: [], volumeDiscounts: [], priority: 0, isService: false, isComposite: false
+              productQuantity: '', specs: [], volumeDiscounts: [], priority: 0, productType: 'standard', isService: false, isComposite: false
             });
             setUploadedImages([]);
             setImportUrl('');
@@ -8806,19 +8809,32 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       )}
                     </div>
 
-                    {/* Service / Subscription flag */}
-                    <div style={{marginTop: '16px', padding: '10px 14px', backgroundColor: '#f0f4ff', borderRadius: '6px', border: '1px solid #c7d2fe', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                      <input
-                        type="checkbox"
-                        id="isService"
-                        checked={!!productFormData.isService}
-                        onChange={(e) => setProductFormData({...productFormData, isService: e.target.checked})}
-                        style={{width: '16px', height: '16px', cursor: 'pointer', flexShrink: 0}}
-                      />
-                      <label htmlFor="isService" style={{margin: 0, cursor: 'pointer', fontSize: '13px', color: '#3730a3', fontWeight: '600'}}>
-                        🔧 {t('products.isServiceLabel')}
-                        <span style={{fontWeight: 'normal', color: '#6b7280', marginLeft: '6px'}}>— {t('products.isServiceHint')}</span>
+                    {/* Product type */}
+                    <div style={{marginTop: '16px', padding: '12px 14px', backgroundColor: '#f0f4ff', borderRadius: '6px', border: '1px solid #c7d2fe'}}>
+                      <label htmlFor="productType" style={{display: 'block', marginBottom: '6px', fontSize: '13px', color: '#3730a3', fontWeight: '600'}}>
+                        {t('products.productTypeLabel')}
                       </label>
+                      <select
+                        id="productType"
+                        className="form-input"
+                        value={productFormData.productType || (productFormData.isService ? 'service' : 'standard')}
+                        onChange={(e) => setProductFormData({
+                          ...productFormData,
+                          productType: e.target.value,
+                          isService: e.target.value === 'service',
+                        })}
+                      >
+                        <option value="standard">{t('products.productTypeStandard')}</option>
+                        <option value="service">{t('products.productTypeService')}</option>
+                        <option value="subscription">{t('products.productTypeSubscription')}</option>
+                      </select>
+                      <div style={{fontSize: '12px', color: '#6b7280', marginTop: '6px'}}>
+                        {productFormData.productType === 'subscription'
+                          ? t('products.productTypeSubscriptionHint')
+                          : productFormData.productType === 'service'
+                            ? t('products.productTypeServiceHint')
+                            : t('products.productTypeStandardHint')}
+                      </div>
                     </div>
 
                     <div style={{marginTop: '10px', padding: '10px 14px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '10px'}}>
@@ -8878,7 +8894,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     )}
 
                     {/* Volume Discounts Section */}
-                    {!productFormData.isService && (
+                    {productFormData.productType !== 'service' && productFormData.productType !== 'subscription' && (
                     <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#fff8e1', borderRadius: '6px', border: '1px solid #ffd54f'}}>
                       <h5 style={{color: '#333', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px'}}>
                         🏷️ {t('products.volumeDiscountTitle')}

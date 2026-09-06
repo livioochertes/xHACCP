@@ -10678,6 +10678,13 @@
       export_excel: "Export Excel",
       isServiceLabel: "Is a service / subscription",
       isServiceHint: "hides the volume discount section on the product page",
+      productTypeLabel: "Product type",
+      productTypeStandard: "Standard product",
+      productTypeService: "Service",
+      productTypeSubscription: "Subscription",
+      productTypeStandardHint: "Normal purchase with volume discounts when configured.",
+      productTypeServiceHint: "Uses the existing quote request flow.",
+      productTypeSubscriptionHint: "Purchase with consent for monthly Viva Wallet billing.",
       volumeDiscountTitle: "Buy more, pay less",
       volumeDiscountSubtitle: "automatic volume discount",
       volumeDiscountMinQty: "Minimum quantity (pcs)",
@@ -11317,6 +11324,13 @@
       export_excel: "Export Excel",
       isServiceLabel: "Este serviciu / abonament",
       isServiceHint: "ascunde sec\u021Biunea de discount pe volum pe pagina produsului",
+      productTypeLabel: "Tip produs",
+      productTypeStandard: "Produs standard",
+      productTypeService: "Serviciu",
+      productTypeSubscription: "Abonament",
+      productTypeStandardHint: "Se cump\u0103r\u0103 normal \u0219i poate folosi reduceri pe volum.",
+      productTypeServiceHint: "Folose\u0219te fluxul existent de cerere ofert\u0103.",
+      productTypeSubscriptionHint: "Se cump\u0103r\u0103 cu acord pentru debitare lunar\u0103 Viva Wallet.",
       volumeDiscountTitle: "Cumperi mai mult, pl\u0103te\u0219ti mai pu\u021Bin",
       volumeDiscountSubtitle: "discount automat pe cantitate",
       volumeDiscountMinQty: "Cantitate minim\u0103 (buc)",
@@ -11956,6 +11970,13 @@
       export_excel: "Exporter Excel",
       isServiceLabel: "Est un service / abonnement",
       isServiceHint: "masque la section de remise sur volume sur la page produit",
+      productTypeLabel: "Type de produit",
+      productTypeStandard: "Produit standard",
+      productTypeService: "Service",
+      productTypeSubscription: "Abonnement",
+      productTypeStandardHint: "Achat normal avec remises sur quantit\xE9 possibles.",
+      productTypeServiceHint: "Utilise le flux actuel de demande de devis.",
+      productTypeSubscriptionHint: "Achat avec accord pour un d\xE9bit mensuel Viva Wallet.",
       volumeDiscountTitle: "Achetez plus, payez moins",
       volumeDiscountSubtitle: "remise automatique sur la quantit\xE9",
       volumeDiscountMinQty: "Quantit\xE9 minimale (pcs)",
@@ -12919,6 +12940,7 @@
           specs: Array.isArray(editingProduct.specs) ? editingProduct.specs : [],
           volumeDiscounts: Array.isArray(editingProduct.volumeDiscounts) ? editingProduct.volumeDiscounts : [],
           priority: editingProduct.priority || 0,
+          productType: editingProduct.productType || (editingProduct.isService ? "service" : "standard"),
           isService: editingProduct.isService || false,
           isComposite: editingProduct.isComposite || false
         };
@@ -15340,6 +15362,7 @@ This action cannot be undone.`)) {
                         specs: [],
                         volumeDiscounts: [],
                         priority: 0,
+                        productType: "standard",
                         isService: false,
                         isComposite: false
                       };
@@ -19886,6 +19909,7 @@ Cordialement,`
         specs: [],
         volumeDiscounts: [],
         priority: 0,
+        productType: "standard",
         isService: false,
         isComposite: false
       });
@@ -20260,6 +20284,7 @@ Cordialement,`
             specs: [],
             volumeDiscounts: [],
             priority: 0,
+            productType: "standard",
             isService: false,
             isComposite: false
           });
@@ -21413,25 +21438,27 @@ Cordialement,`
               ] }),
               (productFormData.specs || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "8px", fontSize: "12px", color: "#999" }, children: t2("products.modal.specsEmpty") })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "16px", padding: "10px 14px", backgroundColor: "#f0f4ff", borderRadius: "6px", border: "1px solid #c7d2fe", display: "flex", alignItems: "center", gap: "10px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                "input",
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "16px", padding: "12px 14px", backgroundColor: "#f0f4ff", borderRadius: "6px", border: "1px solid #c7d2fe" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { htmlFor: "productType", style: { display: "block", marginBottom: "6px", fontSize: "13px", color: "#3730a3", fontWeight: "600" }, children: t2("products.productTypeLabel") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                "select",
                 {
-                  type: "checkbox",
-                  id: "isService",
-                  checked: !!productFormData.isService,
-                  onChange: (e2) => setProductFormData({ ...productFormData, isService: e2.target.checked }),
-                  style: { width: "16px", height: "16px", cursor: "pointer", flexShrink: 0 }
+                  id: "productType",
+                  className: "form-input",
+                  value: productFormData.productType || (productFormData.isService ? "service" : "standard"),
+                  onChange: (e2) => setProductFormData({
+                    ...productFormData,
+                    productType: e2.target.value,
+                    isService: e2.target.value === "service"
+                  }),
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "standard", children: t2("products.productTypeStandard") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "service", children: t2("products.productTypeService") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "subscription", children: t2("products.productTypeSubscription") })
+                  ]
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { htmlFor: "isService", style: { margin: 0, cursor: "pointer", fontSize: "13px", color: "#3730a3", fontWeight: "600" }, children: [
-                "\u{1F527} ",
-                t2("products.isServiceLabel"),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontWeight: "normal", color: "#6b7280", marginLeft: "6px" }, children: [
-                  "\u2014 ",
-                  t2("products.isServiceHint")
-                ] })
-              ] })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6b7280", marginTop: "6px" }, children: productFormData.productType === "subscription" ? t2("products.productTypeSubscriptionHint") : productFormData.productType === "service" ? t2("products.productTypeServiceHint") : t2("products.productTypeStandardHint") })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "10px", padding: "10px 14px", backgroundColor: "#f0fdf4", borderRadius: "6px", border: "1px solid #bbf7d0", display: "flex", alignItems: "center", gap: "10px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -21506,7 +21533,7 @@ Cordialement,`
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", onClick: () => setComponentProducts(componentProducts.filter((item) => item.id !== product.id)), style: { border: "none", background: "none", cursor: "pointer", color: "#dc2626" }, children: "\xD7" })
               ] }, product.id))
             ] }),
-            !productFormData.isService && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#fff8e1", borderRadius: "6px", border: "1px solid #ffd54f" }, children: [
+            productFormData.productType !== "service" && productFormData.productType !== "subscription" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#fff8e1", borderRadius: "6px", border: "1px solid #ffd54f" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }, children: [
                 "\u{1F3F7}\uFE0F ",
                 t2("products.volumeDiscountTitle"),

@@ -33,6 +33,7 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   );
 
   const isService = !!(product as any).isService;
+  const isSubscription = (product as any).productType === "subscription";
   const isComposite = !!(product as any).isComposite;
   const productSlug = localizedSlug || product.slug;
 
@@ -89,6 +90,11 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
               {product.category && (
                 <Badge variant="secondary" className="mb-2 text-xs">
                   {getCategoryName(product.category.id, product.category.name)}
+                </Badge>
+              )}
+              {isSubscription && (
+                <Badge className="mb-2 ml-1 text-xs bg-blue-100 text-blue-800 hover:bg-blue-100">
+                  {t('products.subscription')}
                 </Badge>
               )}
 
@@ -191,6 +197,7 @@ export const ProductListItem = memo(function ProductListItem({ product }: Produc
   );
 
   const isService = !!(product as any).isService;
+  const isSubscription = (product as any).productType === "subscription";
   const isComposite = !!(product as any).isComposite;
   const productSlug = localizedSlug || product.slug;
 
@@ -251,6 +258,11 @@ export const ProductListItem = memo(function ProductListItem({ product }: Produc
               {product.category && (
                 <Badge variant="secondary" className="mt-1 text-xs">
                   {getCategoryName(product.category.id, product.category.name)}
+                </Badge>
+              )}
+              {isSubscription && (
+                <Badge className="mt-1 ml-1 text-xs bg-blue-100 text-blue-800 hover:bg-blue-100">
+                  {t('products.subscription')}
                 </Badge>
               )}
 

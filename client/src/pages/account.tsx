@@ -77,7 +77,7 @@ type NotificationFormData = z.infer<typeof notificationSchema>;
 export default function Account() {
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    return ['profile', 'orders', 'invoices', 'invoice-settings', 'alerts'].includes(hash) ? hash : 'profile';
+    return ['profile', 'orders', 'invoices', 'subscriptions', 'invoice-settings', 'alerts'].includes(hash) ? hash : 'profile';
   });
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
@@ -103,6 +103,25 @@ export default function Account() {
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery<any[]>({
     queryKey: ["/api/invoices"],
     enabled: isAuthenticated,
+  });
+
+  const { data: subscriptions = [], isLoading: subscriptionsLoading } = useQuery<any[]>({
+    queryKey: ["/api/account/subscriptions"],
+    enabled: isAuthenticated,
+  });
+
+  const cancelSubscriptionMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("POST", `/api/account/subscriptions/${id}/cancel`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/account/subscriptions"] });
+      toast({ title: "Subscription canceled", description: "Future renewals have been stopped." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Could not cancel subscription", description: error.message, variant: "destructive" });
+    },
   });
 
   const profileForm = useForm<ProfileFormData>({
@@ -549,7 +568,7 @@ export default function Account() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 {t('account.profile')}
@@ -561,6 +580,10 @@ export default function Account() {
               <TabsTrigger value="invoices" className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
                 {t('account.invoices')}
+              </TabsTrigger>
+              <TabsTrigger value="subscriptions" className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Subscriptions
               </TabsTrigger>
               <TabsTrigger value="invoice-settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
@@ -1095,6 +1118,54 @@ export default function Account() {
                       </div>
                     )}
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="subscriptions" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Subscriptions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {subscriptionsLoading ? (
+                    <div className="text-center py-8 text-gray-600">Loading subscriptions…</div>
+                  ) : subscriptions.length === 0 ? (
+                    <div className="text-center py-8 text-gray-600">You have no active subscriptions.</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {subscriptions.map((subscription: any) => (
+                        <div key={subscription.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border p-4">
+                          <div className="flex items-center gap-3">
+                            {subscription.productImageUrl && <img src={subscription.productImageUrl} alt="" className="h-12 w-12 rounded object-cover" />}
+                            <div>
+                              <h3 className="font-medium">{subscription.productName}</h3>
+                              <p className="text-sm text-gray-600">
+                                {subscription.amount} {subscription.currency} / month · {subscription.status}
+                              </p>
+                              {subscription.status === "active" && !subscription.cancelAtPeriodEnd && (
+                                <p className="text-xs text-gray-500">Next charge: {format(new Date(subscription.nextBillingAt), "PPP")}</p>
+                              )}
+                              {subscription.cancelAtPeriodEnd && <Badge variant="outline">Canceling at period end</Badge>}
+                            </div>
+                          </div>
+                          {subscription.status === "active" && !subscription.cancelAtPeriodEnd && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => cancelSubscriptionMutation.mutate(subscription.id)}
+                              disabled={cancelSubscriptionMutation.isPending}
+                            >
+                              Cancel renewal
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

@@ -79,6 +79,8 @@ export type CompositeConfiguration = {
   totalPrice?: string;
 };
 
+export type ProductType = "standard" | "service" | "subscription";
+
 // Products table
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
@@ -112,7 +114,8 @@ export const products = pgTable("products", {
   productQuantity: text("product_quantity"), // Net content / quantity e.g. "5L", "500g", "1 set"
   specs: jsonb("specs").default([]), // Flexible product specs: [{label, value}, ...]
   volumeDiscounts: jsonb("volume_discounts").default([]), // Volume discount tiers: [{minQty, discountPercent}, ...]
-  isService: boolean("is_service").default(false), // True for service/subscription products — hides volume discounts on storefront
+  productType: varchar("product_type", { length: 20 }).notNull().default("standard"), // standard | service | subscription
+  isService: boolean("is_service").default(false), // Legacy service flag; new products should use productType
   isComposite: boolean("is_composite").default(false), // Configurable parent product whose price comes from selected components
   descriptionHtml: text("description_html"), // AI-formatted HTML description (generated once, stored permanently)
   priority: integer("priority").default(0), // Display priority: 1 = highest, 2, 3 = lower priorities, 0 = default order
@@ -303,6 +306,53 @@ export const orderItems = pgTable("order_items", {
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
   compositeConfiguration: jsonb("composite_configuration").$type<CompositeConfiguration | null>(),
 });
+
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  initialOrderId: integer("initial_order_id").references(() => orders.id),
+  market: varchar("market", { length: 10 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("active"), // active | past_due | canceled
+  initialTransactionId: varchar("initial_transaction_id", { length: 120 }).notNull(),
+  nextBillingAt: timestamp("next_billing_at").notNull(),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  canceledAt: timestamp("canceled_at"),
+  consentAt: timestamp("consent_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  subscriptionUserIdx: index("subscriptions_user_idx").on(table.userId),
+  subscriptionBillingIdx: index("subscriptions_billing_idx").on(table.status, table.nextBillingAt),
+  subscriptionInitialTransactionUnique: uniqueIndex("subscriptions_initial_transaction_unique")
+    .on(table.initialTransactionId),
+}));
+
+export const subscriptionPayments = pgTable("subscription_payments", {
+  id: serial("id").primaryKey(),
+  subscriptionId: integer("subscription_id").references(() => subscriptions.id, { onDelete: "cascade" }).notNull(),
+  orderId: integer("order_id").references(() => orders.id),
+  billingKey: varchar("billing_key", { length: 80 }).notNull(),
+  initialTransactionId: varchar("initial_transaction_id", { length: 120 }).notNull(),
+  vivaTransactionId: varchar("viva_transaction_id", { length: 120 }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("pending"), // pending | succeeded | failed
+  attemptNumber: integer("attempt_number").notNull().default(1),
+  dueAt: timestamp("due_at").notNull(),
+  paidAt: timestamp("paid_at"),
+  failureReason: text("failure_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  subscriptionBillingKeyUnique: uniqueIndex("subscription_payments_subscription_billing_key_unique")
+    .on(table.subscriptionId, table.billingKey),
+  subscriptionVivaTransactionUnique: uniqueIndex("subscription_payments_viva_transaction_unique")
+    .on(table.vivaTransactionId),
+  subscriptionPaymentStatusIdx: index("subscription_payments_status_idx").on(table.status, table.dueAt),
+}));
 
 // Cart items table (for persistent cart)
 export const cartItems = pgTable("cart_items", {
@@ -496,6 +546,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   cartItems: many(cartItems),
   reviews: many(reviews),
   invoices: many(invoices),
+  subscriptions: many(subscriptions),
 }));
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
@@ -515,6 +566,7 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   cartItems: many(cartItems),
   reviews: many(reviews),
   translations: many(productTranslations),
+  subscriptions: many(subscriptions),
   compositeParents: many(compositeProductComponents, { relationName: "compositeParent" }),
   compositeComponents: many(compositeProductComponents, { relationName: "compositeComponent" }),
 }));
@@ -552,6 +604,7 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     references: [users.id],
   }),
   items: many(orderItems),
+  subscriptions: many(subscriptions),
 }));
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
@@ -562,6 +615,33 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   product: one(products, {
     fields: [orderItems.productId],
     references: [products.id],
+  }),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one, many }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.id],
+  }),
+  product: one(products, {
+    fields: [subscriptions.productId],
+    references: [products.id],
+  }),
+  initialOrder: one(orders, {
+    fields: [subscriptions.initialOrderId],
+    references: [orders.id],
+  }),
+  payments: many(subscriptionPayments),
+}));
+
+export const subscriptionPaymentsRelations = relations(subscriptionPayments, ({ one }) => ({
+  subscription: one(subscriptions, {
+    fields: [subscriptionPayments.subscriptionId],
+    references: [subscriptions.id],
+  }),
+  order: one(orders, {
+    fields: [subscriptionPayments.orderId],
+    references: [orders.id],
   }),
 }));
 
@@ -652,6 +732,18 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
 
 export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
   id: true,
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSubscriptionPaymentSchema = createInsertSchema(subscriptionPayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertCartItemSchema = createInsertSchema(cartItems).omit({
@@ -749,6 +841,10 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = Omit<typeof orderItems.$inferInsert, "compositeConfiguration"> & {
   compositeConfiguration?: CompositeConfiguration | null;
 };
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type SubscriptionPayment = typeof subscriptionPayments.$inferSelect;
+export type InsertSubscriptionPayment = z.infer<typeof insertSubscriptionPaymentSchema>;
 export type CartItem = typeof cartItems.$inferSelect;
 export type InsertCartItem = Omit<typeof cartItems.$inferInsert, "compositeConfiguration"> & {
   compositeConfiguration?: CompositeConfiguration | null;

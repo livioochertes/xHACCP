@@ -121,6 +121,31 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
   }
 }
 
+export async function sendSubscriptionRenewalEmail(
+  customerEmail: string,
+  order: OrderWithItems,
+  invoicePdfBuffer?: Buffer | null,
+  invoiceNumber?: string,
+): Promise<boolean> {
+  const currency = orderCurrency(order);
+  const total = Number.parseFloat(String(order.totalAmount)).toFixed(2);
+  const customer = (order.billingAddress as any)?.firstName ||
+    (order.shippingAddress as any)?.firstName || "Client";
+  return sendEmail({
+    to: customerEmail,
+    from: getSenderForOrder(order),
+    subject: `Subscription payment confirmed — order #${order.id}`,
+    text: `Hello ${customer}, your monthly subscription payment of ${total} ${currency} was confirmed. Invoice: ${invoiceNumber || "attached"}.`,
+    html: `<p>Hello ${customer},</p><p>Your monthly subscription payment of <strong>${total} ${currency}</strong> was confirmed.</p><p>Your invoice is attached.</p>`,
+    attachments: invoicePdfBuffer ? [{
+      content: invoicePdfBuffer.toString("base64"),
+      filename: `${invoiceNumber || `invoice-${order.id}`}.pdf`,
+      type: "application/pdf",
+      disposition: "attachment",
+    }] : undefined,
+  });
+}
+
 export async function sendOrderConfirmationEmail(
   order: OrderWithItems,
   user: User,

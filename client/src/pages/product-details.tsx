@@ -51,6 +51,7 @@ export default function ProductDetails() {
     queryKey: [`/api/products/slug/${params?.slug}`],
     enabled: !!params?.slug,
   });
+  const isSubscription = product?.productType === "subscription";
 
   const { data: shippingSettings } = useQuery<ShippingSettings>({
     queryKey: ["/api/shipping-settings"],
@@ -251,7 +252,7 @@ export default function ProductDetails() {
     const compositeConfiguration: CompositeConfiguration | undefined = (product as any).isComposite
       ? { components: selected }
       : undefined;
-    addToCart(product.id, (product as any).isComposite ? 1 : quantity, compositeConfiguration);
+    addToCart(product.id, (product as any).isComposite || isSubscription ? 1 : quantity, compositeConfiguration);
     toast({
       title: t('messages.addedToCart'),
       description: t('messages.addedToCartDesc').replace('{name}', translatedName),
@@ -442,6 +443,11 @@ export default function ProductDetails() {
               <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-snug">
                 {translatedName}
               </h1>
+              {isSubscription && (
+                <Badge className="mt-2 bg-blue-100 text-blue-800 hover:bg-blue-100">
+                  {t('products.subscription')}
+                </Badge>
+              )}
             </div>
 
             {/* Price — updates dynamically with quantity via volume discounts */}
@@ -509,6 +515,11 @@ export default function ProductDetails() {
                     {descExpanded ? t('products.readLess') || 'Voir moins' : t('products.readMore') || 'Lire la suite'}
                   </button>
                 )}
+              </div>
+            )}
+            {isSubscription && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                {t('products.subscriptionDesc')}
               </div>
             )}
 
@@ -732,6 +743,7 @@ export default function ProductDetails() {
                   <div className="flex items-center border rounded-lg overflow-hidden">
                     <button
                       onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                      disabled={isSubscription}
                       className="px-3 py-2 hover:bg-gray-100 transition-colors text-gray-600"
                       aria-label="Decrease quantity"
                     >
@@ -742,6 +754,7 @@ export default function ProductDetails() {
                     </span>
                     <button
                       onClick={() => setQuantity(q => q + 1)}
+                      disabled={isSubscription}
                       className="px-3 py-2 hover:bg-gray-100 transition-colors text-gray-600"
                       aria-label="Increase quantity"
                     >
@@ -756,7 +769,7 @@ export default function ProductDetails() {
                     disabled={!product.inStock}
                   >
                     <ShoppingCart className="h-5 w-5 mr-2" />
-                    {t('products.addToCart')}
+                    {isSubscription ? t('products.subscriptionCta') : t('products.addToCart')}
                   </Button>
                 </div>
               </div>

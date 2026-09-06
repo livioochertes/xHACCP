@@ -57,6 +57,9 @@ export interface TranslationKeys {
   'products.foodSafe': string;
   'products.requestQuote': string;
   'products.serviceCtaDesc': string;
+  'products.subscription': string;
+  'products.subscriptionCta': string;
+  'products.subscriptionDesc': string;
   'products.yes': string;
   'products.fdaCompliant': string;
   'products.noProducts': string;
@@ -222,6 +225,9 @@ export interface TranslationKeys {
   'checkout.vivaRedirectNotice': string;
   'checkout.redirectingToPayment': string;
   'checkout.pay': string;
+  'checkout.recurringConsent': string;
+  'checkout.subscriptionAccountRequired': string;
+  'checkout.subscriptionOnly': string;
   
   // Account
   'account.title': string;
@@ -760,6 +766,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'products.foodSafe': 'Food Safe',
     'products.requestQuote': 'Request a Quote',
     'products.serviceCtaDesc': 'This is a service/subscription. Contact us to get a personalized offer.',
+    'products.subscription': 'Monthly subscription',
+    'products.subscriptionCta': 'Add subscription',
+    'products.subscriptionDesc': 'This product renews monthly through Viva Wallet. You can cancel future renewals from your account.',
     'products.yes': 'Yes',
     'products.fdaCompliant': 'FDA compliant',
     'products.reviews': 'Reviews',
@@ -935,6 +944,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.paypalAvailable': 'PayPal is available on the secure Viva Wallet payment page.',
     'checkout.paypalAvailableDesc': 'Choose PayPal after you are redirected. Your order remains in the same secure Viva checkout flow.',
     'checkout.vivaRedirectNotice': 'You will be redirected to a secure payment page to complete your payment.',
+    'checkout.recurringConsent': 'I agree that Viva Wallet may charge this subscription monthly using the payment method from the initial payment.',
+    'checkout.subscriptionAccountRequired': 'An account is required to purchase a subscription and manage future renewals.',
+    'checkout.subscriptionOnly': 'Subscriptions must be purchased separately from other products.',
     'checkout.redirectingToPayment': 'Redirecting to payment...',
     'checkout.pay': 'Pay',
     
@@ -2123,6 +2135,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'products.haccpCompatible': 'Approuvé HACCP',
     'products.requestQuote': 'Demander un Devis',
     'products.serviceCtaDesc': 'Ceci est un service/abonnement. Contactez-nous pour obtenir une offre personnalisée.',
+    'products.subscription': 'Abonnement mensuel',
+    'products.subscriptionCta': 'Ajouter l’abonnement',
+    'products.subscriptionDesc': 'Ce produit est renouvelé chaque mois via Viva Wallet. Vous pouvez arrêter les renouvellements depuis votre compte.',
     'products.foodSafe': 'Sûr pour les Aliments',
     'products.yes': 'Oui',
     'products.fdaCompliant': 'Conforme FDA',
@@ -2297,6 +2312,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.paypalAvailable': 'PayPal est disponible sur la page de paiement sécurisée Viva Wallet.',
     'checkout.paypalAvailableDesc': 'Choisissez PayPal après la redirection. Votre commande reste dans le même parcours de paiement sécurisé Viva.',
     'checkout.vivaRedirectNotice': 'Vous serez redirigé vers une page de paiement sécurisée pour finaliser votre paiement.',
+    'checkout.recurringConsent': 'J’accepte que Viva Wallet débite cet abonnement chaque mois avec le moyen de paiement utilisé lors du paiement initial.',
+    'checkout.subscriptionAccountRequired': 'Un compte est nécessaire pour acheter un abonnement et gérer les renouvellements.',
+    'checkout.subscriptionOnly': 'Les abonnements doivent être achetés séparément des autres produits.',
     'checkout.redirectingToPayment': 'Redirection vers le paiement...',
     'checkout.pay': 'Payer',
     
@@ -3309,6 +3327,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'products.haccpCompatible': 'Aprobat HACCP',
     'products.requestQuote': 'Solicită Ofertă',
     'products.serviceCtaDesc': 'Acesta este un serviciu/abonament. Contactați-ne pentru o ofertă personalizată.',
+    'products.subscription': 'Abonament lunar',
+    'products.subscriptionCta': 'Adaugă abonamentul',
+    'products.subscriptionDesc': 'Acest produs se reînnoiește lunar prin Viva Wallet. Puteți opri reînnoirile viitoare din cont.',
     'products.foodSafe': 'Sigur pentru Alimente',
     'products.yes': 'Da',
     'products.fdaCompliant': 'Conform FDA',
@@ -3478,6 +3499,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.poweredBy': 'oferit de',
     'checkout.recommended': 'Recomandat',
     'checkout.voucher': 'Voucher',
+    'checkout.recurringConsent': 'Sunt de acord ca Viva Wallet să debiteze lunar acest abonament folosind metoda de plată din plata inițială.',
+    'checkout.subscriptionAccountRequired': 'Pentru cumpărarea unui abonament și gestionarea reînnoirilor este necesar un cont.',
+    'checkout.subscriptionOnly': 'Abonamentele trebuie cumpărate separat de celelalte produse.',
     
     // Account
     'account.title': 'Contul Meu',

@@ -95,6 +95,7 @@ function createCheckoutSchema(t: (key: keyof TranslationKeys) => string) {
     paymentMethod: z.enum(["viva", "cash"]),
     sameAsBilling: z.boolean().default(false),
     notes: z.string().optional(),
+    recurringConsent: z.boolean().default(false),
     createAccount: z.boolean().default(false),
     accountPassword: z.string().default(""),
     confirmAccountPassword: z.string().default(""),
@@ -147,6 +148,8 @@ export default function Checkout() {
   const getUnitPrice = (item: typeof cart[number]) => item.compositeConfiguration
     ? parseFloat(item.product.price)
     : getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+  const subscriptionItems = cart.filter(item => (item.product as any)?.productType === "subscription");
+  const hasSubscription = subscriptionItems.length > 0;
   
   // Voucher state
   const [voucherCode, setVoucherCode] = useState("");
@@ -245,6 +248,7 @@ export default function Checkout() {
         accountPassword: "",
         confirmAccountPassword: "",
         saveDetailsToAccount: true,
+         recurringConsent: false,
       };
     }
     
@@ -288,6 +292,7 @@ export default function Checkout() {
       accountPassword: "",
       confirmAccountPassword: "",
       saveDetailsToAccount: true,
+       recurringConsent: false,
     };
   };
 
@@ -316,6 +321,7 @@ export default function Checkout() {
   const clientType = form.watch("billingAddress.clientType");
   const createAccount = form.watch("createAccount");
   const saveDetailsToAccount = form.watch("saveDetailsToAccount");
+  const recurringConsent = form.watch("recurringConsent");
   const [showAccountPassword, setShowAccountPassword] = useState(false);
   const [showConfirmAccountPassword, setShowConfirmAccountPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
@@ -355,6 +361,7 @@ export default function Checkout() {
         voucherCode: appliedVoucher?.code || null,
         contactPhone: data.phone,
         email: data.email,
+        recurringConsent: data.recurringConsent,
       });
       return res.json();
     },
@@ -513,6 +520,16 @@ export default function Checkout() {
     console.log("handleNext called, current step:", step);
     
     let fieldsToValidate: any[] = [];
+    if (step === 2 && hasSubscription) {
+      if (!isAuthenticated) {
+        toast({ title: t('checkout.subscriptionAccountRequired'), variant: "destructive" });
+        return;
+      }
+      if (!form.getValues("recurringConsent")) {
+        form.setError("recurringConsent", { type: "manual", message: t('checkout.recurringConsent') });
+        return;
+      }
+    }
     
     if (step === 1 && !isAuthenticated) {
       fieldsToValidate = ["email"];
@@ -1638,6 +1655,23 @@ export default function Checkout() {
                       </CardContent>
                     </Card>
 
+                    {hasSubscription && (
+                      <Card className="border-amber-200 bg-amber-50">
+                        <CardContent className="p-4">
+                          <label className="flex items-start gap-3 text-sm text-amber-950 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={recurringConsent}
+                              onChange={(event) => form.setValue("recurringConsent", event.target.checked, { shouldValidate: true })}
+                              className="mt-0.5 h-4 w-4"
+                            />
+                            <span>{t('checkout.recurringConsent')}</span>
+                          </label>
+                          <FormMessage>{form.formState.errors.recurringConsent?.message}</FormMessage>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {form.watch("paymentMethod") === "viva" && (
                       <VivaPayment
                         amount={finalTotal}
@@ -1650,6 +1684,7 @@ export default function Checkout() {
                         }))}
                         voucherCode={appliedVoucher?.code}
                         isFrenchMarket={isFrenchMarket}
+                         isRecurring={hasSubscription}
                         orderData={(() => {
                           const values = form.getValues();
                           const shippingAddr = { ...values.shippingAddress };

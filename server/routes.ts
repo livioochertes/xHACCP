@@ -37,6 +37,7 @@ import {
   resolveCompositeStockQuantity,
   type CompositeComponentSource,
 } from "./composite-products";
+import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
 
 async function invoiceMatchesRequestMarket(invoice: { market?: string | null; orderId?: number | null }, market: "ro" | "fr" | "com"): Promise<boolean> {
   if (!marketMatches(invoice.market, market)) return false;
@@ -548,6 +549,7 @@ async function validateOrderItemForMarket(item: any, market: string) {
       price: unitPrice.toFixed(2),
       totalPrice: (unitPrice * quantity).toFixed(2),
       compositeConfiguration: configuration,
+        productType: product.productType || (product.isService ? "service" : "standard"),
     };
   }
 
@@ -562,6 +564,7 @@ async function validateOrderItemForMarket(item: any, market: string) {
     price: unitPrice.toFixed(2),
     totalPrice: (unitPrice * quantity).toFixed(2),
     compositeConfiguration: null,
+      productType: product.productType || (product.isService ? "service" : "standard"),
   };
 }
 
@@ -1656,6 +1659,33 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
+  app.get("/api/account/subscriptions", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const subscriptionList = await listUserSubscriptions(req.userId!);
+      res.json(subscriptionList);
+    } catch (error) {
+      console.error("Get account subscriptions error:", error);
+      res.status(500).json({ message: "Failed to load subscriptions" });
+    }
+  });
+
+  app.post("/api/account/subscriptions/:id/cancel", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const subscriptionId = Number(req.params.id);
+      if (!Number.isInteger(subscriptionId)) {
+        return res.status(400).json({ message: "Invalid subscription" });
+      }
+      const canceled = await cancelUserSubscription(req.userId!, subscriptionId);
+      if (!canceled) {
+        return res.status(404).json({ message: "Subscription not found or already canceled" });
+      }
+      res.json(canceled);
+    } catch (error) {
+      console.error("Cancel account subscription error:", error);
+      res.status(500).json({ message: "Failed to cancel subscription" });
+    }
+  });
+
   app.get("/api/invoices/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
@@ -2567,7 +2597,7 @@ Sitemap: https://${domain}/sitemap.xml
 
   app.post("/api/orders", optionalAuth, async (req: AuthRequest, res) => {
     try {
-      const { shippingAddress, billingAddress, paymentMethod, items, notes, voucherCode, contactPhone, email: bodyEmail } = req.body;
+      const { shippingAddress, billingAddress, paymentMethod, items, notes, voucherCode, contactPhone, email: bodyEmail, recurringConsent } = req.body;
       
       // Validate items array
       if (!items || !Array.isArray(items) || items.length === 0) {
@@ -2582,6 +2612,15 @@ Sitemap: https://${domain}/sitemap.xml
       const validatedItems = await Promise.all(
         items.map((item: any) => validateOrderItemForMarket(item, orderMarket)),
       );
+      const subscriptionItems = validatedItems.filter((item: any) => item.productType === "subscription");
+      if (subscriptionItems.length > 0) {
+        if (!req.userId || paymentMethod !== "viva" || recurringConsent !== true) {
+          return res.status(400).json({ message: "Subscription checkout requires an authenticated Viva recurring payment with consent" });
+        }
+        if (subscriptionItems.length !== validatedItems.length || subscriptionItems.length !== 1 || subscriptionItems[0].quantity !== 1) {
+          return res.status(400).json({ message: "Subscriptions must be purchased separately as one item" });
+        }
+      }
       
       // Calculate subtotal from validated items (using server-side prices with volume discounts)
       const subtotal = validatedItems.reduce((sum: number, item: any) => sum + parseFloat(item.price) * item.quantity, 0);
@@ -3798,17 +3837,48 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         });
       }
 
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      let userId: number | null = null;
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, JWT_SIGNING_SECRET) as any;
+          userId = decoded.userId || decoded.id;
+        } catch (e) { }
+      }
+
       const validatedVivaItems: Array<{
         productId: number;
         quantity: number;
         price: string;
         totalPrice: string;
         compositeConfiguration: CompositeConfiguration | null;
+        productType?: string;
       }> = [];
+      let subscriptionItemCount = 0;
       for (const item of cartItems) {
         const validatedItem = await validateOrderItemForMarket(item, vivaMarket);
         subtotal += parseFloat(validatedItem.totalPrice);
         validatedVivaItems.push(validatedItem);
+        if (validatedItem.productType === "subscription") {
+          subscriptionItemCount += validatedItem.quantity;
+        }
+      }
+      const hasSubscription = subscriptionItemCount > 0;
+      if (hasSubscription) {
+        if (!userId) {
+          return res.status(401).json({ message: "An account is required for subscription payments" });
+        }
+        if (subscriptionItemCount !== 1 || validatedVivaItems.some(item =>
+          item.productType === "subscription" && item.quantity !== 1
+        )) {
+          return res.status(400).json({ message: "A subscription must be purchased as a single item" });
+        }
+        if (validatedVivaItems.some(item => item.productType !== "subscription")) {
+          return res.status(400).json({ message: "Subscriptions cannot be combined with other products" });
+        }
+        if (orderData?.recurringConsent !== true) {
+          return res.status(400).json({ message: "Recurring payment consent is required" });
+        }
       }
 
       const companySettings = await storage.getCompanySettingsByMarket(vivaMarket);
@@ -3859,15 +3929,6 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       // Validate Viva credentials before creating the local pending order.
       const accessToken = await getVivaAccessToken(vivaMarket);
 
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      let userId: number | null = null;
-      if (token) {
-        try {
-          const decoded = jwt.verify(token, JWT_SIGNING_SECRET) as any;
-          userId = decoded.userId || decoded.id;
-        } catch (e) { }
-      }
-
       // Use server-validated items (with volume discounts applied) for order storage
       const orderItems = validatedVivaItems;
 
@@ -3913,6 +3974,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         currencyCode: serverCurrency === "EUR" ? 978 : 946,
         customerTrns: `xHACCP Order #${dbOrderId}`,
         merchantTrns: `order_${dbOrderId}`,
+        allowRecurring: hasSubscription,
         sourceCode: sourceCode,
         successRedirectUrl: `${baseUrl}/api/payments/viva/callback`,
         failureRedirectUrl: `${baseUrl}/api/payments/viva/callback`,
@@ -4209,6 +4271,12 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                 } else {
 
                 console.log(`Viva payment verified and order ${orderId} updated to paid`);
+                try {
+                  const paidOrder = await storage.getOrder(orderId);
+                  await activateSubscriptionForOrder(paidOrder, String(transactionId));
+                } catch (subscriptionError) {
+                  console.error(`Failed to activate subscription for Viva order ${orderId}:`, subscriptionError);
+                }
 
                 let invoiceGenerated = false;
                 let invoiceNumber: string | undefined;
@@ -4403,6 +4471,12 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           if (!claimedOrder) {
             console.log(`Viva webhook: Order ${orderId} already processed (paid), skipping duplicate`);
           } else {
+            try {
+              const paidOrder = await storage.getOrder(orderId);
+              await activateSubscriptionForOrder(paidOrder, String(transactionId));
+            } catch (subscriptionError) {
+              console.error(`Failed to activate subscription for webhook order ${orderId}:`, subscriptionError);
+            }
             (async () => {
               try {
                 let invoiceGenerated = false;

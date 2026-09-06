@@ -13,6 +13,7 @@ import { logR2Status } from "./r2-storage";
 import { startBlogScheduler } from "./blog-scheduler";
 import { startGoogleMerchantFeedScheduler } from "./google-merchant-feed";
 import { startCartReminderScheduler } from "./cart-reminder";
+import { startSubscriptionScheduler } from "./subscription-scheduler";
 import { startDbKeepAlive } from "./db";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -140,6 +141,7 @@ app.use((req, res, next) => {
   // and prices stay aligned with the latest marketplace data.
   startGoogleMerchantFeedScheduler();
   startCartReminderScheduler();
+  startSubscriptionScheduler();
 
   // ── Startup recovery: stale manual_processing orders ─────────────────────
   // If the process was killed while a manual background job was running, the
