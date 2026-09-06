@@ -146,6 +146,39 @@ export async function sendSubscriptionRenewalEmail(
   });
 }
 
+export async function sendSubscriptionPaymentFailureEmail(params: {
+  customerEmail: string;
+  market: string;
+  productName: string;
+  amount: string | number;
+  currency: string;
+  attemptNumber: number;
+  maxAttempts: number;
+  failureReason?: string | null;
+  accountUrl: string;
+}): Promise<boolean> {
+  const french = params.market.toLowerCase() === "fr";
+  const amount = Number.parseFloat(String(params.amount)).toFixed(2);
+  const finalAttempt = params.attemptNumber >= params.maxAttempts;
+  const subject = french
+    ? `Action requise : paiement de votre abonnement échoué`
+    : `Acțiune necesară: plata abonamentului nu a reușit`;
+  const text = french
+    ? `Le paiement mensuel de ${amount} ${params.currency} pour ${params.productName} n'a pas abouti. ${finalAttempt ? "Votre abonnement est maintenant en attente." : "Nous réessaierons automatiquement."} Connectez-vous à votre compte pour effectuer le paiement ou remplacer votre carte : ${params.accountUrl}`
+    : `Plata lunară de ${amount} ${params.currency} pentru ${params.productName} nu a reușit. ${finalAttempt ? "Abonamentul este acum în așteptare." : "Vom încerca automat din nou."} Accesați contul pentru a achita abonamentul sau pentru a înlocui cardul: ${params.accountUrl}`;
+  const html = french
+    ? `<p>Bonjour,</p><p>Le paiement mensuel de <strong>${amount} ${params.currency}</strong> pour <strong>${params.productName}</strong> n'a pas abouti.</p><p>${finalAttempt ? "Votre abonnement est maintenant en attente." : "Nous réessaierons automatiquement dans les prochaines 24 heures."} Vérifiez votre carte ou remplacez-la pour éviter une interruption.</p><p><a href="${params.accountUrl}">Gérer mon abonnement et mon paiement</a></p>`
+    : `<p>Bună ziua,</p><p>Plata lunară de <strong>${amount} ${params.currency}</strong> pentru <strong>${params.productName}</strong> nu a reușit.</p><p>${finalAttempt ? "Abonamentul este acum în așteptare." : "Vom încerca automat din nou în următoarele 24 de ore."} Verificați cardul sau înlocuiți-l pentru a evita întreruperea.</p><p><a href="${params.accountUrl}">Gestionează abonamentul și plata</a></p>`;
+
+  return sendEmail({
+    to: params.customerEmail,
+    from: getSenderForMarket(params.market),
+    subject,
+    text,
+    html,
+  });
+}
+
 export async function sendOrderConfirmationEmail(
   order: OrderWithItems,
   user: User,

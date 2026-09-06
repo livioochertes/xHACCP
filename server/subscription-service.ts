@@ -1,4 +1,4 @@
-import { and, eq, lte, lt, or } from "drizzle-orm";
+import { and, eq, isNull, lte, lt, or } from "drizzle-orm";
 import { db } from "./db";
 import { products, subscriptions, subscriptionPayments, orders, orderItems } from "@shared/schema";
 import { storage } from "./storage";
@@ -212,6 +212,7 @@ async function claimBillingAttempt(subscription: any, dueAt: Date, now = new Dat
         attemptNumber: existing.attemptNumber + 1,
         updatedAt: new Date(),
         failureReason: null,
+          failureNotifiedAt: null,
       })
       .where(and(eq(subscriptionPayments.id, existing.id), eq(subscriptionPayments.status, "failed")))
       .returning();
@@ -332,6 +333,41 @@ export async function processDueSubscriptions(now = new Date()) {
         await db.update(subscriptions)
           .set({ ...subscriptionUpdate, updatedAt: new Date() })
           .where(eq(subscriptions.id, subscription.id));
+      }
+      const [notificationClaim] = await db
+        .update(subscriptionPayments)
+        .set({ failureNotifiedAt: new Date(), updatedAt: new Date() })
+        .where(and(
+          eq(subscriptionPayments.id, payment.id),
+          eq(subscriptionPayments.status, "failed"),
+          isNull(subscriptionPayments.failureNotifiedAt),
+        ))
+        .returning();
+      if (notificationClaim) {
+        try {
+          const [user, product] = await Promise.all([
+            storage.getUser(subscription.userId),
+            storage.getProduct(subscription.productId),
+          ]);
+          if (user?.email) {
+            const { sendSubscriptionPaymentFailureEmail } = await import("./email-service");
+            const market = subscription.market || "ro";
+            const accountHost = market === "fr" ? "www.xhaccp.fr" : market === "com" ? "www.xhaccp.com" : "www.xhaccp.ro";
+            await sendSubscriptionPaymentFailureEmail({
+              customerEmail: user.email,
+              market,
+              productName: product?.name || `Subscription #${subscription.id}`,
+              amount: subscription.amount,
+              currency: subscription.currency,
+              attemptNumber,
+              maxAttempts: MAX_RENEWAL_ATTEMPTS,
+              failureReason: notificationClaim.failureReason,
+              accountUrl: `https://${accountHost}/account#subscriptions`,
+            });
+          }
+        } catch (notificationError) {
+          console.error(`[Subscriptions] Failed to notify customer for #${subscription.id}:`, notificationError);
+        }
       }
       console.error(`[Subscriptions] Renewal failed for #${subscription.id}, attempt ${attemptNumber}:`, error);
     }

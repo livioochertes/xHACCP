@@ -1149,6 +1149,14 @@ export default function Account() {
                               {subscription.status === "active" && !subscription.cancelAtPeriodEnd && (
                                 <p className="text-xs text-gray-500">Next charge: {format(new Date(subscription.nextBillingAt), "PPP")}</p>
                               )}
+                              {subscription.status === "past_due" && (
+                                <div className="mt-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                                  <p className="font-semibold">Subscription payment failed</p>
+                                  <p className="mt-1">
+                                    Please pay the outstanding subscription or replace your card to restore automatic billing.
+                                  </p>
+                                </div>
+                              )}
                               {subscription.cancelAtPeriodEnd && <Badge variant="outline">Canceling at period end</Badge>}
                             </div>
                           </div>

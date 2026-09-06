@@ -344,6 +344,7 @@ export const subscriptionPayments = pgTable("subscription_payments", {
   dueAt: timestamp("due_at").notNull(),
   paidAt: timestamp("paid_at"),
   failureReason: text("failure_reason"),
+  failureNotifiedAt: timestamp("failure_notified_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
