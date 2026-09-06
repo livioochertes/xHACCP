@@ -15,6 +15,8 @@ export function useProductTranslation(productId: number | undefined, originalNam
   const { data: translation } = useQuery<ProductTranslation>({
     queryKey: [`/api/products/${productId}/translation/${language}`],
     enabled: !!productId && language !== 'en',
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   if (!productId || language === 'en' || !translation) {
@@ -57,6 +59,8 @@ export function useProductTranslations(productIds: number[]) {
       return response.json();
     },
     enabled: productIds.length > 0 && language !== 'en',
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
   });
 
   const getTranslation = (productId: number, originalName: string, originalDescription: string | null): TranslatedProduct => {

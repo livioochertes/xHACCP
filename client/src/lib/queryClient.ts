@@ -109,7 +109,11 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 0, // No caching - force fresh data
+      // Keep page navigation fast without making a long-lived copy of data.
+      // Individual volatile queries can still opt into a shorter staleTime or
+      // be invalidated immediately after a mutation.
+      staleTime: 60 * 1000,
+      gcTime: 5 * 60 * 1000,
       retry: false,
     },
     mutations: {
