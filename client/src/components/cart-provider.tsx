@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 import type { CartItemWithProduct, CompositeConfiguration } from "@shared/schema";
 
 interface CartContextType {
@@ -102,7 +103,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return { product, quantity, compositeConfiguration };
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      trackEvent("add_to_cart", {
+        product_id: variables.productId,
+        quantity: variables.quantity,
+        is_composite: Boolean(variables.compositeConfiguration),
+        market: getMarketFromHostname(),
+      });
       if (isAuthenticated) {
         queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       } else {

@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 import { getVolumePrice } from "@/lib/volume-price";
 
 import { useCart } from "@/hooks/use-cart";
@@ -182,6 +183,7 @@ export default function Checkout() {
     total: number;
     currencySymbol: string;
   }>({ buyerName: '', subtotal: 0, discountAmount: 0, voucherCode: null, shipping: 0, total: 0, currencySymbol: '' });
+  const checkoutStartedRef = useRef(false);
 
   // Fetch shipping settings (includes VAT percentage)
   const { data: shippingSettings } = useQuery({
@@ -356,9 +358,15 @@ export default function Checkout() {
       });
       return res.json();
     },
-    onSuccess: async (order: { id?: number; [key: string]: any }) => {
+    onSuccess: async (order: { id?: number; [key: string]: any }, variables: CheckoutFormData) => {
       const orderId = order?.id ?? null;
       const summary = { ...currentOrderSummaryRef.current, orderId };
+      trackEvent("purchase_completed", {
+        value: Number(summary.total.toFixed(2)),
+        currency: summary.currencySymbol,
+        payment_method: variables.paymentMethod,
+        market: getMarketFromHostname(),
+      });
       clearCart();
       if (getMarketFromHostname() === "fr") {
         localStorage.setItem("xhaccp_pending_order_summary", JSON.stringify(summary));
@@ -439,6 +447,17 @@ export default function Checkout() {
     }
   }, [subtotal, voucherDiscount, appliedVoucher, shipping, finalTotal, currencySymbol, step]);
 
+  useEffect(() => {
+    if (step !== 3 || checkoutStartedRef.current) return;
+    checkoutStartedRef.current = true;
+    trackEvent("checkout_started", {
+      item_count: cart.reduce((count, item) => count + item.quantity, 0),
+      value: Number(finalTotal.toFixed(2)),
+      currency: cartCurrency,
+      market: getMarketFromHostname(),
+    });
+  }, [step, cart, finalTotal, cartCurrency]);
+
   // Apply voucher function
   const handleApplyVoucher = async () => {
     if (!voucherCode.trim()) {
@@ -464,6 +483,11 @@ export default function Checkout() {
       if (response.ok && data.valid) {
         setAppliedVoucher(data.voucher);
         setVoucherCode("");
+        trackEvent("voucher_applied", {
+          discount_amount: Number(data.voucher.discountAmount) || 0,
+          discount_type: data.voucher.discountType || "unknown",
+          market: getMarketFromHostname(),
+        });
         toast({
           title: t('checkout.voucherApplied'),
           description: `${t('checkout.voucherAppliedDesc')} -${data.voucher.discountAmount} ${currencySymbol}`,

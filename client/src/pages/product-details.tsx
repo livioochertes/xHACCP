@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useJsonLd } from "@/lib/use-json-ld";
 import { usePageSeo } from "@/lib/use-page-seo";
 import { toSeoText, truncateDesc } from "@/lib/seo-utils";
@@ -18,6 +18,8 @@ import ContactModal from "@/components/contact-modal";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { formatPrice } from "@/lib/utils";
+import { getMarketFromHostname } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 import { getSortedTiers, getActiveTier, getVolumePrice } from "@/lib/volume-price";
 import { formatProductDescription, stripFormatting } from "@/lib/format-description";
 import { Link } from "wouter";
@@ -39,6 +41,7 @@ export default function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [componentQuantities, setComponentQuantities] = useState<Record<number, number>>({});
   const [descExpanded, setDescExpanded] = useState(false);
+  const trackedProductIdRef = useRef<number | null>(null);
 
   const { data: product, isLoading } = useQuery<ProductWithCategory & { _redirected?: boolean }>({
     queryKey: [`/api/products/slug/${params?.slug}`],
@@ -57,6 +60,16 @@ export default function ProductDetails() {
     if (product && (product as any)._redirected && product.slug) {
       window.history.replaceState(null, '', `/products/${product.slug}`);
     }
+  }, [product]);
+
+  useEffect(() => {
+    if (!product || trackedProductIdRef.current === product.id) return;
+    trackedProductIdRef.current = product.id;
+    trackEvent("product_viewed", {
+      product_id: product.id,
+      category: product.category?.slug || "uncategorized",
+      market: getMarketFromHostname(),
+    });
   }, [product]);
 
   const { data: reviews = [] } = useQuery<Review[]>({

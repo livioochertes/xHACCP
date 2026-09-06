@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/useTranslation';
 import { apiRequest } from '@/lib/queryClient';
+import { getMarketFromHostname } from '@/lib/queryClient';
+import { trackEvent } from '@/lib/analytics';
 import { CreditCard, Loader2, ExternalLink } from 'lucide-react';
 import { SiPaypal } from 'react-icons/si';
 
@@ -45,6 +47,12 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
       const data = await response.json();
 
       if (data.checkoutUrl) {
+        trackEvent("payment_started", {
+          value: Number(amount.toFixed(2)),
+          currency,
+          payment_method: "viva",
+          market: getMarketFromHostname(),
+        });
         if (data.dbOrderId) {
           try {
             const stored = localStorage.getItem('xhaccp_pending_order_summary');

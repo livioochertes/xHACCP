@@ -9,6 +9,8 @@ import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { usePageSeo } from "@/lib/use-page-seo";
+import { getMarketFromHostname } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 
 interface OrderSummary {
   orderId: number | null;
@@ -60,6 +62,31 @@ export default function ThankYou() {
     // updates, so depending on its function identity would repeatedly clear.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const isSuccess = paymentResult === "success" || paymentResult === "cash";
+    const isFailure = paymentResult === "failed" || paymentResult === "error";
+    if (!isSuccess && !isFailure) return;
+
+    const storageKey = `xhaccp_analytics_${isSuccess ? "purchase" : "payment_failure"}_${orderId || "unknown"}`;
+    try {
+      if (sessionStorage.getItem(storageKey)) return;
+      sessionStorage.setItem(storageKey, "1");
+    } catch {
+      // Tracking can continue if sessionStorage is unavailable.
+    }
+
+    const eventData: Record<string, string | number | boolean> = {
+      payment_method: paymentResult === "cash" ? "cash" : "viva",
+      market: getMarketFromHostname(),
+    };
+    if (summary) {
+      eventData.value = Number(summary.total.toFixed(2));
+      eventData.currency = summary.currencySymbol;
+    }
+
+    trackEvent(isSuccess ? "purchase_completed" : "payment_failed", eventData);
+  }, [paymentResult, orderId, summary]);
 
   return (
     <main className="min-h-[70vh] bg-slate-50 px-4 py-12">
