@@ -10438,7 +10438,8 @@
       invoices: "Invoices",
       blog: "Blog AI",
       markets: "Markets",
-      logistics: "Logistics"
+      logistics: "Logistics",
+      marketing: "Marketing"
     },
     header: {
       welcome: "Welcome",
@@ -11004,6 +11005,61 @@
       phone: "Phone",
       email: "Email",
       save: "Save Settings"
+    },
+    marketing: {
+      title: "Marketing and remarketing",
+      subtitle: "Configure marketplace reminders and send campaigns through SendGrid.",
+      reload: "Reload",
+      thresholdsTitle: "Abandoned-cart thresholds",
+      thresholdsDescription: "Thresholds are measured in hours since the cart was last changed. Leave a field empty to disable that reminder. Values must be strictly increasing.",
+      reminder: "Reminder {{number}}",
+      disabled: "disabled",
+      saveThresholds: "Save thresholds",
+      thresholdsSaved: "Thresholds for .{{market}} were saved.",
+      thresholdsSaveFailed: "The thresholds could not be saved.",
+      segmentsTitle: "Recipient segments",
+      segmentsDescription: "Only users who enabled both email notifications and promotions are included.",
+      segmentName: "Segment name",
+      segmentNamePlaceholder: "E.g. Customers without an order",
+      orders: "Orders",
+      any: "Any",
+      withOrders: "With orders",
+      withoutOrders: "Without orders",
+      abandonedCart: "Abandoned cart",
+      withCart: "With cart",
+      withoutCart: "Without cart",
+      create: "Create",
+      loading: "Loading...",
+      noSegments: "No segments.",
+      previewRecipients: "Preview recipients",
+      delete: "Delete",
+      deleteConfirm: "Delete this segment?",
+      eligibleRecipients: "{{name}}: {{count}} eligible recipients",
+      noRecipients: "There are no recipients.",
+      campaignsTitle: "SendGrid campaigns",
+      campaignsDescription: "Creation saves a draft. Sending is a separate action with explicit confirmation.",
+      campaignNamePlaceholder: "Campaign name",
+      marketplace: "Marketplace .{{market}}",
+      chooseSegment: "Choose a segment",
+      subjectPlaceholder: "Email subject",
+      htmlPlaceholder: "<h1>HTML content</h1>",
+      textPlaceholder: "Text version (optional)",
+      saveDraft: "Save draft",
+      sendCampaign: "Send campaign",
+      sendConfirm: "Send campaign \u201C{{name}}\u201D to {{count}} eligible recipients? Sending cannot be undone.",
+      campaignSent: "Campaign sent: {{sent}} successful, {{failed}} failed.",
+      statusDraft: "draft",
+      statusSending: "sending",
+      statusSent: "sent",
+      statusFailed: "failed",
+      loadFailed: "Marketing settings could not be loaded.",
+      segmentNameRequired: "Enter a segment name.",
+      segmentCreateFailed: "The segment could not be created.",
+      previewFailed: "Preview unavailable.",
+      campaignFieldsRequired: "Complete the campaign name, segment, subject, and HTML.",
+      campaignCreateFailed: "The campaign could not be created.",
+      campaignPreviewFailed: "The recipient count could not be calculated.",
+      campaignSendFailed: "The campaign could not be sent."
     }
   };
 
@@ -11021,7 +11077,8 @@
       invoices: "Facturi",
       blog: "Blog AI",
       markets: "Pie\u021Be",
-      logistics: "Logistic\u0103"
+      logistics: "Logistic\u0103",
+      marketing: "Marketing"
     },
     header: {
       welcome: "Bun venit",
@@ -11587,6 +11644,61 @@
       saved: "Salvat!",
       efacturaStub: "Integrare e-Factura (Chorus Pro) \u2014 \xEEn preg\u0103tire",
       externalApiStub: "Integrare API extern .com \u2014 \xEEn preg\u0103tire"
+    },
+    marketing: {
+      title: "Marketing \u0219i remarketing",
+      subtitle: "Configureaz\u0103 reminderele pe marketplace \u0219i trimite campanii prin SendGrid.",
+      reload: "Re\xEEncarc\u0103",
+      thresholdsTitle: "Praguri abandoned-cart",
+      thresholdsDescription: "Pragurile sunt num\u0103rul de ore de la ultima modificare a co\u0219ului. Las\u0103 un c\xE2mp gol pentru a dezactiva reminderul respectiv. Valorile trebuie s\u0103 fie strict cresc\u0103toare.",
+      reminder: "Reminder {{number}}",
+      disabled: "oprit",
+      saveThresholds: "Salveaz\u0103 pragurile",
+      thresholdsSaved: "Pragurile pentru .{{market}} au fost salvate.",
+      thresholdsSaveFailed: "Nu s-au putut salva pragurile.",
+      segmentsTitle: "Segmente de destinatari",
+      segmentsDescription: "Sunt inclu\u0219i numai utilizatorii care au activat at\xE2t notific\u0103rile email, c\xE2t \u0219i promo\u021Biile.",
+      segmentName: "Nume segment",
+      segmentNamePlaceholder: "Ex. Clien\u021Bi f\u0103r\u0103 comand\u0103",
+      orders: "Comenzi",
+      any: "Oricare",
+      withOrders: "Cu comenzi",
+      withoutOrders: "F\u0103r\u0103 comenzi",
+      abandonedCart: "Co\u0219 abandonat",
+      withCart: "Cu co\u0219",
+      withoutCart: "F\u0103r\u0103 co\u0219",
+      create: "Creeaz\u0103",
+      loading: "Se \xEEncarc\u0103...",
+      noSegments: "Nu exist\u0103 segmente.",
+      previewRecipients: "Preview destinatari",
+      delete: "\u0218terge",
+      deleteConfirm: "\u0218tergi acest segment?",
+      eligibleRecipients: "{{name}}: {{count}} destinatari eligibili",
+      noRecipients: "Nu exist\u0103 destinatari.",
+      campaignsTitle: "Campanii SendGrid",
+      campaignsDescription: "Crearea salveaz\u0103 o ciorn\u0103. Trimiterea se face separat, prin confirmare explicit\u0103.",
+      campaignNamePlaceholder: "Nume campanie",
+      marketplace: "Marketplace .{{market}}",
+      chooseSegment: "Alege segmentul",
+      subjectPlaceholder: "Subiect email",
+      htmlPlaceholder: "<h1>Con\u021Binut HTML</h1>",
+      textPlaceholder: "Versiune text (op\u021Bional)",
+      saveDraft: "Salveaz\u0103 ciorna",
+      sendCampaign: "Trimite campania",
+      sendConfirm: "Trimi\u021Bi campania \u201E{{name}}\u201D c\u0103tre {{count}} destinatari eligibili? Trimiterea nu poate fi anulat\u0103.",
+      campaignSent: "Campanie trimis\u0103: {{sent}} reu\u0219ite, {{failed}} e\u0219uate.",
+      statusDraft: "ciorn\u0103",
+      statusSending: "se trimite",
+      statusSent: "trimis\u0103",
+      statusFailed: "e\u0219uat\u0103",
+      loadFailed: "Nu s-au putut \xEEnc\u0103rca set\u0103rile de marketing.",
+      segmentNameRequired: "Introdu un nume pentru segment.",
+      segmentCreateFailed: "Segmentul nu a putut fi creat.",
+      previewFailed: "Preview indisponibil.",
+      campaignFieldsRequired: "Completeaz\u0103 numele, segmentul, subiectul \u0219i HTML-ul campaniei.",
+      campaignCreateFailed: "Campania nu a putut fi creat\u0103.",
+      campaignPreviewFailed: "Nu s-a putut calcula num\u0103rul de destinatari.",
+      campaignSendFailed: "Campania nu a putut fi trimis\u0103."
     }
   };
 
@@ -11604,7 +11716,8 @@
       invoices: "Factures",
       blog: "Blog IA",
       markets: "March\xE9s",
-      logistics: "Logistique"
+      logistics: "Logistique",
+      marketing: "Marketing"
     },
     header: {
       welcome: "Bienvenue",
@@ -12170,6 +12283,61 @@
       phone: "T\xE9l\xE9phone",
       email: "Email",
       save: "Enregistrer les param\xE8tres"
+    },
+    marketing: {
+      title: "Marketing et remarketing",
+      subtitle: "Configurez les rappels par marketplace et envoyez des campagnes via SendGrid.",
+      reload: "Actualiser",
+      thresholdsTitle: "Seuils de panier abandonn\xE9",
+      thresholdsDescription: "Les seuils indiquent le nombre d'heures depuis la derni\xE8re modification du panier. Laissez un champ vide pour d\xE9sactiver le rappel correspondant. Les valeurs doivent \xEAtre strictement croissantes.",
+      reminder: "Rappel {{number}}",
+      disabled: "d\xE9sactiv\xE9",
+      saveThresholds: "Enregistrer les seuils",
+      thresholdsSaved: "Les seuils pour .{{market}} ont \xE9t\xE9 enregistr\xE9s.",
+      thresholdsSaveFailed: "Impossible d'enregistrer les seuils.",
+      segmentsTitle: "Segments de destinataires",
+      segmentsDescription: "Seuls les utilisateurs ayant activ\xE9 les notifications email et les promotions sont inclus.",
+      segmentName: "Nom du segment",
+      segmentNamePlaceholder: "Ex. Clients sans commande",
+      orders: "Commandes",
+      any: "Tous",
+      withOrders: "Avec commandes",
+      withoutOrders: "Sans commande",
+      abandonedCart: "Panier abandonn\xE9",
+      withCart: "Avec panier",
+      withoutCart: "Sans panier",
+      create: "Cr\xE9er",
+      loading: "Chargement...",
+      noSegments: "Aucun segment.",
+      previewRecipients: "Aper\xE7u des destinataires",
+      delete: "Supprimer",
+      deleteConfirm: "Supprimer ce segment ?",
+      eligibleRecipients: "{{name}} : {{count}} destinataires \xE9ligibles",
+      noRecipients: "Aucun destinataire.",
+      campaignsTitle: "Campagnes SendGrid",
+      campaignsDescription: "La cr\xE9ation enregistre un brouillon. L'envoi se fait s\xE9par\xE9ment, apr\xE8s confirmation explicite.",
+      campaignNamePlaceholder: "Nom de la campagne",
+      marketplace: "Marketplace .{{market}}",
+      chooseSegment: "Choisir un segment",
+      subjectPlaceholder: "Objet de l'email",
+      htmlPlaceholder: "<h1>Contenu HTML</h1>",
+      textPlaceholder: "Version texte (facultatif)",
+      saveDraft: "Enregistrer le brouillon",
+      sendCampaign: "Envoyer la campagne",
+      sendConfirm: "Envoyer la campagne \xAB {{name}} \xBB \xE0 {{count}} destinataires \xE9ligibles ? L'envoi ne peut pas \xEAtre annul\xE9.",
+      campaignSent: "Campagne envoy\xE9e : {{sent}} r\xE9ussis, {{failed}} \xE9checs.",
+      statusDraft: "brouillon",
+      statusSending: "envoi en cours",
+      statusSent: "envoy\xE9e",
+      statusFailed: "\xE9chou\xE9e",
+      loadFailed: "Impossible de charger les param\xE8tres marketing.",
+      segmentNameRequired: "Saisissez un nom de segment.",
+      segmentCreateFailed: "Impossible de cr\xE9er le segment.",
+      previewFailed: "Aper\xE7u indisponible.",
+      campaignFieldsRequired: "Renseignez le nom, le segment, l'objet et le HTML de la campagne.",
+      campaignCreateFailed: "Impossible de cr\xE9er la campagne.",
+      campaignPreviewFailed: "Impossible de calculer le nombre de destinataires.",
+      campaignSendFailed: "Impossible d'envoyer la campagne."
     }
   };
 
@@ -13342,7 +13510,7 @@
         if (campaignsRes.ok) setMarketingCampaigns(await campaignsRes.json());
       } catch (err) {
         console.error("Error fetching marketing data:", err);
-        alert("Nu s-au putut \xEEnc\u0103rca set\u0103rile de marketing.");
+        alert(t2("marketing.loadFailed"));
       } finally {
         setMarketingLoading(false);
       }
@@ -13356,12 +13524,12 @@
           body: JSON.stringify({ abandonedCartReminderHours: reminderThresholds[market] })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Nu s-au putut salva pragurile.");
+        if (!res.ok) throw new Error(data.message || t2("marketing.thresholdsSaveFailed"));
         setReminderThresholds((prev) => ({
           ...prev,
           [market]: Array.from({ length: 5 }, (_, index) => data.abandonedCartReminderHours?.[index] ?? null)
         }));
-        alert(`\u2705 Pragurile pentru .${market} au fost salvate.`);
+        alert(`\u2705 ${t2("marketing.thresholdsSaved", { market })}`);
         fetchMarkets();
       } catch (err) {
         alert(`\u274C ${err.message}`);
@@ -13370,7 +13538,7 @@
       }
     };
     const createMarketingSegment = async () => {
-      if (!marketingSegmentForm.name.trim()) return alert("Introdu un nume pentru segment.");
+      if (!marketingSegmentForm.name.trim()) return alert(t2("marketing.segmentNameRequired"));
       const market = selectedMarketTab || "all";
       try {
         const res = await fetch("/admin/api/marketing/segments", {
@@ -13387,7 +13555,7 @@
           })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Segmentul nu a putut fi creat.");
+        if (!res.ok) throw new Error(data.message || t2("marketing.segmentCreateFailed"));
         setMarketingSegmentForm({ name: "", hasOrders: "any", hasAbandonedCart: "any" });
         fetchMarketing();
       } catch (err) {
@@ -13400,7 +13568,7 @@
           headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Preview indisponibil.");
+        if (!res.ok) throw new Error(data.message || t2("marketing.previewFailed"));
         setMarketingPreview({ segment, ...data });
       } catch (err) {
         alert(`\u274C ${err.message}`);
@@ -13409,7 +13577,7 @@
     const createMarketingCampaign = async () => {
       const form = marketingCampaignForm;
       if (!form.name.trim() || !form.segmentId || !form.subject.trim() || !form.htmlContent.trim()) {
-        return alert("Completeaz\u0103 numele, segmentul, subiectul \u0219i HTML-ul campaniei.");
+        return alert(t2("marketing.campaignFieldsRequired"));
       }
       try {
         const res = await fetch("/admin/api/marketing/campaigns", {
@@ -13418,7 +13586,7 @@
           body: JSON.stringify(form)
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Campania nu a putut fi creat\u0103.");
+        if (!res.ok) throw new Error(data.message || t2("marketing.campaignCreateFailed"));
         setMarketingCampaignForm({ name: "", market: form.market, segmentId: "", subject: "", htmlContent: "", textContent: "" });
         fetchMarketing();
       } catch (err) {
@@ -13431,15 +13599,15 @@
           headers: { "Authorization": `Bearer ${token}` }
         });
         const preview = await previewRes.json();
-        if (!previewRes.ok) throw new Error(preview.message || "Nu s-a putut calcula num\u0103rul de destinatari.");
-        if (!window.confirm(`Trimi\u021Bi campania \u201E${campaign.name}\u201D c\u0103tre ${preview.count} destinatari eligibili? Trimiterea nu poate fi anulat\u0103.`)) return;
+        if (!previewRes.ok) throw new Error(preview.message || t2("marketing.campaignPreviewFailed"));
+        if (!window.confirm(t2("marketing.sendConfirm", { name: campaign.name, count: preview.count }))) return;
         const res = await fetch(`/admin/api/marketing/campaigns/${campaign.id}/send`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Campania nu a putut fi trimis\u0103.");
-        alert(`\u2705 Campanie trimis\u0103: ${data.sentCount} reu\u0219ite, ${data.failedCount} e\u0219uate.`);
+        if (!res.ok) throw new Error(data.message || t2("marketing.campaignSendFailed"));
+        alert(`\u2705 ${t2("marketing.campaignSent", { sent: data.sentCount, failed: data.failedCount })}`);
         fetchMarketing();
       } catch (err) {
         alert(`\u274C ${err.message}`);
@@ -16713,36 +16881,47 @@ This action cannot be undone.`)) {
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0 0 6px" }, children: "\u{1F4E3} Marketing \u0219i remarketing" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#6c757d", fontSize: "13px" }, children: "Configureaz\u0103 reminderele pe marketplace \u0219i trimite campanii prin SendGrid." })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0 0 6px" }, children: [
+                  "\u{1F4E3} ",
+                  t2("marketing.title")
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#6c757d", fontSize: "13px" }, children: t2("marketing.subtitle") })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => {
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { onClick: () => {
                 fetchMarkets();
                 fetchMarketing();
-              }, style: { background: "#6c757d", color: "white", border: "none", borderRadius: "5px", padding: "9px 14px", cursor: "pointer" }, children: "\u21BB Re\xEEncarc\u0103" })
+              }, style: { background: "#6c757d", color: "white", border: "none", borderRadius: "5px", padding: "9px 14px", cursor: "pointer" }, children: [
+                "\u21BB ",
+                t2("marketing.reload")
+              ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { style: { background: "#f0f7ff", border: "1px solid #b8d7ff", borderRadius: "8px", padding: "20px", marginBottom: "24px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 6px", color: "#145da0" }, children: "\u23F1\uFE0F Praguri abandoned-cart" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "13px", color: "#495057", margin: "0 0 16px" }, children: "Pragurile sunt num\u0103rul de ore de la ultima modificare a co\u0219ului. Las\u0103 un c\xE2mp gol pentru a dezactiva reminderul respectiv. Valorile trebuie s\u0103 fie strict cresc\u0103toare." }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: "0 0 6px", color: "#145da0" }, children: [
+                "\u23F1\uFE0F ",
+                t2("marketing.thresholdsTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "13px", color: "#495057", margin: "0 0 16px" }, children: t2("marketing.thresholdsDescription") }),
               ["ro", "fr", "com"].filter((m) => selectedMarketTab === "all" || selectedMarketTab === m).map((market) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", border: "1px solid #dee2e6", borderRadius: "6px", padding: "14px", marginBottom: "12px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#333" }, children: [
                     ".",
                     market
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "button",
                     {
                       onClick: () => saveReminderThresholds(market),
                       disabled: marketingSaving,
                       style: { background: marketingSaving ? "#adb5bd" : "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "7px 12px", cursor: marketingSaving ? "not-allowed" : "pointer", fontSize: "12px" },
-                      children: "\u{1F4BE} Salveaz\u0103 pragurile"
+                      children: [
+                        "\u{1F4BE} ",
+                        t2("marketing.saveThresholds")
+                      ]
                     }
                   )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(5, minmax(90px, 1fr))", gap: "8px" }, children: (reminderThresholds[market] || [null, null, null, null, null]).map((value, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "11px", color: "#6c757d" }, children: [
-                  "Reminder ",
-                  index + 1,
+                  t2("marketing.reminder", { number: index + 1 }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "input",
                     {
@@ -16750,7 +16929,7 @@ This action cannot be undone.`)) {
                       min: "1",
                       max: "8760",
                       value: value ?? "",
-                      placeholder: "oprit",
+                      placeholder: t2("marketing.disabled"),
                       onChange: (e2) => {
                         const next = e2.target.value === "" ? null : Number(e2.target.value);
                         setReminderThresholds((prev) => ({ ...prev, [market]: prev[market].map((item, i) => i === index ? next : item) }));
@@ -16762,81 +16941,85 @@ This action cannot be undone.`)) {
               ] }, market))
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { style: { background: "#fffaf0", border: "1px solid #ffe0a3", borderRadius: "8px", padding: "20px", marginBottom: "24px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 6px", color: "#856404" }, children: "\u{1F465} Segmente de destinatari" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "13px", color: "#6c757d", margin: "0 0 16px" }, children: "Sunt inclu\u0219i numai utilizatorii care au activat at\xE2t notific\u0103rile email, c\xE2t \u0219i promo\u021Biile." }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: "0 0 6px", color: "#856404" }, children: [
+                "\u{1F465} ",
+                t2("marketing.segmentsTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "13px", color: "#6c757d", margin: "0 0 16px" }, children: t2("marketing.segmentsDescription") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(180px, 1.4fr) repeat(2, minmax(140px, 1fr)) auto", gap: "8px", alignItems: "end", marginBottom: "16px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "12px", color: "#495057" }, children: [
-                  "Nume segment",
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: marketingSegmentForm.name, onChange: (e2) => setMarketingSegmentForm({ ...marketingSegmentForm, name: e2.target.value }), placeholder: "Ex. Clien\u021Bi f\u0103r\u0103 comand\u0103", style: { display: "block", width: "100%", boxSizing: "border-box", marginTop: "4px", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" } })
+                  t2("marketing.segmentName"),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: marketingSegmentForm.name, onChange: (e2) => setMarketingSegmentForm({ ...marketingSegmentForm, name: e2.target.value }), placeholder: t2("marketing.segmentNamePlaceholder"), style: { display: "block", width: "100%", boxSizing: "border-box", marginTop: "4px", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" } })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "12px", color: "#495057" }, children: [
-                  "Comenzi",
+                  t2("marketing.orders"),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: marketingSegmentForm.hasOrders, onChange: (e2) => setMarketingSegmentForm({ ...marketingSegmentForm, hasOrders: e2.target.value }), style: { display: "block", width: "100%", marginTop: "4px", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "any", children: "Oricare" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "yes", children: "Cu comenzi" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "no", children: "F\u0103r\u0103 comenzi" })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "any", children: t2("marketing.any") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "yes", children: t2("marketing.withOrders") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "no", children: t2("marketing.withoutOrders") })
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "12px", color: "#495057" }, children: [
-                  "Co\u0219 abandonat",
+                  t2("marketing.abandonedCart"),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: marketingSegmentForm.hasAbandonedCart, onChange: (e2) => setMarketingSegmentForm({ ...marketingSegmentForm, hasAbandonedCart: e2.target.value }), style: { display: "block", width: "100%", marginTop: "4px", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "any", children: "Oricare" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "yes", children: "Cu co\u0219" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "no", children: "F\u0103r\u0103 co\u0219" })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "any", children: t2("marketing.any") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "yes", children: t2("marketing.withCart") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "no", children: t2("marketing.withoutCart") })
                   ] })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: createMarketingSegment, style: { background: "#198754", color: "white", border: "none", borderRadius: "4px", padding: "9px 12px", cursor: "pointer" }, children: "+ Creeaz\u0103" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { onClick: createMarketingSegment, style: { background: "#198754", color: "white", border: "none", borderRadius: "4px", padding: "9px 12px", cursor: "pointer" }, children: [
+                  "+ ",
+                  t2("marketing.create")
+                ] })
               ] }),
-              marketingLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: "Se \xEEncarc\u0103..." }) : marketingSegments.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontSize: "13px" }, children: "Nu exist\u0103 segmente." }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gap: "8px" }, children: marketingSegments.map((segment) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", border: "1px solid #dee2e6", borderRadius: "5px", padding: "10px 12px", flexWrap: "wrap" }, children: [
+              marketingLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: t2("marketing.loading") }) : marketingSegments.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontSize: "13px" }, children: t2("marketing.noSegments") }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gap: "8px" }, children: marketingSegments.map((segment) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", border: "1px solid #dee2e6", borderRadius: "5px", padding: "10px 12px", flexWrap: "wrap" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: segment.name }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { marginLeft: "8px", fontSize: "11px", color: "#6c757d" }, children: [
                     ".",
                     segment.market,
                     " \xB7 ",
-                    segment.criteria?.hasOrders || "any",
-                    " comenzi \xB7 ",
-                    segment.criteria?.hasAbandonedCart || "any",
-                    " co\u0219"
+                    segment.criteria?.hasOrders || t2("marketing.any"),
+                    " ",
+                    t2("marketing.orders").toLowerCase(),
+                    " \xB7 ",
+                    segment.criteria?.hasAbandonedCart || t2("marketing.any"),
+                    " ",
+                    t2("marketing.abandonedCart").toLowerCase()
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "6px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => previewMarketingSegment(segment), style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "6px 9px", cursor: "pointer", fontSize: "12px" }, children: "Preview destinatari" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => previewMarketingSegment(segment), style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "6px 9px", cursor: "pointer", fontSize: "12px" }, children: t2("marketing.previewRecipients") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: async () => {
-                    if (!window.confirm("\u0218tergi acest segment?")) return;
+                    if (!window.confirm(t2("marketing.deleteConfirm"))) return;
                     await fetch(`/admin/api/marketing/segments/${segment.id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
                     fetchMarketing();
-                  }, style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "6px 9px", cursor: "pointer", fontSize: "12px" }, children: "\u0218terge" })
+                  }, style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "6px 9px", cursor: "pointer", fontSize: "12px" }, children: t2("marketing.delete") })
                 ] })
               ] }, segment.id)) }),
               marketingPreview && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "14px", background: "#e8f5e9", border: "1px solid #a5d6a7", borderRadius: "5px", padding: "12px", fontSize: "13px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
-                  marketingPreview.segment.name,
-                  ": ",
-                  marketingPreview.count,
-                  " destinatari eligibili"
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "6px", color: "#495057", maxHeight: "80px", overflow: "auto" }, children: marketingPreview.recipients?.slice(0, 20).map((user) => user.email).join(", ") || "Nu exist\u0103 destinatari." })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: t2("marketing.eligibleRecipients", { name: marketingPreview.segment.name, count: marketingPreview.count }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "6px", color: "#495057", maxHeight: "80px", overflow: "auto" }, children: marketingPreview.recipients?.slice(0, 20).map((user) => user.email).join(", ") || t2("marketing.noRecipients") })
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { style: { background: "#f8f9fa", border: "1px solid #dee2e6", borderRadius: "8px", padding: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 6px", color: "#333" }, children: "\u2709\uFE0F Campanii SendGrid" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "13px", color: "#6c757d", margin: "0 0 16px" }, children: "Crearea salveaz\u0103 o ciorn\u0103. Trimiterea se face separat, prin confirmare explicit\u0103." }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: "0 0 6px", color: "#333" }, children: [
+                "\u2709\uFE0F ",
+                t2("marketing.campaignsTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "13px", color: "#6c757d", margin: "0 0 16px" }, children: t2("marketing.campaignsDescription") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, minmax(180px, 1fr))", gap: "8px", marginBottom: "8px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: marketingCampaignForm.name, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, name: e2.target.value }), placeholder: "Nume campanie", style: { padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" } }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("select", { value: marketingCampaignForm.market, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, market: e2.target.value, segmentId: "" }), style: { padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: ["ro", "fr", "com"].filter((m) => selectedMarketTab === "all" || selectedMarketTab === m).map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: m, children: [
-                  "Marketplace .",
-                  m
-                ] }, m)) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: marketingCampaignForm.name, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, name: e2.target.value }), placeholder: t2("marketing.campaignNamePlaceholder"), style: { padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("select", { value: marketingCampaignForm.market, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, market: e2.target.value, segmentId: "" }), style: { padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: ["ro", "fr", "com"].filter((m) => selectedMarketTab === "all" || selectedMarketTab === m).map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: m, children: t2("marketing.marketplace", { market: m }) }, m)) }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: marketingCampaignForm.segmentId, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, segmentId: e2.target.value }), style: { padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Alege segmentul" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("marketing.chooseSegment") }),
                   marketingSegments.filter((s) => s.market === "all" || s.market === marketingCampaignForm.market).map((s) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: s.id, children: s.name }, s.id))
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: marketingCampaignForm.subject, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, subject: e2.target.value }), placeholder: "Subiect email", style: { padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" } })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: marketingCampaignForm.subject, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, subject: e2.target.value }), placeholder: t2("marketing.subjectPlaceholder"), style: { padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" } })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("textarea", { value: marketingCampaignForm.htmlContent, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, htmlContent: e2.target.value }), placeholder: "<h1>Con\u021Binut HTML</h1>", rows: "5", style: { width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px", fontFamily: "monospace", marginBottom: "8px" } }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("textarea", { value: marketingCampaignForm.textContent, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, textContent: e2.target.value }), placeholder: "Versiune text (op\u021Bional)", rows: "3", style: { width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px", marginBottom: "8px" } }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: createMarketingCampaign, style: { background: "#6f42c1", color: "white", border: "none", borderRadius: "4px", padding: "9px 14px", cursor: "pointer" }, children: "Salveaz\u0103 ciorna" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("textarea", { value: marketingCampaignForm.htmlContent, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, htmlContent: e2.target.value }), placeholder: t2("marketing.htmlPlaceholder"), rows: "5", style: { width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px", fontFamily: "monospace", marginBottom: "8px" } }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("textarea", { value: marketingCampaignForm.textContent, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, textContent: e2.target.value }), placeholder: t2("marketing.textPlaceholder"), rows: "3", style: { width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px", marginBottom: "8px" } }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: createMarketingCampaign, style: { background: "#6f42c1", color: "white", border: "none", borderRadius: "4px", padding: "9px 14px", cursor: "pointer" }, children: t2("marketing.saveDraft") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "18px", display: "grid", gap: "8px" }, children: marketingCampaigns.map((campaign) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #dee2e6", background: "white", borderRadius: "5px", padding: "10px 12px", gap: "12px", flexWrap: "wrap" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: campaign.name }),
@@ -16846,14 +17029,14 @@ This action cannot be undone.`)) {
                     " \xB7 ",
                     campaign.subject,
                     " \xB7 ",
-                    campaign.status,
+                    campaign.status === "draft" ? t2("marketing.statusDraft") : campaign.status === "sending" ? t2("marketing.statusSending") : campaign.status === "sent" ? t2("marketing.statusSent") : campaign.status === "failed" ? t2("marketing.statusFailed") : campaign.status,
                     " \xB7 ",
                     campaign.sentCount || 0,
                     "/",
                     campaign.recipientCount || 0
                   ] })
                 ] }),
-                campaign.status !== "sent" && campaign.status !== "sending" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => sendMarketingCampaign(campaign), style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: "pointer" }, children: "Trimite campania" })
+                campaign.status !== "sent" && campaign.status !== "sending" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => sendMarketingCampaign(campaign), style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: "pointer" }, children: t2("marketing.sendCampaign") })
               ] }, campaign.id)) })
             ] })
           ] });
@@ -24791,7 +24974,7 @@ ${selectedOrders.map((id) => {
             onClick: () => handleViewChange("marketing"),
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F4E3}" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: "Marketing" })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.marketing") })
             ]
           }
         )

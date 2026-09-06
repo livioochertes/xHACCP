@@ -1196,7 +1196,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           if (campaignsRes.ok) setMarketingCampaigns(await campaignsRes.json());
         } catch (err) {
           console.error('Error fetching marketing data:', err);
-          alert('Nu s-au putut încărca setările de marketing.');
+          alert(t('marketing.loadFailed'));
         } finally {
           setMarketingLoading(false);
         }
@@ -1211,12 +1211,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             body: JSON.stringify({ abandonedCartReminderHours: reminderThresholds[market] })
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.message || 'Nu s-au putut salva pragurile.');
+          if (!res.ok) throw new Error(data.message || t('marketing.thresholdsSaveFailed'));
           setReminderThresholds(prev => ({
             ...prev,
             [market]: Array.from({length: 5}, (_, index) => data.abandonedCartReminderHours?.[index] ?? null)
           }));
-          alert(`✅ Pragurile pentru .${market} au fost salvate.`);
+          alert(`✅ ${t('marketing.thresholdsSaved', { market })}`);
           fetchMarkets();
         } catch (err) {
           alert(`❌ ${err.message}`);
@@ -1226,7 +1226,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       };
 
       const createMarketingSegment = async () => {
-        if (!marketingSegmentForm.name.trim()) return alert('Introdu un nume pentru segment.');
+         if (!marketingSegmentForm.name.trim()) return alert(t('marketing.segmentNameRequired'));
         const market = selectedMarketTab || 'all';
         try {
           const res = await fetch('/admin/api/marketing/segments', {
@@ -1243,7 +1243,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             })
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.message || 'Segmentul nu a putut fi creat.');
+           if (!res.ok) throw new Error(data.message || t('marketing.segmentCreateFailed'));
           setMarketingSegmentForm({name: '', hasOrders: 'any', hasAbandonedCart: 'any'});
           fetchMarketing();
         } catch (err) {
@@ -1257,7 +1257,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.message || 'Preview indisponibil.');
+           if (!res.ok) throw new Error(data.message || t('marketing.previewFailed'));
           setMarketingPreview({segment, ...data});
         } catch (err) {
           alert(`❌ ${err.message}`);
@@ -1267,7 +1267,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const createMarketingCampaign = async () => {
         const form = marketingCampaignForm;
         if (!form.name.trim() || !form.segmentId || !form.subject.trim() || !form.htmlContent.trim()) {
-          return alert('Completează numele, segmentul, subiectul și HTML-ul campaniei.');
+           return alert(t('marketing.campaignFieldsRequired'));
         }
         try {
           const res = await fetch('/admin/api/marketing/campaigns', {
@@ -1276,7 +1276,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             body: JSON.stringify(form)
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.message || 'Campania nu a putut fi creată.');
+           if (!res.ok) throw new Error(data.message || t('marketing.campaignCreateFailed'));
           setMarketingCampaignForm({name: '', market: form.market, segmentId: '', subject: '', htmlContent: '', textContent: ''});
           fetchMarketing();
         } catch (err) {
@@ -1290,15 +1290,15 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const preview = await previewRes.json();
-          if (!previewRes.ok) throw new Error(preview.message || 'Nu s-a putut calcula numărul de destinatari.');
-          if (!window.confirm(`Trimiți campania „${campaign.name}” către ${preview.count} destinatari eligibili? Trimiterea nu poate fi anulată.`)) return;
+           if (!previewRes.ok) throw new Error(preview.message || t('marketing.campaignPreviewFailed'));
+           if (!window.confirm(t('marketing.sendConfirm', { name: campaign.name, count: preview.count }))) return;
           const res = await fetch(`/admin/api/marketing/campaigns/${campaign.id}/send`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.message || 'Campania nu a putut fi trimisă.');
-          alert(`✅ Campanie trimisă: ${data.sentCount} reușite, ${data.failedCount} eșuate.`);
+           if (!res.ok) throw new Error(data.message || t('marketing.campaignSendFailed'));
+           alert(`✅ ${t('marketing.campaignSent', { sent: data.sentCount, failed: data.failedCount })}`);
           fetchMarketing();
         } catch (err) {
           alert(`❌ ${err.message}`);
@@ -4617,16 +4617,16 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px', flexWrap: 'wrap'}}>
                   <div>
-                    <h3 style={{color: '#333', margin: '0 0 6px'}}>📣 Marketing și remarketing</h3>
-                    <p style={{margin: 0, color: '#6c757d', fontSize: '13px'}}>Configurează reminderele pe marketplace și trimite campanii prin SendGrid.</p>
+                    <h3 style={{color: '#333', margin: '0 0 6px'}}>📣 {t('marketing.title')}</h3>
+                    <p style={{margin: 0, color: '#6c757d', fontSize: '13px'}}>{t('marketing.subtitle')}</p>
                   </div>
-                  <button onClick={() => { fetchMarkets(); fetchMarketing(); }} style={{background: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', padding: '9px 14px', cursor: 'pointer'}}>↻ Reîncarcă</button>
+                  <button onClick={() => { fetchMarkets(); fetchMarketing(); }} style={{background: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', padding: '9px 14px', cursor: 'pointer'}}>↻ {t('marketing.reload')}</button>
                 </div>
 
                 <section style={{background: '#f0f7ff', border: '1px solid #b8d7ff', borderRadius: '8px', padding: '20px', marginBottom: '24px'}}>
-                  <h4 style={{margin: '0 0 6px', color: '#145da0'}}>⏱️ Praguri abandoned-cart</h4>
+                  <h4 style={{margin: '0 0 6px', color: '#145da0'}}>⏱️ {t('marketing.thresholdsTitle')}</h4>
                   <p style={{fontSize: '13px', color: '#495057', margin: '0 0 16px'}}>
-                    Pragurile sunt numărul de ore de la ultima modificare a coșului. Lasă un câmp gol pentru a dezactiva reminderul respectiv. Valorile trebuie să fie strict crescătoare.
+                    {t('marketing.thresholdsDescription')}
                   </p>
                   {['ro', 'fr', 'com'].filter(m => selectedMarketTab === 'all' || selectedMarketTab === m).map(market => (
                     <div key={market} style={{background: 'white', border: '1px solid #dee2e6', borderRadius: '6px', padding: '14px', marginBottom: '12px'}}>
@@ -4636,18 +4636,18 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           onClick={() => saveReminderThresholds(market)}
                           disabled={marketingSaving}
                           style={{background: marketingSaving ? '#adb5bd' : '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 12px', cursor: marketingSaving ? 'not-allowed' : 'pointer', fontSize: '12px'}}
-                        >💾 Salvează pragurile</button>
+                        >💾 {t('marketing.saveThresholds')}</button>
                       </div>
                       <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, minmax(90px, 1fr))', gap: '8px'}}>
                         {(reminderThresholds[market] || [null, null, null, null, null]).map((value, index) => (
                           <label key={index} style={{fontSize: '11px', color: '#6c757d'}}>
-                            Reminder {index + 1}
+                            {t('marketing.reminder', { number: index + 1 })}
                             <input
                               type="number"
                               min="1"
                               max="8760"
                               value={value ?? ''}
-                              placeholder="oprit"
+                              placeholder={t('marketing.disabled')}
                               onChange={e => {
                                 const next = e.target.value === '' ? null : Number(e.target.value);
                                 setReminderThresholds(prev => ({...prev, [market]: prev[market].map((item, i) => i === index ? next : item)}));
@@ -4662,22 +4662,22 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                 </section>
 
                 <section style={{background: '#fffaf0', border: '1px solid #ffe0a3', borderRadius: '8px', padding: '20px', marginBottom: '24px'}}>
-                  <h4 style={{margin: '0 0 6px', color: '#856404'}}>👥 Segmente de destinatari</h4>
-                  <p style={{fontSize: '13px', color: '#6c757d', margin: '0 0 16px'}}>Sunt incluși numai utilizatorii care au activat atât notificările email, cât și promoțiile.</p>
+                  <h4 style={{margin: '0 0 6px', color: '#856404'}}>👥 {t('marketing.segmentsTitle')}</h4>
+                  <p style={{fontSize: '13px', color: '#6c757d', margin: '0 0 16px'}}>{t('marketing.segmentsDescription')}</p>
                   <div style={{display: 'grid', gridTemplateColumns: 'minmax(180px, 1.4fr) repeat(2, minmax(140px, 1fr)) auto', gap: '8px', alignItems: 'end', marginBottom: '16px'}}>
-                    <label style={{fontSize: '12px', color: '#495057'}}>Nume segment<input value={marketingSegmentForm.name} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, name: e.target.value})} placeholder="Ex. Clienți fără comandă" style={{display: 'block', width: '100%', boxSizing: 'border-box', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} /></label>
-                    <label style={{fontSize: '12px', color: '#495057'}}>Comenzi<select value={marketingSegmentForm.hasOrders} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, hasOrders: e.target.value})} style={{display: 'block', width: '100%', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="any">Oricare</option><option value="yes">Cu comenzi</option><option value="no">Fără comenzi</option></select></label>
-                    <label style={{fontSize: '12px', color: '#495057'}}>Coș abandonat<select value={marketingSegmentForm.hasAbandonedCart} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, hasAbandonedCart: e.target.value})} style={{display: 'block', width: '100%', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="any">Oricare</option><option value="yes">Cu coș</option><option value="no">Fără coș</option></select></label>
-                    <button onClick={createMarketingSegment} style={{background: '#198754', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 12px', cursor: 'pointer'}}>+ Creează</button>
+                    <label style={{fontSize: '12px', color: '#495057'}}>{t('marketing.segmentName')}<input value={marketingSegmentForm.name} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, name: e.target.value})} placeholder={t('marketing.segmentNamePlaceholder')} style={{display: 'block', width: '100%', boxSizing: 'border-box', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} /></label>
+                    <label style={{fontSize: '12px', color: '#495057'}}>{t('marketing.orders')}<select value={marketingSegmentForm.hasOrders} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, hasOrders: e.target.value})} style={{display: 'block', width: '100%', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="any">{t('marketing.any')}</option><option value="yes">{t('marketing.withOrders')}</option><option value="no">{t('marketing.withoutOrders')}</option></select></label>
+                    <label style={{fontSize: '12px', color: '#495057'}}>{t('marketing.abandonedCart')}<select value={marketingSegmentForm.hasAbandonedCart} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, hasAbandonedCart: e.target.value})} style={{display: 'block', width: '100%', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="any">{t('marketing.any')}</option><option value="yes">{t('marketing.withCart')}</option><option value="no">{t('marketing.withoutCart')}</option></select></label>
+                    <button onClick={createMarketingSegment} style={{background: '#198754', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 12px', cursor: 'pointer'}}>+ {t('marketing.create')}</button>
                   </div>
-                  {marketingLoading ? <p style={{color: '#6c757d'}}>Se încarcă...</p> : marketingSegments.length === 0 ? <p style={{color: '#6c757d', fontSize: '13px'}}>Nu există segmente.</p> : (
+                  {marketingLoading ? <p style={{color: '#6c757d'}}>{t('marketing.loading')}</p> : marketingSegments.length === 0 ? <p style={{color: '#6c757d', fontSize: '13px'}}>{t('marketing.noSegments')}</p> : (
                     <div style={{display: 'grid', gap: '8px'}}>
                       {marketingSegments.map(segment => (
                         <div key={segment.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', border: '1px solid #dee2e6', borderRadius: '5px', padding: '10px 12px', flexWrap: 'wrap'}}>
-                          <div><strong>{segment.name}</strong><span style={{marginLeft: '8px', fontSize: '11px', color: '#6c757d'}}>.{segment.market} · {segment.criteria?.hasOrders || 'any'} comenzi · {segment.criteria?.hasAbandonedCart || 'any'} coș</span></div>
+                          <div><strong>{segment.name}</strong><span style={{marginLeft: '8px', fontSize: '11px', color: '#6c757d'}}>.{segment.market} · {segment.criteria?.hasOrders || t('marketing.any')} {t('marketing.orders').toLowerCase()} · {segment.criteria?.hasAbandonedCart || t('marketing.any')} {t('marketing.abandonedCart').toLowerCase()}</span></div>
                           <div style={{display: 'flex', gap: '6px'}}>
-                            <button onClick={() => previewMarketingSegment(segment)} style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 9px', cursor: 'pointer', fontSize: '12px'}}>Preview destinatari</button>
-                            <button onClick={async () => { if (!window.confirm('Ștergi acest segment?')) return; await fetch(`/admin/api/marketing/segments/${segment.id}`, {method: 'DELETE', headers: {'Authorization': `Bearer ${token}`}}); fetchMarketing(); }} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 9px', cursor: 'pointer', fontSize: '12px'}}>Șterge</button>
+                            <button onClick={() => previewMarketingSegment(segment)} style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 9px', cursor: 'pointer', fontSize: '12px'}}>{t('marketing.previewRecipients')}</button>
+                            <button onClick={async () => { if (!window.confirm(t('marketing.deleteConfirm'))) return; await fetch(`/admin/api/marketing/segments/${segment.id}`, {method: 'DELETE', headers: {'Authorization': `Bearer ${token}`}}); fetchMarketing(); }} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 9px', cursor: 'pointer', fontSize: '12px'}}>{t('marketing.delete')}</button>
                           </div>
                         </div>
                       ))}
@@ -4685,29 +4685,29 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                   )}
                   {marketingPreview && (
                     <div style={{marginTop: '14px', background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: '5px', padding: '12px', fontSize: '13px'}}>
-                      <strong>{marketingPreview.segment.name}: {marketingPreview.count} destinatari eligibili</strong>
-                      <div style={{marginTop: '6px', color: '#495057', maxHeight: '80px', overflow: 'auto'}}>{marketingPreview.recipients?.slice(0, 20).map(user => user.email).join(', ') || 'Nu există destinatari.'}</div>
+                      <strong>{t('marketing.eligibleRecipients', { name: marketingPreview.segment.name, count: marketingPreview.count })}</strong>
+                      <div style={{marginTop: '6px', color: '#495057', maxHeight: '80px', overflow: 'auto'}}>{marketingPreview.recipients?.slice(0, 20).map(user => user.email).join(', ') || t('marketing.noRecipients')}</div>
                     </div>
                   )}
                 </section>
 
                 <section style={{background: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '8px', padding: '20px'}}>
-                  <h4 style={{margin: '0 0 6px', color: '#333'}}>✉️ Campanii SendGrid</h4>
-                  <p style={{fontSize: '13px', color: '#6c757d', margin: '0 0 16px'}}>Crearea salvează o ciornă. Trimiterea se face separat, prin confirmare explicită.</p>
+                  <h4 style={{margin: '0 0 6px', color: '#333'}}>✉️ {t('marketing.campaignsTitle')}</h4>
+                  <p style={{fontSize: '13px', color: '#6c757d', margin: '0 0 16px'}}>{t('marketing.campaignsDescription')}</p>
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))', gap: '8px', marginBottom: '8px'}}>
-                    <input value={marketingCampaignForm.name} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, name: e.target.value})} placeholder="Nume campanie" style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} />
-                    <select value={marketingCampaignForm.market} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, market: e.target.value, segmentId: ''})} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}>{['ro', 'fr', 'com'].filter(m => selectedMarketTab === 'all' || selectedMarketTab === m).map(m => <option key={m} value={m}>Marketplace .{m}</option>)}</select>
-                    <select value={marketingCampaignForm.segmentId} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, segmentId: e.target.value})} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="">Alege segmentul</option>{marketingSegments.filter(s => s.market === 'all' || s.market === marketingCampaignForm.market).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-                    <input value={marketingCampaignForm.subject} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, subject: e.target.value})} placeholder="Subiect email" style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} />
+                    <input value={marketingCampaignForm.name} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, name: e.target.value})} placeholder={t('marketing.campaignNamePlaceholder')} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} />
+                    <select value={marketingCampaignForm.market} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, market: e.target.value, segmentId: ''})} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}>{['ro', 'fr', 'com'].filter(m => selectedMarketTab === 'all' || selectedMarketTab === m).map(m => <option key={m} value={m}>{t('marketing.marketplace', { market: m })}</option>)}</select>
+                    <select value={marketingCampaignForm.segmentId} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, segmentId: e.target.value})} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="">{t('marketing.chooseSegment')}</option>{marketingSegments.filter(s => s.market === 'all' || s.market === marketingCampaignForm.market).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+                    <input value={marketingCampaignForm.subject} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, subject: e.target.value})} placeholder={t('marketing.subjectPlaceholder')} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} />
                   </div>
-                  <textarea value={marketingCampaignForm.htmlContent} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, htmlContent: e.target.value})} placeholder="<h1>Conținut HTML</h1>" rows="5" style={{width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px', fontFamily: 'monospace', marginBottom: '8px'}} />
-                  <textarea value={marketingCampaignForm.textContent} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, textContent: e.target.value})} placeholder="Versiune text (opțional)" rows="3" style={{width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px', marginBottom: '8px'}} />
-                  <button onClick={createMarketingCampaign} style={{background: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 14px', cursor: 'pointer'}}>Salvează ciorna</button>
+                  <textarea value={marketingCampaignForm.htmlContent} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, htmlContent: e.target.value})} placeholder={t('marketing.htmlPlaceholder')} rows="5" style={{width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px', fontFamily: 'monospace', marginBottom: '8px'}} />
+                  <textarea value={marketingCampaignForm.textContent} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, textContent: e.target.value})} placeholder={t('marketing.textPlaceholder')} rows="3" style={{width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px', marginBottom: '8px'}} />
+                  <button onClick={createMarketingCampaign} style={{background: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 14px', cursor: 'pointer'}}>{t('marketing.saveDraft')}</button>
                   <div style={{marginTop: '18px', display: 'grid', gap: '8px'}}>
                     {marketingCampaigns.map(campaign => (
                       <div key={campaign.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #dee2e6', background: 'white', borderRadius: '5px', padding: '10px 12px', gap: '12px', flexWrap: 'wrap'}}>
-                        <div><strong>{campaign.name}</strong><div style={{fontSize: '12px', color: '#6c757d'}}>.{campaign.market} · {campaign.subject} · {campaign.status} · {campaign.sentCount || 0}/{campaign.recipientCount || 0}</div></div>
-                        {campaign.status !== 'sent' && campaign.status !== 'sending' && <button onClick={() => sendMarketingCampaign(campaign)} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}>Trimite campania</button>}
+                        <div><strong>{campaign.name}</strong><div style={{fontSize: '12px', color: '#6c757d'}}>.{campaign.market} · {campaign.subject} · {campaign.status === 'draft' ? t('marketing.statusDraft') : campaign.status === 'sending' ? t('marketing.statusSending') : campaign.status === 'sent' ? t('marketing.statusSent') : campaign.status === 'failed' ? t('marketing.statusFailed') : campaign.status} · {campaign.sentCount || 0}/{campaign.recipientCount || 0}</div></div>
+                        {campaign.status !== 'sent' && campaign.status !== 'sending' && <button onClick={() => sendMarketingCampaign(campaign)} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}>{t('marketing.sendCampaign')}</button>}
                       </div>
                     ))}
                   </div>
@@ -12110,7 +12110,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
               onClick={() => handleViewChange('marketing')}
             >
               <span style={{fontSize: '18px'}}>📣</span>
-              <span style={{fontSize: '12px'}}>Marketing</span>
+              <span style={{fontSize: '12px'}}>{t('nav.marketing')}</span>
             </button>
           </div>
           
