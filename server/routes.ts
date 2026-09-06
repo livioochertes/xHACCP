@@ -36,6 +36,13 @@ const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
 })();
 
+async function invoiceMatchesRequestMarket(invoice: { market?: string | null; orderId?: number | null }, market: "ro" | "fr" | "com"): Promise<boolean> {
+  if (!marketMatches(invoice.market, market)) return false;
+  if (!invoice.orderId) return true;
+  const order = await storage.getOrder(invoice.orderId);
+  return !order || marketMatches(order.market, market);
+}
+
 const appleOAuthStates = new Map<string, number>();
 setInterval(() => {
   const tenMinutesAgo = Date.now() - 600000;
@@ -1709,7 +1716,7 @@ Sitemap: https://${domain}/sitemap.xml
       const invoiceId = parseInt(req.params.id);
       const invoice = await storage.getInvoice(invoiceId);
       if (!invoice) return res.status(404).json({ message: "Invoice not found" });
-      if (!req.isAdmin && !marketMatches(invoice.market, getMarketFromRequest(req))) {
+      if (!req.isAdmin && !(await invoiceMatchesRequestMarket(invoice, getMarketFromRequest(req)))) {
         return res.status(404).json({ message: "Invoice not found" });
       }
       if (invoice.userId !== req.userId && !req.isAdmin) {
@@ -1737,7 +1744,7 @@ Sitemap: https://${domain}/sitemap.xml
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
-      if (!req.isAdmin && !marketMatches(invoice.market, getMarketFromRequest(req))) {
+      if (!req.isAdmin && !(await invoiceMatchesRequestMarket(invoice, getMarketFromRequest(req)))) {
         return res.status(404).json({ message: "Invoice not found" });
       }
 
@@ -1761,7 +1768,7 @@ Sitemap: https://${domain}/sitemap.xml
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
-      if (!marketMatches(invoice.market, getMarketFromRequest(req)) && !req.isAdmin) {
+      if (!req.isAdmin && !(await invoiceMatchesRequestMarket(invoice, getMarketFromRequest(req)))) {
         return res.status(404).json({ message: "Invoice not found" });
       }
       if (invoice.userId !== req.userId && !req.isAdmin) {
@@ -1797,7 +1804,7 @@ Sitemap: https://${domain}/sitemap.xml
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
-      if (!req.isAdmin && !marketMatches(invoice.market, getMarketFromRequest(req))) {
+      if (!req.isAdmin && !(await invoiceMatchesRequestMarket(invoice, getMarketFromRequest(req)))) {
         return res.status(404).json({ message: "Invoice not found" });
       }
 
@@ -2010,7 +2017,7 @@ Sitemap: https://${domain}/sitemap.xml
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
-      if (!req.isAdmin && !marketMatches(invoice.market, getMarketFromRequest(req))) {
+      if (!req.isAdmin && !(await invoiceMatchesRequestMarket(invoice, getMarketFromRequest(req)))) {
         return res.status(404).json({ message: "Invoice not found" });
       }
 

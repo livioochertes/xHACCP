@@ -1062,10 +1062,18 @@ export class DatabaseStorage implements IStorage {
           ? or(eq(invoices.market, market), isNull(invoices.market))
           : eq(invoices.market, market))
         : undefined;
-      const directInvoices = await db.select().from(invoices).where(and(
-        eq(invoices.userId, userId),
-        ...(marketFilter ? [marketFilter] : []),
-      )).orderBy(desc(invoices.createdAt));
+      const directInvoiceRows = await db.select({
+        invoice: invoices,
+        orderMarket: orders.market,
+      }).from(invoices)
+        .leftJoin(orders, eq(invoices.orderId, orders.id))
+        .where(and(
+          eq(invoices.userId, userId),
+          ...(marketFilter ? [marketFilter] : []),
+          ...(market ? [or(isNull(invoices.orderId), eq(orders.market, market))] : []),
+        ))
+        .orderBy(desc(invoices.createdAt));
+      const directInvoices = directInvoiceRows.map(row => row.invoice);
       
       const userOrders = await db.select({ id: orders.id }).from(orders).where(and(
         eq(orders.userId, userId),
