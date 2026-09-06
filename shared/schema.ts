@@ -180,6 +180,32 @@ export const productMarkets = pgTable("product_markets", {
   productMarketUnique: uniqueIndex("product_markets_product_id_market_unique").on(table.productId, table.market),
 }));
 
+// Google Merchant Center feed configuration — one independently configurable
+// feed per marketplace. Category/product selections are stored in the two
+// junction tables below and are combined with OR semantics.
+export const googleMerchantFeeds = pgTable("google_merchant_feeds", {
+  id: serial("id").primaryKey(),
+  market: varchar("market", { length: 10 }).notNull().unique(),
+  enabled: boolean("enabled").notNull().default(false),
+  includeOutOfStock: boolean("include_out_of_stock").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const googleMerchantFeedCategories = pgTable("google_merchant_feed_categories", {
+  feedId: integer("feed_id").references(() => googleMerchantFeeds.id, { onDelete: "cascade" }).notNull(),
+  categoryId: integer("category_id").references(() => categories.id, { onDelete: "cascade" }).notNull(),
+}, (table) => ({
+  feedCategoryUnique: uniqueIndex("google_merchant_feed_categories_unique").on(table.feedId, table.categoryId),
+}));
+
+export const googleMerchantFeedProducts = pgTable("google_merchant_feed_products", {
+  feedId: integer("feed_id").references(() => googleMerchantFeeds.id, { onDelete: "cascade" }).notNull(),
+  productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+}, (table) => ({
+  feedProductUnique: uniqueIndex("google_merchant_feed_products_unique").on(table.feedId, table.productId),
+}));
+
 export const compositeProductComponents = pgTable("composite_product_components", {
   id: serial("id").primaryKey(),
   parentProductId: integer("parent_product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
@@ -584,6 +610,7 @@ export const invoiceCounters = pgTable("invoice_counters", {
   market: varchar("market", { length: 10 }).notNull().unique(), // ro, fr, com
   series: varchar("series", { length: 20 }).notNull().default("FACT"),
   currentNumber: integer("current_number").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 export type InvoiceCounter = typeof invoiceCounters.$inferSelect;
@@ -623,6 +650,12 @@ export const insertMarketSettingsSchema = createInsertSchema(marketSettings).omi
 });
 
 export const insertProductMarketsSchema = createInsertSchema(productMarkets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGoogleMerchantFeedSchema = createInsertSchema(googleMerchantFeeds).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -672,6 +705,8 @@ export type MarketSettings = typeof marketSettings.$inferSelect;
 export type InsertMarketSettings = z.infer<typeof insertMarketSettingsSchema>;
 export type ProductMarket = typeof productMarkets.$inferSelect;
 export type InsertProductMarket = z.infer<typeof insertProductMarketsSchema>;
+export type GoogleMerchantFeed = typeof googleMerchantFeeds.$inferSelect;
+export type InsertGoogleMerchantFeed = z.infer<typeof insertGoogleMerchantFeedSchema>;
 export type CompositeProductComponent = typeof compositeProductComponents.$inferSelect;
 export type InsertCompositeProductComponent = z.infer<typeof insertCompositeProductComponentSchema>;
 

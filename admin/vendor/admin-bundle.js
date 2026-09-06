@@ -12632,6 +12632,10 @@
     const [blogEditForm, setBlogEditForm] = (0, import_react13.useState)({ title: "", excerpt: "", content: "", imageUrl: "", category: "", published: true });
     const [scheduleConfig, setScheduleConfig] = (0, import_react13.useState)({ enabled: true, intervalDays: 7, hour: 8 });
     const [scheduleLoaded, setScheduleLoaded] = (0, import_react13.useState)(false);
+    const [googleFeedData, setGoogleFeedData] = (0, import_react13.useState)(null);
+    const [googleFeedLoading, setGoogleFeedLoading] = (0, import_react13.useState)(false);
+    const [googleFeedSaving, setGoogleFeedSaving] = (0, import_react13.useState)(false);
+    const [googleFeedProductSearch, setGoogleFeedProductSearch] = (0, import_react13.useState)("");
     const [adminInvoices, setAdminInvoices] = (0, import_react13.useState)([]);
     const [invoiceCounters, setInvoiceCounters] = (0, import_react13.useState)([]);
     const [invoicesLoading, setInvoicesLoading] = (0, import_react13.useState)(false);
@@ -12794,6 +12798,7 @@
       else if (activeView === "suppliers") fetchSuppliers();
       else if (activeView === "vouchers") fetchVouchers();
       else if (activeView === "blog") fetchBlogPosts();
+      else if (activeView === "google-feed") fetchGoogleFeed();
       else if (activeView === "invoices") {
         setInvoiceMarketFilter("all");
         fetchInvoices(selectedMarketTab);
@@ -13198,6 +13203,62 @@
         }
       } catch (err) {
         alert("Eroare: " + err.message);
+      }
+    };
+    const fetchGoogleFeed = async (marketOverride) => {
+      const market = marketOverride || (selectedMarketTab !== "all" ? selectedMarketTab : "ro");
+      setGoogleFeedLoading(true);
+      try {
+        const response = await fetch(`/admin/api/google-feed?market=${market}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (response.ok) setGoogleFeedData(data);
+        else alert(data.message || "Nu s-a putut \xEEnc\u0103rca feedul Google");
+      } catch (err) {
+        console.error("Error fetching Google Merchant feed:", err);
+        alert("Eroare de re\u021Bea la \xEEnc\u0103rcarea feedului Google");
+      } finally {
+        setGoogleFeedLoading(false);
+      }
+    };
+    const saveGoogleFeed = async () => {
+      if (!googleFeedData?.feed) return;
+      const market = googleFeedData.feed.market || (selectedMarketTab !== "all" ? selectedMarketTab : "ro");
+      const categoryIds = googleFeedData.feed.categoryIds || [];
+      const productIds = googleFeedData.feed.productIds || [];
+      if (googleFeedData.feed.enabled && categoryIds.length === 0 && productIds.length === 0) {
+        alert("Selecteaz\u0103 cel pu\u021Bin o categorie sau un produs \xEEnainte de activarea feedului.");
+        return;
+      }
+      setGoogleFeedSaving(true);
+      try {
+        const response = await fetch("/admin/api/google-feed", {
+          method: "PUT",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            market,
+            enabled: googleFeedData.feed.enabled,
+            includeOutOfStock: googleFeedData.feed.includeOutOfStock,
+            categoryIds,
+            productIds
+          })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setGoogleFeedData(data.data);
+          alert("\u2705 Configura\u021Bia feedului Google a fost salvat\u0103.");
+        } else {
+          alert(data.message || "Nu s-a putut salva configura\u021Bia feedului.");
+        }
+      } catch (err) {
+        console.error("Error saving Google Merchant feed:", err);
+        alert("Eroare de re\u021Bea la salvarea feedului Google");
+      } finally {
+        setGoogleFeedSaving(false);
       }
     };
     const fetchMarkets = async () => {
@@ -14299,6 +14360,8 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
         fetchVouchers();
       } else if (view === "blog") {
         fetchBlogPosts();
+      } else if (view === "google-feed") {
+        fetchGoogleFeed();
       }
     };
     const handleLogout = async () => {
@@ -16322,6 +16385,180 @@ This action cannot be undone.`)) {
               )
             ] })
           ] });
+        case "google-feed": {
+          const feedMarket = selectedMarketTab !== "all" ? selectedMarketTab : "ro";
+          const feedConfig = googleFeedData?.feed;
+          const selectedCategoryIds = feedConfig?.categoryIds || [];
+          const selectedProductIds = feedConfig?.productIds || [];
+          const normalizedFeedSearch = googleFeedProductSearch.trim().toLowerCase();
+          const filteredFeedProducts = (googleFeedData?.products || []).filter(
+            (product) => !normalizedFeedSearch || product.name.toLowerCase().includes(normalizedFeedSearch) || String(product.id).includes(normalizedFeedSearch) || String(product.productCode || "").toLowerCase().includes(normalizedFeedSearch) || product.categoryName.toLowerCase().includes(normalizedFeedSearch)
+          );
+          const feedUrl = `https://xhaccp.${feedMarket === "com" ? "com" : feedMarket}/feeds/google-merchant/${feedMarket}.xml`;
+          const toggleFeedSelection = (key, id, checked) => {
+            setGoogleFeedData((current) => {
+              if (!current?.feed) return current;
+              const values = new Set(current.feed[key] || []);
+              if (checked) values.add(id);
+              else values.delete(id);
+              return { ...current, feed: { ...current.feed, [key]: [...values] } };
+            });
+          };
+          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "22px", flexWrap: "wrap" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0 0 8px" }, children: "\u{1F6CD}\uFE0F Google Merchant Center Feed" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("p", { style: { color: "#6c757d", margin: 0, fontSize: "14px" }, children: [
+                  "Configureaz\u0103 produsele promovate pentru pia\u021Ba ",
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: feedMarket.toUpperCase() }),
+                  ". Categoriile \u0219i produsele se combin\u0103 cu logic\u0103 OR."
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "button",
+                  {
+                    onClick: () => fetchGoogleFeed(feedMarket),
+                    style: { background: "white", border: "1px solid #adb5bd", borderRadius: "6px", padding: "8px 14px", cursor: "pointer" },
+                    children: "\u{1F504} Re\xEEncarc\u0103"
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "button",
+                  {
+                    onClick: () => window.open(feedUrl, "_blank", "noopener,noreferrer"),
+                    style: { background: "#198754", color: "white", border: "none", borderRadius: "6px", padding: "8px 14px", cursor: "pointer" },
+                    children: "\u{1F517} Deschide feedul"
+                  }
+                )
+              ] })
+            ] }),
+            googleFeedLoading || !googleFeedData ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "40px", textAlign: "center", color: "#6c757d" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "loading" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { children: "Se \xEEncarc\u0103 configura\u021Bia feedului..." })
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#eef7ff", border: "1px solid #b8d8f5", borderRadius: "8px", padding: "16px", marginBottom: "20px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "13px", color: "#155b8a", marginBottom: "8px", fontWeight: "600" }, children: "URL pentru Google Merchant Center" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("code", { style: { display: "block", background: "white", border: "1px solid #d7e8f5", borderRadius: "5px", padding: "10px", wordBreak: "break-all", color: "#334e68" }, children: feedUrl }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "12px", color: "#4f6b7a", marginTop: "8px" }, children: [
+                  "Feedul se regenereaz\u0103 automat la \xEEnceputul fiec\u0103rei ore \u0219i se actualizeaz\u0103 imediat dup\u0103 salvarea configura\u021Biei.",
+                  feedConfig?.lastGeneratedAt && ` Ultima generare: ${new Date(feedConfig.lastGeneratedAt).toLocaleString()}.`
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "14px", marginBottom: "22px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "10px", padding: "14px", border: "1px solid #dee2e6", borderRadius: "8px", cursor: "pointer" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "checkbox",
+                      checked: feedConfig?.enabled === true,
+                      onChange: (e2) => setGoogleFeedData((current) => ({ ...current, feed: { ...current.feed, enabled: e2.target.checked } })),
+                      style: { width: "18px", height: "18px" }
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Feed activ" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("small", { style: { display: "block", color: "#6c757d", marginTop: "3px" }, children: "Permite accesul Google la XML." })
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "10px", padding: "14px", border: "1px solid #dee2e6", borderRadius: "8px", cursor: "pointer" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "checkbox",
+                      checked: feedConfig?.includeOutOfStock !== false,
+                      onChange: (e2) => setGoogleFeedData((current) => ({ ...current, feed: { ...current.feed, includeOutOfStock: e2.target.checked } })),
+                      style: { width: "18px", height: "18px" }
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Include \u0219i produsele f\u0103r\u0103 stoc" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("small", { style: { display: "block", color: "#6c757d", marginTop: "3px" }, children: "Google prime\u0219te disponibilitatea actual\u0103." })
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(260px, 0.8fr) minmax(360px, 1.2fr)", gap: "20px", alignItems: "start" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { style: { border: "1px solid #dee2e6", borderRadius: "8px", overflow: "hidden" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "14px 16px", background: "#f8f9fa", borderBottom: "1px solid #dee2e6" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: 0, color: "#495057" }, children: "\u{1F4C1} Categorii promovate" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "12px", color: "#6c757d", margin: "5px 0 0" }, children: "Alege, de exemplu, categoria \u201EEtichete\u201D." })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "12px 16px", maxHeight: "360px", overflowY: "auto" }, children: (googleFeedData.categories || []).length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontSize: "13px" }, children: "Nu exist\u0103 categorii pentru aceast\u0103 pia\u021B\u0103." }) : googleFeedData.categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "9px", padding: "8px 0", borderBottom: "1px solid #f1f3f5", cursor: "pointer" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "input",
+                      {
+                        type: "checkbox",
+                        checked: selectedCategoryIds.includes(category.id),
+                        onChange: (e2) => toggleFeedSelection("categoryIds", category.id, e2.target.checked)
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { flex: 1 }, children: category.name }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("code", { style: { fontSize: "11px", color: "#868e96" }, children: category.slug })
+                  ] }, category.id)) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { style: { border: "1px solid #dee2e6", borderRadius: "8px", overflow: "hidden" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "14px 16px", background: "#f8f9fa", borderBottom: "1px solid #dee2e6" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "center" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: 0, color: "#495057" }, children: "\u{1F4E6} Produse ad\u0103ugate individual" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: [
+                        selectedProductIds.length,
+                        " selectate"
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "input",
+                      {
+                        value: googleFeedProductSearch,
+                        onChange: (e2) => setGoogleFeedProductSearch(e2.target.value),
+                        placeholder: "Caut\u0103 dup\u0103 nume, ID, cod sau categorie...",
+                        style: { width: "100%", marginTop: "10px", padding: "8px 10px", border: "1px solid #ced4da", borderRadius: "5px", boxSizing: "border-box" }
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "12px 16px", maxHeight: "360px", overflowY: "auto" }, children: filteredFeedProducts.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontSize: "13px" }, children: "Nu exist\u0103 produse care corespund c\u0103ut\u0103rii." }) : filteredFeedProducts.map((product) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "flex-start", gap: "9px", padding: "8px 0", borderBottom: "1px solid #f1f3f5", cursor: "pointer" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "input",
+                      {
+                        type: "checkbox",
+                        checked: selectedProductIds.includes(product.id),
+                        onChange: (e2) => toggleFeedSelection("productIds", product.id, e2.target.checked)
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { flex: 1, minWidth: 0 }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: product.name }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("small", { style: { color: "#868e96" }, children: [
+                        "#",
+                        product.id,
+                        " \xB7 ",
+                        product.categoryName,
+                        product.productCode ? ` \xB7 ${product.productCode}` : ""
+                      ] })
+                    ] })
+                  ] }, product.id)) })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginTop: "22px", paddingTop: "18px", borderTop: "1px solid #dee2e6", flexWrap: "wrap" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "13px", color: "#6c757d" }, children: [
+                  "Selec\u021Bie curent\u0103: ",
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: selectedCategoryIds.length }),
+                  " categorii + ",
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: selectedProductIds.length }),
+                  " produse.",
+                  feedConfig?.lastItemCount != null && ` Ultimul XML a avut ${feedConfig.lastItemCount} produse.`
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "button",
+                  {
+                    onClick: saveGoogleFeed,
+                    disabled: googleFeedSaving,
+                    style: { background: googleFeedSaving ? "#6c757d" : "#0d6efd", color: "white", border: "none", borderRadius: "6px", padding: "10px 20px", cursor: googleFeedSaving ? "not-allowed" : "pointer", fontWeight: "600" },
+                    children: googleFeedSaving ? "\u23F3 Se salveaz\u0103..." : "\u{1F4BE} Salveaz\u0103 configura\u021Bia"
+                  }
+                )
+              ] })
+            ] })
+          ] });
+        }
         case "company-settings":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
@@ -24198,6 +24435,17 @@ ${selectedOrders.map((id) => {
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F4DD}" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.blog") })
+            ]
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+          "button",
+          {
+            className: `nav-tab ${activeView === "google-feed" ? "active" : ""}`,
+            onClick: () => handleViewChange("google-feed"),
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F6CD}\uFE0F" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: "Google Feed" })
             ]
           }
         ),

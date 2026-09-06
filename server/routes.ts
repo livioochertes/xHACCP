@@ -23,6 +23,10 @@ import {
   type ContactMarket,
 } from './contact-email.js';
 import {
+  getGoogleMerchantFeedXml,
+  type MerchantMarket,
+} from "./google-merchant-feed";
+import {
   calculateCompositeConfiguration,
   resolveCompositeStockQuantity,
   type CompositeComponentSource,
@@ -786,6 +790,27 @@ const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction)
 export { getMarketFromRequest };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Public XML endpoint consumed by Google Merchant Center. It is intentionally
+  // unauthenticated; the admin API above controls whether each market feed is
+  // enabled and which products are included.
+  app.get("/feeds/google-merchant/:market.xml", async (req, res) => {
+    const market = String(req.params.market || "") as MerchantMarket;
+    if (!["ro", "fr", "com"].includes(market)) {
+      return res.status(404).type("text/plain").send("Feed not found");
+    }
+    try {
+      const { xml } = await getGoogleMerchantFeedXml(market);
+      res.status(200)
+        .set("Content-Type", "application/xml; charset=utf-8")
+        .set("Cache-Control", "public, max-age=300")
+        .send(xml);
+    } catch (error) {
+      res.status(404).type("text/plain").send(
+        error instanceof Error ? error.message : "Feed not available",
+      );
+    }
+  });
+
   // SEO: server-side meta tag injection for all SPA routes (helps Google index them)
   registerSeoRoutes(app, storage, {
     getMarket: getMarketFromRequest,

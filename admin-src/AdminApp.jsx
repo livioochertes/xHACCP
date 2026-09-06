@@ -413,6 +413,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [blogEditForm, setBlogEditForm] = useState({ title: '', excerpt: '', content: '', imageUrl: '', category: '', published: true });
       const [scheduleConfig, setScheduleConfig] = useState({ enabled: true, intervalDays: 7, hour: 8 });
       const [scheduleLoaded, setScheduleLoaded] = useState(false);
+      const [googleFeedData, setGoogleFeedData] = useState(null);
+      const [googleFeedLoading, setGoogleFeedLoading] = useState(false);
+      const [googleFeedSaving, setGoogleFeedSaving] = useState(false);
+      const [googleFeedProductSearch, setGoogleFeedProductSearch] = useState('');
 
       // Invoices state
       const [adminInvoices, setAdminInvoices] = useState([]);
@@ -613,6 +617,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         else if (activeView === 'suppliers') fetchSuppliers();
         else if (activeView === 'vouchers') fetchVouchers();
         else if (activeView === 'blog') fetchBlogPosts();
+        else if (activeView === 'google-feed') fetchGoogleFeed();
         else if (activeView === 'invoices') { setInvoiceMarketFilter('all'); fetchInvoices(selectedMarketTab); fetchInvoiceCounters(); }
         else if (activeView === 'company-settings') { fetchCompanySettings(); fetchMarkets(); fetchInvoiceCounters(); }
       }, [selectedMarketTab]);
@@ -1057,6 +1062,64 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           if (res.ok) { alert('Configurație salvată! Scheduler-ul a fost repornit.'); }
           else { alert('Eroare la salvare!'); }
         } catch (err) { alert('Eroare: ' + err.message); }
+      };
+
+      const fetchGoogleFeed = async (marketOverride) => {
+        const market = marketOverride || (selectedMarketTab !== 'all' ? selectedMarketTab : 'ro');
+        setGoogleFeedLoading(true);
+        try {
+          const response = await fetch(`/admin/api/google-feed?market=${market}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (response.ok) setGoogleFeedData(data);
+          else alert(data.message || 'Nu s-a putut încărca feedul Google');
+        } catch (err) {
+          console.error('Error fetching Google Merchant feed:', err);
+          alert('Eroare de rețea la încărcarea feedului Google');
+        } finally {
+          setGoogleFeedLoading(false);
+        }
+      };
+
+      const saveGoogleFeed = async () => {
+        if (!googleFeedData?.feed) return;
+        const market = googleFeedData.feed.market || (selectedMarketTab !== 'all' ? selectedMarketTab : 'ro');
+        const categoryIds = googleFeedData.feed.categoryIds || [];
+        const productIds = googleFeedData.feed.productIds || [];
+        if (googleFeedData.feed.enabled && categoryIds.length === 0 && productIds.length === 0) {
+          alert('Selectează cel puțin o categorie sau un produs înainte de activarea feedului.');
+          return;
+        }
+        setGoogleFeedSaving(true);
+        try {
+          const response = await fetch('/admin/api/google-feed', {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              market,
+              enabled: googleFeedData.feed.enabled,
+              includeOutOfStock: googleFeedData.feed.includeOutOfStock,
+              categoryIds,
+              productIds
+            })
+          });
+          const data = await response.json();
+          if (response.ok) {
+            setGoogleFeedData(data.data);
+            alert('✅ Configurația feedului Google a fost salvată.');
+          } else {
+            alert(data.message || 'Nu s-a putut salva configurația feedului.');
+          }
+        } catch (err) {
+          console.error('Error saving Google Merchant feed:', err);
+          alert('Eroare de rețea la salvarea feedului Google');
+        } finally {
+          setGoogleFeedSaving(false);
+        }
       };
 
       const fetchMarkets = async () => {
@@ -2304,6 +2367,8 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           fetchVouchers();
         } else if (view === 'blog') {
           fetchBlogPosts();
+        } else if (view === 'google-feed') {
+          fetchGoogleFeed();
         }
       };
       
@@ -4227,6 +4292,177 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               </div>
             );
           
+          case 'google-feed': {
+            const feedMarket = selectedMarketTab !== 'all' ? selectedMarketTab : 'ro';
+            const feedConfig = googleFeedData?.feed;
+            const selectedCategoryIds = feedConfig?.categoryIds || [];
+            const selectedProductIds = feedConfig?.productIds || [];
+            const normalizedFeedSearch = googleFeedProductSearch.trim().toLowerCase();
+            const filteredFeedProducts = (googleFeedData?.products || []).filter(product =>
+              !normalizedFeedSearch ||
+              product.name.toLowerCase().includes(normalizedFeedSearch) ||
+              String(product.id).includes(normalizedFeedSearch) ||
+              String(product.productCode || '').toLowerCase().includes(normalizedFeedSearch) ||
+              product.categoryName.toLowerCase().includes(normalizedFeedSearch)
+            );
+            const feedUrl = `https://xhaccp.${feedMarket === 'com' ? 'com' : feedMarket}/feeds/google-merchant/${feedMarket}.xml`;
+            const toggleFeedSelection = (key, id, checked) => {
+              setGoogleFeedData(current => {
+                if (!current?.feed) return current;
+                const values = new Set(current.feed[key] || []);
+                if (checked) values.add(id);
+                else values.delete(id);
+                return { ...current, feed: { ...current.feed, [key]: [...values] } };
+              });
+            };
+
+            return (
+              <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: '22px', flexWrap: 'wrap'}}>
+                  <div>
+                    <h3 style={{color: '#333', margin: '0 0 8px'}}>🛍️ Google Merchant Center Feed</h3>
+                    <p style={{color: '#6c757d', margin: 0, fontSize: '14px'}}>
+                      Configurează produsele promovate pentru piața <strong>{feedMarket.toUpperCase()}</strong>. Categoriile și produsele se combină cu logică OR.
+                    </p>
+                  </div>
+                  <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                    <button
+                      onClick={() => fetchGoogleFeed(feedMarket)}
+                      style={{background: 'white', border: '1px solid #adb5bd', borderRadius: '6px', padding: '8px 14px', cursor: 'pointer'}}
+                    >
+                      🔄 Reîncarcă
+                    </button>
+                    <button
+                      onClick={() => window.open(feedUrl, '_blank', 'noopener,noreferrer')}
+                      style={{background: '#198754', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 14px', cursor: 'pointer'}}
+                    >
+                      🔗 Deschide feedul
+                    </button>
+                  </div>
+                </div>
+
+                {googleFeedLoading || !googleFeedData ? (
+                  <div style={{padding: '40px', textAlign: 'center', color: '#6c757d'}}>
+                    <div className="loading"></div>
+                    <p>Se încarcă configurația feedului...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{background: '#eef7ff', border: '1px solid #b8d8f5', borderRadius: '8px', padding: '16px', marginBottom: '20px'}}>
+                      <div style={{fontSize: '13px', color: '#155b8a', marginBottom: '8px', fontWeight: '600'}}>URL pentru Google Merchant Center</div>
+                      <code style={{display: 'block', background: 'white', border: '1px solid #d7e8f5', borderRadius: '5px', padding: '10px', wordBreak: 'break-all', color: '#334e68'}}>{feedUrl}</code>
+                      <div style={{fontSize: '12px', color: '#4f6b7a', marginTop: '8px'}}>
+                        Feedul se regenerează automat la începutul fiecărei ore și se actualizează imediat după salvarea configurației.
+                        {feedConfig?.lastGeneratedAt && ` Ultima generare: ${new Date(feedConfig.lastGeneratedAt).toLocaleString()}.`}
+                      </div>
+                    </div>
+
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '14px', marginBottom: '22px'}}>
+                      <label style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '14px', border: '1px solid #dee2e6', borderRadius: '8px', cursor: 'pointer'}}>
+                        <input
+                          type="checkbox"
+                          checked={feedConfig?.enabled === true}
+                          onChange={e => setGoogleFeedData(current => ({...current, feed: {...current.feed, enabled: e.target.checked}}))}
+                          style={{width: '18px', height: '18px'}}
+                        />
+                        <span>
+                          <strong>Feed activ</strong>
+                          <small style={{display: 'block', color: '#6c757d', marginTop: '3px'}}>Permite accesul Google la XML.</small>
+                        </span>
+                      </label>
+                      <label style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '14px', border: '1px solid #dee2e6', borderRadius: '8px', cursor: 'pointer'}}>
+                        <input
+                          type="checkbox"
+                          checked={feedConfig?.includeOutOfStock !== false}
+                          onChange={e => setGoogleFeedData(current => ({...current, feed: {...current.feed, includeOutOfStock: e.target.checked}}))}
+                          style={{width: '18px', height: '18px'}}
+                        />
+                        <span>
+                          <strong>Include și produsele fără stoc</strong>
+                          <small style={{display: 'block', color: '#6c757d', marginTop: '3px'}}>Google primește disponibilitatea actuală.</small>
+                        </span>
+                      </label>
+                    </div>
+
+                    <div style={{display: 'grid', gridTemplateColumns: 'minmax(260px, 0.8fr) minmax(360px, 1.2fr)', gap: '20px', alignItems: 'start'}}>
+                      <section style={{border: '1px solid #dee2e6', borderRadius: '8px', overflow: 'hidden'}}>
+                        <div style={{padding: '14px 16px', background: '#f8f9fa', borderBottom: '1px solid #dee2e6'}}>
+                          <h4 style={{margin: 0, color: '#495057'}}>📁 Categorii promovate</h4>
+                          <p style={{fontSize: '12px', color: '#6c757d', margin: '5px 0 0'}}>Alege, de exemplu, categoria „Etichete”.</p>
+                        </div>
+                        <div style={{padding: '12px 16px', maxHeight: '360px', overflowY: 'auto'}}>
+                          {(googleFeedData.categories || []).length === 0 ? (
+                            <p style={{color: '#6c757d', fontSize: '13px'}}>Nu există categorii pentru această piață.</p>
+                          ) : (
+                            googleFeedData.categories.map(category => (
+                              <label key={category.id} style={{display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 0', borderBottom: '1px solid #f1f3f5', cursor: 'pointer'}}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedCategoryIds.includes(category.id)}
+                                  onChange={e => toggleFeedSelection('categoryIds', category.id, e.target.checked)}
+                                />
+                                <span style={{flex: 1}}>{category.name}</span>
+                                <code style={{fontSize: '11px', color: '#868e96'}}>{category.slug}</code>
+                              </label>
+                            ))
+                          )}
+                        </div>
+                      </section>
+
+                      <section style={{border: '1px solid #dee2e6', borderRadius: '8px', overflow: 'hidden'}}>
+                        <div style={{padding: '14px 16px', background: '#f8f9fa', borderBottom: '1px solid #dee2e6'}}>
+                          <div style={{display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center'}}>
+                            <h4 style={{margin: 0, color: '#495057'}}>📦 Produse adăugate individual</h4>
+                            <span style={{fontSize: '12px', color: '#6c757d'}}>{selectedProductIds.length} selectate</span>
+                          </div>
+                          <input
+                            value={googleFeedProductSearch}
+                            onChange={e => setGoogleFeedProductSearch(e.target.value)}
+                            placeholder="Caută după nume, ID, cod sau categorie..."
+                            style={{width: '100%', marginTop: '10px', padding: '8px 10px', border: '1px solid #ced4da', borderRadius: '5px', boxSizing: 'border-box'}}
+                          />
+                        </div>
+                        <div style={{padding: '12px 16px', maxHeight: '360px', overflowY: 'auto'}}>
+                          {filteredFeedProducts.length === 0 ? (
+                            <p style={{color: '#6c757d', fontSize: '13px'}}>Nu există produse care corespund căutării.</p>
+                          ) : (
+                            filteredFeedProducts.map(product => (
+                              <label key={product.id} style={{display: 'flex', alignItems: 'flex-start', gap: '9px', padding: '8px 0', borderBottom: '1px solid #f1f3f5', cursor: 'pointer'}}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedProductIds.includes(product.id)}
+                                  onChange={e => toggleFeedSelection('productIds', product.id, e.target.checked)}
+                                />
+                                <span style={{flex: 1, minWidth: 0}}>
+                                  <span style={{display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{product.name}</span>
+                                  <small style={{color: '#868e96'}}>#{product.id} · {product.categoryName}{product.productCode ? ` · ${product.productCode}` : ''}</small>
+                                </span>
+                              </label>
+                            ))
+                          )}
+                        </div>
+                      </section>
+                    </div>
+
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '22px', paddingTop: '18px', borderTop: '1px solid #dee2e6', flexWrap: 'wrap'}}>
+                      <div style={{fontSize: '13px', color: '#6c757d'}}>
+                        Selecție curentă: <strong>{selectedCategoryIds.length}</strong> categorii + <strong>{selectedProductIds.length}</strong> produse.
+                        {feedConfig?.lastItemCount != null && ` Ultimul XML a avut ${feedConfig.lastItemCount} produse.`}
+                      </div>
+                      <button
+                        onClick={saveGoogleFeed}
+                        disabled={googleFeedSaving}
+                        style={{background: googleFeedSaving ? '#6c757d' : '#0d6efd', color: 'white', border: 'none', borderRadius: '6px', padding: '10px 20px', cursor: googleFeedSaving ? 'not-allowed' : 'pointer', fontWeight: '600'}}
+                      >
+                        {googleFeedSaving ? '⏳ Se salvează...' : '💾 Salvează configurația'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          }
+
           case 'company-settings':
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
@@ -11540,7 +11776,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
           </div>
           
           <div className="nav-tabs">
-            <button 
+            <button
               className={`nav-tab ${activeView === 'dashboard' ? 'active' : ''}`}
               onClick={() => handleViewChange('dashboard')}
             >
@@ -11590,6 +11826,13 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
               <span style={{fontSize: '12px'}}>{t('nav.blog')}</span>
             </button>
             <button 
+              className={`nav-tab ${activeView === 'google-feed' ? 'active' : ''}`}
+              onClick={() => handleViewChange('google-feed')}
+            >
+              <span style={{fontSize: '18px'}}>🛍️</span>
+              <span style={{fontSize: '12px'}}>Google Feed</span>
+            </button>
+            <button
               className={`nav-tab ${activeView === 'invoices' ? 'active' : ''}`}
               onClick={() => { handleViewChange('invoices'); fetchInvoices(); fetchInvoiceCounters(); }}
             >

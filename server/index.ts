@@ -10,6 +10,7 @@ import { loadAllDataIntoMemory } from "./routes";
 import { backfillTranslationSlugs } from "./storage";
 import { logR2Status } from "./r2-storage";
 import { startBlogScheduler } from "./blog-scheduler";
+import { startGoogleMerchantFeedScheduler } from "./google-merchant-feed";
 import { startDbKeepAlive } from "./db";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -132,6 +133,9 @@ app.use((req, res, next) => {
 
   // Start automated blog post generation (every Monday at 08:00 Bucharest)
   startBlogScheduler();
+  // Rebuild enabled Google Merchant Center feeds every hour so availability
+  // and prices stay aligned with the latest marketplace data.
+  startGoogleMerchantFeedScheduler();
 
   // ── Startup recovery: stale manual_processing orders ─────────────────────
   // If the process was killed while a manual background job was running, the

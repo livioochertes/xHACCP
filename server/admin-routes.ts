@@ -19,6 +19,11 @@ import { restartBlogScheduler } from "./blog-scheduler";
 import ExcelJS from "exceljs";
 import * as cheerio from "cheerio";
 import { formatProductDescription } from "@shared/format-product-description";
+import {
+  getGoogleMerchantFeedAdminData,
+  saveGoogleMerchantFeed,
+  type MerchantMarket,
+} from "./google-merchant-feed";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -5820,6 +5825,61 @@ export async function registerAdminRoutes(app: Express) {
       res.json({ success: true, config });
     } catch (error) {
       res.status(500).json({ message: "Failed to update schedule config" });
+    }
+  });
+
+  // ─── Google Merchant Center Feed ─────────────────────────────────────────
+
+  app.get("/admin/api/google-feed", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const market = String(req.query.market || "ro") as MerchantMarket;
+      if (!["ro", "fr", "com"].includes(market)) {
+        return res.status(400).json({ message: "Marketplace invalid" });
+      }
+      if (!canAccessMarket(req, market)) {
+        return res.status(403).json({ message: "Nu ai acces la piața selectată" });
+      }
+      res.json(await getGoogleMerchantFeedAdminData(market));
+    } catch (error) {
+      console.error("Google Merchant feed admin read error:", error);
+      res.status(500).json({ message: "Nu s-a putut încărca configurația feedului" });
+    }
+  });
+
+  app.put("/admin/api/google-feed", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const market = String(req.body?.market || "") as MerchantMarket;
+      if (!["ro", "fr", "com"].includes(market)) {
+        return res.status(400).json({ message: "Marketplace invalid" });
+      }
+      if (!canAccessMarket(req, market)) {
+        return res.status(403).json({ message: "Nu ai acces la piața selectată" });
+      }
+
+      const categoryIds = Array.isArray(req.body?.categoryIds) ? req.body.categoryIds : [];
+      const productIds = Array.isArray(req.body?.productIds) ? req.body.productIds : [];
+      if (Boolean(req.body?.enabled) && categoryIds.length === 0 && productIds.length === 0) {
+        return res.status(400).json({
+          message: "Selectează cel puțin o categorie sau un produs înainte de activarea feedului.",
+        });
+      }
+
+      await saveGoogleMerchantFeed(market, {
+        enabled: req.body?.enabled,
+        includeOutOfStock: req.body?.includeOutOfStock,
+        categoryIds,
+        productIds,
+      });
+      res.json({
+        success: true,
+        message: "Configurația feedului Google a fost salvată.",
+        data: await getGoogleMerchantFeedAdminData(market),
+      });
+    } catch (error) {
+      console.error("Google Merchant feed admin save error:", error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : "Nu s-a putut salva configurația feedului",
+      });
     }
   });
 
