@@ -2,26 +2,23 @@ import { and, eq, lte, lt, or } from "drizzle-orm";
 import { db } from "./db";
 import { products, subscriptions, subscriptionPayments, orders, orderItems } from "@shared/schema";
 import { storage } from "./storage";
+import { getVivaCredentials, getVivaCurrency, type VivaMarket } from "./viva-config";
 
-type SubscriptionMarket = "ro" | "fr" | "com";
+export { type VivaMarket };
 
-function getCredentials(market: SubscriptionMarket) {
-  if (market === "fr") {
-    return {
-      clientId: process.env.VIVA_FR_CLIENT_ID,
-      clientSecret: process.env.VIVA_FR_CLIENT_SECRET,
-      sourceCode: process.env.VIVA_FR_SOURCE_CODE,
-    };
-  }
+export const MAX_RENEWAL_ATTEMPTS = 3;
+export const RETRY_DELAY_HOURS = 23;
+
+export function getSubscriptionMarketConfig(market: VivaMarket) {
   return {
-    clientId: process.env.VIVA_CLIENT_ID,
-    clientSecret: process.env.VIVA_CLIENT_SECRET,
-    sourceCode: process.env.VIVA_SOURCE_CODE,
+    market,
+    currency: getVivaCurrency(market),
+    credentials: getVivaCredentials(market),
   };
 }
 
-async function getAccessToken(market: SubscriptionMarket) {
-  const credentials = getCredentials(market);
+async function getAccessToken(market: VivaMarket) {
+  const credentials = getSubscriptionMarketConfig(market).credentials;
   if (!credentials.clientId || !credentials.clientSecret) {
     throw new Error(`Viva ${market} recurring credentials are not configured`);
   }
@@ -42,14 +39,86 @@ async function getAccessToken(market: SubscriptionMarket) {
   return data.access_token;
 }
 
-function addOneMonth(value: Date) {
+export function addOneMonth(value: Date) {
   const next = new Date(value);
   next.setMonth(next.getMonth() + 1);
   return next;
 }
 
-function billingKey(value: Date) {
+export function billingKey(value: Date) {
   return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+export function isRetryEligible(payment: {
+  status?: string | null;
+  attemptNumber?: number | null;
+  updatedAt?: Date | string | null;
+}, now = new Date()) {
+  if (
+    payment.status !== "failed" ||
+    Number(payment.attemptNumber || 0) >= MAX_RENEWAL_ATTEMPTS ||
+    !payment.updatedAt
+  ) {
+    return false;
+  }
+  return now.getTime() - new Date(payment.updatedAt).getTime() >= RETRY_DELAY_HOURS * 60 * 60 * 1000;
+}
+
+export function getRenewalFailureTransition(
+  subscription: { nextBillingAt: Date | string },
+  payment: { attemptNumber?: number | null },
+) {
+  const attemptNumber = Number(payment.attemptNumber || 1);
+  return attemptNumber >= MAX_RENEWAL_ATTEMPTS
+    ? {
+        status: "past_due" as const,
+        nextBillingAt: addOneMonth(new Date(subscription.nextBillingAt)),
+      }
+    : null;
+}
+
+export function buildRecurringTransactionRequest(
+  subscription: {
+    id: number;
+    market: VivaMarket;
+    currency: string;
+    amount: string | number;
+    initialTransactionId: string;
+  },
+  payment: { billingKey: string },
+  accessToken: string,
+) {
+  const config = getSubscriptionMarketConfig(subscription.market);
+  if (subscription.currency !== config.currency) {
+    throw new Error(
+      `Viva ${subscription.market} recurring currency must be ${config.currency}, received ${subscription.currency}`,
+    );
+  }
+  if (!config.credentials.sourceCode) {
+    throw new Error(`Viva ${subscription.market} source code is not configured`);
+  }
+
+  const amountCents = Math.round(Number(subscription.amount) * 100);
+  if (!Number.isFinite(amountCents) || amountCents < 1) {
+    throw new Error(`Invalid Viva recurring amount for subscription ${subscription.id}`);
+  }
+
+  return {
+    url: `https://www.vivapayments.com/api/transactions/${encodeURIComponent(subscription.initialTransactionId)}`,
+    init: {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        amount: amountCents,
+        customerTrns: `xHACCP subscription renewal #${subscription.id}`,
+        merchantTrns: `subscription_${subscription.id}_${payment.billingKey}`,
+        sourceCode: config.credentials.sourceCode,
+      }),
+    },
+  };
 }
 
 /**
@@ -72,6 +141,15 @@ export async function activateSubscriptionForOrder(
     throw new Error(`Invalid subscription amount for order ${order.id}`);
   }
 
+  const market = (order.market || "ro") as VivaMarket;
+  const expectedCurrency = getVivaCurrency(market);
+  const currency = order.currency || expectedCurrency;
+  if (currency !== expectedCurrency) {
+    throw new Error(
+      `Subscription ${market} orders must use ${expectedCurrency}, received ${currency}`,
+    );
+  }
+
   const nextBillingAt = addOneMonth(new Date());
   const [created] = await db
     .insert(subscriptions)
@@ -79,8 +157,8 @@ export async function activateSubscriptionForOrder(
       userId: order.userId,
       productId: subscriptionItem.productId,
       initialOrderId: order.id,
-      market: order.market || "ro",
-      currency: order.currency || "RON",
+      market,
+      currency,
       amount: amount.toFixed(2),
       status: "active",
       initialTransactionId,
@@ -93,7 +171,7 @@ export async function activateSubscriptionForOrder(
   return created || null;
 }
 
-async function claimBillingAttempt(subscription: any, dueAt: Date) {
+async function claimBillingAttempt(subscription: any, dueAt: Date, now = new Date()) {
   const key = billingKey(dueAt);
   const [claimed] = await db
     .insert(subscriptionPayments)
@@ -125,9 +203,7 @@ async function claimBillingAttempt(subscription: any, dueAt: Date) {
   if (
     existing &&
     existing.status === "failed" &&
-    existing.attemptNumber < 3 &&
-    existing.updatedAt &&
-    Date.now() - new Date(existing.updatedAt).getTime() >= 23 * 60 * 60 * 1000
+    isRetryEligible(existing, now)
   ) {
     const [retry] = await db
       .update(subscriptionPayments)
@@ -145,27 +221,10 @@ async function claimBillingAttempt(subscription: any, dueAt: Date) {
 }
 
 async function createRecurringTransaction(subscription: any, payment: any) {
-  const market = (subscription.market || "ro") as SubscriptionMarket;
-  const credentials = getCredentials(market);
-  if (!credentials.sourceCode) throw new Error(`Viva ${market} source code is not configured`);
+  const market = (subscription.market || "ro") as VivaMarket;
   const accessToken = await getAccessToken(market);
-  const amountCents = Math.round(Number(subscription.amount) * 100);
-  const response = await fetch(
-    `https://www.vivapayments.com/api/transactions/${encodeURIComponent(subscription.initialTransactionId)}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        amount: amountCents,
-        customerTrns: `xHACCP subscription renewal #${subscription.id}`,
-        merchantTrns: `subscription_${subscription.id}_${payment.billingKey}`,
-        sourceCode: credentials.sourceCode,
-      }),
-    },
-  );
+  const request = buildRecurringTransactionRequest(subscription, payment, accessToken);
+  const response = await fetch(request.url, request.init);
   if (!response.ok) {
     const message = await response.text();
     throw new Error(`Viva recurring payment failed: ${response.status} ${message.slice(0, 300)}`);
@@ -184,7 +243,7 @@ export async function processDueSubscriptions(now = new Date()) {
 
   let processed = 0;
   for (const subscription of due) {
-    const payment = await claimBillingAttempt(subscription, new Date(subscription.nextBillingAt));
+    const payment = await claimBillingAttempt(subscription, new Date(subscription.nextBillingAt), now);
     if (!payment) continue;
     try {
       const result = await createRecurringTransaction(subscription, payment);
@@ -268,13 +327,10 @@ export async function processDueSubscriptions(now = new Date()) {
           updatedAt: new Date(),
         })
         .where(eq(subscriptionPayments.id, payment.id));
-      if (attemptNumber >= 3) {
+      const subscriptionUpdate = getRenewalFailureTransition(subscription, payment);
+      if (subscriptionUpdate) {
         await db.update(subscriptions)
-          .set({
-            status: "past_due",
-            nextBillingAt: addOneMonth(new Date(subscription.nextBillingAt)),
-            updatedAt: new Date(),
-          })
+          .set({ ...subscriptionUpdate, updatedAt: new Date() })
           .where(eq(subscriptions.id, subscription.id));
       }
       console.error(`[Subscriptions] Renewal failed for #${subscription.id}, attempt ${attemptNumber}:`, error);

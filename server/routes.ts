@@ -29,6 +29,12 @@ import {
   type ContactMarket,
 } from './contact-email.js';
 import {
+  buildVivaCheckoutPayload,
+  getVivaCredentials,
+  getVivaCurrency,
+  type VivaMarket,
+} from "./viva-config";
+import {
   getGoogleMerchantFeedXml,
   type MerchantMarket,
 } from "./google-merchant-feed";
@@ -3749,36 +3755,6 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
   // ============ VIVA PAYMENTS INTEGRATION ============
 
-  type VivaMarket = "ro" | "fr" | "com";
-  type VivaCredentials = {
-    apiKey?: string;
-    clientId?: string;
-    clientSecret?: string;
-    merchantId?: string;
-    sourceCode?: string;
-  };
-
-  // VIVA_* is the RO credential set. FR uses a separate merchant/account.
-  function getVivaCredentials(market: VivaMarket): VivaCredentials {
-    if (market === "fr") {
-      return {
-        apiKey: process.env.VIVA_FR_API_KEY,
-        clientId: process.env.VIVA_FR_CLIENT_ID,
-        clientSecret: process.env.VIVA_FR_CLIENT_SECRET,
-        merchantId: process.env.VIVA_FR_MERCHANT_ID,
-        sourceCode: process.env.VIVA_FR_SOURCE_CODE,
-      };
-    }
-
-    return {
-      apiKey: process.env.VIVA_API_KEY,
-      clientId: process.env.VIVA_CLIENT_ID,
-      clientSecret: process.env.VIVA_CLIENT_SECRET,
-      merchantId: process.env.VIVA_MERCHANT_ID,
-      sourceCode: process.env.VIVA_SOURCE_CODE,
-    };
-  }
-
   // Helper: Get Viva OAuth2 access token
   async function getVivaAccessToken(market: VivaMarket): Promise<string> {
     const credentials = getVivaCredentials(market);
@@ -3821,7 +3797,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       let subtotal = 0;
       const vivaMarket = getMarketFromRequest(req);
-      const serverCurrency = marketSettingsMap.get(vivaMarket)?.currency ?? (vivaMarket === "ro" ? "RON" : "EUR");
+      const serverCurrency = marketSettingsMap.get(vivaMarket)?.currency ?? getVivaCurrency(vivaMarket);
       if (currency && String(currency).toUpperCase() !== serverCurrency) {
         return res.status(400).json({ message: "Checkout currency does not match the current marketplace" });
       }
@@ -3969,16 +3945,13 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       };
       const baseUrl = baseUrlByMarket[vivaMarket] || baseUrlByMarket.ro;
 
-      const vivaOrderPayload: any = {
-        amount: finalAmountCents,
-        currencyCode: serverCurrency === "EUR" ? 978 : 946,
-        customerTrns: `xHACCP Order #${dbOrderId}`,
-        merchantTrns: `order_${dbOrderId}`,
-        allowRecurring: hasSubscription,
-        sourceCode: sourceCode,
-        successRedirectUrl: `${baseUrl}/api/payments/viva/callback`,
-        failureRedirectUrl: `${baseUrl}/api/payments/viva/callback`,
-      };
+      const vivaOrderPayload: any = buildVivaCheckoutPayload({
+        market: vivaMarket,
+        amountCents: finalAmountCents,
+        orderId: dbOrderId,
+        baseUrl,
+        hasSubscription,
+      });
 
       if (orderData?.shippingAddress?.email) {
         const countryName = (orderData.shippingAddress.country || '').toLowerCase();
