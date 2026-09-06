@@ -16,6 +16,8 @@ import {
   shippingSettings,
   vouchers,
   marketSettings,
+  marketingSegments,
+  marketingCampaigns,
   productMarkets,
   compositeProductComponents,
   type User,
@@ -55,6 +57,11 @@ import {
   type InsertVoucher,
   type MarketSettings,
   type InsertMarketSettings,
+  type MarketingSegment,
+  type InsertMarketingSegment,
+  type MarketingCampaign,
+  type InsertMarketingCampaign,
+  type MarketingSegmentCriteria,
   type ProductMarket,
   type InsertProductMarket,
   type CompositeProductComponent,
@@ -76,6 +83,10 @@ export interface AbandonedCartCandidate {
   lastName: string | null;
   market: string;
   cartUpdatedAt: Date;
+  cartAgeHours: number;
+  dueThreshold: number;
+  lastSentThreshold: number;
+  reminderHours: Array<number | null>;
   items: Array<{
     id: number;
     productId: number | null;
@@ -146,8 +157,8 @@ export interface IStorage {
   updateCartItem(id: number, userId: number, quantity: number, market?: string): Promise<CartItem | undefined>;
   removeFromCart(id: number, userId: number, market?: string): Promise<boolean>;
   clearCart(userId: number, market?: string): Promise<void>;
-  getAbandonedCartCandidates(cutoff: Date): Promise<AbandonedCartCandidate[]>;
-  markAbandonedCartReminderSent(userId: number, market: string, cartUpdatedAt: Date, sentAt?: Date): Promise<AbandonedCartReminder>;
+  getAbandonedCartCandidates(now: Date): Promise<AbandonedCartCandidate[]>;
+  markAbandonedCartReminderSent(userId: number, market: string, cartUpdatedAt: Date, threshold: number, sentAt?: Date): Promise<AbandonedCartReminder>;
 
   // Review operations
   getProductReviews(productId: number): Promise<Review[]>;
@@ -209,6 +220,18 @@ export interface IStorage {
   getMarketSetting(market: string): Promise<MarketSettings | undefined>;
   upsertMarketSettings(market: string, settings: Partial<InsertMarketSettings>): Promise<MarketSettings>;
   deleteMarketSettings(market: string): Promise<void>;
+
+  // Marketing operations
+  getMarketingSegments(market?: string): Promise<MarketingSegment[]>;
+  getMarketingSegment(id: number): Promise<MarketingSegment | undefined>;
+  createMarketingSegment(segment: InsertMarketingSegment): Promise<MarketingSegment>;
+  updateMarketingSegment(id: number, segment: Partial<InsertMarketingSegment>): Promise<MarketingSegment>;
+  deleteMarketingSegment(id: number): Promise<void>;
+  getMarketingCampaigns(market?: string): Promise<MarketingCampaign[]>;
+  getMarketingCampaign(id: number): Promise<MarketingCampaign | undefined>;
+  createMarketingCampaign(campaign: InsertMarketingCampaign): Promise<MarketingCampaign>;
+  updateMarketingCampaign(id: number, campaign: Partial<InsertMarketingCampaign>): Promise<MarketingCampaign>;
+  getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<User[]>;
 
   // Product market operations
   getProductMarkets(productId: number): Promise<ProductMarket[]>;
@@ -1019,7 +1042,7 @@ export class DatabaseStorage implements IStorage {
     ));
   }
 
-  async getAbandonedCartCandidates(cutoff: Date): Promise<AbandonedCartCandidate[]> {
+  async getAbandonedCartCandidates(now: Date): Promise<AbandonedCartCandidate[]> {
     const rows = await db.select({
       userId: users.id,
       email: users.email,
@@ -1038,6 +1061,8 @@ export class DatabaseStorage implements IStorage {
       marketCurrency: productMarkets.currency,
       reminderCartUpdatedAt: abandonedCartReminders.cartUpdatedAt,
       reminderLastSentAt: abandonedCartReminders.lastSentAt,
+      reminderLastSentThreshold: abandonedCartReminders.lastSentThreshold,
+      reminderHours: marketSettings.abandonedCartReminderHours,
     }).from(cartItems)
       .innerJoin(users, eq(cartItems.userId, users.id))
       .innerJoin(products, eq(cartItems.productId, products.id))
@@ -1049,10 +1074,11 @@ export class DatabaseStorage implements IStorage {
         eq(abandonedCartReminders.userId, users.id),
         eq(abandonedCartReminders.market, cartItems.market),
       ))
+      .leftJoin(marketSettings, eq(marketSettings.market, cartItems.market))
       .where(and(
         isNotNull(cartItems.userId),
         eq(users.emailNotifications, true),
-        lte(cartItems.updatedAt, cutoff),
+        lte(cartItems.updatedAt, now),
         notExists(
           db.select({ id: orders.id })
             .from(orders)
@@ -1071,14 +1097,14 @@ export class DatabaseStorage implements IStorage {
 
     const grouped = new Map<string, AbandonedCartCandidate>();
     for (const row of rows) {
-      const cartUpdatedAt = new Date(row.cartUpdatedAt ?? row.cartCreatedAt ?? cutoff);
-      const reminderSentAt = row.reminderLastSentAt ? new Date(row.reminderLastSentAt) : null;
-      if (reminderSentAt && reminderSentAt >= cartUpdatedAt) continue;
+      const cartUpdatedAt = new Date(row.cartUpdatedAt ?? row.cartCreatedAt ?? now);
 
       const market = row.market || "ro";
       const key = `${row.userId}:${market}`;
       let candidate = grouped.get(key);
       if (!candidate) {
+        const reminderCartUpdatedAt = row.reminderCartUpdatedAt ? new Date(row.reminderCartUpdatedAt) : null;
+        const sameSnapshot = Boolean(reminderCartUpdatedAt && reminderCartUpdatedAt >= cartUpdatedAt);
         candidate = {
           userId: row.userId,
           email: row.email,
@@ -1086,11 +1112,16 @@ export class DatabaseStorage implements IStorage {
           lastName: row.lastName,
           market,
           cartUpdatedAt,
+          cartAgeHours: Math.max(0, (now.getTime() - cartUpdatedAt.getTime()) / (60 * 60 * 1000)),
+          dueThreshold: 0,
+          reminderHours: Array.isArray(row.reminderHours) ? row.reminderHours : [24, null, null, null, null],
+          lastSentThreshold: sameSnapshot ? (row.reminderLastSentThreshold || 0) : 0,
           items: [],
         };
         grouped.set(key, candidate);
       } else if (cartUpdatedAt > candidate.cartUpdatedAt) {
         candidate.cartUpdatedAt = cartUpdatedAt;
+        candidate.cartAgeHours = Math.max(0, (now.getTime() - cartUpdatedAt.getTime()) / (60 * 60 * 1000));
       }
 
       candidate.items.push({
@@ -1104,20 +1135,33 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
-    return [...grouped.values()].filter(candidate => candidate.items.length > 0);
+    return [...grouped.values()].filter(candidate => {
+      if (candidate.items.length === 0) return false;
+      const nextThreshold = candidate.reminderHours.findIndex((hours, index) =>
+        index + 1 > candidate.lastSentThreshold &&
+        hours !== null &&
+        hours !== undefined &&
+        Number.isFinite(Number(hours)) &&
+        candidate.cartAgeHours >= Number(hours),
+      );
+      if (nextThreshold < 0) return false;
+      candidate.dueThreshold = nextThreshold + 1;
+      return true;
+    });
   }
 
   async markAbandonedCartReminderSent(
     userId: number,
     market: string,
     cartUpdatedAt: Date,
+    threshold: number,
     sentAt = new Date(),
   ): Promise<AbandonedCartReminder> {
     const [reminder] = await db.insert(abandonedCartReminders)
-      .values({ userId, market, cartUpdatedAt, lastSentAt: sentAt })
+      .values({ userId, market, cartUpdatedAt, lastSentAt: sentAt, lastSentThreshold: threshold })
       .onConflictDoUpdate({
         target: [abandonedCartReminders.userId, abandonedCartReminders.market],
-        set: { cartUpdatedAt, lastSentAt: sentAt, updatedAt: new Date() },
+        set: { cartUpdatedAt, lastSentAt: sentAt, lastSentThreshold: threshold, updatedAt: new Date() },
       })
       .returning();
     return reminder;
@@ -1722,13 +1766,13 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getMarketSetting(market);
     if (existing) {
       const [updated] = await db.update(marketSettings)
-        .set({ ...settings, updatedAt: new Date() })
+        .set({ ...settings, updatedAt: new Date() } as any)
         .where(eq(marketSettings.market, market))
         .returning();
       return updated;
     } else {
       const [created] = await db.insert(marketSettings)
-        .values({ market, label: settings.label || market, ...settings })
+        .values({ market, label: settings.label || market, ...settings } as any)
         .returning();
       return created;
     }
@@ -1736,6 +1780,101 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMarketSettings(market: string): Promise<void> {
     await db.delete(marketSettings).where(eq(marketSettings.market, market));
+  }
+
+  // Marketing operations
+  async getMarketingSegments(market?: string): Promise<MarketingSegment[]> {
+    return db.select().from(marketingSegments)
+      .where(market && market !== "all" ? eq(marketingSegments.market, market) : undefined)
+      .orderBy(desc(marketingSegments.createdAt));
+  }
+
+  async getMarketingSegment(id: number): Promise<MarketingSegment | undefined> {
+    const [segment] = await db.select().from(marketingSegments).where(eq(marketingSegments.id, id));
+    return segment;
+  }
+
+  async createMarketingSegment(segment: InsertMarketingSegment): Promise<MarketingSegment> {
+    const [created] = await db.insert(marketingSegments).values(segment).returning();
+    return created;
+  }
+
+  async updateMarketingSegment(id: number, segment: Partial<InsertMarketingSegment>): Promise<MarketingSegment> {
+    const [updated] = await db.update(marketingSegments)
+      .set({ ...segment, updatedAt: new Date() })
+      .where(eq(marketingSegments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteMarketingSegment(id: number): Promise<void> {
+    await db.delete(marketingSegments).where(eq(marketingSegments.id, id));
+  }
+
+  async getMarketingCampaigns(market?: string): Promise<MarketingCampaign[]> {
+    return db.select().from(marketingCampaigns)
+      .where(market && market !== "all" ? eq(marketingCampaigns.market, market) : undefined)
+      .orderBy(desc(marketingCampaigns.createdAt));
+  }
+
+  async getMarketingCampaign(id: number): Promise<MarketingCampaign | undefined> {
+    const [campaign] = await db.select().from(marketingCampaigns).where(eq(marketingCampaigns.id, id));
+    return campaign;
+  }
+
+  async createMarketingCampaign(campaign: InsertMarketingCampaign): Promise<MarketingCampaign> {
+    const [created] = await db.insert(marketingCampaigns).values(campaign).returning();
+    return created;
+  }
+
+  async updateMarketingCampaign(id: number, campaign: Partial<InsertMarketingCampaign>): Promise<MarketingCampaign> {
+    const [updated] = await db.update(marketingCampaigns)
+      .set({ ...campaign, updatedAt: new Date() })
+      .where(eq(marketingCampaigns.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<User[]> {
+    const allUsers = await this.getAllUsers();
+    const allOrders = await this.getOrders();
+    const cartRows = await db.select({
+      userId: cartItems.userId,
+      market: cartItems.market,
+    }).from(cartItems).where(isNotNull(cartItems.userId));
+
+    const ordersByUser = new Map<number, Set<string>>();
+    for (const order of allOrders) {
+      if (!order.userId) continue;
+      const markets = ordersByUser.get(order.userId) || new Set<string>();
+      markets.add(order.market || "ro");
+      ordersByUser.set(order.userId, markets);
+    }
+
+    const cartsByUser = new Map<number, Set<string>>();
+    for (const row of cartRows) {
+      if (!row.userId) continue;
+      const markets = cartsByUser.get(row.userId) || new Set<string>();
+      markets.add(row.market || "ro");
+      cartsByUser.set(row.userId, markets);
+    }
+
+    const targetMarket = criteria.market && criteria.market !== "all" ? criteria.market : null;
+    return allUsers.filter(user => {
+      // Marketing campaigns always require both communication preferences.
+      if (user.emailNotifications !== true || user.promotions !== true) return false;
+
+      const userOrders = ordersByUser.get(user.id) || new Set<string>();
+      const userCarts = cartsByUser.get(user.id) || new Set<string>();
+      const inMarket = !targetMarket || userOrders.has(targetMarket) || userCarts.has(targetMarket);
+      if (!inMarket) return false;
+
+      if (criteria.hasOrders === "yes" && (!targetMarket ? userOrders.size === 0 : !userOrders.has(targetMarket))) return false;
+      if (criteria.hasOrders === "no" && (targetMarket ? userOrders.has(targetMarket) : userOrders.size > 0)) return false;
+      if (criteria.hasAbandonedCart === "yes" && (!targetMarket ? userCarts.size === 0 : !userCarts.has(targetMarket))) return false;
+      if (criteria.hasAbandonedCart === "no" && (targetMarket ? userCarts.has(targetMarket) : userCarts.size > 0)) return false;
+      return true;
+    });
   }
 
   // Product market operations

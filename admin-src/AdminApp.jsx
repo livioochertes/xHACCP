@@ -447,6 +447,22 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [marketsData, setMarketsData] = useState({ro: null, fr: null, com: null});
       const [marketsLoading, setMarketsLoading] = useState(false);
       const [marketFilter, setMarketFilter] = useState('all');
+      const [marketingSegments, setMarketingSegments] = useState([]);
+      const [marketingCampaigns, setMarketingCampaigns] = useState([]);
+      const [marketingLoading, setMarketingLoading] = useState(false);
+      const [marketingSaving, setMarketingSaving] = useState(false);
+      const [marketingPreview, setMarketingPreview] = useState(null);
+      const [marketingSegmentForm, setMarketingSegmentForm] = useState({
+        name: '', hasOrders: 'any', hasAbandonedCart: 'any'
+      });
+      const [marketingCampaignForm, setMarketingCampaignForm] = useState({
+        name: '', market: 'ro', segmentId: '', subject: '', htmlContent: '', textContent: ''
+      });
+      const [reminderThresholds, setReminderThresholds] = useState({
+        ro: [24, null, null, null, null],
+        fr: [24, null, null, null, null],
+        com: [24, null, null, null, null]
+      });
       const [productMarketsMap, setProductMarketsMap] = useState({});
       const [editingProductMarkets, setEditingProductMarkets] = useState({ro: null, fr: null, com: null});
 
@@ -620,6 +636,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         else if (activeView === 'google-feed') fetchGoogleFeed();
         else if (activeView === 'invoices') { setInvoiceMarketFilter('all'); fetchInvoices(selectedMarketTab); fetchInvoiceCounters(); }
         else if (activeView === 'company-settings') { fetchCompanySettings(); fetchMarkets(); fetchInvoiceCounters(); }
+        else if (activeView === 'marketing') { fetchMarkets(); fetchMarketing(); }
       }, [selectedMarketTab]);
 
       // Refetch orders from server when market filter changes (server-side filtering)
@@ -1131,7 +1148,15 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           if (res.ok) {
             const data = await res.json();
             const map = { ro: null, fr: null, com: null };
-            data.forEach(m => { map[m.market] = m; });
+            data.forEach(m => {
+              map[m.market] = m;
+              if (Array.isArray(m.abandonedCartReminderHours)) {
+                setReminderThresholds(prev => ({
+                  ...prev,
+                  [m.market]: Array.from({length: 5}, (_, index) => m.abandonedCartReminderHours[index] ?? null)
+                }));
+              }
+            });
             setMarketsData(map);
           }
         } catch (err) {
@@ -1156,6 +1181,127 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           }
         } catch (err) {
           alert('❌ Eroare rețea: ' + err.message);
+        }
+      };
+
+      const fetchMarketing = async () => {
+        setMarketingLoading(true);
+        try {
+          const market = selectedMarketTab || 'all';
+          const [segmentsRes, campaignsRes] = await Promise.all([
+            fetch(`/admin/api/marketing/segments?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } })
+          ]);
+          if (segmentsRes.ok) setMarketingSegments(await segmentsRes.json());
+          if (campaignsRes.ok) setMarketingCampaigns(await campaignsRes.json());
+        } catch (err) {
+          console.error('Error fetching marketing data:', err);
+          alert('Nu s-au putut încărca setările de marketing.');
+        } finally {
+          setMarketingLoading(false);
+        }
+      };
+
+      const saveReminderThresholds = async (market) => {
+        setMarketingSaving(true);
+        try {
+          const res = await fetch(`/admin/api/markets/${market}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ abandonedCartReminderHours: reminderThresholds[market] })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Nu s-au putut salva pragurile.');
+          setReminderThresholds(prev => ({
+            ...prev,
+            [market]: Array.from({length: 5}, (_, index) => data.abandonedCartReminderHours?.[index] ?? null)
+          }));
+          alert(`✅ Pragurile pentru .${market} au fost salvate.`);
+          fetchMarkets();
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+        } finally {
+          setMarketingSaving(false);
+        }
+      };
+
+      const createMarketingSegment = async () => {
+        if (!marketingSegmentForm.name.trim()) return alert('Introdu un nume pentru segment.');
+        const market = selectedMarketTab || 'all';
+        try {
+          const res = await fetch('/admin/api/marketing/segments', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: marketingSegmentForm.name,
+              market,
+              criteria: {
+                market,
+                hasOrders: marketingSegmentForm.hasOrders,
+                hasAbandonedCart: marketingSegmentForm.hasAbandonedCart
+              }
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Segmentul nu a putut fi creat.');
+          setMarketingSegmentForm({name: '', hasOrders: 'any', hasAbandonedCart: 'any'});
+          fetchMarketing();
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+        }
+      };
+
+      const previewMarketingSegment = async (segment) => {
+        try {
+          const res = await fetch(`/admin/api/marketing/segments/${segment.id}/recipients`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Preview indisponibil.');
+          setMarketingPreview({segment, ...data});
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+        }
+      };
+
+      const createMarketingCampaign = async () => {
+        const form = marketingCampaignForm;
+        if (!form.name.trim() || !form.segmentId || !form.subject.trim() || !form.htmlContent.trim()) {
+          return alert('Completează numele, segmentul, subiectul și HTML-ul campaniei.');
+        }
+        try {
+          const res = await fetch('/admin/api/marketing/campaigns', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(form)
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Campania nu a putut fi creată.');
+          setMarketingCampaignForm({name: '', market: form.market, segmentId: '', subject: '', htmlContent: '', textContent: ''});
+          fetchMarketing();
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+        }
+      };
+
+      const sendMarketingCampaign = async (campaign) => {
+        try {
+          const previewRes = await fetch(`/admin/api/marketing/segments/${campaign.segmentId}/recipients`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const preview = await previewRes.json();
+          if (!previewRes.ok) throw new Error(preview.message || 'Nu s-a putut calcula numărul de destinatari.');
+          if (!window.confirm(`Trimiți campania „${campaign.name}” către ${preview.count} destinatari eligibili? Trimiterea nu poate fi anulată.`)) return;
+          const res = await fetch(`/admin/api/marketing/campaigns/${campaign.id}/send`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Campania nu a putut fi trimisă.');
+          alert(`✅ Campanie trimisă: ${data.sentCount} reușite, ${data.failedCount} eșuate.`);
+          fetchMarketing();
+        } catch (err) {
+          alert(`❌ ${err.message}`);
         }
       };
 
@@ -2363,6 +2509,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         } else if (view === 'company-settings') {
           fetchCompanySettings();
           fetchMarkets();
+        } else if (view === 'marketing') {
+          fetchMarkets();
+          fetchMarketing();
         } else if (view === 'vouchers') {
           fetchVouchers();
         } else if (view === 'blog') {
@@ -4462,6 +4611,109 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               </div>
             );
           }
+
+          case 'marketing':
+            return (
+              <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px', flexWrap: 'wrap'}}>
+                  <div>
+                    <h3 style={{color: '#333', margin: '0 0 6px'}}>📣 Marketing și remarketing</h3>
+                    <p style={{margin: 0, color: '#6c757d', fontSize: '13px'}}>Configurează reminderele pe marketplace și trimite campanii prin SendGrid.</p>
+                  </div>
+                  <button onClick={() => { fetchMarkets(); fetchMarketing(); }} style={{background: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', padding: '9px 14px', cursor: 'pointer'}}>↻ Reîncarcă</button>
+                </div>
+
+                <section style={{background: '#f0f7ff', border: '1px solid #b8d7ff', borderRadius: '8px', padding: '20px', marginBottom: '24px'}}>
+                  <h4 style={{margin: '0 0 6px', color: '#145da0'}}>⏱️ Praguri abandoned-cart</h4>
+                  <p style={{fontSize: '13px', color: '#495057', margin: '0 0 16px'}}>
+                    Pragurile sunt numărul de ore de la ultima modificare a coșului. Lasă un câmp gol pentru a dezactiva reminderul respectiv. Valorile trebuie să fie strict crescătoare.
+                  </p>
+                  {['ro', 'fr', 'com'].filter(m => selectedMarketTab === 'all' || selectedMarketTab === m).map(market => (
+                    <div key={market} style={{background: 'white', border: '1px solid #dee2e6', borderRadius: '6px', padding: '14px', marginBottom: '12px'}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px'}}>
+                        <strong style={{color: '#333'}}>.{market}</strong>
+                        <button
+                          onClick={() => saveReminderThresholds(market)}
+                          disabled={marketingSaving}
+                          style={{background: marketingSaving ? '#adb5bd' : '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 12px', cursor: marketingSaving ? 'not-allowed' : 'pointer', fontSize: '12px'}}
+                        >💾 Salvează pragurile</button>
+                      </div>
+                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, minmax(90px, 1fr))', gap: '8px'}}>
+                        {(reminderThresholds[market] || [null, null, null, null, null]).map((value, index) => (
+                          <label key={index} style={{fontSize: '11px', color: '#6c757d'}}>
+                            Reminder {index + 1}
+                            <input
+                              type="number"
+                              min="1"
+                              max="8760"
+                              value={value ?? ''}
+                              placeholder="oprit"
+                              onChange={e => {
+                                const next = e.target.value === '' ? null : Number(e.target.value);
+                                setReminderThresholds(prev => ({...prev, [market]: prev[market].map((item, i) => i === index ? next : item)}));
+                              }}
+                              style={{display: 'block', width: '100%', boxSizing: 'border-box', marginTop: '4px', padding: '7px', border: '1px solid #ced4da', borderRadius: '4px'}}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </section>
+
+                <section style={{background: '#fffaf0', border: '1px solid #ffe0a3', borderRadius: '8px', padding: '20px', marginBottom: '24px'}}>
+                  <h4 style={{margin: '0 0 6px', color: '#856404'}}>👥 Segmente de destinatari</h4>
+                  <p style={{fontSize: '13px', color: '#6c757d', margin: '0 0 16px'}}>Sunt incluși numai utilizatorii care au activat atât notificările email, cât și promoțiile.</p>
+                  <div style={{display: 'grid', gridTemplateColumns: 'minmax(180px, 1.4fr) repeat(2, minmax(140px, 1fr)) auto', gap: '8px', alignItems: 'end', marginBottom: '16px'}}>
+                    <label style={{fontSize: '12px', color: '#495057'}}>Nume segment<input value={marketingSegmentForm.name} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, name: e.target.value})} placeholder="Ex. Clienți fără comandă" style={{display: 'block', width: '100%', boxSizing: 'border-box', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} /></label>
+                    <label style={{fontSize: '12px', color: '#495057'}}>Comenzi<select value={marketingSegmentForm.hasOrders} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, hasOrders: e.target.value})} style={{display: 'block', width: '100%', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="any">Oricare</option><option value="yes">Cu comenzi</option><option value="no">Fără comenzi</option></select></label>
+                    <label style={{fontSize: '12px', color: '#495057'}}>Coș abandonat<select value={marketingSegmentForm.hasAbandonedCart} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, hasAbandonedCart: e.target.value})} style={{display: 'block', width: '100%', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="any">Oricare</option><option value="yes">Cu coș</option><option value="no">Fără coș</option></select></label>
+                    <button onClick={createMarketingSegment} style={{background: '#198754', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 12px', cursor: 'pointer'}}>+ Creează</button>
+                  </div>
+                  {marketingLoading ? <p style={{color: '#6c757d'}}>Se încarcă...</p> : marketingSegments.length === 0 ? <p style={{color: '#6c757d', fontSize: '13px'}}>Nu există segmente.</p> : (
+                    <div style={{display: 'grid', gap: '8px'}}>
+                      {marketingSegments.map(segment => (
+                        <div key={segment.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', border: '1px solid #dee2e6', borderRadius: '5px', padding: '10px 12px', flexWrap: 'wrap'}}>
+                          <div><strong>{segment.name}</strong><span style={{marginLeft: '8px', fontSize: '11px', color: '#6c757d'}}>.{segment.market} · {segment.criteria?.hasOrders || 'any'} comenzi · {segment.criteria?.hasAbandonedCart || 'any'} coș</span></div>
+                          <div style={{display: 'flex', gap: '6px'}}>
+                            <button onClick={() => previewMarketingSegment(segment)} style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 9px', cursor: 'pointer', fontSize: '12px'}}>Preview destinatari</button>
+                            <button onClick={async () => { if (!window.confirm('Ștergi acest segment?')) return; await fetch(`/admin/api/marketing/segments/${segment.id}`, {method: 'DELETE', headers: {'Authorization': `Bearer ${token}`}}); fetchMarketing(); }} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 9px', cursor: 'pointer', fontSize: '12px'}}>Șterge</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {marketingPreview && (
+                    <div style={{marginTop: '14px', background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: '5px', padding: '12px', fontSize: '13px'}}>
+                      <strong>{marketingPreview.segment.name}: {marketingPreview.count} destinatari eligibili</strong>
+                      <div style={{marginTop: '6px', color: '#495057', maxHeight: '80px', overflow: 'auto'}}>{marketingPreview.recipients?.slice(0, 20).map(user => user.email).join(', ') || 'Nu există destinatari.'}</div>
+                    </div>
+                  )}
+                </section>
+
+                <section style={{background: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '8px', padding: '20px'}}>
+                  <h4 style={{margin: '0 0 6px', color: '#333'}}>✉️ Campanii SendGrid</h4>
+                  <p style={{fontSize: '13px', color: '#6c757d', margin: '0 0 16px'}}>Crearea salvează o ciornă. Trimiterea se face separat, prin confirmare explicită.</p>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))', gap: '8px', marginBottom: '8px'}}>
+                    <input value={marketingCampaignForm.name} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, name: e.target.value})} placeholder="Nume campanie" style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} />
+                    <select value={marketingCampaignForm.market} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, market: e.target.value, segmentId: ''})} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}>{['ro', 'fr', 'com'].filter(m => selectedMarketTab === 'all' || selectedMarketTab === m).map(m => <option key={m} value={m}>Marketplace .{m}</option>)}</select>
+                    <select value={marketingCampaignForm.segmentId} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, segmentId: e.target.value})} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="">Alege segmentul</option>{marketingSegments.filter(s => s.market === 'all' || s.market === marketingCampaignForm.market).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+                    <input value={marketingCampaignForm.subject} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, subject: e.target.value})} placeholder="Subiect email" style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} />
+                  </div>
+                  <textarea value={marketingCampaignForm.htmlContent} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, htmlContent: e.target.value})} placeholder="<h1>Conținut HTML</h1>" rows="5" style={{width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px', fontFamily: 'monospace', marginBottom: '8px'}} />
+                  <textarea value={marketingCampaignForm.textContent} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, textContent: e.target.value})} placeholder="Versiune text (opțional)" rows="3" style={{width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px', marginBottom: '8px'}} />
+                  <button onClick={createMarketingCampaign} style={{background: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 14px', cursor: 'pointer'}}>Salvează ciorna</button>
+                  <div style={{marginTop: '18px', display: 'grid', gap: '8px'}}>
+                    {marketingCampaigns.map(campaign => (
+                      <div key={campaign.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #dee2e6', background: 'white', borderRadius: '5px', padding: '10px 12px', gap: '12px', flexWrap: 'wrap'}}>
+                        <div><strong>{campaign.name}</strong><div style={{fontSize: '12px', color: '#6c757d'}}>.{campaign.market} · {campaign.subject} · {campaign.status} · {campaign.sentCount || 0}/{campaign.recipientCount || 0}</div></div>
+                        {campaign.status !== 'sent' && campaign.status !== 'sending' && <button onClick={() => sendMarketingCampaign(campaign)} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}>Trimite campania</button>}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            );
 
           case 'company-settings':
             return (
@@ -11852,6 +12104,13 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
             >
               <span style={{fontSize: '18px'}}>⚙️</span>
               <span style={{fontSize: '12px'}}>{t('nav.companySettings')}</span>
+            </button>
+            <button
+              className={`nav-tab ${activeView === 'marketing' ? 'active' : ''}`}
+              onClick={() => handleViewChange('marketing')}
+            >
+              <span style={{fontSize: '18px'}}>📣</span>
+              <span style={{fontSize: '12px'}}>Marketing</span>
             </button>
           </div>
           

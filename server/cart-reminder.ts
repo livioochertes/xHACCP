@@ -136,6 +136,7 @@ export async function sendAbandonedCartReminder(candidate: AbandonedCartCandidat
       candidate.userId,
       candidate.market,
       candidate.cartUpdatedAt,
+      candidate.dueThreshold,
     );
   }
   return sent;
@@ -147,8 +148,7 @@ export async function runAbandonedCartReminders(now = new Date()): Promise<{ eli
   if (reminderRunInProgress) return { eligible: 0, sent: 0 };
   reminderRunInProgress = true;
   try {
-    const cutoff = new Date(now.getTime() - REMINDER_DELAY_MS);
-    const candidates = await storage.getAbandonedCartCandidates(cutoff);
+    const candidates = await storage.getAbandonedCartCandidates(now);
     let sent = 0;
     for (const candidate of candidates) {
       try {
@@ -157,7 +157,7 @@ export async function runAbandonedCartReminders(now = new Date()): Promise<{ eli
         console.error(`[Cart Reminder] Failed for user ${candidate.userId}/${candidate.market}:`, error);
       }
     }
-    console.log(`[Cart Reminder] Checked ${candidates.length} eligible cart(s), sent ${sent}.`);
+    console.log(`[Cart Reminder] Checked ${candidates.length} eligible threshold(s), sent ${sent}.`);
     return { eligible: candidates.length, sent };
   } finally {
     reminderRunInProgress = false;
@@ -169,5 +169,5 @@ export function startCartReminderScheduler(): void {
   setInterval(() => {
     void runAbandonedCartReminders();
   }, REMINDER_INTERVAL_MS);
-  console.log("[Cart Reminder] Scheduler started — hourly, after 24h cart inactivity.");
+  console.log("[Cart Reminder] Scheduler started — hourly, using market-specific thresholds.");
 }

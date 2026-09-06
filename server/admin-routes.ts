@@ -24,6 +24,7 @@ import {
   saveGoogleMerchantFeed,
   type MerchantMarket,
 } from "./google-merchant-feed";
+import { getSenderForMarket, sendEmail } from "./email-service";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -238,9 +239,36 @@ interface AdminAuthRequest extends Request {
 }
 
 // Market access helper — superadmin (empty adminMarkets) can access all markets
-function canAccessMarket(req: AdminAuthRequest, market: string): boolean {
+export function canAccessMarket(req: AdminAuthRequest, market: string): boolean {
   const allowed = req.adminMarkets || [];
   return allowed.length === 0 || allowed.includes(market);
+}
+
+function isSupportedMarketingMarket(market: unknown): market is "all" | "ro" | "fr" | "com" {
+  return market === "all" || market === "ro" || market === "fr" || market === "com";
+}
+
+function normalizeReminderHours(value: unknown): Array<number | null> {
+  if (!Array.isArray(value) || value.length !== 5) {
+    throw new Error("abandonedCartReminderHours must contain exactly five values");
+  }
+  const result = value.map(entry => {
+    if (entry === null || entry === undefined || entry === "") return null;
+    const parsed = Number(entry);
+    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 8760) {
+      throw new Error("Reminder thresholds must be blank or between 1 and 8760 hours");
+    }
+    return Math.round(parsed);
+  });
+  let previous: number | null = null;
+  for (const hours of result) {
+    if (hours === null) continue;
+    if (previous !== null && hours <= previous) {
+      throw new Error("Reminder thresholds must be strictly increasing");
+    }
+    previous = hours;
+  }
+  return result;
 }
 
 async function canAccessProductForMarket(
@@ -258,7 +286,7 @@ async function canAccessProductForMarket(
 }
 
 // Admin authentication middleware
-const authenticateAdmin = async (req: AdminAuthRequest, res: Response, next: NextFunction) => {
+export const authenticateAdmin = async (req: AdminAuthRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader?.replace("Bearer ", "");
@@ -6038,6 +6066,9 @@ export async function registerAdminRoutes(app: Express) {
       if (!canAccessMarket(req, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
+      if ("abandonedCartReminderHours" in rest) {
+        rest.abandonedCartReminderHours = normalizeReminderHours(rest.abandonedCartReminderHours);
+      }
       const ms = await storage.upsertMarketSettings(market, rest);
       refreshMarketCaches().catch(console.error);
       res.json(ms);
@@ -6051,6 +6082,9 @@ export async function registerAdminRoutes(app: Express) {
     try {
       if (!canAccessMarket(req, req.params.market)) {
         return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if ("abandonedCartReminderHours" in req.body) {
+        req.body.abandonedCartReminderHours = normalizeReminderHours(req.body.abandonedCartReminderHours);
       }
       const ms = await storage.upsertMarketSettings(req.params.market, req.body);
       refreshMarketCaches().catch(console.error);
@@ -6092,6 +6126,9 @@ export async function registerAdminRoutes(app: Express) {
     try {
       if (!canAccessMarket(req, req.params.market)) {
         return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if ("abandonedCartReminderHours" in req.body) {
+        req.body.abandonedCartReminderHours = normalizeReminderHours(req.body.abandonedCartReminderHours);
       }
       const ms = await storage.upsertMarketSettings(req.params.market, req.body);
       refreshMarketCaches().catch(console.error);

@@ -153,10 +153,53 @@ export const marketSettings = pgTable("market_settings", {
   vatPercentage: decimal("default_vat_percentage", { precision: 5, scale: 2 }).default("19.00"),
   freeShippingThreshold: decimal("free_shipping_threshold", { precision: 10, scale: 2 }).default("1000.00"),
   standardShippingCost: decimal("standard_shipping_cost", { precision: 10, scale: 2 }).default("35.00"),
+  // Up to five optional abandoned-cart reminder thresholds, expressed in
+  // hours after the cart/checkout flow was last changed. Null means disabled.
+  abandonedCartReminderHours: jsonb("abandoned_cart_reminder_hours")
+    .$type<Array<number | null>>()
+    .default([24, null, null, null, null]),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export type MarketingSegmentCriteria = {
+  market?: "all" | "ro" | "fr" | "com";
+  hasOrders?: "any" | "yes" | "no";
+  hasAbandonedCart?: "any" | "yes" | "no";
+};
+
+export const marketingSegments = pgTable("marketing_segments", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 160 }).notNull(),
+  market: varchar("market", { length: 10 }).notNull().default("all"),
+  criteria: jsonb("criteria").$type<MarketingSegmentCriteria>().notNull().default({}),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  marketingSegmentMarketIdx: index("marketing_segments_market_idx").on(table.market),
+}));
+
+export const marketingCampaigns = pgTable("marketing_campaigns", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 160 }).notNull(),
+  market: varchar("market", { length: 10 }).notNull(),
+  segmentId: integer("segment_id").references(() => marketingSegments.id, { onDelete: "set null" }),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  htmlContent: text("html_content").notNull(),
+  textContent: text("text_content"),
+  status: varchar("status", { length: 30 }).notNull().default("draft"),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  sentCount: integer("sent_count").notNull().default(0),
+  failedCount: integer("failed_count").notNull().default(0),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  sentAt: timestamp("sent_at"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  marketingCampaignMarketIdx: index("marketing_campaigns_market_idx").on(table.market),
+}));
 
 // Product markets table — which products are available in which markets + optional overrides
 export const productMarkets = pgTable("product_markets", {
@@ -283,6 +326,9 @@ export const abandonedCartReminders = pgTable("abandoned_cart_reminders", {
   market: varchar("market", { length: 10 }).notNull(),
   cartUpdatedAt: timestamp("cart_updated_at").notNull(),
   lastSentAt: timestamp("last_sent_at").notNull(),
+  // Existing one-reminder records predate the five-threshold model, so they
+  // represent the first reminder after the migration.
+  lastSentThreshold: integer("last_sent_threshold").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
@@ -724,6 +770,10 @@ export type Voucher = typeof vouchers.$inferSelect;
 export type InsertVoucher = z.infer<typeof insertVoucherSchema>;
 export type MarketSettings = typeof marketSettings.$inferSelect;
 export type InsertMarketSettings = z.infer<typeof insertMarketSettingsSchema>;
+export type MarketingSegment = typeof marketingSegments.$inferSelect;
+export type InsertMarketingSegment = typeof marketingSegments.$inferInsert;
+export type MarketingCampaign = typeof marketingCampaigns.$inferSelect;
+export type InsertMarketingCampaign = typeof marketingCampaigns.$inferInsert;
 export type ProductMarket = typeof productMarkets.$inferSelect;
 export type InsertProductMarket = z.infer<typeof insertProductMarketsSchema>;
 export type GoogleMerchantFeed = typeof googleMerchantFeeds.$inferSelect;
