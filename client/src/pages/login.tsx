@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Eye, EyeOff } from "lucide-react";
@@ -99,6 +100,10 @@ export default function Login() {
   }, []);
 
   const handleSocialLogin = (provider: 'google' | 'apple') => {
+    trackEvent("social_login_started", {
+      provider,
+      market: getMarketFromHostname(),
+    });
     window.location.href = `/api/auth/${provider}`;
   };
 
@@ -135,6 +140,10 @@ export default function Login() {
     },
     onSuccess: async (data) => {
       await login(data.token, data.user);
+      trackEvent("login_completed", {
+        method: "password",
+        market: getMarketFromHostname(),
+      });
       toast({
         title: t('auth.welcomeBack'),
         description: t('auth.loginSuccess'),
@@ -157,6 +166,10 @@ export default function Login() {
     },
     onSuccess: async (data) => {
       await login(data.token, data.user);
+      trackEvent("registration_completed", {
+        method: "password",
+        market: getMarketFromHostname(),
+      });
       toast({
         title: t('auth.accountCreated'),
         description: t('auth.accountCreatedDesc'),

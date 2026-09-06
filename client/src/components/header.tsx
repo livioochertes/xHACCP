@@ -10,6 +10,8 @@ import { useCart } from "@/hooks/use-cart";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/hooks/useTranslation";
+import { getMarketFromHostname } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 import LanguageSwitcher from "@/components/language-switcher";
 import ContactModal from "@/components/contact-modal";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
@@ -64,9 +66,14 @@ export default function Header() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
+    const query = searchQuery.trim();
+    if (!query) return;
+    trackEvent("search_submitted", {
+      query_length: query.length,
+      location: "header",
+      market: getMarketFromHostname(),
+    });
+    navigate(`/products?search=${encodeURIComponent(query)}`);
   };
 
   const closeMobileAndDispatch = (href?: string) => {

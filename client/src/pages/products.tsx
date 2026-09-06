@@ -12,6 +12,8 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { usePageSeo } from "@/lib/use-page-seo";
 import { toSeoText } from "@/lib/seo-utils";
 import { getPublicCategorySlug } from "@/lib/category-slugs";
+import { getMarketFromHostname } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 
 import ProductCard, { ProductListItem } from "@/components/product-card";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
@@ -178,7 +180,15 @@ export default function Products() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
-    const newSearch = formData.get("search") as string;
+    const newSearch = (formData.get("search") as string || "").trim();
+    if (newSearch) {
+      trackEvent("search_submitted", {
+        query_length: newSearch.length,
+        has_category: Boolean(selectedCategory),
+        location: "products",
+        market: getMarketFromHostname(),
+      });
+    }
     const params = new URLSearchParams();
     if (newSearch) params.set("search", newSearch);
     if (selectedCategory) params.set("category", selectedCategory);

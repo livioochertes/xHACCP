@@ -13,6 +13,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useTranslation } from '@/hooks/useTranslation';
+import { getMarketFromHostname } from '@/lib/queryClient';
+import { trackEvent } from '@/lib/analytics';
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -72,6 +74,10 @@ export default function ContactModal({
       const result = await response.json();
       
       if (result.success) {
+        trackEvent('contact_form_submitted', {
+          category: data.category,
+          market: getMarketFromHostname(),
+        });
         toast({
           title: t('contact.successTitle') || 'Message Sent',
           description: t('contact.successDesc') || 'Thank you for contacting us. We will get back to you within 24 hours.',

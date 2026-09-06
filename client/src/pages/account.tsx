@@ -21,6 +21,7 @@ import { format } from "date-fns";
 
 import { useLocation } from "wouter";
 import { useTranslation } from "@/hooks/useTranslation";
+import { trackEvent } from "@/lib/analytics";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getCountyOptions, getCitiesForCounty, getCountryOptions, romanianCounties } from "@/utils/location-data";
 
@@ -116,6 +117,9 @@ export default function Account() {
       return response.json();
     },
     onSuccess: () => {
+      trackEvent("subscription_cancelled", {
+        market: getMarketFromHostname(),
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/account/subscriptions"] });
       toast({ title: "Subscription canceled", description: "Future renewals have been stopped." });
     },

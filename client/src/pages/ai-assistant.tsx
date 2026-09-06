@@ -8,6 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { getMarketFromHostname } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/contexts/language-context";
 
@@ -198,6 +200,9 @@ export default function AIAssistant() {
         setIsConnected(true);
         setSessionId(data.sessionId);
         setCapabilities(data.capabilities || []);
+        trackEvent("ai_assistant_connected", {
+          market: getMarketFromHostname(),
+        });
         
         toast({
           title: t('ai.connectionSuccess'),
@@ -266,8 +271,20 @@ export default function AIAssistant() {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      trackEvent("ai_message_sent", {
+        message_length: userMessage.text.length,
+        language,
+        market: getMarketFromHostname(),
+        response_status: "success",
+      });
     } catch (error) {
       console.error("Chat error:", error);
+      trackEvent("ai_message_sent", {
+        message_length: userMessage.text.length,
+        language,
+        market: getMarketFromHostname(),
+        response_status: "failed",
+      });
       
       // Add error message to chat instead of just toast
       const errorMessage: Message = {

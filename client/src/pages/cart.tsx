@@ -12,6 +12,7 @@ import { getVolumePrice } from "@/lib/volume-price";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
+import { trackEvent } from "@/lib/analytics";
 
 export default function Cart() {
   const { cart, updateQuantity, removeFromCart, clearCart, isLoading } = useCart();
@@ -63,6 +64,12 @@ export default function Cart() {
   };
 
   const handleRemoveItem = (itemId: number, productName: string) => {
+    const item = validCart.find(cartItem => cartItem.id === itemId);
+    trackEvent("cart_item_removed", {
+      product_id: item?.productId || 0,
+      quantity: item?.quantity || 0,
+      market: getMarketFromHostname(),
+    });
     removeFromCart(itemId);
     toast({
       title: t('cart.removedFromCart'),
@@ -71,6 +78,12 @@ export default function Cart() {
   };
 
   const handleClearCart = () => {
+    trackEvent("cart_cleared", {
+      item_count: validCart.reduce((count, item) => count + item.quantity, 0),
+      value: Number(total.toFixed(2)),
+      currency: cartCurrency,
+      market: getMarketFromHostname(),
+    });
     clearCart();
     toast({
       title: t('cart.cartCleared'),

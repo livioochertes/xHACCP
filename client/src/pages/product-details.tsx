@@ -301,6 +301,11 @@ export default function ProductDetails() {
       await queryClient.invalidateQueries({ queryKey: [reviewsQueryKey] });
       setReviewRating(0);
       setReviewComment("");
+      trackEvent("review_submitted", {
+        product_id: product.id,
+        rating: reviewRating,
+        market: getMarketFromHostname(),
+      });
       toast({ title: t('messages.reviewSubmitted') });
     } catch (error) {
       console.error("Submit review error:", error);
