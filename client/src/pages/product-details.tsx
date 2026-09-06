@@ -19,7 +19,7 @@ import ContactModal from "@/components/contact-modal";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { formatPrice } from "@/lib/utils";
-import { getMarketFromHostname } from "@/lib/queryClient";
+import { getMarketFromHostname, getProductReviewsQueryKey } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { getSortedTiers, getActiveTier, getVolumePrice } from "@/lib/volume-price";
@@ -76,9 +76,7 @@ export default function ProductDetails() {
     });
   }, [product]);
 
-  const reviewsQueryKey = product?.id
-    ? `/api/products/${product.id}/reviews`
-    : "/api/products/0/reviews";
+  const reviewsQueryKey = getProductReviewsQueryKey(product?.id || 0);
   const { data: reviews = [], isLoading: reviewsLoading, isError: reviewsError } = useQuery<Review[]>({
     queryKey: [reviewsQueryKey],
     enabled: !!product?.id,

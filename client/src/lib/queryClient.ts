@@ -19,6 +19,10 @@ export function getMarketFromHostname(): string {
   }
 }
 
+export function getProductReviewsQueryKey(productId: number): string {
+  return `/api/products/${productId}/reviews`;
+}
+
 export async function apiRequest(
   method: string,
   url: string,

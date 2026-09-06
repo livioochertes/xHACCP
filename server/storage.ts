@@ -74,6 +74,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { compositeConfigurationKey } from "./composite-products";
+import { filterPublicReviews } from "./review-validation";
 import { eq, desc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, notExists } from "drizzle-orm";
 
 export interface AbandonedCartCandidate {
@@ -1169,7 +1170,7 @@ export class DatabaseStorage implements IStorage {
 
   // Review operations
   async getProductReviews(productId: number): Promise<Review[]> {
-    return await db
+    const productReviews = await db
       .select({
         id: reviews.id,
         productId: reviews.productId,
@@ -1191,6 +1192,8 @@ export class DatabaseStorage implements IStorage {
         sql`btrim(coalesce(${reviews.comment}, '')) <> ''`,
       ))
       .orderBy(desc(reviews.createdAt));
+
+    return filterPublicReviews(productReviews);
   }
 
   async createReview(review: InsertReview): Promise<Review> {
