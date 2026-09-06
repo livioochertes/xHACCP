@@ -11,6 +11,7 @@ import { backfillTranslationSlugs } from "./storage";
 import { logR2Status } from "./r2-storage";
 import { startBlogScheduler } from "./blog-scheduler";
 import { startGoogleMerchantFeedScheduler } from "./google-merchant-feed";
+import { startCartReminderScheduler } from "./cart-reminder";
 import { startDbKeepAlive } from "./db";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -136,6 +137,7 @@ app.use((req, res, next) => {
   // Rebuild enabled Google Merchant Center feeds every hour so availability
   // and prices stay aligned with the latest marketplace data.
   startGoogleMerchantFeedScheduler();
+  startCartReminderScheduler();
 
   // ── Startup recovery: stale manual_processing orders ─────────────────────
   // If the process was killed while a manual background job was running, the

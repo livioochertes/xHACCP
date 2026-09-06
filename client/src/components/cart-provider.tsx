@@ -133,7 +133,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           if (existingItem) {
             newCart = prev.map(item =>
               item.id === existingItem.id
-                ? { ...item, quantity: item.quantity + guestData.quantity }
+                ? { ...item, quantity: item.quantity + guestData.quantity, updatedAt: new Date() }
                 : item
             );
           } else {
@@ -145,6 +145,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               quantity: guestData.quantity,
               compositeConfiguration: guestData.compositeConfiguration || null,
               createdAt: new Date(),
+              updatedAt: new Date(),
               product: guestData.product
             }];
           }

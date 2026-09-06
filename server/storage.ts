@@ -7,6 +7,7 @@ import {
   orders,
   orderItems,
   cartItems,
+  abandonedCartReminders,
   reviews,
   suppliers,
   invoices,
@@ -36,6 +37,7 @@ import {
   type CartItem,
   type InsertCartItem,
   type CartItemWithProduct,
+  type AbandonedCartReminder,
   type Review,
   type InsertReview,
   type Supplier,
@@ -65,7 +67,25 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { compositeConfigurationKey } from "./composite-products";
-import { eq, desc, like, and, or, sql, inArray, isNull, ne } from "drizzle-orm";
+import { eq, desc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, notExists } from "drizzle-orm";
+
+export interface AbandonedCartCandidate {
+  userId: number;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  market: string;
+  cartUpdatedAt: Date;
+  items: Array<{
+    id: number;
+    productId: number | null;
+    quantity: number;
+    compositeConfiguration: any;
+    productName: string;
+    price: string;
+    currency: string;
+  }>;
+}
 
 export interface IStorage {
   // User operations
@@ -126,6 +146,8 @@ export interface IStorage {
   updateCartItem(id: number, userId: number, quantity: number, market?: string): Promise<CartItem | undefined>;
   removeFromCart(id: number, userId: number, market?: string): Promise<boolean>;
   clearCart(userId: number, market?: string): Promise<void>;
+  getAbandonedCartCandidates(cutoff: Date): Promise<AbandonedCartCandidate[]>;
+  markAbandonedCartReminderSent(userId: number, market: string, cartUpdatedAt: Date, sentAt?: Date): Promise<AbandonedCartReminder>;
 
   // Review operations
   getProductReviews(productId: number): Promise<Review[]>;
@@ -918,9 +940,11 @@ export class DatabaseStorage implements IStorage {
         id: cartItems.id,
         userId: cartItems.userId,
         productId: cartItems.productId,
+        market: cartItems.market,
         quantity: cartItems.quantity,
         compositeConfiguration: cartItems.compositeConfiguration,
         createdAt: cartItems.createdAt,
+        updatedAt: cartItems.updatedAt,
         product: products,
       })
       .from(cartItems)
@@ -953,7 +977,7 @@ export class DatabaseStorage implements IStorage {
       // Update quantity if item exists
       const [updatedItem] = await db
         .update(cartItems)
-        .set({ quantity: existingItem.quantity + item.quantity })
+        .set({ quantity: existingItem.quantity + item.quantity, updatedAt: new Date() })
         .where(eq(cartItems.id, existingItem.id))
         .returning();
       return updatedItem;
@@ -967,7 +991,7 @@ export class DatabaseStorage implements IStorage {
   async updateCartItem(id: number, userId: number, quantity: number, market?: string): Promise<CartItem | undefined> {
     const [updatedItem] = await db
       .update(cartItems)
-      .set({ quantity })
+      .set({ quantity, updatedAt: new Date() })
       .where(and(
         eq(cartItems.id, id),
         eq(cartItems.userId, userId),
@@ -993,6 +1017,110 @@ export class DatabaseStorage implements IStorage {
       eq(cartItems.userId, userId),
       ...(market ? [eq(cartItems.market, market)] : []),
     ));
+  }
+
+  async getAbandonedCartCandidates(cutoff: Date): Promise<AbandonedCartCandidate[]> {
+    const rows = await db.select({
+      userId: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      market: cartItems.market,
+      itemId: cartItems.id,
+      productId: cartItems.productId,
+      quantity: cartItems.quantity,
+      compositeConfiguration: cartItems.compositeConfiguration,
+      cartUpdatedAt: cartItems.updatedAt,
+      cartCreatedAt: cartItems.createdAt,
+      productName: products.name,
+      globalPrice: products.price,
+      marketPrice: productMarkets.price,
+      marketCurrency: productMarkets.currency,
+      reminderCartUpdatedAt: abandonedCartReminders.cartUpdatedAt,
+      reminderLastSentAt: abandonedCartReminders.lastSentAt,
+    }).from(cartItems)
+      .innerJoin(users, eq(cartItems.userId, users.id))
+      .innerJoin(products, eq(cartItems.productId, products.id))
+      .leftJoin(productMarkets, and(
+        eq(productMarkets.productId, cartItems.productId),
+        eq(productMarkets.market, cartItems.market),
+      ))
+      .leftJoin(abandonedCartReminders, and(
+        eq(abandonedCartReminders.userId, users.id),
+        eq(abandonedCartReminders.market, cartItems.market),
+      ))
+      .where(and(
+        isNotNull(cartItems.userId),
+        eq(users.emailNotifications, true),
+        lte(cartItems.updatedAt, cutoff),
+        notExists(
+          db.select({ id: orders.id })
+            .from(orders)
+            .where(and(
+              eq(orders.userId, users.id),
+              eq(orders.market, cartItems.market),
+              gte(orders.createdAt, cartItems.updatedAt),
+              or(
+                eq(orders.paymentStatus, "paid"),
+                eq(orders.status, "paid"),
+                eq(orders.status, "completed"),
+              ),
+            )),
+        ),
+      ));
+
+    const grouped = new Map<string, AbandonedCartCandidate>();
+    for (const row of rows) {
+      const cartUpdatedAt = new Date(row.cartUpdatedAt ?? row.cartCreatedAt ?? cutoff);
+      const reminderSentAt = row.reminderLastSentAt ? new Date(row.reminderLastSentAt) : null;
+      if (reminderSentAt && reminderSentAt >= cartUpdatedAt) continue;
+
+      const market = row.market || "ro";
+      const key = `${row.userId}:${market}`;
+      let candidate = grouped.get(key);
+      if (!candidate) {
+        candidate = {
+          userId: row.userId,
+          email: row.email,
+          firstName: row.firstName,
+          lastName: row.lastName,
+          market,
+          cartUpdatedAt,
+          items: [],
+        };
+        grouped.set(key, candidate);
+      } else if (cartUpdatedAt > candidate.cartUpdatedAt) {
+        candidate.cartUpdatedAt = cartUpdatedAt;
+      }
+
+      candidate.items.push({
+        id: row.itemId,
+        productId: row.productId,
+        quantity: row.quantity,
+        compositeConfiguration: row.compositeConfiguration,
+        productName: row.productName,
+        price: String(row.marketPrice ?? row.globalPrice),
+        currency: row.marketCurrency || (market === "ro" ? "RON" : "EUR"),
+      });
+    }
+
+    return [...grouped.values()].filter(candidate => candidate.items.length > 0);
+  }
+
+  async markAbandonedCartReminderSent(
+    userId: number,
+    market: string,
+    cartUpdatedAt: Date,
+    sentAt = new Date(),
+  ): Promise<AbandonedCartReminder> {
+    const [reminder] = await db.insert(abandonedCartReminders)
+      .values({ userId, market, cartUpdatedAt, lastSentAt: sentAt })
+      .onConflictDoUpdate({
+        target: [abandonedCartReminders.userId, abandonedCartReminders.market],
+        set: { cartUpdatedAt, lastSentAt: sentAt, updatedAt: new Date() },
+      })
+      .returning();
+    return reminder;
   }
 
   // Review operations
