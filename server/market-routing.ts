@@ -44,3 +44,15 @@ export function getMarketFromRequest(req: Request): Market {
 
   return "ro";
 }
+
+/**
+ * Legacy rows without a market belong to the Romanian storefront. Keeping
+ * this normalization in one place prevents customer-facing scope checks from
+ * accidentally treating NULL as a wildcard.
+ */
+export function marketMatches(
+  recordMarket: string | null | undefined,
+  currentMarket: Market,
+): boolean {
+  return (recordMarket ?? "ro") === currentMarket;
+}

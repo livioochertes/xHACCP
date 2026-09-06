@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "./storage";
 import { db, pool } from "./db";
-import { companySettings, suppliers, productMarkets, invoices, products as productsTable } from "@shared/schema";
+import { companySettings, suppliers, productMarkets, invoices, products as productsTable, productTranslations } from "@shared/schema";
 import { desc, eq, and, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -241,6 +241,20 @@ interface AdminAuthRequest extends Request {
 function canAccessMarket(req: AdminAuthRequest, market: string): boolean {
   const allowed = req.adminMarkets || [];
   return allowed.length === 0 || allowed.includes(market);
+}
+
+async function canAccessProductForMarket(
+  req: AdminAuthRequest,
+  productId: number,
+  requestedMarket?: string,
+): Promise<boolean> {
+  if (requestedMarket && requestedMarket !== "all" && !canAccessMarket(req, requestedMarket)) {
+    return false;
+  }
+  const rows = await storage.getProductMarkets(productId);
+  const allowed = req.adminMarkets || [];
+  if (allowed.length === 0) return true;
+  return rows.some(row => allowed.includes(row.market));
 }
 
 // Admin authentication middleware
@@ -983,9 +997,9 @@ export async function registerAdminRoutes(app: Express) {
         }
       }
 
-      const totalUsers = await storage.getTotalUsers();
+      const totalUsers = await storage.getTotalUsers(markets);
       const totalOrders = await storage.getTotalOrders(markets);
-      const totalProducts = await storage.getTotalProducts();
+      const totalProducts = await storage.getTotalProducts(markets);
       const recentOrders = await storage.getRecentOrders(10, markets);
 
       res.json({
@@ -1301,7 +1315,7 @@ export async function registerAdminRoutes(app: Express) {
         });
       }
       // Shipping settings for the market — same source as site checkout
-      const cs = await storage.getCompanySettings();
+       const cs = await storage.getCompanySettingsByMarket(market);
       const ms = marketSettingsMap.get(market);
       const shipping = {
         freeShippingThreshold: ms?.freeShippingThreshold ? parseFloat(ms.freeShippingThreshold) : (cs?.freeShippingThreshold ? parseFloat(cs.freeShippingThreshold) : 500),
@@ -1595,7 +1609,7 @@ export async function registerAdminRoutes(app: Express) {
                     }
                   }
                   if (!supplierInfo) {
-                    const companySettings = await storage.getCompanySettings();
+                     const companySettings = await storage.getCompanySettingsByMarket(fullOrder.market || "ro");
                     const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
                     supplierInfo = {
                       supplierName: companySettings?.name || 'xHACCP',
@@ -1760,7 +1774,7 @@ export async function registerAdminRoutes(app: Express) {
       const subtotal = validatedItems.reduce((sum, it) => sum + parseFloat(it.price) * it.quantity, 0);
 
       // Shipping — same market-specific thresholds as site checkout
-      const companySettingsData = await storage.getCompanySettings();
+       const companySettingsData = await storage.getCompanySettingsByMarket(orderMarket);
       const marketSetting = marketSettingsMap.get(orderMarket);
       const freeShippingThreshold = marketSetting?.freeShippingThreshold
         ? parseFloat(marketSetting.freeShippingThreshold)
@@ -2838,6 +2852,9 @@ export async function registerAdminRoutes(app: Express) {
   app.get("/admin/api/products/:id/translations", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const productId = parseInt(req.params.id);
+      if (!await canAccessProductForMarket(req, productId, req.query.market as string | undefined)) {
+        return res.status(403).json({ message: "Access denied for this product market" });
+      }
       const translations = await storage.getProductTranslations(productId);
       res.json(translations);
     } catch (error) {
@@ -2850,6 +2867,9 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const productId = parseInt(req.params.id);
       const { language, name, description, slug, sourceUrl } = req.body;
+      if (!await canAccessProductForMarket(req, productId, req.body?.market || req.query.market as string | undefined)) {
+        return res.status(403).json({ message: "Access denied for this product market" });
+      }
       
       if (!language || !name) {
         return res.status(400).json({ message: "Language and name are required" });
@@ -2881,6 +2901,12 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const translationId = parseInt(req.params.id);
       const { language, name, description, slug, sourceUrl } = req.body;
+      const [translationOwner] = await db.select({ productId: productTranslations.productId })
+        .from(productTranslations)
+        .where(eq(productTranslations.id, translationId));
+      if (!translationOwner || !await canAccessProductForMarket(req, translationOwner.productId, req.body?.market || req.query.market as string | undefined)) {
+        return res.status(403).json({ message: "Access denied for this product market" });
+      }
       
       const translation = await storage.updateProductTranslation(translationId, {
         language,
@@ -2900,6 +2926,12 @@ export async function registerAdminRoutes(app: Express) {
   app.delete("/admin/api/products/translations/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const translationId = parseInt(req.params.id);
+      const [translationOwner] = await db.select({ productId: productTranslations.productId })
+        .from(productTranslations)
+        .where(eq(productTranslations.id, translationId));
+      if (!translationOwner || !await canAccessProductForMarket(req, translationOwner.productId, req.query.market as string | undefined)) {
+        return res.status(403).json({ message: "Access denied for this product market" });
+      }
       await storage.deleteProductTranslation(translationId);
       res.json({ message: "Translation deleted successfully" });
     } catch (error) {
@@ -3366,6 +3398,12 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/products/bulk/prices", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const { productIds, multiplier, fixedPrice } = req.body;
+      const allowedMarkets = req.adminMarkets || [];
+      const targetMarket = req.body?.market || req.query.market ||
+        (allowedMarkets.length === 1 ? allowedMarkets[0] : undefined);
+      if (!targetMarket || !canAccessMarket(req, targetMarket)) {
+        return res.status(403).json({ message: "A permitted market is required for bulk price updates" });
+      }
       
       if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
         return res.status(400).json({ message: "Product IDs are required" });
@@ -3376,14 +3414,17 @@ export async function registerAdminRoutes(app: Express) {
         try {
           const product = await storage.getProduct(parseInt(productId));
           if (product) {
-            let newPrice: number | string = product.price;
+            const marketRow = (await storage.getProductMarkets(parseInt(productId)))
+              .find(row => row.market === targetMarket);
+            if (!marketRow) throw new Error("Product is not assigned to this market");
+            let newPrice: number | string = marketRow.price || product.price;
             if (multiplier) {
-              newPrice = parseFloat(product.price) * multiplier;
+              newPrice = parseFloat(String(marketRow.price || product.price)) * multiplier;
             } else if (fixedPrice) {
               newPrice = fixedPrice;
             }
             
-            await storage.updateProduct(parseInt(productId), { price: String(newPrice) });
+            await storage.updateProductMarket(parseInt(productId), targetMarket, { price: String(newPrice) });
             results.push({ id: productId, success: true, newPrice });
           } else {
             results.push({ id: productId, success: false, message: "Product not found" });
@@ -3489,6 +3530,12 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/products/bulk/stock", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const { productIds, operation, value } = req.body;
+      const allowedMarkets = req.adminMarkets || [];
+      const targetMarket = req.body?.market || req.query.market ||
+        (allowedMarkets.length === 1 ? allowedMarkets[0] : undefined);
+      if (!targetMarket || !canAccessMarket(req, targetMarket)) {
+        return res.status(403).json({ message: "A permitted market is required for bulk stock updates" });
+      }
       
       if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
         return res.status(400).json({ message: "Product IDs are required" });
@@ -3503,7 +3550,10 @@ export async function registerAdminRoutes(app: Express) {
         try {
           const product = await storage.getProduct(parseInt(productId));
           if (product) {
-            let newStock = product.stockQuantity || 0;
+            const marketRow = (await storage.getProductMarkets(parseInt(productId)))
+              .find(row => row.market === targetMarket);
+            if (!marketRow) throw new Error("Product is not assigned to this market");
+            let newStock = marketRow.stockQuantity || 0;
             
             switch (operation) {
               case 'set':
@@ -3519,7 +3569,7 @@ export async function registerAdminRoutes(app: Express) {
                 throw new Error('Invalid operation');
             }
             
-            await storage.updateProduct(parseInt(productId), { stockQuantity: newStock });
+            await storage.updateProductMarket(parseInt(productId), targetMarket, { stockQuantity: newStock });
             results.push({ id: productId, success: true, newStock });
           } else {
             results.push({ id: productId, success: false, message: "Product not found" });
@@ -3778,6 +3828,11 @@ export async function registerAdminRoutes(app: Express) {
       for (const supplierId of supplierIds) {
         try {
           processed++;
+          const supplier = await storage.getSupplier(Number(supplierId));
+          if (!supplier) throw new Error("Supplier not found");
+          if (!canAccessMarket(req as AdminAuthRequest, supplier.marketCode || "ro")) {
+            throw new Error("Access denied for supplier market");
+          }
           
           switch (operation) {
             case 'activate':
@@ -3892,6 +3947,9 @@ export async function registerAdminRoutes(app: Express) {
       if (!supplier) {
         return res.status(404).json({ message: "Supplier not found" });
       }
+      if (!canAccessMarket(req as AdminAuthRequest, supplier.marketCode || "ro")) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
 
       // Fetch updated prices from supplier's API
       const priceUpdates = await fetchSupplierPrices(supplier);
@@ -3902,7 +3960,12 @@ export async function registerAdminRoutes(app: Express) {
         try {
           const product = await storage.getProduct(update.productId);
           if (product && product.supplierId === parseInt(id)) {
-            await storage.updateProduct(update.productId, {
+            const marketRow = (await storage.getProductMarkets(update.productId))
+              .find(row => row.market === (supplier.marketCode || "ro"));
+            if (!marketRow) {
+              throw new Error("Product is not assigned to the supplier's market");
+            }
+            await storage.updateProductMarket(update.productId, supplier.marketCode || "ro", {
               price: update.price.toString(),
               compareAtPrice: update.compareAtPrice?.toString(),
               stockQuantity: update.stockQuantity
@@ -3910,9 +3973,9 @@ export async function registerAdminRoutes(app: Express) {
             updateResults.push({
               productId: update.productId,
               productName: product.name,
-              oldPrice: product.price,
+              oldPrice: marketRow.price,
               newPrice: update.price,
-              oldStock: product.stockQuantity,
+              oldStock: marketRow.stockQuantity,
               newStock: update.stockQuantity,
               success: true
             });
@@ -3948,6 +4011,9 @@ export async function registerAdminRoutes(app: Express) {
       if (!supplier) {
         return res.status(404).json({ message: "Supplier not found" });
       }
+      if (!canAccessMarket(req as AdminAuthRequest, supplier.marketCode || "ro")) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
 
       // Fetch updated stock from supplier's API
       const stockUpdates = await fetchSupplierStock(supplier);
@@ -3958,13 +4024,18 @@ export async function registerAdminRoutes(app: Express) {
         try {
           const product = await storage.getProduct(update.productId);
           if (product && product.supplierId === parseInt(id)) {
-            await storage.updateProduct(update.productId, {
+            const marketRow = (await storage.getProductMarkets(update.productId))
+              .find(row => row.market === (supplier.marketCode || "ro"));
+            if (!marketRow) {
+              throw new Error("Product is not assigned to the supplier's market");
+            }
+            await storage.updateProductMarket(update.productId, supplier.marketCode || "ro", {
               stockQuantity: update.stockQuantity
             });
             updateResults.push({
               productId: update.productId,
               productName: product.name,
-              oldStock: product.stockQuantity,
+              oldStock: marketRow.stockQuantity,
               newStock: update.stockQuantity,
               success: true
             });
@@ -4001,6 +4072,9 @@ export async function registerAdminRoutes(app: Express) {
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
+      if (!canAccessMarket(req as AdminAuthRequest, order.market || "ro")) {
+        return res.status(403).json({ message: "Access denied for this order market" });
+      }
 
       // Group order items by supplier
       const supplierOrders = new Map();
@@ -4023,7 +4097,7 @@ export async function registerAdminRoutes(app: Express) {
       for (const [supplierId, items] of Array.from(supplierOrders)) {
         try {
           const supplier = await storage.getSupplier(supplierId);
-          if (supplier) {
+          if (supplier && (supplier.marketCode || "ro") === (order.market || "ro")) {
             const orderData = {
               orderId: order.id,
               orderDate: order.createdAt,
@@ -4082,6 +4156,14 @@ export async function registerAdminRoutes(app: Express) {
       if (!supplier) {
         return res.status(404).json({ message: "Supplier not found" });
       }
+      if (!canAccessMarket(req as AdminAuthRequest, supplier.marketCode || "ro")) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const deliveryOrder = await storage.getOrder(parseInt(orderId));
+      if (!deliveryOrder || (deliveryOrder.market || "ro") !== (supplier.marketCode || "ro") ||
+          !canAccessMarket(req as AdminAuthRequest, deliveryOrder.market || "ro")) {
+        return res.status(403).json({ message: "Access denied for this order market" });
+      }
 
       // Simulate fetching delivery status from supplier's API
       const deliveryStatus = await fetchSupplierDeliveryStatus(supplier, orderId);
@@ -4113,6 +4195,10 @@ export async function registerAdminRoutes(app: Express) {
             results.push({ orderId, success: false, message: "Order not found" });
             continue;
           }
+          if (!canAccessMarket(req as AdminAuthRequest, order.market || "ro")) {
+            results.push({ orderId, success: false, message: "Access denied for this order market" });
+            continue;
+          }
 
           // Get suppliers for products in this order
           const supplierIds = new Set<number>();
@@ -4126,7 +4212,7 @@ export async function registerAdminRoutes(app: Express) {
           // Sync with each supplier
           for (const supplierId of Array.from(supplierIds)) {
             const supplier = await storage.getSupplier(supplierId);
-            if (supplier) {
+            if (supplier && (supplier.marketCode || "ro") === (order.market || "ro")) {
               const syncResult = await performSupplierSync(supplier, order, action);
               results.push({
                 orderId,
@@ -4235,7 +4321,7 @@ export async function registerAdminRoutes(app: Express) {
             }
           }
           if (!supplierInfo) {
-            const companySettings = await storage.getCompanySettings();
+             const companySettings = await storage.getCompanySettingsByMarket(order.market || "ro");
             const fallbackEmail = companySettings?.logisticsEmail || companySettings?.email || '';
             supplierInfo = { supplierName: companySettings?.name || 'xHACCP', supplierEmail: fallbackEmail, items: [] };
           }
@@ -4258,7 +4344,7 @@ export async function registerAdminRoutes(app: Express) {
       let invoicePdfBuffer: Buffer | null = null;
       let invoiceNumber: string | undefined;
       try {
-        const invoicesList = await storage.getInvoices(order.userId || undefined);
+        const invoicesList = await storage.getInvoices(order.userId || undefined, order.market || "ro");
         const orderInvoice = invoicesList.find(inv => inv.orderId === orderId);
         if (orderInvoice) {
           invoiceNumber = orderInvoice.invoiceNumber;
@@ -4666,9 +4752,11 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/company-settings", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const market = (req.query.market as string | undefined);
+      if (!market || market === 'all') {
+        return res.status(400).json({ message: "A specific market is required" });
+      }
       // Enforce market authorization
-      const effectiveMarket = market && market !== 'all' ? market : 'ro';
-      if (!canAccessMarket(req as AdminAuthRequest, effectiveMarket)) {
+      if (!canAccessMarket(req as AdminAuthRequest, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
       const { 
@@ -4894,12 +4982,19 @@ export async function registerAdminRoutes(app: Express) {
       console.log(`📤 Processing ${jsonData.length} rows from Excel file (market: ${importMarket || 'all'})`);
 
       // Pre-load data needed for validation
-      const [categories, existingProducts, companySettingsData, allSuppliers] = await Promise.all([
+      const [categories, existingProducts, allSuppliers] = await Promise.all([
         storage.getCategories(),
         storage.getProducts(),
-        storage.getCompanySettings(),
         storage.getSuppliers(),
       ]);
+      const marketSettingsEntries = await Promise.all(
+        targetMarkets.map(async (targetMarket) => [
+          targetMarket,
+          await storage.getCompanySettingsByMarket(targetMarket),
+        ] as const)
+      );
+      const companySettingsByMarket = new Map(marketSettingsEntries);
+      const importDefaults = companySettingsByMarket.get(targetMarkets[0]);
 
       const categoryMap = new Map<any, any>();
       categories.forEach((cat: any) => {
@@ -4907,8 +5002,8 @@ export async function registerAdminRoutes(app: Express) {
         categoryMap.set(cat.name.toLowerCase(), cat);
       });
 
-      const defaultCurrency = companySettingsData?.defaultCurrency || 'RON';
-      const defaultVatPercentage = companySettingsData?.defaultVatPercentage || 19;
+      const defaultCurrency = importDefaults?.defaultCurrency || 'RON';
+      const defaultVatPercentage = importDefaults?.defaultVatPercentage || 19;
 
       // Build existing-product maps for duplicate detection and market
       // reassignment when an import repeats a legacy product by name.
@@ -5078,16 +5173,23 @@ export async function registerAdminRoutes(app: Express) {
               }
               const supplierId = await getOrCreateSupplier(supplierName);
               await storage.updateProduct(existingId, {
-                name: productName, description, price: price.toString(),
-                compareAtPrice: (price * 1.2).toString(), categoryId: finalCategoryId,
-                supplierId, stockQuantity, vatValue: vatValue.toString(),
-                vatPercentage: vatValue.toString(), currency, productCode, ncCode, cpvCode, status,
+                name: productName, description, supplierId,
+                productCode, ncCode, cpvCode, status,
                 weight: weight as any, length: length.toString(), width: width.toString(),
                 height: height.toString(), piecesPerPackage,
               });
-              // Ensure productMarkets rows exist (don't overwrite existing overrides)
+              // Keep price, stock, category and currency scoped to each target market.
               for (const mkt of targetMarkets) {
-                await storage.setProductMarket({ productId: existingId, market: mkt, isActive: true });
+                await storage.setProductMarket({
+                  productId: existingId,
+                  market: mkt,
+                  isActive: true,
+                  categoryId: finalCategoryId,
+                  price: price.toString(),
+                  compareAtPrice: (price * 1.2).toString(),
+                  stockQuantity,
+                  currency,
+                });
               }
               updated++;
               console.log(`✏️ Updated product #${existingId} "${productName}" (code: ${productCode})`);
@@ -5121,6 +5223,11 @@ export async function registerAdminRoutes(app: Express) {
                 productId: existingByName.id,
                 market: mkt,
                 isActive: true,
+                categoryId: finalCategoryId,
+                price: price.toString(),
+                compareAtPrice: (price * 1.2).toString(),
+                stockQuantity,
+                currency,
               });
             }
             updated++;
@@ -5160,7 +5267,16 @@ export async function registerAdminRoutes(app: Express) {
           // ── Create productMarkets rows (inactive) so product is visible in admin
           //    but NOT yet live on the storefront — admin must activate after adding photos ──
           for (const mkt of targetMarkets) {
-            await storage.setProductMarket({ productId: createdProduct.id, market: mkt, isActive: false });
+            await storage.setProductMarket({
+              productId: createdProduct.id,
+              market: mkt,
+              isActive: false,
+              categoryId: finalCategoryId,
+              price: price.toString(),
+              compareAtPrice: (price * 1.2).toString(),
+              stockQuantity,
+              currency,
+            });
           }
 
           imported++;
@@ -5522,7 +5638,15 @@ export async function registerAdminRoutes(app: Express) {
   // Company/Shipping Settings Routes
   app.get("/admin/api/settings", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const settings = await storage.getCompanySettings();
+      const allowedMarkets = req.adminMarkets || [];
+      const requestedMarket = req.query.market as string | undefined;
+      const market = requestedMarket && requestedMarket !== "all"
+        ? requestedMarket
+        : (allowedMarkets.length === 1 ? allowedMarkets[0] : "ro");
+      if (!canAccessMarket(req, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const settings = await storage.getCompanySettingsByMarket(market);
       res.json(settings || {});
     } catch (error) {
       console.error("Error fetching company settings:", error);
@@ -5533,7 +5657,15 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/settings", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const settings = req.body;
-      const updatedSettings = await storage.updateCompanySettings(settings);
+      const allowedMarkets = req.adminMarkets || [];
+      const requestedMarket = req.query.market as string | undefined || settings?.marketCode;
+      const market = requestedMarket && requestedMarket !== "all"
+        ? requestedMarket
+        : (allowedMarkets.length === 1 ? allowedMarkets[0] : "ro");
+      if (!canAccessMarket(req, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const updatedSettings = await storage.updateCompanySettings({ ...settings, marketCode: market });
       res.json(updatedSettings);
     } catch (error) {
       console.error("Error updating company settings:", error);
@@ -6715,7 +6847,17 @@ export async function registerAdminRoutes(app: Express) {
   // When ?market= is omitted, returns rows for ALL markets (ro + fr + com combined)
   app.get("/admin/api/market-products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const market = req.query.market as string | undefined;
+      const requestedMarket = req.query.market as string | undefined;
+      const allowedMarkets = req.adminMarkets || [];
+      const market = requestedMarket && requestedMarket !== "all"
+        ? requestedMarket
+        : (allowedMarkets.length === 1 ? allowedMarkets[0] : undefined);
+      if (market && !canAccessMarket(req as AdminAuthRequest, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (!market && allowedMarkets.length > 0) {
+        return res.status(403).json({ message: "A market filter is required for this account" });
+      }
       if (market) {
         const pms = await storage.getProductMarketsByMarket(market);
         res.json(pms);

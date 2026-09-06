@@ -18,6 +18,11 @@ interface MetaTags {
   imageAlt?: string;
 }
 
+function setMarketAwareCacheHeaders(res: { setHeader(name: string, value: string): void }, cacheControl: string) {
+  res.setHeader("Vary", "Host, X-Market");
+  res.setHeader("Cache-Control", cacheControl);
+}
+
 function getIndexHtml(): string {
   // In development, always use client/index.html so Vite can process it
   // (dist/public/index.html contains production bundle hashes that Vite dev doesn't serve)
@@ -619,7 +624,7 @@ export function registerSeoRoutes(
         const bodyHtml = buildStaticBodyHtml(route, base, lang);
         const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml);
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.setHeader("Cache-Control", "public, max-age=300");
+        setMarketAwareCacheHeaders(res, "public, max-age=300");
         res.send(html);
       } catch (err) {
         next(err);
@@ -647,7 +652,7 @@ export function registerSeoRoutes(
 
       let publishedPosts: any[] = [];
       try {
-        publishedPosts = await storage.getBlogPosts({ published: true, limit: 100 });
+        publishedPosts = await storage.getBlogPosts({ published: true, marketCode: market, limit: 100 });
       } catch (_) {}
 
       const blogJsonLd: object[] = [
@@ -676,7 +681,7 @@ export function registerSeoRoutes(
       const bodyHtml = buildStaticBodyHtml("/blog", base, lang);
       const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml, blogJsonLd);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Cache-Control", "public, max-age=300");
+      setMarketAwareCacheHeaders(res, "public, max-age=300");
       res.send(html);
     } catch (err) {
       next(err);
@@ -694,7 +699,7 @@ export function registerSeoRoutes(
 
       let post: any = null;
       try {
-        post = await storage.getBlogPostBySlug(slug);
+        post = await storage.getBlogPostBySlug(slug, market);
       } catch (_) {}
 
       if (!post || !post.published) {
@@ -785,7 +790,7 @@ export function registerSeoRoutes(
 
       const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml, blogPostingSchema);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Cache-Control", "public, max-age=300");
+      setMarketAwareCacheHeaders(res, "public, max-age=300");
       res.send(html);
     } catch (err) {
       next(err);
@@ -804,14 +809,19 @@ export function registerSeoRoutes(
       let product: any = null;
       try {
         const allProducts = await storage.getProducts({ limit: 10000 });
-        const match = allProducts.find(
-          (p) => p.slug === slug && p.status?.toLowerCase() === "active"
-        );
-        if (match && marketHelpers) {
-          const overlaid = marketHelpers.applyOverlay(match, market);
-          product = overlaid;
-        } else {
-          product = match ?? null;
+        for (const candidate of allProducts) {
+          if (candidate.status?.toLowerCase() !== "active") continue;
+          const translation = lang !== "ro"
+            ? await storage.getProductTranslation(candidate.id, lang)
+            : null;
+          if (candidate.slug !== slug && translation?.slug !== slug) continue;
+          const overlaid = marketHelpers
+            ? marketHelpers.applyOverlay(candidate, market)
+            : candidate;
+          if (overlaid) {
+            product = overlaid;
+            break;
+          }
         }
       } catch (_) {}
 
@@ -846,7 +856,7 @@ export function registerSeoRoutes(
 </main>`;
         const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml);
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.setHeader("Cache-Control", "no-store");
+        setMarketAwareCacheHeaders(res, "no-store");
         return res.status(404).send(html);
       }
 
@@ -954,7 +964,7 @@ export function registerSeoRoutes(
 
       const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml, productJsonLd);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Cache-Control", "public, max-age=300");
+      setMarketAwareCacheHeaders(res, "public, max-age=300");
       res.send(html);
     } catch (err) {
       next(err);

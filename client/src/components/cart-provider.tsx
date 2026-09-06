@@ -17,6 +17,8 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
+  const market = getMarketFromHostname();
+  const guestCartStorageKey = `guestCart:${market}`;
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [localCart, setLocalCart] = useState<CartItemWithProduct[]>([]);
 
@@ -27,7 +29,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     
     // Load cart from localStorage for guest users
     if (!token) {
-      const savedCart = localStorage.getItem("guestCart");
+      const savedCart = localStorage.getItem(guestCartStorageKey) ??
+        (market === "ro" ? localStorage.getItem("guestCart") : null);
       if (savedCart) {
         try {
           const parsedCart = JSON.parse(savedCart);
@@ -37,10 +40,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           );
           setLocalCart(validItems);
           // Update localStorage with cleaned cart
-          localStorage.setItem("guestCart", JSON.stringify(validItems));
+           localStorage.setItem(guestCartStorageKey, JSON.stringify(validItems));
         } catch (error) {
           console.error("Error parsing guest cart:", error);
-          localStorage.removeItem("guestCart");
+           localStorage.removeItem(guestCartStorageKey);
           setLocalCart([]);
         }
       }
@@ -138,6 +141,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               id: Date.now(), // temporary ID
               userId: 0, // guest user
               productId: guestData.product.id,
+               market,
               quantity: guestData.quantity,
               compositeConfiguration: guestData.compositeConfiguration || null,
               createdAt: new Date(),
@@ -145,7 +149,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             }];
           }
           
-          localStorage.setItem("guestCart", JSON.stringify(newCart));
+           localStorage.setItem(guestCartStorageKey, JSON.stringify(newCart));
           return newCart;
         });
       }
@@ -175,7 +179,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               ? { ...item, quantity: guestData.quantity }
               : item
           );
-          localStorage.setItem("guestCart", JSON.stringify(newCart));
+           localStorage.setItem(guestCartStorageKey, JSON.stringify(newCart));
           return newCart;
         });
       }
@@ -201,7 +205,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const guestData = data as { itemId: number };
         setLocalCart(prev => {
           const newCart = prev.filter(item => item.id !== guestData.itemId);
-          localStorage.setItem("guestCart", JSON.stringify(newCart));
+           localStorage.setItem(guestCartStorageKey, JSON.stringify(newCart));
           return newCart;
         });
       }
@@ -221,7 +225,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       } else {
         setLocalCart([]);
-        localStorage.removeItem("guestCart");
+         localStorage.removeItem(guestCartStorageKey);
       }
     },
   });

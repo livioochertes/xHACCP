@@ -262,23 +262,27 @@ export class InvoiceService {
 
       // Store invoice reference in local database with proper KTO format
       const subtotalNum = parseFloat(order.totalAmount);
-      const vatRate = 21;
+       const vatRate = parseFloat(String(
+         companyInfo?.defaultVatPercentage ??
+         ((order.market || "ro") === "fr" ? "20" : "21")
+       ));
       const vatAmountCalc = (subtotalNum * vatRate) / (100 + vatRate);
       const subtotalWithoutVat = subtotalNum - vatAmountCalc;
 
       const invoiceData = {
         invoiceNumber: `${smartbillResult.series} ${smartbillResult.number}`,
         orderId: order.id,
+         market: order.market || "ro",
         userId: order.userId || undefined,
         issueDate: new Date(),
         supplyDate: new Date(),
         subtotal: subtotalWithoutVat.toFixed(2),
         vatAmount: vatAmountCalc.toFixed(2),
         totalAmount: order.totalAmount,
-        currency: 'RON',
+         currency: order.currency || ((order.market || "ro") === "ro" ? "RON" : "EUR"),
         paymentMethod: paymentData.paymentMethod || 'card',
         paymentLink: null,
-        notes: 'Generated via Smartbill API - TVA 21% conform legislației române',
+         notes: `Generated via Smartbill API - TVA ${vatRate}%`,
         smartbillSeries: smartbillResult.series,
         smartbillNumber: smartbillResult.number.toString(),
         smartbillId: smartbillResult.id,
@@ -292,7 +296,7 @@ export class InvoiceService {
         productCode: item.product.productCode || null,
         quantity: item.quantity,
         unitPrice: item.price,
-        vatRate: '21.00',
+         vatRate: vatRate.toFixed(2),
         lineTotal: item.totalPrice,
       }));
 
@@ -319,7 +323,7 @@ export class InvoiceService {
   /**
    * Generate invoice locally (fallback method) with proper Smartbill numbering
    */
-  private async generateLocalInvoice(order: any, user: any, paymentData: any, _companyInfo?: any): Promise<any> {
+  private async generateLocalInvoice(order: any, user: any, paymentData: any, companyInfo?: any): Promise<any> {
     try {
       // Get next invoice number from Smartbill series format: KTO 10001, KTO 10002, etc.
       let invoiceNumber = 'KTO 10001'; // Default fallback
@@ -353,7 +357,10 @@ export class InvoiceService {
       
       // Calculate totals with 21% VAT for RON
       const subtotal = parseFloat(order.totalAmount);
-      const vatRate = 21; // 21% VAT for Romanian invoices
+       const vatRate = parseFloat(String(
+         companyInfo?.defaultVatPercentage ??
+         ((order.market || "ro") === "fr" ? "20" : "21")
+       ));
       const vatAmount = (subtotal * vatRate) / (100 + vatRate); // Extract VAT from total (price includes VAT)
       const subtotalWithoutVat = subtotal - vatAmount;
       const totalAmount = subtotal; // Total already includes VAT
@@ -362,16 +369,17 @@ export class InvoiceService {
       const invoiceData = {
         invoiceNumber,
         orderId: order.id,
+        market: order.market || "ro",
         userId: order.userId || undefined,
         issueDate: new Date(),
         supplyDate: new Date(),
         subtotal: subtotalWithoutVat.toFixed(2),
         vatAmount: vatAmount.toFixed(2),
         totalAmount: totalAmount.toFixed(2),
-        currency: 'RON',
+        currency: order.currency || ((order.market || "ro") === "ro" ? "RON" : "EUR"),
         paymentMethod: paymentData.paymentMethod || 'card',
         paymentLink: null,
-        notes: 'Factura cu TVA 21% conform legislației române',
+        notes: `Factura cu TVA ${vatRate}% pentru piața ${(order.market || "ro").toUpperCase()}`,
         status: 'issued',
         // Use proper Smartbill series format
         smartbillSeries: 'KTO',
@@ -385,7 +393,7 @@ export class InvoiceService {
         productCode: item.product.productCode || null,
         quantity: item.quantity,
         unitPrice: item.price,
-        vatRate: '21.00',
+        vatRate: vatRate.toFixed(2),
         lineTotal: item.totalPrice,
       }));
 
@@ -408,7 +416,7 @@ export class InvoiceService {
           productCode: 'DISCOUNT',
           quantity: 1,
           unitPrice: (-Math.abs(localDiscountAmount)).toFixed(2),
-          vatRate: '21.00',
+          vatRate: vatRate.toFixed(2),
           lineTotal: (-Math.abs(localDiscountAmount)).toFixed(2),
         });
       }
@@ -436,7 +444,10 @@ export class InvoiceService {
       console.log(`📋 [${market.toUpperCase()}] Generating local PDF invoice: ${invoiceNumber}`);
 
       const currency = order.currency || (market === 'ro' ? 'RON' : 'EUR');
-      const vatRate = market === 'fr' ? 20 : market === 'ro' ? 19 : 0;
+      const vatRate = parseFloat(String(
+        companyInfo?.defaultVatPercentage ??
+        (market === 'fr' ? 20 : 21)
+      ));
       const totalAmount = parseFloat(order.totalAmount);
       const vatAmount = (totalAmount * vatRate) / (100 + vatRate);
       const subtotalWithoutVat = totalAmount - vatAmount;
@@ -727,9 +738,9 @@ export async function createInvoiceService(): Promise<InvoiceService> {
   
   const config: InvoiceServiceConfig = {
     smartbill: {
-      username: 'liviu.chertes@gmail.com', // Corrected username - was @xhaccp.com
-      token: '001|2af8fcdc3ea579cb7a81093ca404b31e', // Use hardcoded credentials
-      companyVat: 'RO16582983', // Use hardcoded credentials with RO prefix
+      username: process.env.SMARTBILL_USERNAME || '',
+      token: process.env.SMARTBILL_TOKEN || '',
+      companyVat: process.env.SMARTBILL_COMPANY_VAT || 'RO16582983',
     },
     defaultSeries: 'KTO', // Use hardcoded series
     enableSmartbill: true, // Force enable Smartbill

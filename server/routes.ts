@@ -14,7 +14,7 @@ import QRCode from "qrcode";
 import path from "path";
 import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
-import { getMarketFromRequest } from "./market-routing.js";
+import { getMarketFromRequest, marketMatches } from "./market-routing.js";
 import { registerSeoRoutes, build404Html, getBaseUrl } from './seo-routes.js';
 import { buildAIMarketCatalog, formatAIMarketCatalog } from './ai-catalog';
 import {
@@ -1676,7 +1676,7 @@ Sitemap: https://${domain}/sitemap.xml
   app.get("/api/invoices", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.userId!;
-      const invoiceList = await storage.getInvoices(userId);
+      const invoiceList = await storage.getInvoices(userId, getMarketFromRequest(req));
       const enriched = await Promise.all(invoiceList.map(async (inv) => {
         const items = await db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, inv.id));
         return { ...inv, itemCount: items.length };
@@ -1692,7 +1692,7 @@ Sitemap: https://${domain}/sitemap.xml
   app.get("/api/account/invoices", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.userId!;
-      const invoiceList = await storage.getInvoices(userId);
+      const invoiceList = await storage.getInvoices(userId, getMarketFromRequest(req));
       const enriched = await Promise.all(invoiceList.map(async (inv) => {
         const items = await db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, inv.id));
         return { ...inv, itemCount: items.length };
@@ -1709,6 +1709,9 @@ Sitemap: https://${domain}/sitemap.xml
       const invoiceId = parseInt(req.params.id);
       const invoice = await storage.getInvoice(invoiceId);
       if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+      if (!req.isAdmin && !marketMatches(invoice.market, getMarketFromRequest(req))) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
       if (invoice.userId !== req.userId && !req.isAdmin) {
         return res.status(403).json({ message: "Not authorized to access this invoice" });
       }
@@ -1734,6 +1737,9 @@ Sitemap: https://${domain}/sitemap.xml
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
+      if (!req.isAdmin && !marketMatches(invoice.market, getMarketFromRequest(req))) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
 
       // Check if user owns this invoice or is admin
       if (invoice.userId !== req.userId && !req.isAdmin) {
@@ -1747,7 +1753,7 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
-  app.get("/api/invoices/number/:invoiceNumber", async (req, res) => {
+  app.get("/api/invoices/number/:invoiceNumber", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const invoiceNumber = req.params.invoiceNumber;
       const invoice = await storage.getInvoiceByNumber(invoiceNumber);
@@ -1755,11 +1761,21 @@ Sitemap: https://${domain}/sitemap.xml
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
+      if (!marketMatches(invoice.market, getMarketFromRequest(req)) && !req.isAdmin) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      if (invoice.userId !== req.userId && !req.isAdmin) {
+        return res.status(403).json({ message: "Access denied" });
+      }
 
       const totalNum = parseFloat(String(invoice.totalAmount));
       const vatNum = parseFloat(String(invoice.vatAmount));
       if (vatNum === 0 && totalNum > 0) {
-        const vatRate = 21;
+        const invoiceMarket = invoice.market ?? "ro";
+        const vatRate = parseFloat(String(
+          marketSettingsMap.get(invoiceMarket)?.vatPercentage ??
+          (invoiceMarket === "fr" ? "20" : "21")
+        ));
         const calculatedVat = (totalNum * vatRate) / (100 + vatRate);
         const calculatedSubtotal = totalNum - calculatedVat;
         invoice.subtotal = calculatedSubtotal.toFixed(2);
@@ -1779,6 +1795,9 @@ Sitemap: https://${domain}/sitemap.xml
       const invoice = await storage.getInvoice(invoiceId);
       
       if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      if (!req.isAdmin && !marketMatches(invoice.market, getMarketFromRequest(req))) {
         return res.status(404).json({ message: "Invoice not found" });
       }
 
@@ -1831,6 +1850,9 @@ Sitemap: https://${domain}/sitemap.xml
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
+      if (!req.isAdmin && !marketMatches(order.market, getMarketFromRequest(req))) {
+        return res.status(404).json({ message: "Order not found" });
+      }
 
       // Check if user owns this order or is admin (also match by email for guest orders)
       let isOwner = order.userId === req.userId;
@@ -1863,9 +1885,13 @@ Sitemap: https://${domain}/sitemap.xml
         paymentLink = `https://www.xhaccp.com/pay/invoice/${invoiceNumber}`;
       }
 
-      // Calculate totals with 21% VAT for RON
+      // Calculate totals using the order's marketplace tax and currency.
       const subtotal = parseFloat(order.totalAmount);
-      const vatRate = 21; // 21% VAT for Romanian invoices
+      const invoiceMarket = order.market || "ro";
+      const vatRate = parseFloat(String(
+        marketSettingsMap.get(invoiceMarket)?.vatPercentage ??
+        (invoiceMarket === "fr" ? "20" : "21")
+      ));
       const vatAmount = (subtotal * vatRate) / (100 + vatRate); // Extract VAT from total
       const subtotalWithoutVat = subtotal - vatAmount;
       const totalAmount = subtotal; // Total already includes VAT
@@ -1874,16 +1900,17 @@ Sitemap: https://${domain}/sitemap.xml
       const invoiceData = {
         invoiceNumber,
         orderId,
+        market: invoiceMarket,
         userId: req.userId || order.userId || undefined,
         issueDate: new Date(),
         supplyDate: new Date(),
         subtotal: subtotalWithoutVat.toFixed(2),
         vatAmount: vatAmount.toFixed(2),
         totalAmount: totalAmount.toFixed(2),
-        currency: 'RON',
+        currency: order.currency || marketSettingsMap.get(invoiceMarket)?.currency || (invoiceMarket === "ro" ? "RON" : "EUR"),
         paymentMethod,
         paymentLink: paymentLink || null,
-        notes: 'Factura cu TVA 21% conform legislației române',
+        notes: `Factura cu TVA ${vatRate}% pentru piața ${invoiceMarket.toUpperCase()}`,
       };
 
       // Create invoice items
@@ -1894,7 +1921,7 @@ Sitemap: https://${domain}/sitemap.xml
         productCode: item.product.productCode || null,
         quantity: item.quantity,
         unitPrice: item.price,
-        vatRate: '21.00',
+        vatRate: vatRate.toFixed(2),
         lineTotal: item.totalPrice,
       }));
 
@@ -1921,6 +1948,9 @@ Sitemap: https://${domain}/sitemap.xml
       // Get the order with items
       const order = await storage.getOrder(orderId);
       if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      if (!req.isAdmin && !marketMatches(order.market, getMarketFromRequest(req))) {
         return res.status(404).json({ message: "Order not found" });
       }
 
@@ -1978,6 +2008,9 @@ Sitemap: https://${domain}/sitemap.xml
       const invoice = await storage.getInvoice(invoiceId);
       
       if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      if (!req.isAdmin && !marketMatches(invoice.market, getMarketFromRequest(req))) {
         return res.status(404).json({ message: "Invoice not found" });
       }
 
@@ -2389,8 +2422,8 @@ Sitemap: https://${domain}/sitemap.xml
   // Cart routes
   app.get("/api/cart", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const cartItems = await storage.getCartItems(req.userId!);
       const market = getMarketFromRequest(req);
+      const cartItems = await storage.getCartItems(req.userId!, market);
       // Apply market overlay to each cart item's product:
       // - items whose product is inactive for this market are filtered out
       // - surviving items get market-specific price, compareAtPrice, currency, stock
@@ -2450,6 +2483,7 @@ Sitemap: https://${domain}/sitemap.xml
       const cartItemData: InsertCartItem = {
         userId: req.userId,
         productId,
+        market,
         quantity,
         compositeConfiguration,
       };
@@ -2465,10 +2499,11 @@ Sitemap: https://${domain}/sitemap.xml
     try {
       const cartItemId = Number(req.params.id);
       const quantity = Number(req.body?.quantity);
+      const market = getMarketFromRequest(req);
       if (!Number.isInteger(cartItemId) || !Number.isInteger(quantity) || quantity < 1 || quantity > 9999) {
         return res.status(400).json({ message: "Quantity must be an integer between 1 and 9999" });
       }
-      const cartItem = await storage.updateCartItem(cartItemId, req.userId!, quantity);
+      const cartItem = await storage.updateCartItem(cartItemId, req.userId!, quantity, market);
       if (!cartItem) return res.status(404).json({ message: "Cart item not found" });
       res.json(cartItem);
     } catch (error) {
@@ -2480,10 +2515,11 @@ Sitemap: https://${domain}/sitemap.xml
   app.delete("/api/cart/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const cartItemId = Number(req.params.id);
+      const market = getMarketFromRequest(req);
       if (!Number.isInteger(cartItemId)) {
         return res.status(400).json({ message: "Invalid cart item" });
       }
-      const removed = await storage.removeFromCart(cartItemId, req.userId!);
+      const removed = await storage.removeFromCart(cartItemId, req.userId!, market);
       if (!removed) return res.status(404).json({ message: "Cart item not found" });
       res.json({ message: "Item removed from cart" });
     } catch (error) {
@@ -2494,7 +2530,7 @@ Sitemap: https://${domain}/sitemap.xml
 
   app.delete("/api/cart", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      await storage.clearCart(req.userId!);
+      await storage.clearCart(req.userId!, getMarketFromRequest(req));
       res.json({ message: "Cart cleared" });
     } catch (error) {
       console.error("Clear cart error:", error);
@@ -2573,8 +2609,9 @@ Sitemap: https://${domain}/sitemap.xml
   // Order routes
   app.get("/api/orders", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      const market = getMarketFromRequest(req);
       const orders = await storage.getOrders(req.userId);
-      res.json(orders);
+      res.json(orders.filter(order => marketMatches(order.market, market)));
     } catch (error) {
       console.error("Get orders error:", error);
       res.status(500).json({ message: "Failed to get orders" });
@@ -2586,6 +2623,9 @@ Sitemap: https://${domain}/sitemap.xml
       const orderId = parseInt(req.params.id);
       const order = await storage.getOrder(orderId);
       if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      if (!req.isAdmin && !marketMatches(order.market, getMarketFromRequest(req))) {
         return res.status(404).json({ message: "Order not found" });
       }
       if (order.userId !== req.userId && !req.isAdmin) {
@@ -2619,16 +2659,17 @@ Sitemap: https://${domain}/sitemap.xml
       // Calculate subtotal from validated items (using server-side prices with volume discounts)
       const subtotal = validatedItems.reduce((sum: number, item: any) => sum + parseFloat(item.price) * item.quantity, 0);
       
-      // Get shipping settings — prefer per-market thresholds/costs, fall back to companySettings
-      const companySettings = await storage.getCompanySettings();
-      const market = getMarketFromRequest(req);
+      // Shipping and tax settings are market-owned. Never fall back to the
+      // first/global company row for a different storefront.
+      const market = orderMarket;
+      const companySettings = await storage.getCompanySettingsByMarket(market);
       const marketSetting = marketSettingsMap.get(market);
       const freeShippingThreshold = marketSetting?.freeShippingThreshold
         ? parseFloat(marketSetting.freeShippingThreshold)
-        : (companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : 500);
+        : (companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : (market === "ro" ? 1000 : 200));
       const standardShippingCost = marketSetting?.standardShippingCost
         ? parseFloat(marketSetting.standardShippingCost)
-        : (companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : 25);
+        : (companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : (market === "ro" ? 35 : 12));
       
       // Calculate shipping cost
       const shippingCost = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
@@ -2718,7 +2759,7 @@ Sitemap: https://${domain}/sitemap.xml
             }
           }).catch((err: any) => console.error('Failed to get company email:', err));
         }
-        await storage.clearCart(req.userId);
+        await storage.clearCart(req.userId, orderMarket);
       } else if (fullOrder) {
         const guestUser = {
           id: 0,
@@ -3826,15 +3867,15 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         validatedVivaItems.push(validatedItem);
       }
 
-      const companySettings = await storage.getCompanySettings();
+      const companySettings = await storage.getCompanySettingsByMarket(vivaMarket);
       const market2 = vivaMarket;
       const marketSetting2 = marketSettingsMap.get(market2);
       const freeShippingThreshold = marketSetting2?.freeShippingThreshold
         ? parseFloat(marketSetting2.freeShippingThreshold)
-        : (companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : 500);
+        : (companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : (vivaMarket === "ro" ? 1000 : 200));
       const standardShippingCost = marketSetting2?.standardShippingCost
         ? parseFloat(marketSetting2.standardShippingCost)
-        : (companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : 25);
+        : (companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : (vivaMarket === "ro" ? 35 : 12));
       const shippingCost = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
 
       let discountAmount = 0;
@@ -4643,14 +4684,14 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     try {
       const market = getMarketFromRequest(req);
       const marketSetting = marketSettingsMap.get(market);
-      const settings = await storage.getCompanySettings();
+      const settings = await storage.getCompanySettingsByMarket(market);
 
       // Prefer per-market values from market_settings; fall back to company-wide defaults
       res.json({
         freeShippingThreshold: marketSetting?.freeShippingThreshold ?? settings?.freeShippingThreshold ?? "500.00",
         standardShippingCost: marketSetting?.standardShippingCost ?? settings?.standardShippingCost ?? "25.00",
         currency: marketSetting?.currency ?? settings?.defaultCurrency ?? "EUR",
-        vatPercentage: marketSetting?.vatPercentage ?? settings?.defaultVatPercentage ?? "19.00",
+        vatPercentage: marketSetting?.vatPercentage ?? settings?.defaultVatPercentage ?? (market === "ro" ? "21.00" : market === "fr" ? "20.00" : "21.00"),
       });
     } catch (error) {
       console.error("Error fetching shipping settings:", error);
@@ -4776,7 +4817,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   app.get("/api/blog/posts/:slug", async (req, res) => {
     try {
       const market = getMarketFromRequest(req);
-      const post = await storage.getBlogPostBySlug(req.params.slug);
+      const post = await storage.getBlogPostBySlug(req.params.slug, market);
       if (!post || !post.published) {
         return res.status(404).json({ message: "Blog post not found" });
       }
@@ -4814,7 +4855,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   app.get("/api/blog/:slug", async (req, res) => {
     try {
       const market = getMarketFromRequest(req);
-      const post = await storage.getBlogPostBySlug(req.params.slug);
+      const post = await storage.getBlogPostBySlug(req.params.slug, market);
       if (!post || !post.published) {
         return res.status(404).json({ message: "Blog post not found" });
       }

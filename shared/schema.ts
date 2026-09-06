@@ -266,6 +266,9 @@ export const cartItems = pgTable("cart_items", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   productId: integer("product_id").references(() => products.id),
+  // A user's cart is independent per marketplace. Existing rows remain
+  // Romanian carts through the database default during the migration.
+  market: varchar("market", { length: 10 }).notNull().default("ro"),
   quantity: integer("quantity").notNull(),
   compositeConfiguration: jsonb("composite_configuration").$type<CompositeConfiguration | null>(),
   createdAt: timestamp("created_at").defaultNow(),

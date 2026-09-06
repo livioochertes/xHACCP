@@ -121,11 +121,11 @@ export interface IStorage {
   linkGuestOrdersToUser(email: string, userId: number): Promise<number>;
 
   // Cart operations
-  getCartItems(userId: number): Promise<CartItemWithProduct[]>;
+  getCartItems(userId: number, market?: string): Promise<CartItemWithProduct[]>;
   addToCart(item: InsertCartItem): Promise<CartItem>;
-  updateCartItem(id: number, userId: number, quantity: number): Promise<CartItem | undefined>;
-  removeFromCart(id: number, userId: number): Promise<boolean>;
-  clearCart(userId: number): Promise<void>;
+  updateCartItem(id: number, userId: number, quantity: number, market?: string): Promise<CartItem | undefined>;
+  removeFromCart(id: number, userId: number, market?: string): Promise<boolean>;
+  clearCart(userId: number, market?: string): Promise<void>;
 
   // Review operations
   getProductReviews(productId: number): Promise<Review[]>;
@@ -139,7 +139,7 @@ export interface IStorage {
   deleteSupplier(id: number): Promise<void>;
 
   // Invoice operations
-  getInvoices(userId?: number): Promise<Invoice[]>;
+  getInvoices(userId?: number, market?: string): Promise<Invoice[]>;
   getInvoice(id: number): Promise<InvoiceWithItems | undefined>;
   getInvoiceByNumber(invoiceNumber: string): Promise<InvoiceWithItems | undefined>;
   createInvoice(invoice: InsertInvoice, items: Omit<InsertInvoiceItem, "invoiceId">[]): Promise<Invoice>;
@@ -147,9 +147,9 @@ export interface IStorage {
   deleteInvoice(id: number): Promise<void>;
 
   // Admin stats operations
-  getTotalUsers(): Promise<number>;
+  getTotalUsers(markets?: string[]): Promise<number>;
   getTotalOrders(markets?: string[]): Promise<number>;
-  getTotalProducts(): Promise<number>;
+  getTotalProducts(markets?: string[]): Promise<number>;
   getRecentOrders(limit: number, markets?: string[]): Promise<OrderWithItems[]>;
 
   // Company settings operations
@@ -174,7 +174,7 @@ export interface IStorage {
   // Blog post operations
   getBlogPosts(options?: { published?: boolean; language?: string; marketCode?: string; limit?: number; offset?: number }): Promise<BlogPost[]>;
   getBlogPost(id: number): Promise<BlogPost | undefined>;
-  getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
+  getBlogPostBySlug(slug: string, marketCode?: string): Promise<BlogPost | undefined>;
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: number, post: Partial<InsertBlogPost>): Promise<BlogPost>;
   deleteBlogPost(id: number): Promise<void>;
@@ -912,7 +912,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Cart operations
-  async getCartItems(userId: number): Promise<CartItemWithProduct[]> {
+  async getCartItems(userId: number, market?: string): Promise<CartItemWithProduct[]> {
     const results = await db
       .select({
         id: cartItems.id,
@@ -925,7 +925,10 @@ export class DatabaseStorage implements IStorage {
       })
       .from(cartItems)
       .innerJoin(products, eq(cartItems.productId, products.id))
-      .where(eq(cartItems.userId, userId));
+      .where(and(
+        eq(cartItems.userId, userId),
+        ...(market ? [eq(cartItems.market, market)] : []),
+      ));
     
     return results as CartItemWithProduct[];
   }
@@ -936,7 +939,11 @@ export class DatabaseStorage implements IStorage {
     const candidateItems = await db
       .select()
       .from(cartItems)
-      .where(and(eq(cartItems.userId, item.userId!), eq(cartItems.productId, item.productId!)));
+      .where(and(
+        eq(cartItems.userId, item.userId!),
+        eq(cartItems.productId, item.productId!),
+        ...(item.market ? [eq(cartItems.market, item.market)] : []),
+      ));
     const requestedConfiguration = compositeConfigurationKey(item.compositeConfiguration);
     const existingItem = candidateItems.find(candidate =>
       compositeConfigurationKey(candidate.compositeConfiguration) === requestedConfiguration
@@ -957,24 +964,35 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateCartItem(id: number, userId: number, quantity: number): Promise<CartItem | undefined> {
+  async updateCartItem(id: number, userId: number, quantity: number, market?: string): Promise<CartItem | undefined> {
     const [updatedItem] = await db
       .update(cartItems)
       .set({ quantity })
-      .where(and(eq(cartItems.id, id), eq(cartItems.userId, userId)))
+      .where(and(
+        eq(cartItems.id, id),
+        eq(cartItems.userId, userId),
+        ...(market ? [eq(cartItems.market, market)] : []),
+      ))
       .returning();
     return updatedItem;
   }
 
-  async removeFromCart(id: number, userId: number): Promise<boolean> {
+  async removeFromCart(id: number, userId: number, market?: string): Promise<boolean> {
     const deleted = await db.delete(cartItems)
-      .where(and(eq(cartItems.id, id), eq(cartItems.userId, userId)))
+      .where(and(
+        eq(cartItems.id, id),
+        eq(cartItems.userId, userId),
+        ...(market ? [eq(cartItems.market, market)] : []),
+      ))
       .returning({ id: cartItems.id });
     return deleted.length > 0;
   }
 
-  async clearCart(userId: number): Promise<void> {
-    await db.delete(cartItems).where(eq(cartItems.userId, userId));
+  async clearCart(userId: number, market?: string): Promise<void> {
+    await db.delete(cartItems).where(and(
+      eq(cartItems.userId, userId),
+      ...(market ? [eq(cartItems.market, market)] : []),
+    ));
   }
 
   // Review operations
@@ -1037,17 +1055,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Invoice operations
-  async getInvoices(userId?: number): Promise<Invoice[]> {
+  async getInvoices(userId?: number, market?: string): Promise<Invoice[]> {
     if (userId) {
-      const directInvoices = await db.select().from(invoices).where(eq(invoices.userId, userId)).orderBy(desc(invoices.createdAt));
+      const marketFilter = market
+        ? (market === "ro"
+          ? or(eq(invoices.market, market), isNull(invoices.market))
+          : eq(invoices.market, market))
+        : undefined;
+      const directInvoices = await db.select().from(invoices).where(and(
+        eq(invoices.userId, userId),
+        ...(marketFilter ? [marketFilter] : []),
+      )).orderBy(desc(invoices.createdAt));
       
-      const userOrders = await db.select({ id: orders.id }).from(orders).where(eq(orders.userId, userId));
+      const userOrders = await db.select({ id: orders.id }).from(orders).where(and(
+        eq(orders.userId, userId),
+        ...(market ? [eq(orders.market, market)] : []),
+      ));
       if (userOrders.length > 0) {
         const orderIds = userOrders.map(o => o.id);
         const orderInvoices = await db.select().from(invoices)
           .where(
             and(
               inArray(invoices.orderId, orderIds),
+              ...(market ? [
+                market === "ro"
+                  ? or(eq(invoices.market, market), isNull(invoices.market))
+                  : eq(invoices.market, market),
+              ] : []),
               or(isNull(invoices.userId), ne(invoices.userId, userId))
             )
           )
@@ -1166,7 +1200,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Admin stats operations
-  async getTotalUsers(): Promise<number> {
+  async getTotalUsers(markets?: string[]): Promise<number> {
+    if (markets && markets.length > 0) {
+      const orderUsers = await db.selectDistinct({ id: orders.userId })
+        .from(orders)
+        .where(and(inArray(orders.market, markets), sql`${orders.userId} IS NOT NULL`));
+      const adminUsers = await db.select({ id: users.id, adminMarkets: users.adminMarkets })
+        .from(users)
+        .where(eq(users.isAdmin, true));
+      const ids = new Set(orderUsers.map(row => row.id).filter((id): id is number => id != null));
+      for (const admin of adminUsers) {
+        if ((admin.adminMarkets || []).some(market => markets.includes(market))) {
+          ids.add(admin.id);
+        }
+      }
+      return ids.size;
+    }
     const [result] = await db.select({ count: sql<number>`count(*)` }).from(users);
     return result.count;
   }
@@ -1180,7 +1229,16 @@ export class DatabaseStorage implements IStorage {
     return result.count;
   }
 
-  async getTotalProducts(): Promise<number> {
+  async getTotalProducts(markets?: string[]): Promise<number> {
+    if (markets && markets.length > 0) {
+      const [result] = await db.select({
+        count: sql<number>`count(distinct ${productMarkets.productId})`,
+      }).from(productMarkets).where(and(
+        inArray(productMarkets.market, markets),
+        eq(productMarkets.isActive, true),
+      ));
+      return result.count;
+    }
     const [result] = await db.select({ count: sql<number>`count(*)` }).from(products);
     return result.count;
   }
@@ -1288,6 +1346,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCompanySettings(settings: Partial<InsertCompanySettings>): Promise<CompanySettings> {
+    if (settings.marketCode) {
+      const marketExisting = await this.getCompanySettingsByMarket(settings.marketCode);
+      if (marketExisting) {
+        const [updatedMarketSettings] = await db
+          .update(companySettings)
+          .set({ ...settings, updatedAt: new Date() } as any)
+          .where(eq(companySettings.id, marketExisting.id))
+          .returning();
+        return updatedMarketSettings;
+      }
+      const [createdMarketSettings] = await db
+        .insert(companySettings)
+        .values([settings] as any)
+        .returning();
+      return createdMarketSettings;
+    }
     // Check if settings exist
     const existing = await this.getCompanySettings();
     
@@ -1434,8 +1508,15 @@ export class DatabaseStorage implements IStorage {
     return post;
   }
 
-  async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
-    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
+  async getBlogPostBySlug(slug: string, marketCode?: string): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(and(
+      eq(blogPosts.slug, slug),
+      ...(marketCode ? [
+        marketCode === "ro"
+          ? or(eq(blogPosts.marketCode, "ro"), isNull(blogPosts.marketCode))
+          : eq(blogPosts.marketCode, marketCode),
+      ] : []),
+    ));
     return post;
   }
 

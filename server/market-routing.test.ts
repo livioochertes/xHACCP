@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Request } from "express";
-import { getMarketFromRequest } from "./market-routing";
+import { getMarketFromRequest, marketMatches } from "./market-routing";
 
 function requestForMarket(
   host: string,
@@ -42,4 +42,15 @@ test("keeps explicit market selection available for local development", () => {
   const req = requestForMarket("localhost:5000", { headerMarket: "com" });
 
   assert.equal(getMarketFromRequest(req), "com");
+});
+
+test("legacy NULL market rows are visible only on the Romanian storefront", () => {
+  assert.equal(marketMatches(null, "ro"), true);
+  assert.equal(marketMatches(undefined, "fr"), false);
+});
+
+test("a record from one marketplace never matches another marketplace", () => {
+  assert.equal(marketMatches("fr", "fr"), true);
+  assert.equal(marketMatches("fr", "com"), false);
+  assert.equal(marketMatches("com", "ro"), false);
 });
