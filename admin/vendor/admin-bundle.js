@@ -12492,8 +12492,11 @@
     try {
       const token = localStorage.getItem("adminToken");
       const market = sessionStorage.getItem("adminMarketTab");
-      const marketParam = market && market !== "all" ? `?market=${market}` : "";
-      const response = await fetch(`/admin/api/categories${marketParam}`, {
+      const params = new URLSearchParams();
+      if (market && market !== "all") params.set("market", market);
+      if (i18n_default.language) params.set("language", i18n_default.language);
+      const query = params.toString();
+      const response = await fetch(`/admin/api/categories${query ? `?${query}` : ""}`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -12760,6 +12763,7 @@
     const [users, setUsers] = (0, import_react13.useState)([]);
     const [products, setProducts] = (0, import_react13.useState)([]);
     const [categories, setCategories] = (0, import_react13.useState)([]);
+    const categoriesRequestIdRef = import_react13.default.useRef(0);
     const [suppliers, setSuppliers] = (0, import_react13.useState)([]);
     const [showAddUserModal, setShowAddUserModal] = (0, import_react13.useState)(false);
     const [showAddProductModal, setShowAddProductModal] = (0, import_react13.useState)(false);
@@ -13188,6 +13192,7 @@
     };
     const fetchCategories = async (marketOverride = selectedMarketTab, { requireMarket = false } = {}) => {
       try {
+        const requestId = ++categoriesRequestIdRef.current;
         const market = marketOverride && marketOverride !== "all" ? marketOverride : "";
         if (requireMarket && !market) {
           setCategories([]);
@@ -13203,10 +13208,12 @@
           }
         });
         const data = await response.json();
-        if (response.ok) {
+        if (response.ok && requestId === categoriesRequestIdRef.current) {
           setCategories(data);
         } else {
-          console.error("Failed to fetch categories:", data.message);
+          if (!response.ok) {
+            console.error("Failed to fetch categories:", data.message);
+          }
         }
       } catch (err) {
         console.error("Network error fetching categories:", err);
@@ -24083,7 +24090,7 @@ ${selectedOrders.map((id) => {
                                   imageUrl: uploadResult.imageUrl
                                 };
                                 setEditingCategory(updatedCategory);
-                                window.fetchCategories(setCategories);
+                                fetchCategories();
                               } else {
                                 alert("Error uploading image: " + uploadResult.message);
                               }

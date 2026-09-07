@@ -85,8 +85,11 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       try {
         const token = localStorage.getItem('adminToken');
         const market = sessionStorage.getItem('adminMarketTab');
-        const marketParam = market && market !== 'all' ? `?market=${market}` : '';
-        const response = await fetch(`/admin/api/categories${marketParam}`, {
+        const params = new URLSearchParams();
+        if (market && market !== 'all') params.set('market', market);
+        if (i18n.language) params.set('language', i18n.language);
+        const query = params.toString();
+        const response = await fetch(`/admin/api/categories${query ? `?${query}` : ''}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -349,6 +352,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       const [users, setUsers] = useState([]);
       const [products, setProducts] = useState([]);
       const [categories, setCategories] = useState([]);
+      const categoriesRequestIdRef = React.useRef(0);
       const [suppliers, setSuppliers] = useState([]);
       const [showAddUserModal, setShowAddUserModal] = useState(false);
       const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -846,6 +850,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         { requireMarket = false } = {}
       ) => {
         try {
+          const requestId = ++categoriesRequestIdRef.current;
           const market = marketOverride && marketOverride !== 'all' ? marketOverride : '';
           if (requireMarket && !market) {
             setCategories([]);
@@ -863,10 +868,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           
           const data = await response.json();
           
-          if (response.ok) {
+          if (response.ok && requestId === categoriesRequestIdRef.current) {
             setCategories(data);
           } else {
-            console.error('Failed to fetch categories:', data.message);
+            if (!response.ok) {
+              console.error('Failed to fetch categories:', data.message);
+            }
           }
         } catch (err) {
           console.error('Network error fetching categories:', err);
@@ -11309,7 +11316,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                                   setEditingCategory(updatedCategory);
                                   
                                   // Refresh categories list to update the main table
-                                  window.fetchCategories(setCategories);
+                                  fetchCategories();
                                 } else {
                                   alert('Error uploading image: ' + uploadResult.message);
                                 }
