@@ -412,6 +412,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         ctaLabel: '',
         ctaUrl: '/products',
         ctaType: 'link',
+        destinationType: 'none',
+        destinationId: '',
+        destinationUrl: '',
         isActive: true
       });
       const [heroSlides, setHeroSlides] = useState([]);
@@ -654,7 +657,11 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         else if (activeView === 'blog') fetchBlogPosts();
         else if (activeView === 'google-feed') fetchGoogleFeed();
         else if (activeView === 'invoices') { setInvoiceMarketFilter('all'); fetchInvoices(selectedMarketTab); fetchInvoiceCounters(); }
-        else if (activeView === 'homepage-hero') fetchHeroSlides();
+        else if (activeView === 'homepage-hero') {
+          fetchHeroSlides();
+          fetchProducts(selectedMarketTab);
+          fetchCategories();
+        }
         else if (activeView === 'company-settings') { fetchCompanySettings(); fetchMarkets(); fetchInvoiceCounters(); }
         else if (activeView === 'marketing') { fetchMarkets(); fetchMarketing(); }
       }, [selectedMarketTab]);
@@ -2408,10 +2415,14 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           const endpoint = editingHeroSlide
             ? `/admin/api/homepage-hero/${editingHeroSlide.id}?market=${market}`
             : `/admin/api/homepage-hero?market=${market}`;
+          const payload = {
+            ...heroForm,
+            ctaUrl: heroForm.destinationType === 'none' ? heroForm.ctaUrl : ''
+          };
           const response = await fetch(endpoint, {
             method: editingHeroSlide ? 'PUT' : 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(heroForm)
+            body: JSON.stringify(payload)
           });
           const data = await response.json();
           if (!response.ok) throw new Error(data.message || 'Slide-ul nu a putut fi salvat.');
@@ -2436,6 +2447,9 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           ctaLabel: slide.ctaLabel || '',
           ctaUrl: slide.ctaUrl || '/products',
           ctaType: slide.ctaType || 'link',
+           destinationType: slide.destinationType || 'none',
+           destinationId: slide.destinationId || '',
+           destinationUrl: slide.destinationUrl || '',
           isActive: slide.isActive !== false
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4830,6 +4844,35 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         <label style={{fontSize: '13px', color: '#495057'}}>Link buton
                           <input value={heroForm.ctaUrl} onChange={e => setHeroForm({...heroForm, ctaUrl: e.target.value})} disabled={heroForm.ctaType === 'quote'} placeholder="/products sau https://..." style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
                         </label>
+                        <label style={{fontSize: '13px', color: '#495057'}}>Destinație la click pe imagine
+                          <select value={heroForm.destinationType} onChange={e => setHeroForm({...heroForm, destinationType: e.target.value, destinationId: '', destinationUrl: ''})} style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px'}}>
+                            <option value="none">Fără destinație nouă</option>
+                            <option value="category">Categorie</option>
+                            <option value="product">Produs</option>
+                            <option value="custom">URL personalizat</option>
+                          </select>
+                        </label>
+                        {heroForm.destinationType === 'category' && (
+                          <label style={{fontSize: '13px', color: '#495057'}}>Categoria promovată
+                            <select value={heroForm.destinationId} onChange={e => setHeroForm({...heroForm, destinationId: e.target.value})} style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px'}}>
+                              <option value="">Selectează categoria...</option>
+                              {categories.map(category => <option key={category.id} value={category.id}>{category.name} ({category.slug})</option>)}
+                            </select>
+                          </label>
+                        )}
+                        {heroForm.destinationType === 'product' && (
+                          <label style={{fontSize: '13px', color: '#495057'}}>Produsul promovat
+                            <select value={heroForm.destinationId} onChange={e => setHeroForm({...heroForm, destinationId: e.target.value})} style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px'}}>
+                              <option value="">Selectează produsul...</option>
+                              {products.filter(product => product.marketIsActive !== false).map(product => <option key={product.id} value={product.id}>{product.name} ({product.productCode || product.slug})</option>)}
+                            </select>
+                          </label>
+                        )}
+                        {heroForm.destinationType === 'custom' && (
+                          <label style={{fontSize: '13px', color: '#495057'}}>URL destinație
+                            <input value={heroForm.destinationUrl} onChange={e => setHeroForm({...heroForm, destinationUrl: e.target.value})} placeholder="/products?category=... sau https://..." style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
+                          </label>
+                        )}
                       </div>
                       <div style={{marginTop: '12px'}}>
                         <label style={{fontSize: '13px', color: '#495057'}}>URL imagine (poți lipi un URL sau încărca un fișier)

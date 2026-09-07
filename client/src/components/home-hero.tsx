@@ -17,6 +17,8 @@ interface HeroSlide {
   ctaLabel?: string | null;
   ctaUrl?: string | null;
   ctaType?: "link" | "quote";
+  destinationType?: "none" | "category" | "product" | "custom";
+  destinationUrl?: string | null;
 }
 
 interface HeroResponse {
@@ -29,11 +31,19 @@ function HeroCta({ slide, children }: { slide: HeroSlide; children: React.ReactN
     return <ContactModal>{children}</ContactModal>;
   }
 
-  const href = slide.ctaUrl || "/products";
+  const href = slide.destinationUrl || slide.ctaUrl || "/products";
   if (href.startsWith("/")) {
     return <Link href={href}>{children}</Link>;
   }
   return <a href={href}>{children}</a>;
+}
+
+function HeroDestination({ href, children, label }: { href: string; children: React.ReactNode; label: string }) {
+  const className = "absolute inset-0 z-[1] block";
+  if (href.startsWith("/")) {
+    return <Link href={href} aria-label={label} className={className}>{children}</Link>;
+  }
+  return <a href={href} aria-label={label} className={className}>{children}</a>;
 }
 
 export default function HomeHero() {
@@ -117,12 +127,25 @@ export default function HomeHero() {
             >
               {slide.slideType === "image" && slide.imageUrl ? (
                 <>
-                  <img
-                    src={slide.imageUrl}
-                    alt={slide.imageAlt || title}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-slate-950/10" />
+                  {(slide.destinationUrl || (slide.destinationType === "none" && slide.ctaType !== "quote" && slide.ctaUrl)) ? (
+                    <HeroDestination
+                      href={slide.destinationUrl || slide.ctaUrl as string}
+                      label={slide.imageAlt || title}
+                    >
+                      <img
+                        src={slide.imageUrl}
+                        alt={slide.imageAlt || title}
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    </HeroDestination>
+                  ) : (
+                    <img
+                      src={slide.imageUrl}
+                      alt={slide.imageAlt || title}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  )}
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-slate-950/10" />
                 </>
               ) : (
                 <div className="absolute inset-0 hero-gradient" />

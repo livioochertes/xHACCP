@@ -4695,9 +4695,35 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // Company Settings Routes
+  const isSafeHeroDestinationUrl = (value: unknown): value is string => {
+    if (typeof value !== "string" || !value.trim() || value.startsWith("//")) return false;
+    if (value.startsWith("/")) return true;
+    try {
+      return new URL(value).protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
+  const isLegacyHeroDestinationUrl = (value: unknown): value is string => {
+    if (typeof value !== "string" || !value.trim() || value.startsWith("//")) return false;
+    if (value.startsWith("/")) return true;
+    try {
+      return ["http:", "https:"].includes(new URL(value).protocol);
+    } catch {
+      return false;
+    }
+  };
+
   const normalizeHeroSlide = (body: any, marketCode: string) => {
     const slideType = body.slideType === "image" ? "image" : "text";
     const ctaType = body.ctaType === "quote" ? "quote" : "link";
+    const destinationType = ["category", "product", "custom"].includes(body.destinationType)
+      ? body.destinationType
+      : "none";
+    const destinationId = ["category", "product"].includes(destinationType) && Number.isInteger(Number(body.destinationId))
+      ? Number(body.destinationId)
+      : null;
     return {
       marketCode,
       slideType,
@@ -4708,9 +4734,44 @@ export async function registerAdminRoutes(app: Express) {
       ctaLabel: typeof body.ctaLabel === "string" ? body.ctaLabel.trim().slice(0, 255) : null,
       ctaUrl: typeof body.ctaUrl === "string" ? body.ctaUrl.trim().slice(0, 1000) : null,
       ctaType,
+      destinationType,
+      destinationId,
+      destinationUrl: destinationType === "custom" && typeof body.destinationUrl === "string"
+        ? body.destinationUrl.trim().slice(0, 1000)
+        : null,
       sortOrder: Number.isInteger(Number(body.sortOrder)) ? Math.max(0, Number(body.sortOrder)) : 0,
       isActive: body.isActive !== false,
     };
+  };
+
+  const validateHeroDestination = async (slide: ReturnType<typeof normalizeHeroSlide>, market: string): Promise<string | null> => {
+    if (slide.destinationType === "category") {
+      const category = (await storage.getCategories(market)).find((item) => item.id === slide.destinationId);
+      return category ? null : "Selectează o categorie disponibilă în marketplace-ul curent.";
+    }
+
+    if (slide.destinationType === "product") {
+      if (!slide.destinationId) return "Selectează un produs disponibil în marketplace-ul curent.";
+      const product = await storage.getProduct(slide.destinationId);
+      const marketRow = (await storage.getProductMarkets(slide.destinationId))
+        .find((row) => row.market === market && row.isActive !== false);
+      if (!product || product.status?.toLowerCase() !== "active" || !marketRow) {
+        return "Selectează un produs disponibil în marketplace-ul curent.";
+      }
+      return null;
+    }
+
+    if (slide.destinationType === "custom") {
+      return isSafeHeroDestinationUrl(slide.destinationUrl)
+        ? null
+        : "Linkul personalizat trebuie să fie intern (începând cu /) sau HTTPS.";
+    }
+
+    // Keep old slides valid when they only have the original CTA URL.
+    if (slide.slideType === "image" && !isLegacyHeroDestinationUrl(slide.ctaUrl)) {
+      return "Slide-urile imagine trebuie să aibă o destinație: categorie, produs sau link personalizat.";
+    }
+    return null;
   };
 
   const validateHeroMarket = (req: AdminAuthRequest, res: Response): string | null => {
@@ -4753,6 +4814,8 @@ export async function registerAdminRoutes(app: Express) {
       if (slide.slideType === "image" && !slide.imageUrl) {
         return res.status(400).json({ message: "An image URL is required for image slides" });
       }
+      const destinationError = await validateHeroDestination(slide, market);
+      if (destinationError) return res.status(400).json({ message: destinationError });
       const created = await storage.createHomepageHeroSlide({ ...slide, sortOrder: existing.length });
       res.status(201).json(created);
     } catch (error) {
@@ -4804,6 +4867,8 @@ export async function registerAdminRoutes(app: Express) {
       if (slide.slideType === "image" && !slide.imageUrl) {
         return res.status(400).json({ message: "An image URL is required for image slides" });
       }
+      const destinationError = await validateHeroDestination(slide, market);
+      if (destinationError) return res.status(400).json({ message: destinationError });
       const updated = await storage.updateHomepageHeroSlide(id, slide);
       res.json(updated);
     } catch (error) {

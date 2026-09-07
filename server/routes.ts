@@ -52,6 +52,64 @@ async function invoiceMatchesRequestMarket(invoice: { market?: string | null; or
   return !order || marketMatches(order.market, market);
 }
 
+const publicCategorySlugsByMarket: Record<string, Record<string, string>> = {
+  fr: { "food-labels": "etiquettes-alimentaires" },
+};
+
+function getHeroLanguage(market: string): string {
+  return market === "com" ? "en" : market;
+}
+
+function isSafeHeroDestinationUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim() || value.startsWith("//")) return false;
+  if (value.startsWith("/")) return true;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function isLegacyHeroDestinationUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim() || value.startsWith("//")) return false;
+  if (value.startsWith("/")) return true;
+  try {
+    return ["http:", "https:"].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
+async function resolveHomepageHeroDestination(slide: any, market: string): Promise<string | null> {
+  const destinationType = slide.destinationType || "none";
+  if (destinationType === "category") {
+    const categoryId = Number(slide.destinationId);
+    if (!Number.isInteger(categoryId)) return null;
+    const category = (await storage.getCategories(market)).find((item) => item.id === categoryId);
+    if (!category) return null;
+    const publicSlug = publicCategorySlugsByMarket[market]?.[category.slug] || category.slug;
+    return `/products?category=${encodeURIComponent(publicSlug)}`;
+  }
+
+  if (destinationType === "product") {
+    const productId = Number(slide.destinationId);
+    if (!Number.isInteger(productId)) return null;
+    const product = await storage.getProduct(productId);
+    if (!product || product.status?.toLowerCase() !== "active") return null;
+    const marketRow = (await storage.getProductMarkets(productId))
+      .find((row) => row.market === market && row.isActive !== false);
+    if (!marketRow) return null;
+    const translation = await storage.getProductTranslation(productId, getHeroLanguage(market));
+    return `/products/${encodeURIComponent(translation?.slug || product.slug)}`;
+  }
+
+  if (destinationType === "custom") {
+    return isSafeHeroDestinationUrl(slide.destinationUrl) ? slide.destinationUrl.trim() : null;
+  }
+
+  return isLegacyHeroDestinationUrl(slide.ctaUrl) ? slide.ctaUrl.trim() : null;
+}
+
 const appleOAuthStates = new Map<string, number>();
 setInterval(() => {
   const tenMinutesAgo = Date.now() - 600000;
@@ -2054,10 +2112,22 @@ Sitemap: https://${domain}/sitemap.xml
   app.get("/api/homepage-hero", async (req, res) => {
     try {
       const market = getMarketFromRequest(req);
-      const [slides, settings] = await Promise.all([
+      const [storedSlides, settings] = await Promise.all([
         storage.getHomepageHeroSlides(market),
         storage.getHomepageHeroSettings(market),
       ]);
+      const slides = await Promise.all(storedSlides.map(async (slide) => {
+        const destinationUrl = await resolveHomepageHeroDestination(slide, market);
+        return {
+          ...slide,
+          destinationUrl,
+          // Keep the existing CTA contract working while making a configured
+          // category/product destination authoritative over a stale ctaUrl.
+          ctaUrl: slide.destinationType && slide.destinationType !== "none"
+            ? destinationUrl
+            : slide.ctaUrl,
+        };
+      }));
       res.set("Cache-Control", "no-cache, no-store, must-revalidate");
       res.json({
         slides,

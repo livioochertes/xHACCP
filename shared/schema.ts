@@ -519,6 +519,9 @@ export const homepageHeroSlides = pgTable("homepage_hero_slides", {
   ctaLabel: varchar("cta_label", { length: 255 }),
   ctaUrl: varchar("cta_url", { length: 1000 }),
   ctaType: varchar("cta_type", { length: 20 }).notNull().default("link"), // link | quote
+  destinationType: varchar("destination_type", { length: 20 }).notNull().default("none"), // none | category | product | custom
+  destinationId: integer("destination_id"),
+  destinationUrl: varchar("destination_url", { length: 1000 }),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),

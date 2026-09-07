@@ -12819,6 +12819,9 @@
       ctaLabel: "",
       ctaUrl: "/products",
       ctaType: "link",
+      destinationType: "none",
+      destinationId: "",
+      destinationUrl: "",
       isActive: true
     });
     const [heroSlides, setHeroSlides] = (0, import_react13.useState)([]);
@@ -13034,8 +13037,11 @@
         setInvoiceMarketFilter("all");
         fetchInvoices(selectedMarketTab);
         fetchInvoiceCounters();
-      } else if (activeView === "homepage-hero") fetchHeroSlides();
-      else if (activeView === "company-settings") {
+      } else if (activeView === "homepage-hero") {
+        fetchHeroSlides();
+        fetchProducts(selectedMarketTab);
+        fetchCategories();
+      } else if (activeView === "company-settings") {
         fetchCompanySettings();
         fetchMarkets();
         fetchInvoiceCounters();
@@ -14617,10 +14623,14 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
       setHeroSaving(true);
       try {
         const endpoint = editingHeroSlide ? `/admin/api/homepage-hero/${editingHeroSlide.id}?market=${market}` : `/admin/api/homepage-hero?market=${market}`;
+        const payload = {
+          ...heroForm,
+          ctaUrl: heroForm.destinationType === "none" ? heroForm.ctaUrl : ""
+        };
         const response = await fetch(endpoint, {
           method: editingHeroSlide ? "PUT" : "POST",
           headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify(heroForm)
+          body: JSON.stringify(payload)
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || "Slide-ul nu a putut fi salvat.");
@@ -14644,6 +14654,9 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
         ctaLabel: slide.ctaLabel || "",
         ctaUrl: slide.ctaUrl || "/products",
         ctaType: slide.ctaType || "link",
+        destinationType: slide.destinationType || "none",
+        destinationId: slide.destinationId || "",
+        destinationUrl: slide.destinationUrl || "",
         isActive: slide.isActive !== false
       });
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -17114,6 +17127,43 @@ This action cannot be undone.`)) {
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
                     "Link buton",
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.ctaUrl, onChange: (e2) => setHeroForm({ ...heroForm, ctaUrl: e2.target.value }), disabled: heroForm.ctaType === "quote", placeholder: "/products sau https://...", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "Destina\u021Bie la click pe imagine",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.destinationType, onChange: (e2) => setHeroForm({ ...heroForm, destinationType: e2.target.value, destinationId: "", destinationUrl: "" }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "none", children: "F\u0103r\u0103 destina\u021Bie nou\u0103" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "category", children: "Categorie" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "product", children: "Produs" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "custom", children: "URL personalizat" })
+                    ] })
+                  ] }),
+                  heroForm.destinationType === "category" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "Categoria promovat\u0103",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.destinationId, onChange: (e2) => setHeroForm({ ...heroForm, destinationId: e2.target.value }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Selecteaz\u0103 categoria..." }),
+                      categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: category.id, children: [
+                        category.name,
+                        " (",
+                        category.slug,
+                        ")"
+                      ] }, category.id))
+                    ] })
+                  ] }),
+                  heroForm.destinationType === "product" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "Produsul promovat",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.destinationId, onChange: (e2) => setHeroForm({ ...heroForm, destinationId: e2.target.value }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Selecteaz\u0103 produsul..." }),
+                      products.filter((product) => product.marketIsActive !== false).map((product) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: product.id, children: [
+                        product.name,
+                        " (",
+                        product.productCode || product.slug,
+                        ")"
+                      ] }, product.id))
+                    ] })
+                  ] }),
+                  heroForm.destinationType === "custom" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "URL destina\u021Bie",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.destinationUrl, onChange: (e2) => setHeroForm({ ...heroForm, destinationUrl: e2.target.value }), placeholder: "/products?category=... sau https://...", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "12px" }, children: [
