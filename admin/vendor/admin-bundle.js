@@ -12390,6 +12390,48 @@
 
   // admin-src/LanguageSwitcher.jsx
   var import_react12 = __toESM(require_react(), 1);
+
+  // admin-src/categoryTranslationSync.js
+  var CATEGORY_TRANSLATION_UPDATED_EVENT = "admin-category-translations-updated";
+  var CATEGORY_TRANSLATION_CHANNEL = "admin-category-translations";
+  var channel;
+  var getChannel = () => {
+    if (!channel && typeof window !== "undefined" && typeof window.BroadcastChannel === "function") {
+      channel = new window.BroadcastChannel(CATEGORY_TRANSLATION_CHANNEL);
+    }
+    return channel;
+  };
+  var emitCategoryTranslationUpdate = (detail = {}) => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new CustomEvent(CATEGORY_TRANSLATION_UPDATED_EVENT, { detail }));
+  };
+  var broadcastCategoryTranslationUpdate = (detail = {}) => {
+    if (typeof window === "undefined") return;
+    emitCategoryTranslationUpdate(detail);
+    getChannel()?.postMessage({
+      type: CATEGORY_TRANSLATION_UPDATED_EVENT,
+      detail
+    });
+  };
+  var subscribeToCategoryTranslationUpdates = (handler) => {
+    if (typeof window === "undefined") return () => {
+    };
+    const handleLocalUpdate = (event) => handler(event.detail || {});
+    window.addEventListener(CATEGORY_TRANSLATION_UPDATED_EVENT, handleLocalUpdate);
+    const browserChannel = getChannel();
+    const handleCrossTabUpdate = (event) => {
+      if (event.data?.type === CATEGORY_TRANSLATION_UPDATED_EVENT) {
+        handler(event.data.detail || {});
+      }
+    };
+    browserChannel?.addEventListener("message", handleCrossTabUpdate);
+    return () => {
+      window.removeEventListener(CATEGORY_TRANSLATION_UPDATED_EVENT, handleLocalUpdate);
+      browserChannel?.removeEventListener("message", handleCrossTabUpdate);
+    };
+  };
+
+  // admin-src/LanguageSwitcher.jsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   function LanguageSwitcher() {
     const { i18n } = useTranslation();
@@ -12402,9 +12444,9 @@
     const handleChange = async (lang) => {
       await i18n.changeLanguage(lang);
       localStorage.setItem("adminLang", lang);
-      window.dispatchEvent(new CustomEvent("admin-category-translations-updated", {
-        detail: { language: lang }
-      }));
+      emitCategoryTranslationUpdate({
+        language: lang
+      });
     };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", gap: "4px", alignItems: "center" }, children: languages.map(({ code, label }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
       "button",
@@ -13059,9 +13101,12 @@
       refreshCategorySelectors();
     }, [selectedMarketTab]);
     (0, import_react13.useEffect)(() => {
-      const handleCategoryTranslationUpdate = () => refreshCategorySelectors();
-      window.addEventListener("admin-category-translations-updated", handleCategoryTranslationUpdate);
-      return () => window.removeEventListener("admin-category-translations-updated", handleCategoryTranslationUpdate);
+      return subscribeToCategoryTranslationUpdates(({ market } = {}) => {
+        if (market && selectedMarketTab !== "all" && market !== selectedMarketTab) {
+          return;
+        }
+        refreshCategorySelectors();
+      });
     }, [selectedMarketTab]);
     (0, import_react13.useEffect)(() => {
       if (activeView === "homepage-hero") {
@@ -20315,7 +20360,7 @@ Cordialement,`
             ...previous.filter((translation) => translation.language !== language),
             data.translation
           ]);
-          await refreshCategorySelectors();
+          broadcastCategoryTranslationUpdate(data.invalidation);
           alert("Category translation saved successfully");
         } catch (error2) {
           console.error("Error saving category translation:", error2);

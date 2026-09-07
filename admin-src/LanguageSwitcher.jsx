@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { emitCategoryTranslationUpdate } from './categoryTranslationSync.js';
 
 export default function LanguageSwitcher() {
   const { i18n } = useTranslation();
@@ -14,9 +15,9 @@ export default function LanguageSwitcher() {
   const handleChange = async (lang) => {
     await i18n.changeLanguage(lang);
     localStorage.setItem('adminLang', lang);
-    window.dispatchEvent(new CustomEvent('admin-category-translations-updated', {
-      detail: { language: lang },
-    }));
+    emitCategoryTranslationUpdate({
+      language: lang,
+    });
   };
 
   return (

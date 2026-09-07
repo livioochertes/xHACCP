@@ -119,12 +119,16 @@ test("all category label consumers use the localized response field", () => {
 test("refreshes every open category selector after a translation save", () => {
   const adminSource = readFileSync("admin-src/AdminApp.jsx", "utf8");
   const languageSwitcherSource = readFileSync("admin-src/LanguageSwitcher.jsx", "utf8");
+  const syncSource = readFileSync("admin-src/categoryTranslationSync.js", "utf8");
   const routesSource = readFileSync("server/admin-routes.ts", "utf8");
 
   assert.match(adminSource, /const refreshCategorySelectors = async \(\) => \{[\s\S]{0,500}fetchCategories\(selectedMarketTab\)/);
-  assert.match(adminSource, /await refreshCategorySelectors\(\);/);
-  assert.match(adminSource, /admin-category-translations-updated/);
+  assert.match(adminSource, /broadcastCategoryTranslationUpdate\(data\.invalidation\)/);
+  assert.match(adminSource, /if \(market && selectedMarketTab !== 'all' && market !== selectedMarketTab\)/);
   assert.match(adminSource, /productCategoryFilter[\s\S]{0,100}productFormData\.categoryId[\s\S]{0,100}homepageConfig/);
-  assert.match(languageSwitcherSource, /admin-category-translations-updated/);
+  assert.match(languageSwitcherSource, /emitCategoryTranslationUpdate\(\{\s*language:\s*lang,\s*\}\)/);
+  assert.match(syncSource, /new window\.BroadcastChannel\(CATEGORY_TRANSLATION_CHANNEL\)/);
+  assert.match(syncSource, /postMessage\(\{\s*type: CATEGORY_TRANSLATION_UPDATED_EVENT/);
   assert.match(routesSource, /app\.put\("\/admin\/api\/categories\/:id\/translations\/:language"/);
+  assert.match(routesSource, /invalidation:\s*\{\s*categoryId,\s*market: category\.marketCode \|\| 'ro',\s*language/);
 });

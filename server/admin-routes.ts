@@ -3310,7 +3310,15 @@ export async function registerAdminRoutes(app: Express) {
         : await storage.createCategoryTranslation({ categoryId, language, name, description });
 
       await loadAllDataIntoMemory();
-      res.json({ message: "Category translation saved successfully", translation });
+      res.json({
+        message: "Category translation saved successfully",
+        translation,
+        invalidation: {
+          categoryId,
+          market: category.marketCode || 'ro',
+          language,
+        },
+      });
     } catch (error) {
       console.error("Error saving category translation:", error);
       res.status(400).json({

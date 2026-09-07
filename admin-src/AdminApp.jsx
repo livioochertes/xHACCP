@@ -3,6 +3,10 @@ import ReactDOM from "react-dom/client";
 import { useTranslation, I18nextProvider } from "react-i18next";
 import i18n from "./i18n.js";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
+import {
+  broadcastCategoryTranslationUpdate,
+  subscribeToCategoryTranslationUpdates,
+} from "./categoryTranslationSync.js";
 
     
     // Define global functions first before React components
@@ -676,9 +680,12 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
       }, [selectedMarketTab]);
 
       useEffect(() => {
-        const handleCategoryTranslationUpdate = () => refreshCategorySelectors();
-        window.addEventListener('admin-category-translations-updated', handleCategoryTranslationUpdate);
-        return () => window.removeEventListener('admin-category-translations-updated', handleCategoryTranslationUpdate);
+        return subscribeToCategoryTranslationUpdates(({ market } = {}) => {
+          if (market && selectedMarketTab !== 'all' && market !== selectedMarketTab) {
+            return;
+          }
+          refreshCategorySelectors();
+        });
       }, [selectedMarketTab]);
 
       // A category belongs to exactly one marketplace. Never carry a selected
@@ -7682,7 +7689,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               ...previous.filter(translation => translation.language !== language),
               data.translation,
             ]);
-            await refreshCategorySelectors();
+            broadcastCategoryTranslationUpdate(data.invalidation);
             alert('Category translation saved successfully');
           } catch (error) {
             console.error('Error saving category translation:', error);
