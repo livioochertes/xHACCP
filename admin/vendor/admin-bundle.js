@@ -13040,7 +13040,7 @@
       } else if (activeView === "homepage-hero") {
         fetchHeroSlides();
         fetchProducts(selectedMarketTab);
-        fetchCategories();
+        fetchCategories(getHeroMarket(), { requireMarket: true });
       } else if (activeView === "company-settings") {
         fetchCompanySettings();
         fetchMarkets();
@@ -13048,6 +13048,11 @@
       } else if (activeView === "marketing") {
         fetchMarkets();
         fetchMarketing();
+      }
+    }, [selectedMarketTab, i18n_default.language]);
+    (0, import_react13.useEffect)(() => {
+      if (activeView === "homepage-hero") {
+        setHeroForm((prev) => prev.destinationType === "category" ? { ...prev, destinationId: "" } : prev);
       }
     }, [selectedMarketTab]);
     (0, import_react13.useEffect)(() => {
@@ -13181,10 +13186,18 @@
         console.error("Network error fetching products:", err);
       }
     };
-    const fetchCategories = async () => {
+    const fetchCategories = async (marketOverride = selectedMarketTab, { requireMarket = false } = {}) => {
       try {
-        const marketParam = selectedMarketTab && selectedMarketTab !== "all" ? `?market=${selectedMarketTab}` : "";
-        const response = await fetch(`/admin/api/categories${marketParam}`, {
+        const market = marketOverride && marketOverride !== "all" ? marketOverride : "";
+        if (requireMarket && !market) {
+          setCategories([]);
+          return;
+        }
+        const params = new URLSearchParams();
+        if (market) params.set("market", market);
+        if (i18n_default.language) params.set("language", i18n_default.language);
+        const query = params.toString();
+        const response = await fetch(`/admin/api/categories${query ? `?${query}` : ""}`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -14845,6 +14858,10 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
         fetchProductMarkets();
       } else if (view === "categories") {
         fetchCategories();
+      } else if (view === "homepage-hero") {
+        fetchHeroSlides();
+        fetchProducts(selectedMarketTab);
+        fetchCategories(getHeroMarket(), { requireMarket: true });
       } else if (view === "suppliers") {
         fetchSuppliers();
       } else if (view === "company-settings") {
@@ -17142,7 +17159,7 @@ This action cannot be undone.`)) {
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.destinationId, onChange: (e2) => setHeroForm({ ...heroForm, destinationId: e2.target.value }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Selecteaz\u0103 categoria..." }),
                       categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: category.id, children: [
-                        category.name,
+                        category.localizedName || category.name,
                         " (",
                         category.slug,
                         ")"
@@ -25264,10 +25281,7 @@ ${selectedOrders.map((id) => {
           "button",
           {
             className: `nav-tab ${activeView === "homepage-hero" ? "active" : ""}`,
-            onClick: () => {
-              handleViewChange("homepage-hero");
-              fetchHeroSlides();
-            },
+            onClick: () => handleViewChange("homepage-hero"),
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F5BC}\uFE0F" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: "Cover Home" })

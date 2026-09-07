@@ -660,10 +660,22 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         else if (activeView === 'homepage-hero') {
           fetchHeroSlides();
           fetchProducts(selectedMarketTab);
-          fetchCategories();
+          fetchCategories(getHeroMarket(), { requireMarket: true });
         }
         else if (activeView === 'company-settings') { fetchCompanySettings(); fetchMarkets(); fetchInvoiceCounters(); }
         else if (activeView === 'marketing') { fetchMarkets(); fetchMarketing(); }
+      }, [selectedMarketTab, i18n.language]);
+
+      // A category belongs to exactly one marketplace. Never carry a selected
+      // category into another marketplace while editing a Cover slide.
+      useEffect(() => {
+        if (activeView === 'homepage-hero') {
+          setHeroForm(prev => (
+            prev.destinationType === 'category'
+              ? { ...prev, destinationId: '' }
+              : prev
+          ));
+        }
       }, [selectedMarketTab]);
 
       // Refetch orders from server when market filter changes (server-side filtering)
@@ -829,10 +841,21 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         }
       };
 
-      const fetchCategories = async () => {
+      const fetchCategories = async (
+        marketOverride = selectedMarketTab,
+        { requireMarket = false } = {}
+      ) => {
         try {
-          const marketParam = selectedMarketTab && selectedMarketTab !== 'all' ? `?market=${selectedMarketTab}` : '';
-          const response = await fetch(`/admin/api/categories${marketParam}`, {
+          const market = marketOverride && marketOverride !== 'all' ? marketOverride : '';
+          if (requireMarket && !market) {
+            setCategories([]);
+            return;
+          }
+          const params = new URLSearchParams();
+          if (market) params.set('market', market);
+          if (i18n.language) params.set('language', i18n.language);
+          const query = params.toString();
+          const response = await fetch(`/admin/api/categories${query ? `?${query}` : ''}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -2674,6 +2697,10 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           fetchProductMarkets();
         } else if (view === 'categories') {
           fetchCategories();
+        } else if (view === 'homepage-hero') {
+          fetchHeroSlides();
+          fetchProducts(selectedMarketTab);
+          fetchCategories(getHeroMarket(), { requireMarket: true });
         } else if (view === 'suppliers') {
           fetchSuppliers();
         } else if (view === 'company-settings') {
@@ -4856,7 +4883,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           <label style={{fontSize: '13px', color: '#495057'}}>Categoria promovată
                             <select value={heroForm.destinationId} onChange={e => setHeroForm({...heroForm, destinationId: e.target.value})} style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px'}}>
                               <option value="">Selectează categoria...</option>
-                              {categories.map(category => <option key={category.id} value={category.id}>{category.name} ({category.slug})</option>)}
+                              {categories.map(category => <option key={category.id} value={category.id}>{category.localizedName || category.name} ({category.slug})</option>)}
                             </select>
                           </label>
                         )}
@@ -12400,7 +12427,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
             </button>
             <button
               className={`nav-tab ${activeView === 'homepage-hero' ? 'active' : ''}`}
-              onClick={() => { handleViewChange('homepage-hero'); fetchHeroSlides(); }}
+              onClick={() => handleViewChange('homepage-hero')}
             >
               <span style={{fontSize: '18px'}}>🖼️</span>
               <span style={{fontSize: '12px'}}>Cover Home</span>

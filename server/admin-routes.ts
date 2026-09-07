@@ -3226,7 +3226,27 @@ export async function registerAdminRoutes(app: Express) {
       const categories = market && market !== "all"
         ? await ensureMarketCategories(market)
         : await storage.getCategories(market);
-      res.json(categories);
+      const requestedLanguage = String(req.query.language || "").split("-")[0].toLowerCase();
+      const marketLanguage = market === "com" ? "en" : (market || "ro");
+      const primaryLanguage = requestedLanguage || marketLanguage;
+      const fallbackLanguage = primaryLanguage === marketLanguage ? null : marketLanguage;
+      const categoryIds = categories.map(category => category.id);
+      const [primaryTranslations, fallbackTranslations] = await Promise.all([
+        storage.getCategoryTranslationsBatch(categoryIds, primaryLanguage),
+        fallbackLanguage
+          ? storage.getCategoryTranslationsBatch(categoryIds, fallbackLanguage)
+          : Promise.resolve([]),
+      ]);
+      const primaryByCategory = new Map(primaryTranslations.map(translation => [translation.categoryId, translation]));
+      const fallbackByCategory = new Map(fallbackTranslations.map(translation => [translation.categoryId, translation]));
+      res.json(categories.map(category => {
+        const translation = primaryByCategory.get(category.id) || fallbackByCategory.get(category.id);
+        return {
+          ...category,
+          localizedName: translation?.name || category.name,
+          localizedDescription: translation?.description || category.description,
+        };
+      }));
     } catch (error) {
       console.error("Error fetching categories:", error);
       res.status(500).json({ message: "Failed to fetch categories" });
