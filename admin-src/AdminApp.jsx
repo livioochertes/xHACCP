@@ -403,6 +403,24 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         mainTop: [],
         mainShop: []
       });
+      const emptyHeroSlide = () => ({
+        slideType: 'text',
+        imageUrl: '',
+        imageAlt: '',
+        title: '',
+        subtitle: '',
+        ctaLabel: '',
+        ctaUrl: '/products',
+        ctaType: 'link',
+        isActive: true
+      });
+      const [heroSlides, setHeroSlides] = useState([]);
+      const [heroSettings, setHeroSettings] = useState({ autoplaySeconds: 5 });
+      const [heroForm, setHeroForm] = useState(emptyHeroSlide());
+      const [editingHeroSlide, setEditingHeroSlide] = useState(null);
+      const [heroLoading, setHeroLoading] = useState(false);
+      const [heroSaving, setHeroSaving] = useState(false);
+      const [heroUploading, setHeroUploading] = useState(false);
       
       // Blog state
       const [blogPosts, setBlogPosts] = useState([]);
@@ -636,6 +654,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         else if (activeView === 'blog') fetchBlogPosts();
         else if (activeView === 'google-feed') fetchGoogleFeed();
         else if (activeView === 'invoices') { setInvoiceMarketFilter('all'); fetchInvoices(selectedMarketTab); fetchInvoiceCounters(); }
+        else if (activeView === 'homepage-hero') fetchHeroSlides();
         else if (activeView === 'company-settings') { fetchCompanySettings(); fetchMarkets(); fetchInvoiceCounters(); }
         else if (activeView === 'marketing') { fetchMarkets(); fetchMarketing(); }
       }, [selectedMarketTab]);
@@ -2340,6 +2359,142 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           return { success: false, message: 'Network error' };
         }
       };
+
+      const getHeroMarket = () => selectedMarketTab && selectedMarketTab !== 'all' ? selectedMarketTab : null;
+
+      const fetchHeroSlides = async () => {
+        const market = getHeroMarket();
+        if (!market) {
+          setHeroSlides([]);
+          return;
+        }
+        setHeroLoading(true);
+        try {
+          const response = await fetch(`/admin/api/homepage-hero?market=${market}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Nu s-a putut încărca configurația cover-ului');
+          setHeroSlides(data.slides || []);
+          setHeroSettings({ autoplaySeconds: data.autoplaySeconds || 5 });
+        } catch (error) {
+          alert(`❌ ${error.message}`);
+        } finally {
+          setHeroLoading(false);
+        }
+      };
+
+      const saveHeroSettings = async () => {
+        const market = getHeroMarket();
+        if (!market) return alert('Selectează mai întâi un marketplace concret.');
+        const response = await fetch(`/admin/api/homepage-hero/settings?market=${market}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ autoplaySeconds: heroSettings.autoplaySeconds })
+        });
+        const data = await response.json();
+        if (!response.ok) return alert(`❌ ${data.message || 'Setarea nu a putut fi salvată.'}`);
+        setHeroSettings({ autoplaySeconds: data.autoplaySeconds });
+      };
+
+      const saveHeroSlide = async () => {
+        const market = getHeroMarket();
+        if (!market) return alert('Selectează mai întâi un marketplace concret.');
+        if (heroForm.slideType === 'image' && !heroForm.imageUrl.trim()) {
+          return alert('Adaugă o imagine pentru slide-ul de tip imagine.');
+        }
+        setHeroSaving(true);
+        try {
+          const endpoint = editingHeroSlide
+            ? `/admin/api/homepage-hero/${editingHeroSlide.id}?market=${market}`
+            : `/admin/api/homepage-hero?market=${market}`;
+          const response = await fetch(endpoint, {
+            method: editingHeroSlide ? 'PUT' : 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(heroForm)
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Slide-ul nu a putut fi salvat.');
+          setHeroForm(emptyHeroSlide());
+          setEditingHeroSlide(null);
+          await fetchHeroSlides();
+        } catch (error) {
+          alert(`❌ ${error.message}`);
+        } finally {
+          setHeroSaving(false);
+        }
+      };
+
+      const editHeroSlide = (slide) => {
+        setEditingHeroSlide(slide);
+        setHeroForm({
+          slideType: slide.slideType || 'text',
+          imageUrl: slide.imageUrl || '',
+          imageAlt: slide.imageAlt || '',
+          title: slide.title || '',
+          subtitle: slide.subtitle || '',
+          ctaLabel: slide.ctaLabel || '',
+          ctaUrl: slide.ctaUrl || '/products',
+          ctaType: slide.ctaType || 'link',
+          isActive: slide.isActive !== false
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const deleteHeroSlide = async (slide) => {
+        if (!window.confirm('Ștergi acest slide promoțional?')) return;
+        const market = getHeroMarket();
+        const response = await fetch(`/admin/api/homepage-hero/${slide.id}?market=${market}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) return alert(`❌ ${data.message || 'Slide-ul nu a putut fi șters.'}`);
+        fetchHeroSlides();
+        if (editingHeroSlide?.id === slide.id) {
+          setEditingHeroSlide(null);
+          setHeroForm(emptyHeroSlide());
+        }
+      };
+
+      const reorderHeroSlide = async (index, direction) => {
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= heroSlides.length) return;
+        const reordered = [...heroSlides];
+        [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+        const market = getHeroMarket();
+        const response = await fetch(`/admin/api/homepage-hero/reorder?market=${market}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: reordered.map(slide => slide.id) })
+        });
+        const data = await response.json();
+        if (!response.ok) return alert(`❌ ${data.message || 'Ordinea nu a putut fi salvată.'}`);
+        setHeroSlides(data);
+      };
+
+      const uploadHeroImage = async (file) => {
+        if (!file || !file.type.startsWith('image/')) return alert('Selectează un fișier imagine.');
+        setHeroUploading(true);
+        try {
+          const formData = new FormData();
+          formData.append('images', file);
+          const response = await fetch('/admin/api/upload-images', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+          });
+          const data = await response.json();
+          if (!response.ok || !data.files?.[0]) throw new Error(data.message || 'Imaginea nu a putut fi încărcată.');
+          const uploaded = data.files[0];
+          setHeroForm(prev => ({ ...prev, imageUrl: uploaded.url || uploaded.thumbnailUrl || uploaded }));
+        } catch (error) {
+          alert(`❌ ${error.message}`);
+        } finally {
+          setHeroUploading(false);
+        }
+      };
+
       // Fetch company settings
       const fetchCompanySettings = async () => {
         try {
@@ -4613,6 +4768,113 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
               </div>
             );
           }
+
+          case 'homepage-hero':
+            return (
+              <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '15px', marginBottom: '22px', flexWrap: 'wrap'}}>
+                  <div>
+                    <h3 style={{color: '#333', margin: '0 0 6px'}}>🖼️ Cover promoțional Home</h3>
+                    <p style={{margin: 0, color: '#6c757d', fontSize: '13px'}}>Configurează până la 3 slide-uri pentru marketplace-ul selectat.</p>
+                  </div>
+                  <button onClick={fetchHeroSlides} disabled={heroLoading} style={{background: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', padding: '9px 14px', cursor: 'pointer'}}>↻ Reîncarcă</button>
+                </div>
+
+                {selectedMarketTab === 'all' ? (
+                  <div style={{padding: '18px', background: '#fff3cd', color: '#856404', border: '1px solid #ffeeba', borderRadius: '6px'}}>
+                    Selectează un marketplace concret din bara de sus pentru a administra cover-ul.
+                  </div>
+                ) : (
+                  <>
+                    <section style={{background: '#f0f7ff', border: '1px solid #b8d7ff', borderRadius: '8px', padding: '18px', marginBottom: '24px'}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap'}}>
+                        <div>
+                          <strong style={{color: '#145da0'}}>Setări afișare · .{selectedMarketTab}</strong>
+                          <div style={{fontSize: '12px', color: '#6c757d', marginTop: '4px'}}>Autoplay-ul se oprește la hover sau focus pe site.</div>
+                        </div>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                          <label style={{fontSize: '13px', color: '#495057'}}>Interval (secunde)</label>
+                          <input type="number" min="3" max="30" value={heroSettings.autoplaySeconds} onChange={e => setHeroSettings({...heroSettings, autoplaySeconds: e.target.value})} style={{width: '72px', padding: '7px', border: '1px solid #ced4da', borderRadius: '4px'}} />
+                          <button onClick={saveHeroSettings} style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '8px 12px', cursor: 'pointer'}}>💾 Salvează</button>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section style={{border: '1px solid #dee2e6', borderRadius: '8px', padding: '20px', marginBottom: '24px'}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                        <h4 style={{margin: 0, color: '#333'}}>{editingHeroSlide ? '✏️ Editează slide' : '➕ Adaugă slide'} <span style={{fontSize: '12px', color: '#6c757d', fontWeight: 'normal'}}>({heroSlides.length}/3)</span></h4>
+                        {editingHeroSlide && <button onClick={() => { setEditingHeroSlide(null); setHeroForm(emptyHeroSlide()); }} style={{background: 'white', border: '1px solid #adb5bd', borderRadius: '4px', padding: '7px 12px', cursor: 'pointer'}}>Anulează editarea</button>}
+                      </div>
+                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px'}}>
+                        <label style={{fontSize: '13px', color: '#495057'}}>Tip slide
+                          <select value={heroForm.slideType} onChange={e => setHeroForm({...heroForm, slideType: e.target.value})} style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px'}}>
+                            <option value="text">Text promoțional</option>
+                            <option value="image">Imagine full cover</option>
+                          </select>
+                        </label>
+                        <label style={{fontSize: '13px', color: '#495057'}}>Titlu
+                          <input value={heroForm.title} onChange={e => setHeroForm({...heroForm, title: e.target.value})} placeholder="Ex: Promoție de vară" style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
+                        </label>
+                        <label style={{fontSize: '13px', color: '#495057'}}>Text secundar
+                          <input value={heroForm.subtitle} onChange={e => setHeroForm({...heroForm, subtitle: e.target.value})} placeholder="Descriere opțională" style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
+                        </label>
+                        <label style={{fontSize: '13px', color: '#495057'}}>Text buton
+                          <input value={heroForm.ctaLabel} onChange={e => setHeroForm({...heroForm, ctaLabel: e.target.value})} placeholder="Cumpără acum" style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
+                        </label>
+                        <label style={{fontSize: '13px', color: '#495057'}}>Acțiune buton
+                          <select value={heroForm.ctaType} onChange={e => setHeroForm({...heroForm, ctaType: e.target.value})} style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px'}}>
+                            <option value="link">Deschide link</option>
+                            <option value="quote">Solicită ofertă</option>
+                          </select>
+                        </label>
+                        <label style={{fontSize: '13px', color: '#495057'}}>Link buton
+                          <input value={heroForm.ctaUrl} onChange={e => setHeroForm({...heroForm, ctaUrl: e.target.value})} disabled={heroForm.ctaType === 'quote'} placeholder="/products sau https://..." style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
+                        </label>
+                      </div>
+                      <div style={{marginTop: '12px'}}>
+                        <label style={{fontSize: '13px', color: '#495057'}}>URL imagine (poți lipi un URL sau încărca un fișier)
+                          <input value={heroForm.imageUrl} onChange={e => setHeroForm({...heroForm, imageUrl: e.target.value})} placeholder="https://..." style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
+                        </label>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', flexWrap: 'wrap'}}>
+                          <input type="file" accept="image/*" disabled={heroUploading} onChange={e => uploadHeroImage(e.target.files?.[0])} />
+                          {heroUploading && <span style={{fontSize: '12px', color: '#6c757d'}}>Se încarcă...</span>}
+                        </div>
+                        <label style={{display: 'block', marginTop: '10px', fontSize: '13px', color: '#495057'}}>Text alternativ imagine
+                          <input value={heroForm.imageAlt} onChange={e => setHeroForm({...heroForm, imageAlt: e.target.value})} placeholder="Descriere pentru accesibilitate" style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
+                        </label>
+                      </div>
+                      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginTop: '15px', flexWrap: 'wrap'}}>
+                        <label style={{fontSize: '13px', color: '#495057'}}><input type="checkbox" checked={heroForm.isActive} onChange={e => setHeroForm({...heroForm, isActive: e.target.checked})} /> Slide activ</label>
+                        <button onClick={saveHeroSlide} disabled={heroSaving || (!editingHeroSlide && heroSlides.length >= 3)} style={{background: heroSaving ? '#adb5bd' : '#198754', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 16px', cursor: heroSaving ? 'not-allowed' : 'pointer'}}>
+                          {heroSaving ? '⏳ Se salvează...' : editingHeroSlide ? '💾 Salvează modificările' : '➕ Adaugă slide'}
+                        </button>
+                      </div>
+                    </section>
+
+                    {heroLoading ? <div style={{padding: '30px', textAlign: 'center', color: '#6c757d'}}>Se încarcă slide-urile...</div> : (
+                      <div style={{display: 'grid', gap: '12px'}}>
+                        {heroSlides.length === 0 && <div style={{padding: '25px', textAlign: 'center', background: '#f8f9fa', borderRadius: '6px', color: '#6c757d'}}>Nu există slide-uri. Site-ul va folosi hero-ul text implicit.</div>}
+                        {heroSlides.map((slide, index) => (
+                          <div key={slide.id} style={{display: 'flex', gap: '15px', alignItems: 'center', padding: '12px', border: '1px solid #dee2e6', borderRadius: '8px', opacity: slide.isActive ? 1 : 0.55, flexWrap: 'wrap'}}>
+                            {slide.imageUrl ? <img src={slide.imageUrl} alt={slide.imageAlt || slide.title || 'Hero preview'} style={{width: '150px', height: '80px', objectFit: 'cover', borderRadius: '5px', background: '#e9ecef'}} /> : <div style={{width: '150px', height: '80px', borderRadius: '5px', background: 'linear-gradient(135deg,#102a43,#1f5f8b)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px', boxSizing: 'border-box', fontSize: '12px'}}>{slide.title || 'Text promoțional'}</div>}
+                            <div style={{flex: 1, minWidth: '220px'}}>
+                              <strong style={{color: '#333'}}>{index + 1}. {slide.title || 'Slide imagine'}</strong>
+                              <div style={{fontSize: '12px', color: '#6c757d', marginTop: '4px'}}>{slide.subtitle || 'Fără descriere'} · {slide.isActive ? 'Activ' : 'Inactiv'}</div>
+                            </div>
+                            <div style={{display: 'flex', gap: '5px', alignItems: 'center'}}>
+                              <button disabled={index === 0} onClick={() => reorderHeroSlide(index, -1)} title="Mută în sus" style={{padding: '6px 9px', border: '1px solid #ced4da', background: 'white', borderRadius: '4px', cursor: index === 0 ? 'not-allowed' : 'pointer'}}>↑</button>
+                              <button disabled={index === heroSlides.length - 1} onClick={() => reorderHeroSlide(index, 1)} title="Mută în jos" style={{padding: '6px 9px', border: '1px solid #ced4da', background: 'white', borderRadius: '4px', cursor: index === heroSlides.length - 1 ? 'not-allowed' : 'pointer'}}>↓</button>
+                              <button onClick={() => editHeroSlide(slide)} style={{padding: '6px 10px', border: 'none', background: '#0d6efd', color: 'white', borderRadius: '4px', cursor: 'pointer'}}>Editează</button>
+                              <button onClick={() => deleteHeroSlide(slide)} style={{padding: '6px 10px', border: 'none', background: '#dc3545', color: 'white', borderRadius: '4px', cursor: 'pointer'}}>Șterge</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            );
 
           case 'marketing':
             return (
@@ -12092,6 +12354,13 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
             >
               <span style={{fontSize: '18px'}}>📝</span>
               <span style={{fontSize: '12px'}}>{t('nav.blog')}</span>
+            </button>
+            <button
+              className={`nav-tab ${activeView === 'homepage-hero' ? 'active' : ''}`}
+              onClick={() => { handleViewChange('homepage-hero'); fetchHeroSlides(); }}
+            >
+              <span style={{fontSize: '18px'}}>🖼️</span>
+              <span style={{fontSize: '12px'}}>Cover Home</span>
             </button>
             <button 
               className={`nav-tab ${activeView === 'google-feed' ? 'active' : ''}`}

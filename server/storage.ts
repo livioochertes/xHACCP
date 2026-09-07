@@ -13,6 +13,8 @@ import {
   invoices,
   invoiceItems,
   companySettings,
+  homepageHeroSlides,
+  homepageHeroSettings,
   shippingSettings,
   vouchers,
   marketSettings,
@@ -51,6 +53,10 @@ import {
   type InvoiceWithItems,
   type CompanySettings,
   type InsertCompanySettings,
+  type HomepageHeroSlide,
+  type InsertHomepageHeroSlide,
+  type HomepageHeroSettings,
+  type InsertHomepageHeroSettings,
   type ShippingSettings,
   type InsertShippingSettings,
   type Voucher,
@@ -187,6 +193,12 @@ export interface IStorage {
   getRecentOrders(limit: number, markets?: string[]): Promise<OrderWithItems[]>;
 
   // Company settings operations
+  getHomepageHeroSlides(market: string, includeInactive?: boolean): Promise<HomepageHeroSlide[]>;
+  createHomepageHeroSlide(slide: InsertHomepageHeroSlide): Promise<HomepageHeroSlide>;
+  updateHomepageHeroSlide(id: number, slide: Partial<InsertHomepageHeroSlide>): Promise<HomepageHeroSlide>;
+  deleteHomepageHeroSlide(id: number): Promise<void>;
+  getHomepageHeroSettings(market: string): Promise<HomepageHeroSettings | undefined>;
+  updateHomepageHeroSettings(settings: InsertHomepageHeroSettings): Promise<HomepageHeroSettings>;
   getCompanySettings(): Promise<CompanySettings | undefined>;
   getCompanySettingsByMarket(market: string): Promise<CompanySettings | undefined>;
   updateCompanySettings(settings: Partial<InsertCompanySettings>): Promise<CompanySettings>;
@@ -1538,6 +1550,56 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Company settings operations
+  async getHomepageHeroSlides(market: string, includeInactive = false): Promise<HomepageHeroSlide[]> {
+    const conditions = includeInactive
+      ? eq(homepageHeroSlides.marketCode, market)
+      : and(eq(homepageHeroSlides.marketCode, market), eq(homepageHeroSlides.isActive, true));
+    return db
+      .select()
+      .from(homepageHeroSlides)
+      .where(conditions)
+      .orderBy(homepageHeroSlides.sortOrder, homepageHeroSlides.id);
+  }
+
+  async createHomepageHeroSlide(slide: InsertHomepageHeroSlide): Promise<HomepageHeroSlide> {
+    const [created] = await db.insert(homepageHeroSlides).values(slide).returning();
+    return created;
+  }
+
+  async updateHomepageHeroSlide(id: number, slide: Partial<InsertHomepageHeroSlide>): Promise<HomepageHeroSlide> {
+    const [updated] = await db
+      .update(homepageHeroSlides)
+      .set({ ...slide, updatedAt: new Date() })
+      .where(eq(homepageHeroSlides.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteHomepageHeroSlide(id: number): Promise<void> {
+    await db.delete(homepageHeroSlides).where(eq(homepageHeroSlides.id, id));
+  }
+
+  async getHomepageHeroSettings(market: string): Promise<HomepageHeroSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(homepageHeroSettings)
+      .where(eq(homepageHeroSettings.marketCode, market))
+      .limit(1);
+    return settings;
+  }
+
+  async updateHomepageHeroSettings(settings: InsertHomepageHeroSettings): Promise<HomepageHeroSettings> {
+    const [updated] = await db
+      .insert(homepageHeroSettings)
+      .values(settings)
+      .onConflictDoUpdate({
+        target: homepageHeroSettings.marketCode,
+        set: { autoplaySeconds: settings.autoplaySeconds, updatedAt: new Date() },
+      })
+      .returning();
+    return updated;
+  }
+
   async getCompanySettings(): Promise<CompanySettings | undefined> {
     const [settings] = await db.select().from(companySettings).limit(1);
     return settings;

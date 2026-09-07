@@ -12810,6 +12810,24 @@
       mainTop: [],
       mainShop: []
     });
+    const emptyHeroSlide = () => ({
+      slideType: "text",
+      imageUrl: "",
+      imageAlt: "",
+      title: "",
+      subtitle: "",
+      ctaLabel: "",
+      ctaUrl: "/products",
+      ctaType: "link",
+      isActive: true
+    });
+    const [heroSlides, setHeroSlides] = (0, import_react13.useState)([]);
+    const [heroSettings, setHeroSettings] = (0, import_react13.useState)({ autoplaySeconds: 5 });
+    const [heroForm, setHeroForm] = (0, import_react13.useState)(emptyHeroSlide());
+    const [editingHeroSlide, setEditingHeroSlide] = (0, import_react13.useState)(null);
+    const [heroLoading, setHeroLoading] = (0, import_react13.useState)(false);
+    const [heroSaving, setHeroSaving] = (0, import_react13.useState)(false);
+    const [heroUploading, setHeroUploading] = (0, import_react13.useState)(false);
     const [blogPosts, setBlogPosts] = (0, import_react13.useState)([]);
     const [blogGenerating, setBlogGenerating] = (0, import_react13.useState)(false);
     const [blogGenerateForm, setBlogGenerateForm] = (0, import_react13.useState)({ title: "", category: "HACCP", language: (() => {
@@ -13016,7 +13034,8 @@
         setInvoiceMarketFilter("all");
         fetchInvoices(selectedMarketTab);
         fetchInvoiceCounters();
-      } else if (activeView === "company-settings") {
+      } else if (activeView === "homepage-hero") fetchHeroSlides();
+      else if (activeView === "company-settings") {
         fetchCompanySettings();
         fetchMarkets();
         fetchInvoiceCounters();
@@ -14553,6 +14572,131 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
         }
       } catch (err) {
         return { success: false, message: "Network error" };
+      }
+    };
+    const getHeroMarket = () => selectedMarketTab && selectedMarketTab !== "all" ? selectedMarketTab : null;
+    const fetchHeroSlides = async () => {
+      const market = getHeroMarket();
+      if (!market) {
+        setHeroSlides([]);
+        return;
+      }
+      setHeroLoading(true);
+      try {
+        const response = await fetch(`/admin/api/homepage-hero?market=${market}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Nu s-a putut \xEEnc\u0103rca configura\u021Bia cover-ului");
+        setHeroSlides(data.slides || []);
+        setHeroSettings({ autoplaySeconds: data.autoplaySeconds || 5 });
+      } catch (error2) {
+        alert(`\u274C ${error2.message}`);
+      } finally {
+        setHeroLoading(false);
+      }
+    };
+    const saveHeroSettings = async () => {
+      const market = getHeroMarket();
+      if (!market) return alert("Selecteaz\u0103 mai \xEEnt\xE2i un marketplace concret.");
+      const response = await fetch(`/admin/api/homepage-hero/settings?market=${market}`, {
+        method: "PUT",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ autoplaySeconds: heroSettings.autoplaySeconds })
+      });
+      const data = await response.json();
+      if (!response.ok) return alert(`\u274C ${data.message || "Setarea nu a putut fi salvat\u0103."}`);
+      setHeroSettings({ autoplaySeconds: data.autoplaySeconds });
+    };
+    const saveHeroSlide = async () => {
+      const market = getHeroMarket();
+      if (!market) return alert("Selecteaz\u0103 mai \xEEnt\xE2i un marketplace concret.");
+      if (heroForm.slideType === "image" && !heroForm.imageUrl.trim()) {
+        return alert("Adaug\u0103 o imagine pentru slide-ul de tip imagine.");
+      }
+      setHeroSaving(true);
+      try {
+        const endpoint = editingHeroSlide ? `/admin/api/homepage-hero/${editingHeroSlide.id}?market=${market}` : `/admin/api/homepage-hero?market=${market}`;
+        const response = await fetch(endpoint, {
+          method: editingHeroSlide ? "PUT" : "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(heroForm)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Slide-ul nu a putut fi salvat.");
+        setHeroForm(emptyHeroSlide());
+        setEditingHeroSlide(null);
+        await fetchHeroSlides();
+      } catch (error2) {
+        alert(`\u274C ${error2.message}`);
+      } finally {
+        setHeroSaving(false);
+      }
+    };
+    const editHeroSlide = (slide) => {
+      setEditingHeroSlide(slide);
+      setHeroForm({
+        slideType: slide.slideType || "text",
+        imageUrl: slide.imageUrl || "",
+        imageAlt: slide.imageAlt || "",
+        title: slide.title || "",
+        subtitle: slide.subtitle || "",
+        ctaLabel: slide.ctaLabel || "",
+        ctaUrl: slide.ctaUrl || "/products",
+        ctaType: slide.ctaType || "link",
+        isActive: slide.isActive !== false
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    const deleteHeroSlide = async (slide) => {
+      if (!window.confirm("\u0218tergi acest slide promo\u021Bional?")) return;
+      const market = getHeroMarket();
+      const response = await fetch(`/admin/api/homepage-hero/${slide.id}?market=${market}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) return alert(`\u274C ${data.message || "Slide-ul nu a putut fi \u0219ters."}`);
+      fetchHeroSlides();
+      if (editingHeroSlide?.id === slide.id) {
+        setEditingHeroSlide(null);
+        setHeroForm(emptyHeroSlide());
+      }
+    };
+    const reorderHeroSlide = async (index, direction) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= heroSlides.length) return;
+      const reordered = [...heroSlides];
+      [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+      const market = getHeroMarket();
+      const response = await fetch(`/admin/api/homepage-hero/reorder?market=${market}`, {
+        method: "PUT",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ order: reordered.map((slide) => slide.id) })
+      });
+      const data = await response.json();
+      if (!response.ok) return alert(`\u274C ${data.message || "Ordinea nu a putut fi salvat\u0103."}`);
+      setHeroSlides(data);
+    };
+    const uploadHeroImage = async (file) => {
+      if (!file || !file.type.startsWith("image/")) return alert("Selecteaz\u0103 un fi\u0219ier imagine.");
+      setHeroUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("images", file);
+        const response = await fetch("/admin/api/upload-images", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` },
+          body: formData
+        });
+        const data = await response.json();
+        if (!response.ok || !data.files?.[0]) throw new Error(data.message || "Imaginea nu a putut fi \xEEnc\u0103rcat\u0103.");
+        const uploaded = data.files[0];
+        setHeroForm((prev) => ({ ...prev, imageUrl: uploaded.url || uploaded.thumbnailUrl || uploaded }));
+      } catch (error2) {
+        alert(`\u274C ${error2.message}`);
+      } finally {
+        setHeroUploading(false);
       }
     };
     const fetchCompanySettings = async () => {
@@ -16900,6 +17044,126 @@ This action cannot be undone.`)) {
             ] })
           ] });
         }
+        case "homepage-hero":
+          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "15px", marginBottom: "22px", flexWrap: "wrap" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0 0 6px" }, children: "\u{1F5BC}\uFE0F Cover promo\u021Bional Home" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#6c757d", fontSize: "13px" }, children: "Configureaz\u0103 p\xE2n\u0103 la 3 slide-uri pentru marketplace-ul selectat." })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: fetchHeroSlides, disabled: heroLoading, style: { background: "#6c757d", color: "white", border: "none", borderRadius: "5px", padding: "9px 14px", cursor: "pointer" }, children: "\u21BB Re\xEEncarc\u0103" })
+            ] }),
+            selectedMarketTab === "all" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "18px", background: "#fff3cd", color: "#856404", border: "1px solid #ffeeba", borderRadius: "6px" }, children: "Selecteaz\u0103 un marketplace concret din bara de sus pentru a administra cover-ul." }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("section", { style: { background: "#f0f7ff", border: "1px solid #b8d7ff", borderRadius: "8px", padding: "18px", marginBottom: "24px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#145da0" }, children: [
+                    "Set\u0103ri afi\u0219are \xB7 .",
+                    selectedMarketTab
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginTop: "4px" }, children: "Autoplay-ul se opre\u0219te la hover sau focus pe site." })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { fontSize: "13px", color: "#495057" }, children: "Interval (secunde)" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "number", min: "3", max: "30", value: heroSettings.autoplaySeconds, onChange: (e2) => setHeroSettings({ ...heroSettings, autoplaySeconds: e2.target.value }), style: { width: "72px", padding: "7px", border: "1px solid #ced4da", borderRadius: "4px" } }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: saveHeroSettings, style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "8px 12px", cursor: "pointer" }, children: "\u{1F4BE} Salveaz\u0103" })
+                ] })
+              ] }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "20px", marginBottom: "24px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: 0, color: "#333" }, children: [
+                    editingHeroSlide ? "\u270F\uFE0F Editeaz\u0103 slide" : "\u2795 Adaug\u0103 slide",
+                    " ",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", color: "#6c757d", fontWeight: "normal" }, children: [
+                      "(",
+                      heroSlides.length,
+                      "/3)"
+                    ] })
+                  ] }),
+                  editingHeroSlide && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => {
+                    setEditingHeroSlide(null);
+                    setHeroForm(emptyHeroSlide());
+                  }, style: { background: "white", border: "1px solid #adb5bd", borderRadius: "4px", padding: "7px 12px", cursor: "pointer" }, children: "Anuleaz\u0103 editarea" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "Tip slide",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.slideType, onChange: (e2) => setHeroForm({ ...heroForm, slideType: e2.target.value }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "text", children: "Text promo\u021Bional" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "image", children: "Imagine full cover" })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "Titlu",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.title, onChange: (e2) => setHeroForm({ ...heroForm, title: e2.target.value }), placeholder: "Ex: Promo\u021Bie de var\u0103", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "Text secundar",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.subtitle, onChange: (e2) => setHeroForm({ ...heroForm, subtitle: e2.target.value }), placeholder: "Descriere op\u021Bional\u0103", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "Text buton",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.ctaLabel, onChange: (e2) => setHeroForm({ ...heroForm, ctaLabel: e2.target.value }), placeholder: "Cump\u0103r\u0103 acum", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "Ac\u021Biune buton",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.ctaType, onChange: (e2) => setHeroForm({ ...heroForm, ctaType: e2.target.value }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "link", children: "Deschide link" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "quote", children: "Solicit\u0103 ofert\u0103" })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "Link buton",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.ctaUrl, onChange: (e2) => setHeroForm({ ...heroForm, ctaUrl: e2.target.value }), disabled: heroForm.ctaType === "quote", placeholder: "/products sau https://...", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "12px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    "URL imagine (po\u021Bi lipi un URL sau \xEEnc\u0103rca un fi\u0219ier)",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.imageUrl, onChange: (e2) => setHeroForm({ ...heroForm, imageUrl: e2.target.value }), placeholder: "https://...", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", flexWrap: "wrap" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "file", accept: "image/*", disabled: heroUploading, onChange: (e2) => uploadHeroImage(e2.target.files?.[0]) }),
+                    heroUploading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: "Se \xEEncarc\u0103..." })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "block", marginTop: "10px", fontSize: "13px", color: "#495057" }, children: [
+                    "Text alternativ imagine",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.imageAlt, onChange: (e2) => setHeroForm({ ...heroForm, imageAlt: e2.target.value }), placeholder: "Descriere pentru accesibilitate", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginTop: "15px", flexWrap: "wrap" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "checkbox", checked: heroForm.isActive, onChange: (e2) => setHeroForm({ ...heroForm, isActive: e2.target.checked }) }),
+                    " Slide activ"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: saveHeroSlide, disabled: heroSaving || !editingHeroSlide && heroSlides.length >= 3, style: { background: heroSaving ? "#adb5bd" : "#198754", color: "white", border: "none", borderRadius: "4px", padding: "9px 16px", cursor: heroSaving ? "not-allowed" : "pointer" }, children: heroSaving ? "\u23F3 Se salveaz\u0103..." : editingHeroSlide ? "\u{1F4BE} Salveaz\u0103 modific\u0103rile" : "\u2795 Adaug\u0103 slide" })
+                ] })
+              ] }),
+              heroLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "30px", textAlign: "center", color: "#6c757d" }, children: "Se \xEEncarc\u0103 slide-urile..." }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gap: "12px" }, children: [
+                heroSlides.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "25px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", color: "#6c757d" }, children: "Nu exist\u0103 slide-uri. Site-ul va folosi hero-ul text implicit." }),
+                heroSlides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "15px", alignItems: "center", padding: "12px", border: "1px solid #dee2e6", borderRadius: "8px", opacity: slide.isActive ? 1 : 0.55, flexWrap: "wrap" }, children: [
+                  slide.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("img", { src: slide.imageUrl, alt: slide.imageAlt || slide.title || "Hero preview", style: { width: "150px", height: "80px", objectFit: "cover", borderRadius: "5px", background: "#e9ecef" } }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { width: "150px", height: "80px", borderRadius: "5px", background: "linear-gradient(135deg,#102a43,#1f5f8b)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "8px", boxSizing: "border-box", fontSize: "12px" }, children: slide.title || "Text promo\u021Bional" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { flex: 1, minWidth: "220px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#333" }, children: [
+                      index + 1,
+                      ". ",
+                      slide.title || "Slide imagine"
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "12px", color: "#6c757d", marginTop: "4px" }, children: [
+                      slide.subtitle || "F\u0103r\u0103 descriere",
+                      " \xB7 ",
+                      slide.isActive ? "Activ" : "Inactiv"
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px", alignItems: "center" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { disabled: index === 0, onClick: () => reorderHeroSlide(index, -1), title: "Mut\u0103 \xEEn sus", style: { padding: "6px 9px", border: "1px solid #ced4da", background: "white", borderRadius: "4px", cursor: index === 0 ? "not-allowed" : "pointer" }, children: "\u2191" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { disabled: index === heroSlides.length - 1, onClick: () => reorderHeroSlide(index, 1), title: "Mut\u0103 \xEEn jos", style: { padding: "6px 9px", border: "1px solid #ced4da", background: "white", borderRadius: "4px", cursor: index === heroSlides.length - 1 ? "not-allowed" : "pointer" }, children: "\u2193" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => editHeroSlide(slide), style: { padding: "6px 10px", border: "none", background: "#0d6efd", color: "white", borderRadius: "4px", cursor: "pointer" }, children: "Editeaz\u0103" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => deleteHeroSlide(slide), style: { padding: "6px 10px", border: "none", background: "#dc3545", color: "white", borderRadius: "4px", cursor: "pointer" }, children: "\u0218terge" })
+                  ] })
+                ] }, slide.id))
+              ] })
+            ] })
+          ] });
         case "marketing":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }, children: [
@@ -24943,6 +25207,20 @@ ${selectedOrders.map((id) => {
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F4DD}" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.blog") })
+            ]
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+          "button",
+          {
+            className: `nav-tab ${activeView === "homepage-hero" ? "active" : ""}`,
+            onClick: () => {
+              handleViewChange("homepage-hero");
+              fetchHeroSlides();
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F5BC}\uFE0F" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: "Cover Home" })
             ]
           }
         ),

@@ -17,6 +17,7 @@ import { useCart } from "@/hooks/use-cart";
 
 import ProductCard from "@/components/product-card";
 import ContactModal from "@/components/contact-modal";
+import HomeHero from "@/components/home-hero";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { getPublicCategorySlug } from "@/lib/category-slugs";
 import type { Category, ProductWithCategory, BlogPost } from "@shared/schema";
@@ -290,30 +291,7 @@ export default function Home() {
       )}
 
       {/* Hero Section */}
-      <section className="hero-gradient text-white py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              {t('home.hero.title')}
-            </h1>
-            <p className="text-xl text-slate-300 mb-8">
-              {t('home.hero.subtitle')}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/products">
-                <Button size="lg" className="kitchen-pro-secondary">
-                  {t('home.hero.shopNow')}
-                </Button>
-              </Link>
-              <ContactModal>
-                <Button size="lg" variant="outline" className="border-white text-white bg-white/10 hover:bg-white hover:text-primary">
-                  {t('home.hero.quote')}
-                </Button>
-              </ContactModal>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HomeHero />
 
       {/* Trust Indicators */}
       <section className="py-8 bg-white">

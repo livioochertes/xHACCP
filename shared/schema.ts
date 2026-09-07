@@ -507,6 +507,34 @@ export const companySettings = pgTable("company_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Per-market homepage promotional hero slides
+export const homepageHeroSlides = pgTable("homepage_hero_slides", {
+  id: serial("id").primaryKey(),
+  marketCode: varchar("market_code", { length: 10 }).notNull(),
+  slideType: varchar("slide_type", { length: 20 }).notNull().default("text"), // text | image
+  imageUrl: varchar("image_url", { length: 1000 }),
+  imageAlt: varchar("image_alt", { length: 255 }),
+  title: varchar("title", { length: 500 }),
+  subtitle: text("subtitle"),
+  ctaLabel: varchar("cta_label", { length: 255 }),
+  ctaUrl: varchar("cta_url", { length: 1000 }),
+  ctaType: varchar("cta_type", { length: 20 }).notNull().default("link"), // link | quote
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  marketOrderIdx: index("homepage_hero_slides_market_order_idx").on(table.marketCode, table.sortOrder),
+}));
+
+export const homepageHeroSettings = pgTable("homepage_hero_settings", {
+  id: serial("id").primaryKey(),
+  marketCode: varchar("market_code", { length: 10 }).notNull().unique(),
+  autoplaySeconds: integer("autoplay_seconds").notNull().default(5),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Shipping settings table for parcel company configuration
 export const shippingSettings = pgTable("shipping_settings", {
   id: serial("id").primaryKey(),
@@ -789,6 +817,18 @@ export const insertCompanySettingsSchema = createInsertSchema(companySettings).o
   updatedAt: true,
 });
 
+export const insertHomepageHeroSlideSchema = createInsertSchema(homepageHeroSlides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertHomepageHeroSettingsSchema = createInsertSchema(homepageHeroSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertShippingSettingsSchema = createInsertSchema(shippingSettings).omit({
   id: true,
   createdAt: true,
@@ -861,6 +901,10 @@ export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
 export type CompanySettings = typeof companySettings.$inferSelect;
 export type InsertCompanySettings = z.infer<typeof insertCompanySettingsSchema>;
+export type HomepageHeroSlide = typeof homepageHeroSlides.$inferSelect;
+export type InsertHomepageHeroSlide = z.infer<typeof insertHomepageHeroSlideSchema>;
+export type HomepageHeroSettings = typeof homepageHeroSettings.$inferSelect;
+export type InsertHomepageHeroSettings = z.infer<typeof insertHomepageHeroSettingsSchema>;
 export type ShippingSettings = typeof shippingSettings.$inferSelect;
 export type InsertShippingSettings = z.infer<typeof insertShippingSettingsSchema>;
 export type Voucher = typeof vouchers.$inferSelect;

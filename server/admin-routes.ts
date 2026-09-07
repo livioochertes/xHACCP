@@ -4695,6 +4695,140 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // Company Settings Routes
+  const normalizeHeroSlide = (body: any, marketCode: string) => {
+    const slideType = body.slideType === "image" ? "image" : "text";
+    const ctaType = body.ctaType === "quote" ? "quote" : "link";
+    return {
+      marketCode,
+      slideType,
+      imageUrl: typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null,
+      imageAlt: typeof body.imageAlt === "string" ? body.imageAlt.trim().slice(0, 255) : null,
+      title: typeof body.title === "string" ? body.title.trim().slice(0, 500) : null,
+      subtitle: typeof body.subtitle === "string" ? body.subtitle.trim() : null,
+      ctaLabel: typeof body.ctaLabel === "string" ? body.ctaLabel.trim().slice(0, 255) : null,
+      ctaUrl: typeof body.ctaUrl === "string" ? body.ctaUrl.trim().slice(0, 1000) : null,
+      ctaType,
+      sortOrder: Number.isInteger(Number(body.sortOrder)) ? Math.max(0, Number(body.sortOrder)) : 0,
+      isActive: body.isActive !== false,
+    };
+  };
+
+  const validateHeroMarket = (req: AdminAuthRequest, res: Response): string | null => {
+    const market = typeof req.query.market === "string" ? req.query.market : "";
+    if (!["ro", "fr", "com"].includes(market)) {
+      res.status(400).json({ message: "A specific marketplace is required" });
+      return null;
+    }
+    if (!canAccessMarket(req, market)) {
+      res.status(403).json({ message: "Access denied for this market" });
+      return null;
+    }
+    return market;
+  };
+
+  app.get("/admin/api/homepage-hero", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const market = validateHeroMarket(req, res);
+    if (!market) return;
+    try {
+      const [slides, settings] = await Promise.all([
+        storage.getHomepageHeroSlides(market, true),
+        storage.getHomepageHeroSettings(market),
+      ]);
+      res.json({ slides, autoplaySeconds: settings?.autoplaySeconds || 5 });
+    } catch (error) {
+      console.error("Error fetching homepage hero settings:", error);
+      res.status(500).json({ message: "Failed to fetch homepage hero settings" });
+    }
+  });
+
+  app.post("/admin/api/homepage-hero", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const market = validateHeroMarket(req, res);
+    if (!market) return;
+    try {
+      const existing = await storage.getHomepageHeroSlides(market, true);
+      if (existing.length >= 3) {
+        return res.status(400).json({ message: "Maximum three hero slides are allowed" });
+      }
+      const slide = normalizeHeroSlide(req.body, market);
+      if (slide.slideType === "image" && !slide.imageUrl) {
+        return res.status(400).json({ message: "An image URL is required for image slides" });
+      }
+      const created = await storage.createHomepageHeroSlide({ ...slide, sortOrder: existing.length });
+      res.status(201).json(created);
+    } catch (error) {
+      console.error("Error creating homepage hero slide:", error);
+      res.status(500).json({ message: "Failed to create homepage hero slide" });
+    }
+  });
+
+  app.put("/admin/api/homepage-hero/settings", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const market = validateHeroMarket(req, res);
+    if (!market) return;
+    try {
+      const autoplaySeconds = Math.min(30, Math.max(3, Math.round(Number(req.body.autoplaySeconds) || 5)));
+      const settings = await storage.updateHomepageHeroSettings({ marketCode: market, autoplaySeconds });
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating homepage hero settings:", error);
+      res.status(500).json({ message: "Failed to update homepage hero settings" });
+    }
+  });
+
+  app.put("/admin/api/homepage-hero/reorder", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const market = validateHeroMarket(req, res);
+    if (!market) return;
+    try {
+      const order = Array.isArray(req.body.order) ? req.body.order.map(Number).filter(Number.isInteger) : [];
+      const slides = await storage.getHomepageHeroSlides(market, true);
+      const slideIds = new Set(slides.map(slide => slide.id));
+      if (order.length !== slides.length || order.some((id: number) => !slideIds.has(id)) || new Set(order).size !== order.length) {
+        return res.status(400).json({ message: "The reorder list must contain every slide exactly once" });
+      }
+      await Promise.all(order.map((id: number, index: number) => storage.updateHomepageHeroSlide(id, { sortOrder: index })));
+      res.json(await storage.getHomepageHeroSlides(market, true));
+    } catch (error) {
+      console.error("Error reordering homepage hero slides:", error);
+      res.status(500).json({ message: "Failed to reorder homepage hero slides" });
+    }
+  });
+
+  app.put("/admin/api/homepage-hero/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const market = validateHeroMarket(req, res);
+    if (!market) return;
+    try {
+      const id = Number(req.params.id);
+      const slides = await storage.getHomepageHeroSlides(market, true);
+      const existing = slides.find(slide => slide.id === id);
+      if (!existing) return res.status(404).json({ message: "Hero slide not found" });
+      const slide = normalizeHeroSlide(req.body, market);
+      if (slide.slideType === "image" && !slide.imageUrl) {
+        return res.status(400).json({ message: "An image URL is required for image slides" });
+      }
+      const updated = await storage.updateHomepageHeroSlide(id, slide);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating homepage hero slide:", error);
+      res.status(500).json({ message: "Failed to update homepage hero slide" });
+    }
+  });
+
+  app.delete("/admin/api/homepage-hero/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const market = validateHeroMarket(req, res);
+    if (!market) return;
+    try {
+      const id = Number(req.params.id);
+      const slides = await storage.getHomepageHeroSlides(market, true);
+      if (!slides.some(slide => slide.id === id)) return res.status(404).json({ message: "Hero slide not found" });
+      await storage.deleteHomepageHeroSlide(id);
+      const remaining = await storage.getHomepageHeroSlides(market, true);
+      await Promise.all(remaining.map((slide, index) => storage.updateHomepageHeroSlide(slide.id, { sortOrder: index })));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting homepage hero slide:", error);
+      res.status(500).json({ message: "Failed to delete homepage hero slide" });
+    }
+  });
+
   app.get("/admin/api/company-settings", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     console.log('Company settings API endpoint called');
     try {

@@ -2050,6 +2050,25 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
+  // Public homepage hero configuration for the detected marketplace.
+  app.get("/api/homepage-hero", async (req, res) => {
+    try {
+      const market = getMarketFromRequest(req);
+      const [slides, settings] = await Promise.all([
+        storage.getHomepageHeroSlides(market),
+        storage.getHomepageHeroSettings(market),
+      ]);
+      res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.json({
+        slides,
+        autoplaySeconds: Math.min(30, Math.max(3, settings?.autoplaySeconds || 5)),
+      });
+    } catch (error) {
+      console.error("Error fetching public homepage hero:", error);
+      res.json({ slides: [], autoplaySeconds: 5 });
+    }
+  });
+
   // Category routes - instant response from memory
   app.get("/api/categories", (req, res) => {
     // No browser caching to ensure admin changes are visible immediately
