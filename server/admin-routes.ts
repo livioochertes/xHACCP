@@ -3266,6 +3266,59 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  app.get("/admin/api/categories/:id/translations", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      if (!Number.isInteger(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+
+      const category = await storage.getCategory(categoryId);
+      if (!category) return res.status(404).json({ message: "Category not found" });
+      if (!canAccessMarket(req as AdminAuthRequest, category.marketCode || 'ro')) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
+      res.json(await storage.getCategoryTranslations(categoryId));
+    } catch (error) {
+      console.error("Error fetching category translations:", error);
+      res.status(500).json({ message: "Failed to fetch category translations" });
+    }
+  });
+
+  app.put("/admin/api/categories/:id/translations/:language", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      const language = String(req.params.language || '').split('-')[0].toLowerCase();
+      const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+      const description = typeof req.body?.description === 'string' ? req.body.description : null;
+
+      if (!Number.isInteger(categoryId) || !['ro', 'en', 'fr'].includes(language)) {
+        return res.status(400).json({ message: "Invalid category or language" });
+      }
+      if (!name) return res.status(400).json({ message: "Translation name is required" });
+
+      const category = await storage.getCategory(categoryId);
+      if (!category) return res.status(404).json({ message: "Category not found" });
+      if (!canAccessMarket(req as AdminAuthRequest, category.marketCode || 'ro')) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
+      const existingTranslation = await storage.getCategoryTranslation(categoryId, language);
+      const translation = existingTranslation
+        ? await storage.updateCategoryTranslation(existingTranslation.id, { name, description })
+        : await storage.createCategoryTranslation({ categoryId, language, name, description });
+
+      await loadAllDataIntoMemory();
+      res.json({ message: "Category translation saved successfully", translation });
+    } catch (error) {
+      console.error("Error saving category translation:", error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : "Failed to save category translation",
+      });
+    }
+  });
+
   // Create independent category records for a marketplace from another
   // marketplace's current structure. Existing target records are preserved.
   app.post("/admin/api/categories/initialize-market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {

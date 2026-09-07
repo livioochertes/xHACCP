@@ -115,3 +115,16 @@ test("all category label consumers use the localized response field", () => {
   assert.match(source, /params\.set\('market', market\);/);
   assert.match(source, /params\.set\('language', i18n\.language\);/);
 });
+
+test("refreshes every open category selector after a translation save", () => {
+  const adminSource = readFileSync("admin-src/AdminApp.jsx", "utf8");
+  const languageSwitcherSource = readFileSync("admin-src/LanguageSwitcher.jsx", "utf8");
+  const routesSource = readFileSync("server/admin-routes.ts", "utf8");
+
+  assert.match(adminSource, /const refreshCategorySelectors = async \(\) => \{[\s\S]{0,500}fetchCategories\(selectedMarketTab\)/);
+  assert.match(adminSource, /await refreshCategorySelectors\(\);/);
+  assert.match(adminSource, /admin-category-translations-updated/);
+  assert.match(adminSource, /productCategoryFilter[\s\S]{0,100}productFormData\.categoryId[\s\S]{0,100}homepageConfig/);
+  assert.match(languageSwitcherSource, /admin-category-translations-updated/);
+  assert.match(routesSource, /app\.put\("\/admin\/api\/categories\/:id\/translations\/:language"/);
+});

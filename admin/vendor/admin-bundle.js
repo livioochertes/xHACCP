@@ -12399,9 +12399,12 @@
       { code: "fr", label: "\u{1F1EB}\u{1F1F7} FR" },
       { code: "en", label: "\u{1F310} EN" }
     ];
-    const handleChange = (lang) => {
-      i18n.changeLanguage(lang);
+    const handleChange = async (lang) => {
+      await i18n.changeLanguage(lang);
       localStorage.setItem("adminLang", lang);
+      window.dispatchEvent(new CustomEvent("admin-category-translations-updated", {
+        detail: { language: lang }
+      }));
     };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", gap: "4px", alignItems: "center" }, children: languages.map(({ code, label }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
       "button",
@@ -13032,9 +13035,7 @@
       if (activeView === "users") fetchUsers();
       else if (activeView === "products") {
         fetchProducts(selectedMarketTab);
-        fetchCategories();
-      } else if (activeView === "categories") fetchCategories();
-      else if (activeView === "suppliers") fetchSuppliers();
+      } else if (activeView === "suppliers") fetchSuppliers();
       else if (activeView === "vouchers") fetchVouchers();
       else if (activeView === "blog") fetchBlogPosts();
       else if (activeView === "google-feed") fetchGoogleFeed();
@@ -13045,7 +13046,6 @@
       } else if (activeView === "homepage-hero") {
         fetchHeroSlides();
         fetchProducts(selectedMarketTab);
-        fetchCategories(getHeroMarket(), { requireMarket: true });
       } else if (activeView === "company-settings") {
         fetchCompanySettings();
         fetchMarkets();
@@ -13055,6 +13055,14 @@
         fetchMarketing();
       }
     }, [selectedMarketTab, i18n_default.language]);
+    (0, import_react13.useEffect)(() => {
+      refreshCategorySelectors();
+    }, [selectedMarketTab]);
+    (0, import_react13.useEffect)(() => {
+      const handleCategoryTranslationUpdate = () => refreshCategorySelectors();
+      window.addEventListener("admin-category-translations-updated", handleCategoryTranslationUpdate);
+      return () => window.removeEventListener("admin-category-translations-updated", handleCategoryTranslationUpdate);
+    }, [selectedMarketTab]);
     (0, import_react13.useEffect)(() => {
       if (activeView === "homepage-hero") {
         setHeroForm((prev) => prev.destinationType === "category" ? { ...prev, destinationId: "" } : prev);
@@ -13200,7 +13208,7 @@
         const market = marketOverride && marketOverride !== "all" ? marketOverride : "";
         if (requireMarket && !market) {
           setCategories([]);
-          return;
+          return [];
         }
         const params = new URLSearchParams();
         if (market) params.set("market", market);
@@ -13214,6 +13222,7 @@
         const data = await response.json();
         if (response.ok && requestId === categoriesRequestIdRef.current) {
           setCategories(data);
+          return data;
         } else {
           if (!response.ok) {
             console.error("Failed to fetch categories:", data.message);
@@ -13222,6 +13231,10 @@
       } catch (err) {
         console.error("Network error fetching categories:", err);
       }
+      return [];
+    };
+    const refreshCategorySelectors = async () => {
+      return fetchCategories(selectedMarketTab);
     };
     const fetchSuppliers = async () => {
       try {
@@ -20262,6 +20275,53 @@ Cordialement,`
       const [componentsLoading, setComponentsLoading] = (0, import_react13.useState)(false);
       const [newTranslation, setNewTranslation] = (0, import_react13.useState)({ language: "", name: "", description: "", sourceUrl: "" });
       const [editingTranslation, setEditingTranslation] = (0, import_react13.useState)(null);
+      const [categoryTranslations, setCategoryTranslations] = (0, import_react13.useState)([]);
+      const [categoryTranslationDrafts, setCategoryTranslationDrafts] = (0, import_react13.useState)({});
+      import_react13.default.useEffect(() => {
+        if (!editingCategory?.id) {
+          setCategoryTranslations([]);
+          setCategoryTranslationDrafts({});
+          return;
+        }
+        fetch(`/admin/api/categories/${editingCategory.id}/translations`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        }).then((response) => response.ok ? response.json() : []).then((translations) => {
+          setCategoryTranslations(translations);
+          setCategoryTranslationDrafts(Object.fromEntries(
+            translations.map((translation) => [
+              translation.language,
+              { name: translation.name || "", description: translation.description || "" }
+            ])
+          ));
+        }).catch((error2) => console.error("Error fetching category translations:", error2));
+      }, [editingCategory?.id]);
+      const saveCategoryTranslation = async (language) => {
+        const draft = categoryTranslationDrafts[language] || {};
+        try {
+          const response = await fetch(`/admin/api/categories/${editingCategory.id}/translations/${language}`, {
+            method: "PUT",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(draft)
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            alert(data.message || "Failed to save category translation");
+            return;
+          }
+          setCategoryTranslations((previous) => [
+            ...previous.filter((translation) => translation.language !== language),
+            data.translation
+          ]);
+          await refreshCategorySelectors();
+          alert("Category translation saved successfully");
+        } catch (error2) {
+          console.error("Error saving category translation:", error2);
+          alert("Network error. Please try again.");
+        }
+      };
       import_react13.default.useEffect(() => {
         if (productLoadTrigger > 0 && initialProductDataRef.current) {
           console.log("ModalsComponent: Loading product data from ref");
@@ -24026,6 +24086,58 @@ ${selectedOrders.map((id) => {
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "fr", children: "\u{1F1EB}\u{1F1F7} France (fr)" }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "com", children: "\u{1F30D} International (com)" })
               ] })
+            ] }),
+            editingCategory && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px", padding: "15px", background: "#f8f9fa", border: "1px solid #dee2e6", borderRadius: "6px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 5px", color: "#333" }, children: "Localized names" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "0 0 12px", color: "#666", fontSize: "12px" }, children: "Save a name for each admin language. Open category selectors refresh without changing their selected IDs." }),
+              ["ro", "fr", "en"].map((language) => {
+                const draft = categoryTranslationDrafts[language] || { name: "", description: "" };
+                return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "12px", paddingBottom: "12px", borderBottom: "1px solid #e5e5e5" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-label", children: [
+                    language.toUpperCase(),
+                    " name"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "input",
+                      {
+                        className: "form-input",
+                        value: draft.name,
+                        onChange: (event) => setCategoryTranslationDrafts((previous) => ({
+                          ...previous,
+                          [language]: { ...draft, name: event.target.value }
+                        })),
+                        placeholder: `Category name in ${language.toUpperCase()}`
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        type: "button",
+                        className: "btn",
+                        style: { background: "#007bff", width: "auto", whiteSpace: "nowrap" },
+                        onClick: () => saveCategoryTranslation(language),
+                        disabled: !draft.name.trim(),
+                        children: "Save"
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "textarea",
+                    {
+                      className: "form-input",
+                      rows: 2,
+                      value: draft.description,
+                      onChange: (event) => setCategoryTranslationDrafts((previous) => ({
+                        ...previous,
+                        [language]: { ...draft, description: event.target.value }
+                      })),
+                      placeholder: `Description in ${language.toUpperCase()} (optional)`,
+                      style: { marginTop: "6px" }
+                    }
+                  )
+                ] }, language);
+              })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "Category Image" }),

@@ -654,9 +654,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         if (activeView === 'users') fetchUsers();
         else if (activeView === 'products') {
           fetchProducts(selectedMarketTab);
-          fetchCategories();
         }
-        else if (activeView === 'categories') fetchCategories();
         else if (activeView === 'suppliers') fetchSuppliers();
         else if (activeView === 'vouchers') fetchVouchers();
         else if (activeView === 'blog') fetchBlogPosts();
@@ -665,11 +663,23 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         else if (activeView === 'homepage-hero') {
           fetchHeroSlides();
           fetchProducts(selectedMarketTab);
-          fetchCategories(getHeroMarket(), { requireMarket: true });
         }
         else if (activeView === 'company-settings') { fetchCompanySettings(); fetchMarkets(); fetchInvoiceCounters(); }
         else if (activeView === 'marketing') { fetchMarkets(); fetchMarketing(); }
       }, [selectedMarketTab, i18n.language]);
+
+      // Category labels are consumed by the category list, product editor and
+      // filter, and homepage selectors. Refresh them independently of the
+      // active tab so every open consumer receives the same localized rows.
+      useEffect(() => {
+        refreshCategorySelectors();
+      }, [selectedMarketTab]);
+
+      useEffect(() => {
+        const handleCategoryTranslationUpdate = () => refreshCategorySelectors();
+        window.addEventListener('admin-category-translations-updated', handleCategoryTranslationUpdate);
+        return () => window.removeEventListener('admin-category-translations-updated', handleCategoryTranslationUpdate);
+      }, [selectedMarketTab]);
 
       // A category belongs to exactly one marketplace. Never carry a selected
       // category into another marketplace while editing a Cover slide.
@@ -858,7 +868,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           const market = marketOverride && marketOverride !== 'all' ? marketOverride : '';
           if (requireMarket && !market) {
             setCategories([]);
-            return;
+            return [];
           }
           const params = new URLSearchParams();
           if (market) params.set('market', market);
@@ -874,6 +884,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           
           if (response.ok && requestId === categoriesRequestIdRef.current) {
             setCategories(data);
+            return data;
           } else {
             if (!response.ok) {
               console.error('Failed to fetch categories:', data.message);
@@ -882,6 +893,13 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         } catch (err) {
           console.error('Network error fetching categories:', err);
         }
+        return [];
+      };
+
+      const refreshCategorySelectors = async () => {
+        // Do not reset productCategoryFilter, productFormData.categoryId, or
+        // homepageConfig here: category IDs and marketplace scope are stable.
+        return fetchCategories(selectedMarketTab);
       };
 
       const fetchSuppliers = async () => {
@@ -7617,6 +7635,60 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         // Translation form states - local to ModalsComponent to prevent focus loss
         const [newTranslation, setNewTranslation] = useState({ language: '', name: '', description: '', sourceUrl: '' });
         const [editingTranslation, setEditingTranslation] = useState(null);
+        const [categoryTranslations, setCategoryTranslations] = useState([]);
+        const [categoryTranslationDrafts, setCategoryTranslationDrafts] = useState({});
+
+        React.useEffect(() => {
+          if (!editingCategory?.id) {
+            setCategoryTranslations([]);
+            setCategoryTranslationDrafts({});
+            return;
+          }
+
+          fetch(`/admin/api/categories/${editingCategory.id}/translations`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+            .then(response => response.ok ? response.json() : [])
+            .then(translations => {
+              setCategoryTranslations(translations);
+              setCategoryTranslationDrafts(Object.fromEntries(
+                translations.map(translation => [
+                  translation.language,
+                  { name: translation.name || '', description: translation.description || '' }
+                ])
+              ));
+            })
+            .catch(error => console.error('Error fetching category translations:', error));
+        }, [editingCategory?.id]);
+
+        const saveCategoryTranslation = async (language) => {
+          const draft = categoryTranslationDrafts[language] || {};
+          try {
+            const response = await fetch(`/admin/api/categories/${editingCategory.id}/translations/${language}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(draft)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+              alert(data.message || 'Failed to save category translation');
+              return;
+            }
+
+            setCategoryTranslations(previous => [
+              ...previous.filter(translation => translation.language !== language),
+              data.translation,
+            ]);
+            await refreshCategorySelectors();
+            alert('Category translation saved successfully');
+          } catch (error) {
+            console.error('Error saving category translation:', error);
+            alert('Network error. Please try again.');
+          }
+        };
         
         // Load product data from ref when productLoadTrigger changes
         React.useEffect(() => {
@@ -11251,6 +11323,54 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                         <option value="com">🌍 International (com)</option>
                       </select>
                     </div>
+
+                    {editingCategory && (
+                      <div style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '6px'}}>
+                        <h4 style={{margin: '0 0 5px', color: '#333'}}>Localized names</h4>
+                        <p style={{margin: '0 0 12px', color: '#666', fontSize: '12px'}}>
+                          Save a name for each admin language. Open category selectors refresh without changing their selected IDs.
+                        </p>
+                        {['ro', 'fr', 'en'].map(language => {
+                          const draft = categoryTranslationDrafts[language] || { name: '', description: '' };
+                          return (
+                            <div key={language} style={{marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #e5e5e5'}}>
+                              <label className="form-label">{language.toUpperCase()} name</label>
+                              <div style={{display: 'flex', gap: '8px'}}>
+                                <input
+                                  className="form-input"
+                                  value={draft.name}
+                                  onChange={event => setCategoryTranslationDrafts(previous => ({
+                                    ...previous,
+                                    [language]: { ...draft, name: event.target.value }
+                                  }))}
+                                  placeholder={`Category name in ${language.toUpperCase()}`}
+                                />
+                                <button
+                                  type="button"
+                                  className="btn"
+                                  style={{background: '#007bff', width: 'auto', whiteSpace: 'nowrap'}}
+                                  onClick={() => saveCategoryTranslation(language)}
+                                  disabled={!draft.name.trim()}
+                                >
+                                  Save
+                                </button>
+                              </div>
+                              <textarea
+                                className="form-input"
+                                rows={2}
+                                value={draft.description}
+                                onChange={event => setCategoryTranslationDrafts(previous => ({
+                                  ...previous,
+                                  [language]: { ...draft, description: event.target.value }
+                                }))}
+                                placeholder={`Description in ${language.toUpperCase()} (optional)`}
+                                style={{marginTop: '6px'}}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     
                     <div className="form-group">
                       <label className="form-label">Category Image</label>

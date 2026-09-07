@@ -11,9 +11,12 @@ export default function LanguageSwitcher() {
     { code: 'en', label: '🌐 EN' },
   ];
 
-  const handleChange = (lang) => {
-    i18n.changeLanguage(lang);
+  const handleChange = async (lang) => {
+    await i18n.changeLanguage(lang);
     localStorage.setItem('adminLang', lang);
+    window.dispatchEvent(new CustomEvent('admin-category-translations-updated', {
+      detail: { language: lang },
+    }));
   };
 
   return (
