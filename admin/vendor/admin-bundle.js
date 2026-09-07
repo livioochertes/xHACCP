@@ -15827,7 +15827,7 @@ This action cannot be undone.`)) {
                       style: { width: "100%", padding: "8px", border: "1px solid #ddd", borderRadius: "4px" },
                       children: [
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "all", children: t2("products.allCategories") }),
-                        categories.map((cat) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: cat.id, children: cat.name }, cat.id))
+                        categories.map((cat) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: cat.id, children: getCategoryName(cat) }, cat.id))
                       ]
                     }
                   )
@@ -24361,7 +24361,7 @@ ${selectedOrders.map((id) => {
                   homepageConfig.mainTop.length,
                   "/4):"
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "14px", color: "#666" }, children: homepageConfig.mainTop.length > 0 ? homepageConfig.mainTop.map((id) => categories.find((c) => c.id === id)?.name).join(", ") : "None selected" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "14px", color: "#666" }, children: homepageConfig.mainTop.length > 0 ? homepageConfig.mainTop.map((id) => getCategoryName(categories.find((c) => c.id === id))).join(", ") : "None selected" })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#28a745" }, children: [
@@ -24369,7 +24369,7 @@ ${selectedOrders.map((id) => {
                   homepageConfig.mainShop.length,
                   "/3):"
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "14px", color: "#666" }, children: homepageConfig.mainShop.length > 0 ? homepageConfig.mainShop.map((id) => categories.find((c) => c.id === id)?.name).join(", ") : "None selected" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "14px", color: "#666" }, children: homepageConfig.mainShop.length > 0 ? homepageConfig.mainShop.map((id) => getCategoryName(categories.find((c) => c.id === id))).join(", ") : "None selected" })
               ] })
             ] })
           ] }),

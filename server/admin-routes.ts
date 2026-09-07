@@ -25,6 +25,7 @@ import {
   type MerchantMarket,
 } from "./google-merchant-feed";
 import { getSenderForMarket, sendEmail } from "./email-service";
+import { localizeAdminCategories as localizeCategoryRows } from "./admin-category-localization";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -154,62 +155,17 @@ async function ensureMarketCategories(market: string): Promise<any[]> {
   return storage.getCategories(market);
 }
 
-const ADMIN_CATEGORY_LANGUAGES = new Set(["ro", "en", "fr"]);
-
-function normalizeAdminLanguage(language: unknown): string | null {
-  const normalized = String(language || "").split("-")[0].toLowerCase();
-  return ADMIN_CATEGORY_LANGUAGES.has(normalized) ? normalized : null;
-}
-
 async function localizeAdminCategories(
   categories: any[],
   requestedLanguage: unknown,
   market?: string,
 ): Promise<any[]> {
-  const language = normalizeAdminLanguage(requestedLanguage);
-  const idsByLanguage = new Map<string, Set<number>>();
-  const languageForCategory = (category: any) => {
-    const categoryMarket = market && market !== "all" ? market : category.marketCode;
-    return categoryMarket === "com" ? "en" : categoryMarket || "ro";
-  };
-
-  for (const category of categories) {
-    if (!category?.id) continue;
-    const marketLanguage = languageForCategory(category);
-    const primaryLanguage = language || marketLanguage;
-    const fallbackLanguage = primaryLanguage === marketLanguage ? null : marketLanguage;
-    for (const translationLanguage of [primaryLanguage, fallbackLanguage]) {
-      if (!translationLanguage) continue;
-      if (!idsByLanguage.has(translationLanguage)) idsByLanguage.set(translationLanguage, new Set());
-      idsByLanguage.get(translationLanguage)!.add(category.id);
-    }
-  }
-
-  const translationsByLanguage = new Map<string, Map<number, any>>();
-  await Promise.all(Array.from(idsByLanguage.entries()).map(async ([translationLanguage, ids]) => {
-    const translations = await storage.getCategoryTranslationsBatch(
-      Array.from(ids),
-      translationLanguage,
-    );
-    translationsByLanguage.set(
-      translationLanguage,
-      new Map(translations.map(translation => [translation.categoryId, translation])),
-    );
-  }));
-
-  return categories.map(category => {
-    const marketLanguage = languageForCategory(category);
-    const primaryLanguage = language || marketLanguage;
-    const fallbackLanguage = primaryLanguage === marketLanguage ? null : marketLanguage;
-    const translation =
-      translationsByLanguage.get(primaryLanguage)?.get(category.id) ||
-      (fallbackLanguage ? translationsByLanguage.get(fallbackLanguage)?.get(category.id) : undefined);
-    return {
-      ...category,
-      localizedName: translation?.name || category.name,
-      localizedDescription: translation?.description || category.description,
-    };
-  });
+  return localizeCategoryRows(
+    categories,
+    requestedLanguage,
+    market,
+    (categoryIds, language) => storage.getCategoryTranslationsBatch(categoryIds, language),
+  );
 }
 
 async function validateCategoryForMarket(categoryId: unknown, market: string): Promise<number | null> {

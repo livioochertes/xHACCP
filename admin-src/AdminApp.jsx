@@ -3618,7 +3618,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                         >
                           <option value="all">{t('products.allCategories')}</option>
                           {categories.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            <option key={cat.id} value={cat.id}>{getCategoryName(cat)}</option>
                           ))}
                         </select>
                       </div>
@@ -11610,7 +11610,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                         <strong style={{color: '#007bff'}}>Main Top ({homepageConfig.mainTop.length}/4):</strong>
                         <div style={{fontSize: '14px', color: '#666'}}>
                           {homepageConfig.mainTop.length > 0 ? 
-                            homepageConfig.mainTop.map(id => categories.find(c => c.id === id)?.name).join(', ') : 
+                            homepageConfig.mainTop.map(id => getCategoryName(categories.find(c => c.id === id))).join(', ') :
                             'None selected'
                           }
                         </div>
@@ -11619,7 +11619,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                         <strong style={{color: '#28a745'}}>Shop Section ({homepageConfig.mainShop.length}/3):</strong>
                         <div style={{fontSize: '14px', color: '#666'}}>
                           {homepageConfig.mainShop.length > 0 ? 
-                            homepageConfig.mainShop.map(id => categories.find(c => c.id === id)?.name).join(', ') : 
+                            homepageConfig.mainShop.map(id => getCategoryName(categories.find(c => c.id === id))).join(', ') :
                             'None selected'
                           }
                         </div>
