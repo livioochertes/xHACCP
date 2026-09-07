@@ -12569,7 +12569,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
               onClick={() => handleViewChange('homepage-hero')}
             >
               <span style={{fontSize: '18px'}}>🖼️</span>
-              <span style={{fontSize: '12px'}}>Cover Home</span>
+              <span style={{fontSize: '12px'}}>{t('homepageHero.navLabel')}</span>
             </button>
             <button 
               className={`nav-tab ${activeView === 'google-feed' ? 'active' : ''}`}

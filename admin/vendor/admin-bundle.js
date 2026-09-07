@@ -11013,6 +11013,67 @@
       email: "Email",
       save: "Save Settings"
     },
+    homepageHero: {
+      navLabel: "Homepage Cover",
+      title: "Homepage promotional cover",
+      description: "Configure up to 3 slides for the selected marketplace.",
+      reload: "Reload",
+      selectMarket: "Select a specific marketplace from the bar above to manage its cover.",
+      displaySettings: "Display settings",
+      autoplayHelp: "Autoplay pauses when visitors hover over or focus the cover.",
+      intervalSeconds: "Interval (seconds)",
+      editSlide: "Edit slide",
+      addSlide: "Add slide",
+      cancelEditing: "Cancel editing",
+      slideType: "Slide type",
+      textSlide: "Promotional text",
+      imageSlide: "Full-cover image",
+      titleLabel: "Title",
+      titlePlaceholder: "E.g. Summer promotion",
+      subtitleLabel: "Secondary text",
+      subtitlePlaceholder: "Optional description",
+      ctaLabel: "Button text",
+      ctaPlaceholder: "Shop now",
+      ctaAction: "Button action",
+      openLink: "Open link",
+      requestQuote: "Request a quote",
+      ctaUrl: "Button link",
+      ctaUrlPlaceholder: "/products or https://...",
+      imageDestination: "Destination when the image is clicked",
+      noDestination: "No additional destination",
+      product: "Product",
+      customUrl: "Custom URL",
+      promotedCategory: "Promoted category",
+      selectCategory: "Select a category...",
+      promotedProduct: "Promoted product",
+      selectProduct: "Select a product...",
+      destinationUrl: "Destination URL",
+      destinationUrlPlaceholder: "/products?category=... or https://...",
+      imageUrl: "Image URL (paste a URL or upload a file)",
+      imageUrlPlaceholder: "https://...",
+      uploading: "Uploading...",
+      imageAlt: "Image alternative text",
+      imageAltPlaceholder: "Accessibility description",
+      activeSlide: "Active slide",
+      saving: "Saving...",
+      saveChanges: "Save changes",
+      loadingSlides: "Loading slides...",
+      emptySlides: "No slides yet. The site will use the default text hero.",
+      previewAlt: "Hero preview",
+      moveUp: "Move up",
+      moveDown: "Move down",
+      marketRequired: "Select a specific marketplace first.",
+      loadFailed: "The cover configuration could not be loaded.",
+      settingsSaveFailed: "The setting could not be saved.",
+      imageRequired: "Add an image for an image slide.",
+      saveFailed: "The slide could not be saved.",
+      deleteConfirm: "Delete this promotional slide?",
+      deleteFailed: "The slide could not be deleted.",
+      reorderFailed: "The slide order could not be saved.",
+      imageFileRequired: "Select an image file.",
+      uploadFailed: "The image could not be uploaded.",
+      error: "\u274C {{message}}"
+    },
     marketing: {
       title: "Marketing and remarketing",
       subtitle: "Configure marketplace reminders and send campaigns through SendGrid.",
@@ -11659,6 +11720,67 @@
       efacturaStub: "Integrare e-Factura (Chorus Pro) \u2014 \xEEn preg\u0103tire",
       externalApiStub: "Integrare API extern .com \u2014 \xEEn preg\u0103tire"
     },
+    homepageHero: {
+      navLabel: "Cover Home",
+      title: "Cover promo\u021Bional Home",
+      description: "Configureaz\u0103 p\xE2n\u0103 la 3 slide-uri pentru marketplace-ul selectat.",
+      reload: "Re\xEEncarc\u0103",
+      selectMarket: "Selecteaz\u0103 un marketplace concret din bara de sus pentru a administra cover-ul.",
+      displaySettings: "Set\u0103ri afi\u0219are",
+      autoplayHelp: "Autoplay-ul se opre\u0219te c\xE2nd vizitatorii trec cu mouse-ul sau pun focus pe cover.",
+      intervalSeconds: "Interval (secunde)",
+      editSlide: "Editeaz\u0103 slide",
+      addSlide: "Adaug\u0103 slide",
+      cancelEditing: "Anuleaz\u0103 editarea",
+      slideType: "Tip slide",
+      textSlide: "Text promo\u021Bional",
+      imageSlide: "Imagine full cover",
+      titleLabel: "Titlu",
+      titlePlaceholder: "Ex: Promo\u021Bie de var\u0103",
+      subtitleLabel: "Text secundar",
+      subtitlePlaceholder: "Descriere op\u021Bional\u0103",
+      ctaLabel: "Text buton",
+      ctaPlaceholder: "Cump\u0103r\u0103 acum",
+      ctaAction: "Ac\u021Biune buton",
+      openLink: "Deschide link",
+      requestQuote: "Solicit\u0103 ofert\u0103",
+      ctaUrl: "Link buton",
+      ctaUrlPlaceholder: "/products sau https://...",
+      imageDestination: "Destina\u021Bie la click pe imagine",
+      noDestination: "F\u0103r\u0103 destina\u021Bie nou\u0103",
+      product: "Produs",
+      customUrl: "URL personalizat",
+      promotedCategory: "Categoria promovat\u0103",
+      selectCategory: "Selecteaz\u0103 categoria...",
+      promotedProduct: "Produsul promovat",
+      selectProduct: "Selecteaz\u0103 produsul...",
+      destinationUrl: "URL destina\u021Bie",
+      destinationUrlPlaceholder: "/products?category=... sau https://...",
+      imageUrl: "URL imagine (po\u021Bi lipi un URL sau \xEEnc\u0103rca un fi\u0219ier)",
+      imageUrlPlaceholder: "https://...",
+      uploading: "Se \xEEncarc\u0103...",
+      imageAlt: "Text alternativ imagine",
+      imageAltPlaceholder: "Descriere pentru accesibilitate",
+      activeSlide: "Slide activ",
+      saving: "Se salveaz\u0103...",
+      saveChanges: "Salveaz\u0103 modific\u0103rile",
+      loadingSlides: "Se \xEEncarc\u0103 slide-urile...",
+      emptySlides: "Nu exist\u0103 slide-uri. Site-ul va folosi hero-ul text implicit.",
+      previewAlt: "Previzualizare hero",
+      moveUp: "Mut\u0103 \xEEn sus",
+      moveDown: "Mut\u0103 \xEEn jos",
+      marketRequired: "Selecteaz\u0103 mai \xEEnt\xE2i un marketplace concret.",
+      loadFailed: "Configura\u021Bia cover-ului nu a putut fi \xEEnc\u0103rcat\u0103.",
+      settingsSaveFailed: "Setarea nu a putut fi salvat\u0103.",
+      imageRequired: "Adaug\u0103 o imagine pentru slide-ul de tip imagine.",
+      saveFailed: "Slide-ul nu a putut fi salvat.",
+      deleteConfirm: "\u0218tergi acest slide promo\u021Bional?",
+      deleteFailed: "Slide-ul nu a putut fi \u0219ters.",
+      reorderFailed: "Ordinea slide-urilor nu a putut fi salvat\u0103.",
+      imageFileRequired: "Selecteaz\u0103 un fi\u0219ier imagine.",
+      uploadFailed: "Imaginea nu a putut fi \xEEnc\u0103rcat\u0103.",
+      error: "\u274C {{message}}"
+    },
     marketing: {
       title: "Marketing \u0219i remarketing",
       subtitle: "Configureaz\u0103 reminderele pe marketplace \u0219i trimite campanii prin SendGrid.",
@@ -12304,6 +12426,67 @@
       phone: "T\xE9l\xE9phone",
       email: "Email",
       save: "Enregistrer les param\xE8tres"
+    },
+    homepageHero: {
+      navLabel: "Cover de la page d'accueil",
+      title: "Cover promotionnel de la page d'accueil",
+      description: "Configurez jusqu'\xE0 3 slides pour le march\xE9 s\xE9lectionn\xE9.",
+      reload: "Actualiser",
+      selectMarket: "S\xE9lectionnez un march\xE9 pr\xE9cis dans la barre ci-dessus pour g\xE9rer son cover.",
+      displaySettings: "Param\xE8tres d'affichage",
+      autoplayHelp: "La lecture automatique s'arr\xEAte lorsque les visiteurs survolent ou s\xE9lectionnent le cover.",
+      intervalSeconds: "Intervalle (secondes)",
+      editSlide: "Modifier le slide",
+      addSlide: "Ajouter un slide",
+      cancelEditing: "Annuler la modification",
+      slideType: "Type de slide",
+      textSlide: "Texte promotionnel",
+      imageSlide: "Image plein \xE9cran",
+      titleLabel: "Titre",
+      titlePlaceholder: "Ex. Promotion d'\xE9t\xE9",
+      subtitleLabel: "Texte secondaire",
+      subtitlePlaceholder: "Description facultative",
+      ctaLabel: "Texte du bouton",
+      ctaPlaceholder: "Acheter maintenant",
+      ctaAction: "Action du bouton",
+      openLink: "Ouvrir le lien",
+      requestQuote: "Demander un devis",
+      ctaUrl: "Lien du bouton",
+      ctaUrlPlaceholder: "/products ou https://...",
+      imageDestination: "Destination au clic sur l'image",
+      noDestination: "Aucune destination suppl\xE9mentaire",
+      product: "Produit",
+      customUrl: "URL personnalis\xE9e",
+      promotedCategory: "Cat\xE9gorie mise en avant",
+      selectCategory: "S\xE9lectionnez une cat\xE9gorie...",
+      promotedProduct: "Produit mis en avant",
+      selectProduct: "S\xE9lectionnez un produit...",
+      destinationUrl: "URL de destination",
+      destinationUrlPlaceholder: "/products?category=... ou https://...",
+      imageUrl: "URL de l'image (collez une URL ou t\xE9l\xE9versez un fichier)",
+      imageUrlPlaceholder: "https://...",
+      uploading: "T\xE9l\xE9versement...",
+      imageAlt: "Texte alternatif de l'image",
+      imageAltPlaceholder: "Description d'accessibilit\xE9",
+      activeSlide: "Slide actif",
+      saving: "Enregistrement...",
+      saveChanges: "Enregistrer les modifications",
+      loadingSlides: "Chargement des slides...",
+      emptySlides: "Aucun slide. Le site utilisera le hero texte par d\xE9faut.",
+      previewAlt: "Aper\xE7u du hero",
+      moveUp: "D\xE9placer vers le haut",
+      moveDown: "D\xE9placer vers le bas",
+      marketRequired: "S\xE9lectionnez d'abord un march\xE9 pr\xE9cis.",
+      loadFailed: "La configuration du cover n'a pas pu \xEAtre charg\xE9e.",
+      settingsSaveFailed: "Le param\xE8tre n'a pas pu \xEAtre enregistr\xE9.",
+      imageRequired: "Ajoutez une image pour un slide image.",
+      saveFailed: "Le slide n'a pas pu \xEAtre enregistr\xE9.",
+      deleteConfirm: "Supprimer ce slide promotionnel ?",
+      deleteFailed: "Le slide n'a pas pu \xEAtre supprim\xE9.",
+      reorderFailed: "L'ordre des slides n'a pas pu \xEAtre enregistr\xE9.",
+      imageFileRequired: "S\xE9lectionnez un fichier image.",
+      uploadFailed: "L'image n'a pas pu \xEAtre t\xE9l\xE9vers\xE9e.",
+      error: "\u274C {{message}}"
     },
     marketing: {
       title: "Marketing et remarketing",
@@ -14676,32 +14859,32 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
           headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "Nu s-a putut \xEEnc\u0103rca configura\u021Bia cover-ului");
+        if (!response.ok) throw new Error(data.message || t2("homepageHero.loadFailed"));
         setHeroSlides(data.slides || []);
         setHeroSettings({ autoplaySeconds: data.autoplaySeconds || 5 });
       } catch (error2) {
-        alert(`\u274C ${error2.message}`);
+        alert(t2("homepageHero.error", { message: error2.message }));
       } finally {
         setHeroLoading(false);
       }
     };
     const saveHeroSettings = async () => {
       const market = getHeroMarket();
-      if (!market) return alert("Selecteaz\u0103 mai \xEEnt\xE2i un marketplace concret.");
+      if (!market) return alert(t2("homepageHero.marketRequired"));
       const response = await fetch(`/admin/api/homepage-hero/settings?market=${market}`, {
         method: "PUT",
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ autoplaySeconds: heroSettings.autoplaySeconds })
       });
       const data = await response.json();
-      if (!response.ok) return alert(`\u274C ${data.message || "Setarea nu a putut fi salvat\u0103."}`);
+      if (!response.ok) return alert(t2("homepageHero.error", { message: data.message || t2("homepageHero.settingsSaveFailed") }));
       setHeroSettings({ autoplaySeconds: data.autoplaySeconds });
     };
     const saveHeroSlide = async () => {
       const market = getHeroMarket();
-      if (!market) return alert("Selecteaz\u0103 mai \xEEnt\xE2i un marketplace concret.");
+      if (!market) return alert(t2("homepageHero.marketRequired"));
       if (heroForm.slideType === "image" && !heroForm.imageUrl.trim()) {
-        return alert("Adaug\u0103 o imagine pentru slide-ul de tip imagine.");
+        return alert(t2("homepageHero.imageRequired"));
       }
       setHeroSaving(true);
       try {
@@ -14716,12 +14899,12 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
           body: JSON.stringify(payload)
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "Slide-ul nu a putut fi salvat.");
+        if (!response.ok) throw new Error(data.message || t2("homepageHero.saveFailed"));
         setHeroForm(emptyHeroSlide());
         setEditingHeroSlide(null);
         await fetchHeroSlides();
       } catch (error2) {
-        alert(`\u274C ${error2.message}`);
+        alert(t2("homepageHero.error", { message: error2.message }));
       } finally {
         setHeroSaving(false);
       }
@@ -14745,14 +14928,14 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
     const deleteHeroSlide = async (slide) => {
-      if (!window.confirm("\u0218tergi acest slide promo\u021Bional?")) return;
+      if (!window.confirm(t2("homepageHero.deleteConfirm"))) return;
       const market = getHeroMarket();
       const response = await fetch(`/admin/api/homepage-hero/${slide.id}?market=${market}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
-      if (!response.ok) return alert(`\u274C ${data.message || "Slide-ul nu a putut fi \u0219ters."}`);
+      if (!response.ok) return alert(t2("homepageHero.error", { message: data.message || t2("homepageHero.deleteFailed") }));
       fetchHeroSlides();
       if (editingHeroSlide?.id === slide.id) {
         setEditingHeroSlide(null);
@@ -14771,11 +14954,11 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
         body: JSON.stringify({ order: reordered.map((slide) => slide.id) })
       });
       const data = await response.json();
-      if (!response.ok) return alert(`\u274C ${data.message || "Ordinea nu a putut fi salvat\u0103."}`);
+      if (!response.ok) return alert(t2("homepageHero.error", { message: data.message || t2("homepageHero.reorderFailed") }));
       setHeroSlides(data);
     };
     const uploadHeroImage = async (file) => {
-      if (!file || !file.type.startsWith("image/")) return alert("Selecteaz\u0103 un fi\u0219ier imagine.");
+      if (!file || !file.type.startsWith("image/")) return alert(t2("homepageHero.imageFileRequired"));
       setHeroUploading(true);
       try {
         const formData = new FormData();
@@ -14786,11 +14969,11 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
           body: formData
         });
         const data = await response.json();
-        if (!response.ok || !data.files?.[0]) throw new Error(data.message || "Imaginea nu a putut fi \xEEnc\u0103rcat\u0103.");
+        if (!response.ok || !data.files?.[0]) throw new Error(data.message || t2("homepageHero.uploadFailed"));
         const uploaded = data.files[0];
         setHeroForm((prev) => ({ ...prev, imageUrl: uploaded.url || uploaded.thumbnailUrl || uploaded }));
       } catch (error2) {
-        alert(`\u274C ${error2.message}`);
+        alert(t2("homepageHero.error", { message: error2.message }));
       } finally {
         setHeroUploading(false);
       }
@@ -17148,30 +17331,40 @@ This action cannot be undone.`)) {
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "15px", marginBottom: "22px", flexWrap: "wrap" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0 0 6px" }, children: "\u{1F5BC}\uFE0F Cover promo\u021Bional Home" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#6c757d", fontSize: "13px" }, children: "Configureaz\u0103 p\xE2n\u0103 la 3 slide-uri pentru marketplace-ul selectat." })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0 0 6px" }, children: [
+                  "\u{1F5BC}\uFE0F ",
+                  t2("homepageHero.title")
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#6c757d", fontSize: "13px" }, children: t2("homepageHero.description") })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: fetchHeroSlides, disabled: heroLoading, style: { background: "#6c757d", color: "white", border: "none", borderRadius: "5px", padding: "9px 14px", cursor: "pointer" }, children: "\u21BB Re\xEEncarc\u0103" })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { onClick: fetchHeroSlides, disabled: heroLoading, style: { background: "#6c757d", color: "white", border: "none", borderRadius: "5px", padding: "9px 14px", cursor: "pointer" }, children: [
+                "\u21BB ",
+                t2("homepageHero.reload")
+              ] })
             ] }),
-            selectedMarketTab === "all" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "18px", background: "#fff3cd", color: "#856404", border: "1px solid #ffeeba", borderRadius: "6px" }, children: "Selecteaz\u0103 un marketplace concret din bara de sus pentru a administra cover-ul." }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+            selectedMarketTab === "all" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "18px", background: "#fff3cd", color: "#856404", border: "1px solid #ffeeba", borderRadius: "6px" }, children: t2("homepageHero.selectMarket") }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("section", { style: { background: "#f0f7ff", border: "1px solid #b8d7ff", borderRadius: "8px", padding: "18px", marginBottom: "24px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#145da0" }, children: [
-                    "Set\u0103ri afi\u0219are \xB7 .",
+                    t2("homepageHero.displaySettings"),
+                    " \xB7 .",
                     selectedMarketTab
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginTop: "4px" }, children: "Autoplay-ul se opre\u0219te la hover sau focus pe site." })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginTop: "4px" }, children: t2("homepageHero.autoplayHelp") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { fontSize: "13px", color: "#495057" }, children: "Interval (secunde)" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { fontSize: "13px", color: "#495057" }, children: t2("homepageHero.intervalSeconds") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "number", min: "3", max: "30", value: heroSettings.autoplaySeconds, onChange: (e2) => setHeroSettings({ ...heroSettings, autoplaySeconds: e2.target.value }), style: { width: "72px", padding: "7px", border: "1px solid #ced4da", borderRadius: "4px" } }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: saveHeroSettings, style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "8px 12px", cursor: "pointer" }, children: "\u{1F4BE} Salveaz\u0103" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { onClick: saveHeroSettings, style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "8px 12px", cursor: "pointer" }, children: [
+                    "\u{1F4BE} ",
+                    t2("common.save")
+                  ] })
                 ] })
               ] }) }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "20px", marginBottom: "24px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: 0, color: "#333" }, children: [
-                    editingHeroSlide ? "\u270F\uFE0F Editeaz\u0103 slide" : "\u2795 Adaug\u0103 slide",
+                    editingHeroSlide ? `\u270F\uFE0F ${t2("homepageHero.editSlide")}` : `\u2795 ${t2("homepageHero.addSlide")}`,
                     " ",
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", color: "#6c757d", fontWeight: "normal" }, children: [
                       "(",
@@ -17182,52 +17375,52 @@ This action cannot be undone.`)) {
                   editingHeroSlide && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => {
                     setEditingHeroSlide(null);
                     setHeroForm(emptyHeroSlide());
-                  }, style: { background: "white", border: "1px solid #adb5bd", borderRadius: "4px", padding: "7px 12px", cursor: "pointer" }, children: "Anuleaz\u0103 editarea" })
+                  }, style: { background: "white", border: "1px solid #adb5bd", borderRadius: "4px", padding: "7px 12px", cursor: "pointer" }, children: t2("homepageHero.cancelEditing") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "Tip slide",
+                    t2("homepageHero.slideType"),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.slideType, onChange: (e2) => setHeroForm({ ...heroForm, slideType: e2.target.value }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "text", children: "Text promo\u021Bional" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "image", children: "Imagine full cover" })
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "text", children: t2("homepageHero.textSlide") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "image", children: t2("homepageHero.imageSlide") })
                     ] })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "Titlu",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.title, onChange: (e2) => setHeroForm({ ...heroForm, title: e2.target.value }), placeholder: "Ex: Promo\u021Bie de var\u0103", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                    t2("homepageHero.titleLabel"),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.title, onChange: (e2) => setHeroForm({ ...heroForm, title: e2.target.value }), placeholder: t2("homepageHero.titlePlaceholder"), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "Text secundar",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.subtitle, onChange: (e2) => setHeroForm({ ...heroForm, subtitle: e2.target.value }), placeholder: "Descriere op\u021Bional\u0103", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                    t2("homepageHero.subtitleLabel"),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.subtitle, onChange: (e2) => setHeroForm({ ...heroForm, subtitle: e2.target.value }), placeholder: t2("homepageHero.subtitlePlaceholder"), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px 12px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "Text buton",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.ctaLabel, onChange: (e2) => setHeroForm({ ...heroForm, ctaLabel: e2.target.value }), placeholder: "Cump\u0103r\u0103 acum", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                    t2("homepageHero.ctaLabel"),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.ctaLabel, onChange: (e2) => setHeroForm({ ...heroForm, ctaLabel: e2.target.value }), placeholder: t2("homepageHero.ctaPlaceholder"), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "Ac\u021Biune buton",
+                    t2("homepageHero.ctaAction"),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.ctaType, onChange: (e2) => setHeroForm({ ...heroForm, ctaType: e2.target.value }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "link", children: "Deschide link" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "quote", children: "Solicit\u0103 ofert\u0103" })
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "link", children: t2("homepageHero.openLink") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "quote", children: t2("homepageHero.requestQuote") })
                     ] })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "Link buton",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.ctaUrl, onChange: (e2) => setHeroForm({ ...heroForm, ctaUrl: e2.target.value }), disabled: heroForm.ctaType === "quote", placeholder: "/products sau https://...", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                    t2("homepageHero.ctaUrl"),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.ctaUrl, onChange: (e2) => setHeroForm({ ...heroForm, ctaUrl: e2.target.value }), disabled: heroForm.ctaType === "quote", placeholder: t2("homepageHero.ctaUrlPlaceholder"), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "Destina\u021Bie la click pe imagine",
+                    t2("homepageHero.imageDestination"),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.destinationType, onChange: (e2) => setHeroForm({ ...heroForm, destinationType: e2.target.value, destinationId: "", destinationUrl: "" }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "none", children: "F\u0103r\u0103 destina\u021Bie nou\u0103" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "category", children: "Categorie" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "product", children: "Produs" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "custom", children: "URL personalizat" })
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "none", children: t2("homepageHero.noDestination") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "category", children: t2("common.category") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "product", children: t2("homepageHero.product") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "custom", children: t2("homepageHero.customUrl") })
                     ] })
                   ] }),
                   heroForm.destinationType === "category" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "Categoria promovat\u0103",
+                    t2("homepageHero.promotedCategory"),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.destinationId, onChange: (e2) => setHeroForm({ ...heroForm, destinationId: e2.target.value }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Selecteaz\u0103 categoria..." }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("homepageHero.selectCategory") }),
                       categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: category.id, children: [
                         getCategoryName(category),
                         " (",
@@ -17237,9 +17430,9 @@ This action cannot be undone.`)) {
                     ] })
                   ] }),
                   heroForm.destinationType === "product" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "Produsul promovat",
+                    t2("homepageHero.promotedProduct"),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.destinationId, onChange: (e2) => setHeroForm({ ...heroForm, destinationId: e2.target.value }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Selecteaz\u0103 produsul..." }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("homepageHero.selectProduct") }),
                       products.filter((product) => product.marketIsActive !== false).map((product) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: product.id, children: [
                         product.name,
                         " (",
@@ -17249,53 +17442,54 @@ This action cannot be undone.`)) {
                     ] })
                   ] }),
                   heroForm.destinationType === "custom" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "URL destina\u021Bie",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.destinationUrl, onChange: (e2) => setHeroForm({ ...heroForm, destinationUrl: e2.target.value }), placeholder: "/products?category=... sau https://...", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                    t2("homepageHero.destinationUrl"),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.destinationUrl, onChange: (e2) => setHeroForm({ ...heroForm, destinationUrl: e2.target.value }), placeholder: t2("homepageHero.destinationUrlPlaceholder"), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "12px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
-                    "URL imagine (po\u021Bi lipi un URL sau \xEEnc\u0103rca un fi\u0219ier)",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.imageUrl, onChange: (e2) => setHeroForm({ ...heroForm, imageUrl: e2.target.value }), placeholder: "https://...", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                    t2("homepageHero.imageUrl"),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.imageUrl, onChange: (e2) => setHeroForm({ ...heroForm, imageUrl: e2.target.value }), placeholder: t2("homepageHero.imageUrlPlaceholder"), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", flexWrap: "wrap" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "file", accept: "image/*", disabled: heroUploading, onChange: (e2) => uploadHeroImage(e2.target.files?.[0]) }),
-                    heroUploading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: "Se \xEEncarc\u0103..." })
+                    heroUploading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: t2("homepageHero.uploading") })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "block", marginTop: "10px", fontSize: "13px", color: "#495057" }, children: [
-                    "Text alternativ imagine",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.imageAlt, onChange: (e2) => setHeroForm({ ...heroForm, imageAlt: e2.target.value }), placeholder: "Descriere pentru accesibilitate", style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                    t2("homepageHero.imageAlt"),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.imageAlt, onChange: (e2) => setHeroForm({ ...heroForm, imageAlt: e2.target.value }), placeholder: t2("homepageHero.imageAltPlaceholder"), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginTop: "15px", flexWrap: "wrap" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "checkbox", checked: heroForm.isActive, onChange: (e2) => setHeroForm({ ...heroForm, isActive: e2.target.checked }) }),
-                    " Slide activ"
+                    " ",
+                    t2("homepageHero.activeSlide")
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: saveHeroSlide, disabled: heroSaving || !editingHeroSlide && heroSlides.length >= 3, style: { background: heroSaving ? "#adb5bd" : "#198754", color: "white", border: "none", borderRadius: "4px", padding: "9px 16px", cursor: heroSaving ? "not-allowed" : "pointer" }, children: heroSaving ? "\u23F3 Se salveaz\u0103..." : editingHeroSlide ? "\u{1F4BE} Salveaz\u0103 modific\u0103rile" : "\u2795 Adaug\u0103 slide" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: saveHeroSlide, disabled: heroSaving || !editingHeroSlide && heroSlides.length >= 3, style: { background: heroSaving ? "#adb5bd" : "#198754", color: "white", border: "none", borderRadius: "4px", padding: "9px 16px", cursor: heroSaving ? "not-allowed" : "pointer" }, children: heroSaving ? `\u23F3 ${t2("homepageHero.saving")}` : editingHeroSlide ? `\u{1F4BE} ${t2("homepageHero.saveChanges")}` : `\u2795 ${t2("homepageHero.addSlide")}` })
                 ] })
               ] }),
-              heroLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "30px", textAlign: "center", color: "#6c757d" }, children: "Se \xEEncarc\u0103 slide-urile..." }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gap: "12px" }, children: [
-                heroSlides.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "25px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", color: "#6c757d" }, children: "Nu exist\u0103 slide-uri. Site-ul va folosi hero-ul text implicit." }),
+              heroLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "30px", textAlign: "center", color: "#6c757d" }, children: t2("homepageHero.loadingSlides") }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gap: "12px" }, children: [
+                heroSlides.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "25px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", color: "#6c757d" }, children: t2("homepageHero.emptySlides") }),
                 heroSlides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "15px", alignItems: "center", padding: "12px", border: "1px solid #dee2e6", borderRadius: "8px", opacity: slide.isActive ? 1 : 0.55, flexWrap: "wrap" }, children: [
-                  slide.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("img", { src: slide.imageUrl, alt: slide.imageAlt || slide.title || "Hero preview", style: { width: "150px", height: "80px", objectFit: "cover", borderRadius: "5px", background: "#e9ecef" } }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { width: "150px", height: "80px", borderRadius: "5px", background: "linear-gradient(135deg,#102a43,#1f5f8b)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "8px", boxSizing: "border-box", fontSize: "12px" }, children: slide.title || "Text promo\u021Bional" }),
+                  slide.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("img", { src: slide.imageUrl, alt: slide.imageAlt || slide.title || t2("homepageHero.previewAlt"), style: { width: "150px", height: "80px", objectFit: "cover", borderRadius: "5px", background: "#e9ecef" } }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { width: "150px", height: "80px", borderRadius: "5px", background: "linear-gradient(135deg,#102a43,#1f5f8b)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "8px", boxSizing: "border-box", fontSize: "12px" }, children: slide.title || t2("homepageHero.textSlide") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { flex: 1, minWidth: "220px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#333" }, children: [
                       index + 1,
                       ". ",
-                      slide.title || "Slide imagine"
+                      slide.title || t2("homepageHero.imageSlide")
                     ] }),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "12px", color: "#6c757d", marginTop: "4px" }, children: [
-                      slide.subtitle || "F\u0103r\u0103 descriere",
+                      slide.subtitle || t2("common.noDescription"),
                       " \xB7 ",
-                      slide.isActive ? "Activ" : "Inactiv"
+                      slide.isActive ? t2("common.active") : t2("common.inactive")
                     ] })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px", alignItems: "center" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { disabled: index === 0, onClick: () => reorderHeroSlide(index, -1), title: "Mut\u0103 \xEEn sus", style: { padding: "6px 9px", border: "1px solid #ced4da", background: "white", borderRadius: "4px", cursor: index === 0 ? "not-allowed" : "pointer" }, children: "\u2191" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { disabled: index === heroSlides.length - 1, onClick: () => reorderHeroSlide(index, 1), title: "Mut\u0103 \xEEn jos", style: { padding: "6px 9px", border: "1px solid #ced4da", background: "white", borderRadius: "4px", cursor: index === heroSlides.length - 1 ? "not-allowed" : "pointer" }, children: "\u2193" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => editHeroSlide(slide), style: { padding: "6px 10px", border: "none", background: "#0d6efd", color: "white", borderRadius: "4px", cursor: "pointer" }, children: "Editeaz\u0103" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => deleteHeroSlide(slide), style: { padding: "6px 10px", border: "none", background: "#dc3545", color: "white", borderRadius: "4px", cursor: "pointer" }, children: "\u0218terge" })
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { disabled: index === 0, onClick: () => reorderHeroSlide(index, -1), title: t2("homepageHero.moveUp"), style: { padding: "6px 9px", border: "1px solid #ced4da", background: "white", borderRadius: "4px", cursor: index === 0 ? "not-allowed" : "pointer" }, children: "\u2191" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { disabled: index === heroSlides.length - 1, onClick: () => reorderHeroSlide(index, 1), title: t2("homepageHero.moveDown"), style: { padding: "6px 9px", border: "1px solid #ced4da", background: "white", borderRadius: "4px", cursor: index === heroSlides.length - 1 ? "not-allowed" : "pointer" }, children: "\u2193" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => editHeroSlide(slide), style: { padding: "6px 10px", border: "none", background: "#0d6efd", color: "white", borderRadius: "4px", cursor: "pointer" }, children: t2("common.edit") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => deleteHeroSlide(slide), style: { padding: "6px 10px", border: "none", background: "#dc3545", color: "white", borderRadius: "4px", cursor: "pointer" }, children: t2("common.delete") })
                   ] })
                 ] }, slide.id))
               ] })
@@ -25453,7 +25647,7 @@ ${selectedOrders.map((id) => {
             onClick: () => handleViewChange("homepage-hero"),
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F5BC}\uFE0F" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: "Cover Home" })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("homepageHero.navLabel") })
             ]
           }
         ),
