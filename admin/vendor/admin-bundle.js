@@ -12729,6 +12729,7 @@
   }
   function AdminDashboard({ token, admin, onLogout }) {
     const { t: t2 } = useTranslation();
+    const getCategoryName = (category) => category?.localizedName || category?.name || "N/A";
     const getImageUrlGlobal = (image) => {
       if (!image) return "";
       if (typeof image === "string") {
@@ -13090,7 +13091,7 @@
       const normalizedSearchTerm = productSearchTerm.trim().toLowerCase();
       if (normalizedSearchTerm.length >= 3) {
         filtered = filtered.filter(
-          (product) => product.name.toLowerCase().includes(normalizedSearchTerm) || product.id.toString().includes(normalizedSearchTerm) || product.category?.name?.toLowerCase().includes(normalizedSearchTerm)
+          (product) => product.name.toLowerCase().includes(normalizedSearchTerm) || product.id.toString().includes(normalizedSearchTerm) || getCategoryName(product.category).toLowerCase().includes(normalizedSearchTerm)
         );
       }
       if (productCategoryFilter !== "all") {
@@ -13171,8 +13172,11 @@
       const requestId = ++productsRequestIdRef.current;
       try {
         const effectiveMarket = marketOverride !== void 0 ? marketOverride : selectedMarketTab;
-        const marketParam = effectiveMarket && effectiveMarket !== "all" ? `?market=${effectiveMarket}` : "";
-        const response = await fetch(`/admin/api/products${marketParam}`, {
+        const params = new URLSearchParams();
+        if (effectiveMarket && effectiveMarket !== "all") params.set("market", effectiveMarket);
+        if (i18n_default.language) params.set("language", i18n_default.language);
+        const query = params.toString();
+        const response = await fetch(`/admin/api/products${query ? `?${query}` : ""}`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -13470,7 +13474,7 @@
       const market = marketOverride || (selectedMarketTab !== "all" ? selectedMarketTab : "ro");
       setGoogleFeedLoading(true);
       try {
-        const response = await fetch(`/admin/api/google-feed?market=${market}`, {
+        const response = await fetch(`/admin/api/google-feed?market=${market}&language=${encodeURIComponent(i18n_default.language || "")}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await response.json();
@@ -13502,6 +13506,7 @@
           },
           body: JSON.stringify({
             market,
+            language: i18n_default.language,
             enabled: googleFeedData.feed.enabled,
             includeOutOfStock: googleFeedData.feed.includeOutOfStock,
             categoryIds,
@@ -13979,7 +13984,7 @@ Failed: ${result.failed}`);
         categoryBreakdown: categories.reduce((acc, cat) => {
           const categoryProducts = activeProducts.filter((p) => p.categoryId === cat.id);
           if (categoryProducts.length > 0) {
-            acc[cat.name] = {
+            acc[getCategoryName(cat)] = {
               count: categoryProducts.length,
               percentage: (categoryProducts.length / activeProducts.length * 100).toFixed(1)
             };
@@ -14011,7 +14016,7 @@ Failed: ${result.failed}`);
         topPriceProducts: activeProducts.filter((p) => p.price && parseFloat(p.price) > 0).sort((a, b) => parseFloat(b.price) - parseFloat(a.price)).slice(0, 5).map((p) => ({
           name: p.name,
           price: parseFloat(p.price).toFixed(2),
-          category: categories.find((c) => c.id === p.categoryId)?.name || "Unknown"
+          category: getCategoryName(categories.find((c) => c.id === p.categoryId))
         })),
         // Generated timestamp
         generatedAt: (/* @__PURE__ */ new Date()).toLocaleString()
@@ -16141,7 +16146,7 @@ This action cannot be undone.`)) {
                     "$",
                     product.price
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: product.category?.name || "N/A" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: getCategoryName(product.category) }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
                     padding: "4px 8px",
                     borderRadius: "4px",
@@ -16369,7 +16374,7 @@ This action cannot be undone.`;
                       justifyContent: "space-between",
                       alignItems: "center"
                     }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: category.name }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: getCategoryName(category) }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", opacity: "0.8" }, children: [
                         "#",
                         category.sortOrder
@@ -16390,7 +16395,7 @@ This action cannot be undone.`;
                       justifyContent: "space-between",
                       alignItems: "center"
                     }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: category.name }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: getCategoryName(category) }),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", opacity: "0.8" }, children: [
                         "#",
                         category.sortOrder
@@ -16410,9 +16415,9 @@ This action cannot be undone.`;
                     const mainShopCategories = categories.filter((cat) => cat.showOnMainShop).sort((a, b) => a.sortOrder - b.sortOrder);
                     alert(`Homepage Category Configuration:
 
-Main Top (${mainTopCategories.length}/4): ${mainTopCategories.map((c) => c.name).join(", ") || "None"}
+Main Top (${mainTopCategories.length}/4): ${mainTopCategories.map(getCategoryName).join(", ") || "None"}
 
-Shop Section (${mainShopCategories.length}/3): ${mainShopCategories.map((c) => c.name).join(", ") || "None"}
+Shop Section (${mainShopCategories.length}/3): ${mainShopCategories.map(getCategoryName).join(", ") || "None"}
 
 To modify these settings, use the "Configure Homepage" button below.`);
                   },
@@ -16467,7 +16472,7 @@ To modify these settings, use the "Configure Homepage" button below.`);
                   "img",
                   {
                     src: category.imageUrl,
-                    alt: category.name,
+                    alt: getCategoryName(category),
                     style: {
                       width: "40px",
                       height: "40px",
@@ -16488,7 +16493,7 @@ To modify these settings, use the "Configure Homepage" button below.`);
                   color: "#999"
                 }, children: "\u{1F4F7}" }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px", fontWeight: "500" }, children: [
-                  category.name,
+                  getCategoryName(category),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "6px", padding: "1px 6px", borderRadius: "8px", fontSize: "10px", fontWeight: "bold", background: category.marketCode === "fr" ? "#e8f4f8" : category.marketCode === "com" ? "#e8f8e8" : "#f0e8f8", color: category.marketCode === "fr" ? "#1a6080" : category.marketCode === "com" ? "#1a6030" : "#6020a0" }, children: (category.marketCode || "ro").toUpperCase() })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", fontFamily: "monospace", fontSize: "14px", color: "#666" }, children: category.slug }),
@@ -16549,7 +16554,7 @@ To modify these settings, use the "Configure Homepage" button below.`);
                         fontSize: "12px"
                       },
                       onClick: async () => {
-                        if (confirm(`Delete category "${category.name}"?
+                        if (confirm(`Delete category "${getCategoryName(category)}"?
 
 This action cannot be undone. Make sure no products are assigned to this category.`)) {
                           const result = await deleteCategory(category.id);
@@ -17014,7 +17019,7 @@ This action cannot be undone.`)) {
                         onChange: (e2) => toggleFeedSelection("categoryIds", category.id, e2.target.checked)
                       }
                     ),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { flex: 1 }, children: category.name }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { flex: 1 }, children: getCategoryName(category) }),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("code", { style: { fontSize: "11px", color: "#868e96" }, children: category.slug })
                   ] }, category.id)) })
                 ] }),
@@ -17166,7 +17171,7 @@ This action cannot be undone.`)) {
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: heroForm.destinationId, onChange: (e2) => setHeroForm({ ...heroForm, destinationId: e2.target.value }), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Selecteaz\u0103 categoria..." }),
                       categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: category.id, children: [
-                        category.localizedName || category.name,
+                        getCategoryName(category),
                         " (",
                         category.slug,
                         ")"
@@ -19233,7 +19238,7 @@ This action cannot be undone.`)) {
               onChange: (e2) => setNewCategoryId(e2.target.value),
               children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("products.bulkSelectCategory") }),
-                categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: category.id, children: category.name }, category.id))
+                categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: category.id, children: getCategoryName(category) }, category.id))
               ]
             }
           )
@@ -21187,7 +21192,7 @@ Cordialement,`
                       onChange: (e2) => setProductFormData({ ...productFormData, categoryId: e2.target.value }),
                       children: [
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("products.modal.selectCategory") }),
-                        categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: category.id, children: category.name }, category.id))
+                        categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: category.id, children: getCategoryName(category) }, category.id))
                       ]
                     }
                   )
@@ -24194,7 +24199,7 @@ ${selectedOrders.map((id) => {
                   color: "white",
                   borderRadius: "4px"
                 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: category.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: getCategoryName(category) }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", opacity: "0.8" }, children: [
                       "#",
@@ -24246,7 +24251,7 @@ ${selectedOrders.map((id) => {
                   children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "+ Add Category to Main Top" }),
                     categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: category.id, children: [
-                      category.name,
+                      getCategoryName(category),
                       homepageConfig.mainTop.includes(category.id) && " (Already selected)",
                       homepageConfig.mainShop.includes(category.id) && " (In Shop section)"
                     ] }, category.id))
@@ -24281,7 +24286,7 @@ ${selectedOrders.map((id) => {
                   color: "white",
                   borderRadius: "4px"
                 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: category.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: getCategoryName(category) }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", opacity: "0.8" }, children: [
                       "#",
@@ -24333,7 +24338,7 @@ ${selectedOrders.map((id) => {
                   children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "+ Add Category to Shop Section" }),
                     categories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: category.id, children: [
-                      category.name,
+                      getCategoryName(category),
                       homepageConfig.mainShop.includes(category.id) && " (Already selected)",
                       homepageConfig.mainTop.includes(category.id) && " (In Main Top)"
                     ] }, category.id))

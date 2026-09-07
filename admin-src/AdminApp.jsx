@@ -316,6 +316,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
     // Admin Dashboard Component
     function AdminDashboard({ token, admin, onLogout }) {
       const { t } = useTranslation();
+      const getCategoryName = (category) => category?.localizedName || category?.name || 'N/A';
       // Helper function to extract URL from image (handles both objects and strings)
       const getImageUrlGlobal = (image) => {
         if (!image) return '';
@@ -729,7 +730,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           filtered = filtered.filter(product => 
             product.name.toLowerCase().includes(normalizedSearchTerm) ||
             product.id.toString().includes(normalizedSearchTerm) ||
-            product.category?.name?.toLowerCase().includes(normalizedSearchTerm)
+            getCategoryName(product.category).toLowerCase().includes(normalizedSearchTerm)
           );
         }
         
@@ -823,8 +824,11 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         const requestId = ++productsRequestIdRef.current;
         try {
           const effectiveMarket = marketOverride !== undefined ? marketOverride : selectedMarketTab;
-          const marketParam = effectiveMarket && effectiveMarket !== 'all' ? `?market=${effectiveMarket}` : '';
-          const response = await fetch(`/admin/api/products${marketParam}`, {
+          const params = new URLSearchParams();
+          if (effectiveMarket && effectiveMarket !== 'all') params.set('market', effectiveMarket);
+          if (i18n.language) params.set('language', i18n.language);
+          const query = params.toString();
+          const response = await fetch(`/admin/api/products${query ? `?${query}` : ''}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -1142,7 +1146,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
         const market = marketOverride || (selectedMarketTab !== 'all' ? selectedMarketTab : 'ro');
         setGoogleFeedLoading(true);
         try {
-          const response = await fetch(`/admin/api/google-feed?market=${market}`, {
+          const response = await fetch(`/admin/api/google-feed?market=${market}&language=${encodeURIComponent(i18n.language || '')}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await response.json();
@@ -1175,6 +1179,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             },
             body: JSON.stringify({
               market,
+              language: i18n.language,
               enabled: googleFeedData.feed.enabled,
               includeOutOfStock: googleFeedData.feed.includeOutOfStock,
               categoryIds,
@@ -1689,7 +1694,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
           categoryBreakdown: categories.reduce((acc, cat) => {
             const categoryProducts = activeProducts.filter(p => p.categoryId === cat.id);
             if (categoryProducts.length > 0) {
-              acc[cat.name] = {
+              acc[getCategoryName(cat)] = {
                 count: categoryProducts.length,
                 percentage: ((categoryProducts.length / activeProducts.length) * 100).toFixed(1)
               };
@@ -1730,7 +1735,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
             .map(p => ({
               name: p.name,
               price: parseFloat(p.price).toFixed(2),
-              category: categories.find(c => c.id === p.categoryId)?.name || 'Unknown'
+              category: getCategoryName(categories.find(c => c.id === p.categoryId))
             })),
           
           // Generated timestamp
@@ -3916,7 +3921,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             <td style={{padding: '12px'}}>#{product.id}</td>
                             <td style={{padding: '12px', fontWeight: '500'}}>{product.name}</td>
                             <td style={{padding: '12px', color: '#28a745', fontWeight: 'bold'}}>${product.price}</td>
-                            <td style={{padding: '12px'}}>{product.category?.name || 'N/A'}</td>
+                            <td style={{padding: '12px'}}>{getCategoryName(product.category)}</td>
                             <td style={{padding: '12px'}}>
                               <span style={{
                                 padding: '4px 8px', 
@@ -4120,7 +4125,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             justifyContent: 'space-between',
                             alignItems: 'center'
                           }}>
-                            <span>{category.name}</span>
+                            <span>{getCategoryName(category)}</span>
                             <span style={{fontSize: '12px', opacity: '0.8'}}>#{category.sortOrder}</span>
                           </div>
                         ))}
@@ -4143,7 +4148,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                             justifyContent: 'space-between',
                             alignItems: 'center'
                           }}>
-                            <span>{category.name}</span>
+                            <span>{getCategoryName(category)}</span>
                             <span style={{fontSize: '12px', opacity: '0.8'}}>#{category.sortOrder}</span>
                           </div>
                         ))}
@@ -4161,7 +4166,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                       const mainTopCategories = categories.filter(cat => cat.showOnMainTop).sort((a, b) => a.sortOrder - b.sortOrder);
                       const mainShopCategories = categories.filter(cat => cat.showOnMainShop).sort((a, b) => a.sortOrder - b.sortOrder);
                       
-                      alert(`Homepage Category Configuration:\n\nMain Top (${mainTopCategories.length}/4): ${mainTopCategories.map(c => c.name).join(', ') || 'None'}\n\nShop Section (${mainShopCategories.length}/3): ${mainShopCategories.map(c => c.name).join(', ') || 'None'}\n\nTo modify these settings, use the "Configure Homepage" button below.`);
+                      alert(`Homepage Category Configuration:\n\nMain Top (${mainTopCategories.length}/4): ${mainTopCategories.map(getCategoryName).join(', ') || 'None'}\n\nShop Section (${mainShopCategories.length}/3): ${mainShopCategories.map(getCategoryName).join(', ') || 'None'}\n\nTo modify these settings, use the "Configure Homepage" button below.`);
                     }}
                   >
                     📋 {t('categories.viewHomepageConfig')}
@@ -4218,7 +4223,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                               {category.imageUrl ? (
                                 <img 
                                   src={category.imageUrl} 
-                                  alt={category.name}
+                                  alt={getCategoryName(category)}
                                   style={{
                                     width: '40px',
                                     height: '40px',
@@ -4244,7 +4249,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                               )}
                             </td>
                             <td style={{padding: '12px', fontWeight: '500'}}>
-                              {category.name}
+                              {getCategoryName(category)}
                               <span style={{marginLeft: '6px', padding: '1px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: 'bold', background: category.marketCode === 'fr' ? '#e8f4f8' : category.marketCode === 'com' ? '#e8f8e8' : '#f0e8f8', color: category.marketCode === 'fr' ? '#1a6080' : category.marketCode === 'com' ? '#1a6030' : '#6020a0'}}>
                                 {(category.marketCode || 'ro').toUpperCase()}
                               </span>
@@ -4309,7 +4314,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                     fontSize: '12px'
                                   }}
                                   onClick={async () => {
-                                    if (confirm(`Delete category "${category.name}"?\n\nThis action cannot be undone. Make sure no products are assigned to this category.`)) {
+                                    if (confirm(`Delete category "${getCategoryName(category)}"?\n\nThis action cannot be undone. Make sure no products are assigned to this category.`)) {
                                       const result = await deleteCategory(category.id);
                                       if (result.success) {
                                         alert('Category deleted successfully');
@@ -4755,7 +4760,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                   checked={selectedCategoryIds.includes(category.id)}
                                   onChange={e => toggleFeedSelection('categoryIds', category.id, e.target.checked)}
                                 />
-                                <span style={{flex: 1}}>{category.name}</span>
+                        <span style={{flex: 1}}>{getCategoryName(category)}</span>
                                 <code style={{fontSize: '11px', color: '#868e96'}}>{category.slug}</code>
                               </label>
                             ))
@@ -4789,7 +4794,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                                 />
                                 <span style={{flex: 1, minWidth: 0}}>
                                   <span style={{display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{product.name}</span>
-                                  <small style={{color: '#868e96'}}>#{product.id} · {product.categoryName}{product.productCode ? ` · ${product.productCode}` : ''}</small>
+                        <small style={{color: '#868e96'}}>#{product.id} · {product.categoryName}{product.productCode ? ` · ${product.productCode}` : ''}</small>
                                 </span>
                               </label>
                             ))
@@ -4890,7 +4895,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           <label style={{fontSize: '13px', color: '#495057'}}>Categoria promovată
                             <select value={heroForm.destinationId} onChange={e => setHeroForm({...heroForm, destinationId: e.target.value})} style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px'}}>
                               <option value="">Selectează categoria...</option>
-                              {categories.map(category => <option key={category.id} value={category.id}>{category.localizedName || category.name} ({category.slug})</option>)}
+                              {categories.map(category => <option key={category.id} value={category.id}>{getCategoryName(category)} ({category.slug})</option>)}
                             </select>
                           </label>
                         )}
@@ -6736,7 +6741,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                     >
                       <option value="">{t('products.bulkSelectCategory')}</option>
                       {categories.map(category => (
-                        <option key={category.id} value={category.id}>{category.name}</option>
+                        <option key={category.id} value={category.id}>{getCategoryName(category)}</option>
                       ))}
                     </select>
                   </div>
@@ -8609,7 +8614,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
                           >
                             <option value="">{t('products.modal.selectCategory')}</option>
                             {categories.map(category => (
-                              <option key={category.id} value={category.id}>{category.name}</option>
+                            <option key={category.id} value={category.id}>{getCategoryName(category)}</option>
                             ))}
                           </select>
                         </div>
@@ -11440,7 +11445,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                                 color: 'white',
                                 borderRadius: '4px'
                               }}>
-                                <span>{category.name}</span>
+                                <span>{getCategoryName(category)}</span>
                                 <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                                   <span style={{fontSize: '12px', opacity: '0.8'}}>#{index + 1}</span>
                                   <button
@@ -11490,7 +11495,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                             <option value="">+ Add Category to Main Top</option>
                             {categories.map(category => (
                               <option key={category.id} value={category.id}>
-                                {category.name} 
+                                {getCategoryName(category)}
                                 {homepageConfig.mainTop.includes(category.id) && ' (Already selected)'}
                                 {homepageConfig.mainShop.includes(category.id) && ' (In Shop section)'}
                               </option>
@@ -11532,7 +11537,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                                 color: 'white',
                                 borderRadius: '4px'
                               }}>
-                                <span>{category.name}</span>
+                                <span>{getCategoryName(category)}</span>
                                 <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                                   <span style={{fontSize: '12px', opacity: '0.8'}}>#{index + 1}</span>
                                   <button
@@ -11582,7 +11587,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                             <option value="">+ Add Category to Shop Section</option>
                             {categories.map(category => (
                               <option key={category.id} value={category.id}>
-                                {category.name}
+                                {getCategoryName(category)}
                                 {homepageConfig.mainShop.includes(category.id) && ' (Already selected)'}
                                 {homepageConfig.mainTop.includes(category.id) && ' (In Main Top)'}
                               </option>

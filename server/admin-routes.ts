@@ -154,6 +154,64 @@ async function ensureMarketCategories(market: string): Promise<any[]> {
   return storage.getCategories(market);
 }
 
+const ADMIN_CATEGORY_LANGUAGES = new Set(["ro", "en", "fr"]);
+
+function normalizeAdminLanguage(language: unknown): string | null {
+  const normalized = String(language || "").split("-")[0].toLowerCase();
+  return ADMIN_CATEGORY_LANGUAGES.has(normalized) ? normalized : null;
+}
+
+async function localizeAdminCategories(
+  categories: any[],
+  requestedLanguage: unknown,
+  market?: string,
+): Promise<any[]> {
+  const language = normalizeAdminLanguage(requestedLanguage);
+  const idsByLanguage = new Map<string, Set<number>>();
+  const languageForCategory = (category: any) => {
+    const categoryMarket = market && market !== "all" ? market : category.marketCode;
+    return categoryMarket === "com" ? "en" : categoryMarket || "ro";
+  };
+
+  for (const category of categories) {
+    if (!category?.id) continue;
+    const marketLanguage = languageForCategory(category);
+    const primaryLanguage = language || marketLanguage;
+    const fallbackLanguage = primaryLanguage === marketLanguage ? null : marketLanguage;
+    for (const translationLanguage of [primaryLanguage, fallbackLanguage]) {
+      if (!translationLanguage) continue;
+      if (!idsByLanguage.has(translationLanguage)) idsByLanguage.set(translationLanguage, new Set());
+      idsByLanguage.get(translationLanguage)!.add(category.id);
+    }
+  }
+
+  const translationsByLanguage = new Map<string, Map<number, any>>();
+  await Promise.all(Array.from(idsByLanguage.entries()).map(async ([translationLanguage, ids]) => {
+    const translations = await storage.getCategoryTranslationsBatch(
+      Array.from(ids),
+      translationLanguage,
+    );
+    translationsByLanguage.set(
+      translationLanguage,
+      new Map(translations.map(translation => [translation.categoryId, translation])),
+    );
+  }));
+
+  return categories.map(category => {
+    const marketLanguage = languageForCategory(category);
+    const primaryLanguage = language || marketLanguage;
+    const fallbackLanguage = primaryLanguage === marketLanguage ? null : marketLanguage;
+    const translation =
+      translationsByLanguage.get(primaryLanguage)?.get(category.id) ||
+      (fallbackLanguage ? translationsByLanguage.get(fallbackLanguage)?.get(category.id) : undefined);
+    return {
+      ...category,
+      localizedName: translation?.name || category.name,
+      localizedDescription: translation?.description || category.description,
+    };
+  });
+}
+
 async function validateCategoryForMarket(categoryId: unknown, market: string): Promise<number | null> {
   if (categoryId === null || categoryId === undefined || categoryId === '') return null;
   const parsedCategoryId = Number(categoryId);
@@ -2464,7 +2522,7 @@ export async function registerAdminRoutes(app: Express) {
   // Admin Product Management Routes
   app.get("/admin/api/products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { search, categoryId, featured, limit = 50, offset = 0, supplierId, market } = req.query;
+      const { search, categoryId, featured, limit = 50, offset = 0, supplierId, market, language } = req.query;
       if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market as string)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
@@ -2561,6 +2619,22 @@ export async function registerAdminRoutes(app: Express) {
         });
       }
 
+      const productCategories = filteredProducts
+        .map(product => product.category)
+        .filter(Boolean);
+      const localizedProductCategories = await localizeAdminCategories(
+        productCategories,
+        language,
+        market && market !== "all"
+          ? market as string
+          : allowedMarkets.length === 1
+            ? allowedMarkets[0]
+            : undefined,
+      );
+      const localizedCategoryById = new Map(
+        localizedProductCategories.map(category => [category.id, category]),
+      );
+
       // storage's lightweight product projection intentionally omits this
       // flag; include it for the composite-product admin controls.
       const compositeRows = filteredProducts.length
@@ -2571,6 +2645,9 @@ export async function registerAdminRoutes(app: Express) {
       const compositeById = new Map(compositeRows.map(row => [row.id, row.isComposite]));
       res.json(filteredProducts.map(product => ({
         ...product,
+        ...(product.category
+          ? { category: localizedCategoryById.get(product.category.id) || product.category }
+          : {}),
         isComposite: compositeById.get(product.id) ?? false,
       })));
     } catch (error) {
@@ -3226,27 +3303,7 @@ export async function registerAdminRoutes(app: Express) {
       const categories = market && market !== "all"
         ? await ensureMarketCategories(market)
         : await storage.getCategories(market);
-      const requestedLanguage = String(req.query.language || "").split("-")[0].toLowerCase();
-      const marketLanguage = market === "com" ? "en" : (market || "ro");
-      const primaryLanguage = requestedLanguage || marketLanguage;
-      const fallbackLanguage = primaryLanguage === marketLanguage ? null : marketLanguage;
-      const categoryIds = categories.map(category => category.id);
-      const [primaryTranslations, fallbackTranslations] = await Promise.all([
-        storage.getCategoryTranslationsBatch(categoryIds, primaryLanguage),
-        fallbackLanguage
-          ? storage.getCategoryTranslationsBatch(categoryIds, fallbackLanguage)
-          : Promise.resolve([]),
-      ]);
-      const primaryByCategory = new Map(primaryTranslations.map(translation => [translation.categoryId, translation]));
-      const fallbackByCategory = new Map(fallbackTranslations.map(translation => [translation.categoryId, translation]));
-      res.json(categories.map(category => {
-        const translation = primaryByCategory.get(category.id) || fallbackByCategory.get(category.id);
-        return {
-          ...category,
-          localizedName: translation?.name || category.name,
-          localizedDescription: translation?.description || category.description,
-        };
-      }));
+      res.json(await localizeAdminCategories(categories, req.query.language, market));
     } catch (error) {
       console.error("Error fetching categories:", error);
       res.status(500).json({ message: "Failed to fetch categories" });
@@ -6232,7 +6289,19 @@ export async function registerAdminRoutes(app: Express) {
       if (!canAccessMarket(req, market)) {
         return res.status(403).json({ message: "Nu ai acces la piața selectată" });
       }
-      res.json(await getGoogleMerchantFeedAdminData(market));
+      const data = await getGoogleMerchantFeedAdminData(market);
+      const localizedCategories = await localizeAdminCategories(data.categories, req.query.language, market);
+      const localizedCategoryById = new Map(
+        localizedCategories.map(category => [category.id, category]),
+      );
+      res.json({
+        ...data,
+        categories: localizedCategories,
+        products: data.products.map(product => ({
+          ...product,
+          categoryName: localizedCategoryById.get(product.categoryId)?.localizedName || product.categoryName,
+        })),
+      });
     } catch (error) {
       console.error("Google Merchant feed admin read error:", error);
       res.status(500).json({ message: "Nu s-a putut încărca configurația feedului" });
@@ -6263,10 +6332,22 @@ export async function registerAdminRoutes(app: Express) {
         categoryIds,
         productIds,
       });
+      const data = await getGoogleMerchantFeedAdminData(market);
+      const localizedCategories = await localizeAdminCategories(data.categories, req.body?.language, market);
+      const localizedCategoryById = new Map(
+        localizedCategories.map(category => [category.id, category]),
+      );
       res.json({
         success: true,
         message: "Configurația feedului Google a fost salvată.",
-        data: await getGoogleMerchantFeedAdminData(market),
+        data: {
+          ...data,
+          categories: localizedCategories,
+          products: data.products.map(product => ({
+            ...product,
+            categoryName: localizedCategoryById.get(product.categoryId)?.localizedName || product.categoryName,
+          })),
+        },
       });
     } catch (error) {
       console.error("Google Merchant feed admin save error:", error);
