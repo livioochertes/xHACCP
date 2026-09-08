@@ -11,6 +11,7 @@
     "test:contact-email": "tsx --test server/contact-email.test.ts server/market-routing.test.ts",
     "test:subscriptions": "tsx --test server/subscription-service.test.ts",
     "test:wms": "tsx --test server/wms-contract.test.ts",
+    "test:wms-monitor": "node --test scripts/check-wms-production.test.mjs",
     "check:wms-production": "node scripts/check-wms-production.mjs",
     "check": "tsc",
     "db:push": "drizzle-kit push"

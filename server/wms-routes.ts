@@ -63,6 +63,9 @@ export function registerWmsRoutes(app: Express) {
   app.use("/api/wms/v1", (req, res, next) => {
     req.wmsRequestId = requestId(req);
     res.setHeader("X-Request-Id", req.wmsRequestId);
+    // Health and order responses must not be cached by a proxy between the
+    // scheduled monitor and the published app.
+    res.setHeader("Cache-Control", "no-store");
     res.on("finish", () => {
       writeWmsAuditLog(req.wmsContext || null, {
         requestId: req.wmsRequestId || "unknown",

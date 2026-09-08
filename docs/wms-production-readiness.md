@@ -59,3 +59,49 @@ two requests belong to the expected partner and key records.
 
 After the warehouse passes its own sandbox test, keep the sandbox key for
 future certification and only then enable the production route/key.
+
+## 4. Schedule credential monitoring
+
+The smoke check can run as a separate Replit Scheduled Deployment. Keep the
+main store deployment on its existing web deployment target; the monitor is a
+one-shot command that should run every 10–15 minutes:
+
+```sh
+npm run check:wms-production
+```
+
+Set `WMS_BASE_URL` to the published app URL, not the workspace development
+URL. The monitor calls `/api/wms/v1/health` and then
+`/api/wms/v1/orders?limit=1` independently with both keys. The order request
+only reads one item and does not acknowledge or change an order.
+
+### Required Replit Secrets and variables
+
+Add these values to the Scheduled Deployment's environment. Store all secret
+values through Replit Secrets; do not put them in this document or a command
+history:
+
+- `WMS_SANDBOX_API_KEY` — the `wms_test_` key.
+- `WMS_PRODUCTION_API_KEY` — the `wms_live_` key.
+- `NEON_DATABASE_URL` (or the app's `DATABASE_URL`) — used to persist alert
+  cooldown state across scheduled runs. Apply migration
+  `db/migrations/0007_wms_monitor_alerts.sql` before enabling the monitor.
+- `SENDGRID_API_KEY` — used only to send operator alerts.
+- `SENDGRID_FROM_EMAIL` — a verified SendGrid sender.
+- `WMS_ALERT_EMAIL` — the operator mailbox that receives alerts.
+
+`WMS_BASE_URL`, `WMS_ALERT_COOLDOWN_MINUTES` (default `60`), and
+`WMS_CHECK_TIMEOUT_MS` (default `10000`) are ordinary configuration variables,
+not credentials. Each check has its own failure fingerprint, so a repeated
+outage sends at most one alert per cooldown window while a newly changed
+failure alerts immediately. No API key value is written to logs, database
+state, or notifications.
+
+### Planned key rotation
+
+Before revoking or replacing a key, pause the Scheduled Deployment or set
+`WMS_MONITOR_PAUSED=true`. A paused run makes no WMS requests and sends no
+alerts. Complete the rotation, update both Replit Secrets, run the manual
+check once, then resume the schedule and remove the pause variable. Do not
+delete the database alert-state rows; keeping them avoids losing the
+outage history during a rotation.
