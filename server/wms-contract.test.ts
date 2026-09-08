@@ -7,6 +7,7 @@ import {
   hashWmsApiKey,
   isFulfillable,
   normalizeEventStatus,
+  summarizeWmsRouting,
   standardError,
 } from "./wms-service.js";
 
@@ -19,6 +20,17 @@ test("WMS API keys are prefixed and only their SHA-256 hash is used", () => {
 
 test("sandbox keys use a separate prefix", () => {
   assert.match(createPlaintextWmsApiKey("sandbox").plaintext, /^wms_test_/);
+});
+
+test("routing readiness distinguishes active, inactive, and unconfigured markets", () => {
+  assert.deepEqual(summarizeWmsRouting([
+    { market: "ro", partnerId: 10, isActive: true },
+    { market: "fr", partnerId: 10, isActive: false },
+  ]), [
+    { market: "ro", partnerId: 10, isActive: true, decision: "active" },
+    { market: "fr", partnerId: 10, isActive: false, decision: "inactive" },
+    { market: "com", partnerId: null, isActive: false, decision: "unconfigured" },
+  ]);
 });
 
 test("cursor encoding is stable and round-trips UTC timestamps", () => {

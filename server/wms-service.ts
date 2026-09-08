@@ -20,6 +20,37 @@ import { sendEmail, getSenderForMarket } from "./email-service.js";
 export const WMS_MARKETS = ["ro", "fr", "com"] as const;
 export const WMS_SCOPES = ["orders:read", "orders:ack", "orders:events", "inventory:write"] as const;
 export type WmsScope = (typeof WMS_SCOPES)[number];
+export type WmsMarket = (typeof WMS_MARKETS)[number];
+
+export type WmsRoutingRecord = {
+  market: string;
+  partnerId: number | null;
+  isActive: boolean;
+};
+
+export type WmsRoutingDecision = WmsRoutingRecord & {
+  decision: "active" | "inactive" | "unconfigured";
+};
+
+/**
+ * Keep production onboarding honest: an absent row is different from an
+ * intentional inactive route. This is pure so the admin API and contract
+ * tests can use the same readiness rules without touching the database.
+ */
+export function summarizeWmsRouting(routes: WmsRoutingRecord[]): WmsRoutingDecision[] {
+  return WMS_MARKETS.map((market) => {
+    const route = routes.find((candidate) => candidate.market === market);
+    if (!route) {
+      return { market, partnerId: null, isActive: false, decision: "unconfigured" };
+    }
+    return {
+      market,
+      partnerId: route.partnerId,
+      isActive: route.isActive,
+      decision: route.isActive ? "active" : "inactive",
+    };
+  });
+}
 
 export type WmsAuthContext = {
   apiKeyId: number;

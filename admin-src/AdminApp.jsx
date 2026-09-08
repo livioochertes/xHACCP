@@ -879,12 +879,12 @@ import {
         fetchWmsOverview();
       };
 
-      const routeWmsMarket = async (market, partnerId) => {
+      const routeWmsMarket = async (market, partnerId, isActive = true) => {
         const response = partnerId
           ? await fetch(`/admin/api/wms/routing/${market}`, {
               method: 'PUT',
               headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ partnerId: Number(partnerId) })
+              body: JSON.stringify({ partnerId: Number(partnerId), isActive })
             })
           : await fetch(`/admin/api/wms/routing/${market}`, {
               method: 'DELETE',
@@ -2907,7 +2907,8 @@ import {
         switch (activeView) {
           case 'wms': {
             const visibleMarkets = adminIsSuperAdmin ? ['ro', 'fr', 'com'] : (admin?.adminMarkets || []);
-            const partnerForMarket = (market) => wmsOverview.routing.find(route => route.market === market && route.isActive);
+            const partnerForMarket = (market) => wmsOverview.routing.find(route => route.market === market);
+            const routingDecisionForMarket = (market) => wmsOverview.routingDecisions?.find(route => route.market === market);
             return (
               <div style={{background:'white',padding:'30px',borderRadius:'8px',boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'22px'}}>
@@ -2953,15 +2954,30 @@ import {
                 )}
 
                 <h4 style={{color:'#333',margin:'0 0 12px'}}>Rutare marketplace</h4>
+                <div style={{background:wmsOverview.routingReady ? '#d1e7dd' : '#fff3cd',border:`1px solid ${wmsOverview.routingReady ? '#a3cfbb' : '#ffecb5'}`,padding:'10px 12px',borderRadius:'6px',marginBottom:'12px',fontSize:'13px'}}>
+                  {wmsOverview.routingReady
+                    ? 'Toate cele trei marketplace-uri au o decizie explicită de rutare.'
+                    : 'Înainte de producție, salvează o decizie activă sau inactivă pentru fiecare marketplace.'}
+                </div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:'12px',marginBottom:'24px'}}>
                   {visibleMarkets.map(market => {
                     const route = partnerForMarket(market);
+                    const decision = routingDecisionForMarket(market);
                     return <div key={market} style={{border:'1px solid #dee2e6',borderRadius:'7px',padding:'13px'}}>
-                      <div style={{fontWeight:'700',marginBottom:'8px'}}>{market.toUpperCase()}</div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+                        <strong>{market.toUpperCase()}</strong>
+                        <span style={{fontSize:'12px',color:decision?.decision === 'active' ? '#198754' : decision?.decision === 'inactive' ? '#6c757d' : '#dc3545'}}>
+                          {decision?.decision === 'active' ? 'activă' : decision?.decision === 'inactive' ? 'inactivă' : 'neconfigurată'}
+                        </span>
+                      </div>
                       <select value={route?.partnerId || ''} onChange={e=>routeWmsMarket(market,e.target.value)} style={{width:'100%',padding:'8px',border:'1px solid #ced4da',borderRadius:'4px'}}>
                         <option value="">Fără rutare</option>
-                        {wmsOverview.partners.filter(partner=>partner.isActive).map(partner=><option key={partner.id} value={partner.id}>{partner.name}</option>)}
+                        {wmsOverview.partners.filter(partner=>partner.isActive || partner.id === route?.partnerId).map(partner=><option key={partner.id} value={partner.id}>{partner.name}{!partner.isActive ? ' (inactiv)' : ''}</option>)}
                       </select>
+                      {route?.partnerId && <label style={{display:'flex',alignItems:'center',gap:'7px',marginTop:'9px',fontSize:'13px',color:'#495057'}}>
+                        <input type="checkbox" checked={route.isActive} onChange={e=>routeWmsMarket(market,route.partnerId,e.target.checked)} />
+                        Rutare activă
+                      </label>}
                     </div>;
                   })}
                 </div>

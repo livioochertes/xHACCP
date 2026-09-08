@@ -13444,11 +13444,11 @@
       setWmsPartnerForm({ name: "", code: "" });
       fetchWmsOverview();
     };
-    const routeWmsMarket = async (market, partnerId) => {
+    const routeWmsMarket = async (market, partnerId, isActive = true) => {
       const response = partnerId ? await fetch(`/admin/api/wms/routing/${market}`, {
         method: "PUT",
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ partnerId: Number(partnerId) })
+        body: JSON.stringify({ partnerId: Number(partnerId), isActive })
       }) : await fetch(`/admin/api/wms/routing/${market}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
@@ -15261,7 +15261,8 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
       switch (activeView) {
         case "wms": {
           const visibleMarkets = adminIsSuperAdmin ? ["ro", "fr", "com"] : admin?.adminMarkets || [];
-          const partnerForMarket = (market) => wmsOverview.routing.find((route) => route.market === market && route.isActive);
+          const partnerForMarket = (market) => wmsOverview.routing.find((route) => route.market === market);
+          const routingDecisionForMarket = (market) => wmsOverview.routingDecisions?.find((route) => route.market === market);
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
@@ -15304,13 +15305,25 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: "Rutare marketplace" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { background: wmsOverview.routingReady ? "#d1e7dd" : "#fff3cd", border: `1px solid ${wmsOverview.routingReady ? "#a3cfbb" : "#ffecb5"}`, padding: "10px 12px", borderRadius: "6px", marginBottom: "12px", fontSize: "13px" }, children: wmsOverview.routingReady ? "Toate cele trei marketplace-uri au o decizie explicit\u0103 de rutare." : "\xCEnainte de produc\u021Bie, salveaz\u0103 o decizie activ\u0103 sau inactiv\u0103 pentru fiecare marketplace." }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px", marginBottom: "24px" }, children: visibleMarkets.map((market) => {
               const route = partnerForMarket(market);
+              const decision = routingDecisionForMarket(market);
               return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "7px", padding: "13px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontWeight: "700", marginBottom: "8px" }, children: market.toUpperCase() }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: market.toUpperCase() }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: decision?.decision === "active" ? "#198754" : decision?.decision === "inactive" ? "#6c757d" : "#dc3545" }, children: decision?.decision === "active" ? "activ\u0103" : decision?.decision === "inactive" ? "inactiv\u0103" : "neconfigurat\u0103" })
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: route?.partnerId || "", onChange: (e2) => routeWmsMarket(market, e2.target.value), style: { width: "100%", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "F\u0103r\u0103 rutare" }),
-                  wmsOverview.partners.filter((partner) => partner.isActive).map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: partner.id, children: partner.name }, partner.id))
+                  wmsOverview.partners.filter((partner) => partner.isActive || partner.id === route?.partnerId).map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: partner.id, children: [
+                    partner.name,
+                    !partner.isActive ? " (inactiv)" : ""
+                  ] }, partner.id))
+                ] }),
+                route?.partnerId && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "7px", marginTop: "9px", fontSize: "13px", color: "#495057" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "checkbox", checked: route.isActive, onChange: (e2) => routeWmsMarket(market, route.partnerId, e2.target.checked) }),
+                  "Rutare activ\u0103"
                 ] })
               ] }, market);
             }) }),

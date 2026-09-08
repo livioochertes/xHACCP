@@ -31,6 +31,7 @@ import { getSenderForMarket, sendEmail } from "./email-service";
 import { localizeAdminCategories as localizeCategoryRows } from "./admin-category-localization";
 import {
   createPlaintextWmsApiKey,
+  summarizeWmsRouting,
   WMS_MARKETS,
   WMS_SCOPES,
 } from "./wms-service";
@@ -643,6 +644,11 @@ export async function registerAdminRoutes(app: Express) {
       const partners = await db.select().from(fulfillmentPartners).orderBy(desc(fulfillmentPartners.name));
       const routes = await db.select().from(marketFulfillment);
       const visibleRoutes = routes.filter(route => !allowedMarkets.length || allowedMarkets.includes(route.market));
+      const routingDecisions = summarizeWmsRouting(visibleRoutes.map(route => ({
+        market: route.market,
+        partnerId: route.partnerId,
+        isActive: route.isActive,
+      }))).filter(route => !allowedMarkets.length || allowedMarkets.includes(route.market));
       const visiblePartnerIds = new Set(visibleRoutes.map(route => route.partnerId));
       const visiblePartners = partners.filter(partner => !allowedMarkets.length || visiblePartnerIds.has(partner.id));
       const keyCounts = await db.select({
@@ -657,6 +663,8 @@ export async function registerAdminRoutes(app: Express) {
           markets: visibleRoutes.filter(route => route.partnerId === partner.id).map(route => route.market),
         })),
         routing: visibleRoutes,
+        routingDecisions,
+        routingReady: routingDecisions.every(route => route.decision !== "unconfigured"),
       });
     } catch (error) {
       console.error("[Admin WMS] overview failed", error);
@@ -702,19 +710,24 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/wms/routing/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const market = String(req.params.market);
-      const partnerId = Number(req.body?.partnerId);
+      const requestedPartnerId = req.body?.partnerId;
+      const partnerId = Number(requestedPartnerId);
+      const isActive = req.body?.isActive !== false;
       if (!WMS_MARKETS.includes(market as any) || !canAccessMarket(req, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
-      const [partner] = await db.select().from(fulfillmentPartners).where(and(
-        eq(fulfillmentPartners.id, partnerId),
-        eq(fulfillmentPartners.isActive, true),
-      ));
-      if (!partner) return res.status(400).json({ message: "An active partner is required" });
-      const [route] = await db.insert(marketFulfillment).values({ market, partnerId, isActive: true })
+      if (!Number.isInteger(partnerId) || partnerId < 1) {
+        return res.status(400).json({ message: "A partner is required to record a routing decision" });
+      }
+      const [partner] = await db.select().from(fulfillmentPartners).where(eq(fulfillmentPartners.id, partnerId));
+      if (!partner) return res.status(400).json({ message: "WMS partner not found" });
+      if (isActive && !partner.isActive) {
+        return res.status(400).json({ message: "An active partner is required for active routing" });
+      }
+      const [route] = await db.insert(marketFulfillment).values({ market, partnerId, isActive })
         .onConflictDoUpdate({
           target: marketFulfillment.market,
-          set: { partnerId, isActive: true, updatedAt: new Date() },
+          set: { partnerId, isActive, updatedAt: new Date() },
         }).returning();
       res.json({ route });
     } catch (error) {
