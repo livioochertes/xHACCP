@@ -270,9 +270,14 @@ export const compositeProductComponents = pgTable("composite_product_components"
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
+  publicOrderRef: varchar("public_order_ref", { length: 80 }).unique(),
   market: varchar("market", { length: 10 }).default("ro"), // which market the order was placed on
   currency: varchar("currency", { length: 3 }).default("RON"),
   status: varchar("status", { length: 50 }).notNull().default("pending"),
+  fulfillmentStatus: varchar("fulfillment_status", { length: 40 }).notNull().default("unassigned"),
+  fulfillmentPartnerId: integer("fulfillment_partner_id"),
+  fulfillmentAssignedAt: timestamp("fulfillment_assigned_at"),
+  confirmedAt: timestamp("confirmed_at"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   shippingAddress: jsonb("shipping_address").notNull(),
   billingAddress: jsonb("billing_address").notNull(),
@@ -306,6 +311,105 @@ export const orderItems = pgTable("order_items", {
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
   compositeConfiguration: jsonb("composite_configuration").$type<CompositeConfiguration | null>(),
 });
+
+// Inbound WMS integration. API keys are never stored in plaintext.
+export const fulfillmentPartners = pgTable("fulfillment_partners", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 160 }).notNull(),
+  code: varchar("code", { length: 60 }).notNull().unique(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const marketFulfillment = pgTable("market_fulfillment", {
+  id: serial("id").primaryKey(),
+  market: varchar("market", { length: 10 }).notNull().unique(),
+  partnerId: integer("partner_id").references(() => fulfillmentPartners.id, { onDelete: "restrict" }).notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const wmsApiKeys = pgTable("wms_api_keys", {
+  id: serial("id").primaryKey(),
+  partnerId: integer("partner_id").references(() => fulfillmentPartners.id, { onDelete: "cascade" }).notNull(),
+  environment: varchar("environment", { length: 20 }).notNull().default("production"),
+  keyPrefix: varchar("key_prefix", { length: 32 }).notNull(),
+  keyHash: varchar("key_hash", { length: 64 }).notNull().unique(),
+  scopes: text("scopes").array().notNull().default([]),
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastUsedAt: timestamp("last_used_at"),
+  revokedAt: timestamp("revoked_at"),
+});
+
+export const wmsShipments = pgTable("wms_shipments", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
+  partnerId: integer("partner_id").references(() => fulfillmentPartners.id, { onDelete: "restrict" }).notNull(),
+  parcelId: varchar("parcel_id", { length: 100 }).notNull(),
+  trackingNumber: varchar("tracking_number", { length: 160 }),
+  carrier: varchar("carrier", { length: 100 }),
+  status: varchar("status", { length: 40 }).notNull().default("created"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  orderParcelUnique: uniqueIndex("wms_shipments_order_parcel_unique").on(table.orderId, table.parcelId),
+  partnerOrderIdx: index("wms_shipments_partner_order_idx").on(table.partnerId, table.orderId),
+}));
+
+export const wmsOrderEvents = pgTable("wms_order_events", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
+  partnerId: integer("partner_id").references(() => fulfillmentPartners.id, { onDelete: "restrict" }).notNull(),
+  eventId: varchar("event_id", { length: 160 }).notNull(),
+  eventType: varchar("event_type", { length: 50 }).notNull(),
+  status: varchar("status", { length: 40 }).notNull(),
+  occurredAt: timestamp("occurred_at").notNull(),
+  payload: jsonb("payload").notNull().default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  partnerEventUnique: uniqueIndex("wms_order_events_partner_event_unique").on(table.partnerId, table.eventId),
+  orderOccurredIdx: index("wms_order_events_order_occurred_idx").on(table.orderId, table.occurredAt),
+}));
+
+export const wmsInventory = pgTable("wms_inventory", {
+  id: serial("id").primaryKey(),
+  partnerId: integer("partner_id").references(() => fulfillmentPartners.id, { onDelete: "cascade" }).notNull(),
+  sku: varchar("sku", { length: 160 }).notNull(),
+  quantity: integer("quantity").notNull(),
+  availableQuantity: integer("available_quantity").notNull(),
+  sourceUpdatedAt: timestamp("source_updated_at").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  partnerSkuUnique: uniqueIndex("wms_inventory_partner_sku_unique").on(table.partnerId, table.sku),
+}));
+
+export const wmsIdempotencyKeys = pgTable("wms_idempotency_keys", {
+  id: serial("id").primaryKey(),
+  partnerId: integer("partner_id").references(() => fulfillmentPartners.id, { onDelete: "cascade" }).notNull(),
+  idempotencyKey: varchar("idempotency_key", { length: 160 }).notNull(),
+  requestHash: varchar("request_hash", { length: 64 }).notNull(),
+  responseStatus: integer("response_status"),
+  responseBody: jsonb("response_body"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  partnerKeyUnique: uniqueIndex("wms_idempotency_partner_key_unique").on(table.partnerId, table.idempotencyKey),
+}));
+
+export const wmsAuditLogs = pgTable("wms_audit_logs", {
+  id: serial("id").primaryKey(),
+  partnerId: integer("partner_id").references(() => fulfillmentPartners.id, { onDelete: "set null" }),
+  apiKeyId: integer("api_key_id").references(() => wmsApiKeys.id, { onDelete: "set null" }),
+  requestId: varchar("request_id", { length: 120 }).notNull(),
+  method: varchar("method", { length: 12 }).notNull(),
+  path: varchar("path", { length: 500 }).notNull(),
+  statusCode: integer("status_code").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  createdIdx: index("wms_audit_logs_created_idx").on(table.createdAt),
+}));
 
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),

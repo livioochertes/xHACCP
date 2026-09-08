@@ -18,3 +18,4 @@
 - [Abandoned cart reminders](abandoned-cart-reminders.md) — send one market-specific reminder after 24h of cart inactivity; cart changes reset eligibility.
 - [Marketing automation](marketing-automation.md) — reminder thresholds, segments, and campaigns are market-scoped and require both email and promotions consent.
 - [Review query URL convention](review-query-keys.md) — nested review endpoints must be complete in queryKey[0]; extra key segments are not converted into URL paths.
+- [Development schema sync](dev-schema-sync.md) — use development database tooling when Drizzle push cannot receive its interactive confirmation.

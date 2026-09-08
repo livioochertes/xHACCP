@@ -1,8 +1,11 @@
 import type { Express } from "express";
 import { storage } from "./storage";
 import { db, pool } from "./db";
-import { companySettings, suppliers, productMarkets, invoices, products as productsTable, productTranslations } from "@shared/schema";
-import { desc, eq, and, inArray } from "drizzle-orm";
+import {
+  companySettings, suppliers, productMarkets, invoices, products as productsTable, productTranslations,
+  fulfillmentPartners, marketFulfillment, wmsApiKeys, wmsAuditLogs, wmsShipments, wmsOrderEvents, orders,
+} from "@shared/schema";
+import { desc, eq, and, inArray, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
@@ -26,6 +29,11 @@ import {
 } from "./google-merchant-feed";
 import { getSenderForMarket, sendEmail } from "./email-service";
 import { localizeAdminCategories as localizeCategoryRows } from "./admin-category-localization";
+import {
+  createPlaintextWmsApiKey,
+  WMS_MARKETS,
+  WMS_SCOPES,
+} from "./wms-service";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -256,6 +264,15 @@ interface AdminAuthRequest extends Request {
 export function canAccessMarket(req: AdminAuthRequest, market: string): boolean {
   const allowed = req.adminMarkets || [];
   return allowed.length === 0 || allowed.includes(market);
+}
+
+async function canAccessWmsPartner(req: AdminAuthRequest, partnerId: number): Promise<boolean> {
+  const allowed = req.adminMarkets || [];
+  if (allowed.length === 0) return true;
+  const routes = await db.select({ market: marketFulfillment.market })
+    .from(marketFulfillment)
+    .where(and(eq(marketFulfillment.partnerId, partnerId), eq(marketFulfillment.isActive, true)));
+  return routes.some(route => allowed.includes(route.market));
 }
 
 function isSupportedMarketingMarket(market: unknown): market is "all" | "ro" | "fr" | "com" {
@@ -619,6 +636,213 @@ async function performSupplierSync(supplier: any, order: any, action: string) {
 }
 
 export async function registerAdminRoutes(app: Express) {
+  // WMS partner administration. Secrets are returned only once at key creation.
+  app.get("/admin/api/wms/overview", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const allowedMarkets = req.adminMarkets || [];
+      const partners = await db.select().from(fulfillmentPartners).orderBy(desc(fulfillmentPartners.name));
+      const routes = await db.select().from(marketFulfillment);
+      const visibleRoutes = routes.filter(route => !allowedMarkets.length || allowedMarkets.includes(route.market));
+      const visiblePartnerIds = new Set(visibleRoutes.map(route => route.partnerId));
+      const visiblePartners = partners.filter(partner => !allowedMarkets.length || visiblePartnerIds.has(partner.id));
+      const keyCounts = await db.select({
+        partnerId: wmsApiKeys.partnerId,
+        count: sql<number>`count(*)::int`,
+      }).from(wmsApiKeys).where(eq(wmsApiKeys.isRevoked, false)).groupBy(wmsApiKeys.partnerId);
+      const counts = new Map(keyCounts.map(row => [row.partnerId, row.count]));
+      res.json({
+        partners: visiblePartners.map(partner => ({
+          ...partner,
+          keyCount: counts.get(partner.id) || 0,
+          markets: visibleRoutes.filter(route => route.partnerId === partner.id).map(route => route.market),
+        })),
+        routing: visibleRoutes,
+      });
+    } catch (error) {
+      console.error("[Admin WMS] overview failed", error);
+      res.status(500).json({ message: "Failed to load WMS overview" });
+    }
+  });
+
+  app.post("/admin/api/wms/partners", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const name = String(req.body?.name || "").trim();
+      const code = String(req.body?.code || "").trim().toLowerCase();
+      if (!name || !/^[a-z0-9][a-z0-9_-]{1,59}$/.test(code)) {
+        return res.status(400).json({ message: "Name and a valid code are required" });
+      }
+      const [partner] = await db.insert(fulfillmentPartners).values({ name, code }).returning();
+      res.status(201).json({ partner });
+    } catch (error: any) {
+      if (error?.code === "23505") return res.status(409).json({ message: "Partner code already exists" });
+      console.error("[Admin WMS] create partner failed", error);
+      res.status(500).json({ message: "Failed to create WMS partner" });
+    }
+  });
+
+  app.put("/admin/api/wms/partners/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      if (!(await canAccessWmsPartner(req, id))) {
+        return res.status(403).json({ message: "Access denied for this partner" });
+      }
+      const [partner] = await db.update(fulfillmentPartners).set({
+        ...(req.body?.name !== undefined ? { name: String(req.body.name).trim() } : {}),
+        ...(req.body?.isActive !== undefined ? { isActive: Boolean(req.body.isActive) } : {}),
+        updatedAt: new Date(),
+      }).where(eq(fulfillmentPartners.id, id)).returning();
+      if (!partner) return res.status(404).json({ message: "WMS partner not found" });
+      res.json({ partner });
+    } catch (error) {
+      console.error("[Admin WMS] update partner failed", error);
+      res.status(500).json({ message: "Failed to update WMS partner" });
+    }
+  });
+
+  app.put("/admin/api/wms/routing/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const market = String(req.params.market);
+      const partnerId = Number(req.body?.partnerId);
+      if (!WMS_MARKETS.includes(market as any) || !canAccessMarket(req, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const [partner] = await db.select().from(fulfillmentPartners).where(and(
+        eq(fulfillmentPartners.id, partnerId),
+        eq(fulfillmentPartners.isActive, true),
+      ));
+      if (!partner) return res.status(400).json({ message: "An active partner is required" });
+      const [route] = await db.insert(marketFulfillment).values({ market, partnerId, isActive: true })
+        .onConflictDoUpdate({
+          target: marketFulfillment.market,
+          set: { partnerId, isActive: true, updatedAt: new Date() },
+        }).returning();
+      res.json({ route });
+    } catch (error) {
+      console.error("[Admin WMS] route update failed", error);
+      res.status(500).json({ message: "Failed to update WMS routing" });
+    }
+  });
+
+  app.delete("/admin/api/wms/routing/:market", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const market = String(req.params.market);
+    if (!WMS_MARKETS.includes(market as any) || !canAccessMarket(req, market)) {
+      return res.status(403).json({ message: "Access denied for this market" });
+    }
+    await db.update(marketFulfillment).set({ isActive: false, updatedAt: new Date() })
+      .where(eq(marketFulfillment.market, market));
+    res.json({ success: true });
+  });
+
+  app.get("/admin/api/wms/partners/:id/keys", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const partnerId = Number(req.params.id);
+    const [partner] = await db.select().from(fulfillmentPartners).where(eq(fulfillmentPartners.id, partnerId));
+    if (!partner) return res.status(404).json({ message: "WMS partner not found" });
+    const routes = await db.select().from(marketFulfillment).where(eq(marketFulfillment.partnerId, partnerId));
+    if ((req.adminMarkets || []).length && !routes.some(route => (req.adminMarkets || []).includes(route.market))) {
+      return res.status(403).json({ message: "Access denied for this partner" });
+    }
+    const keys = await db.select({
+      id: wmsApiKeys.id,
+      environment: wmsApiKeys.environment,
+      keyPrefix: wmsApiKeys.keyPrefix,
+      scopes: wmsApiKeys.scopes,
+      isRevoked: wmsApiKeys.isRevoked,
+      createdAt: wmsApiKeys.createdAt,
+      lastUsedAt: wmsApiKeys.lastUsedAt,
+      revokedAt: wmsApiKeys.revokedAt,
+    }).from(wmsApiKeys).where(eq(wmsApiKeys.partnerId, partnerId)).orderBy(desc(wmsApiKeys.createdAt));
+    res.json({ keys });
+  });
+
+  app.post("/admin/api/wms/partners/:id/keys", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const partnerId = Number(req.params.id);
+      const [partner] = await db.select().from(fulfillmentPartners).where(eq(fulfillmentPartners.id, partnerId));
+      if (!partner) return res.status(404).json({ message: "WMS partner not found" });
+      const routes = await db.select().from(marketFulfillment).where(eq(marketFulfillment.partnerId, partnerId));
+      if ((req.adminMarkets || []).length && !routes.some(route => (req.adminMarkets || []).includes(route.market))) {
+        return res.status(403).json({ message: "Access denied for this partner" });
+      }
+      const environment = req.body?.environment === "sandbox" ? "sandbox" : "production";
+      const scopes = Array.isArray(req.body?.scopes)
+        ? req.body.scopes.filter((scope: unknown) => WMS_SCOPES.includes(scope as any))
+        : [...WMS_SCOPES];
+      if (!scopes.length) return res.status(400).json({ message: "At least one valid scope is required" });
+      const generated = createPlaintextWmsApiKey(environment);
+      const [key] = await db.insert(wmsApiKeys).values({
+        partnerId,
+        environment,
+        keyPrefix: generated.prefix,
+        keyHash: generated.hash,
+        scopes,
+      }).returning({ id: wmsApiKeys.id, environment: wmsApiKeys.environment, keyPrefix: wmsApiKeys.keyPrefix, scopes: wmsApiKeys.scopes });
+      res.status(201).json({ key, plaintext: generated.plaintext, warning: "Store this key now; it will not be shown again." });
+    } catch (error) {
+      console.error("[Admin WMS] create key failed", error);
+      res.status(500).json({ message: "Failed to create WMS API key" });
+    }
+  });
+
+  app.delete("/admin/api/wms/keys/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const id = Number(req.params.id);
+    const [existingKey] = await db.select({ partnerId: wmsApiKeys.partnerId }).from(wmsApiKeys).where(eq(wmsApiKeys.id, id));
+    if (!existingKey) return res.status(404).json({ message: "WMS API key not found" });
+    if (!(await canAccessWmsPartner(req, existingKey.partnerId))) {
+      return res.status(403).json({ message: "Access denied for this partner" });
+    }
+    const [key] = await db.update(wmsApiKeys).set({
+      isRevoked: true,
+      revokedAt: new Date(),
+    }).where(eq(wmsApiKeys.id, id)).returning({ id: wmsApiKeys.id });
+    if (!key) return res.status(404).json({ message: "WMS API key not found" });
+    res.json({ success: true });
+  });
+
+  app.get("/admin/api/wms/audit", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+    const allowed = req.adminMarkets || [];
+    let rows;
+    if (allowed.length === 0) {
+      rows = await db.select().from(wmsAuditLogs).orderBy(desc(wmsAuditLogs.createdAt)).limit(limit);
+    } else {
+      const visiblePartners = await db.select({ partnerId: marketFulfillment.partnerId })
+        .from(marketFulfillment)
+        .where(inArray(marketFulfillment.market, allowed));
+      const partnerIds = [...new Set(visiblePartners.map(row => row.partnerId))];
+      rows = partnerIds.length
+        ? await db.select().from(wmsAuditLogs)
+          .where(inArray(wmsAuditLogs.partnerId, partnerIds))
+          .orderBy(desc(wmsAuditLogs.createdAt))
+          .limit(limit)
+        : [];
+    }
+    res.json(rows);
+  });
+
+  app.get("/admin/api/orders/:id/wms", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const orderId = Number(req.params.id);
+    const order = await storage.getOrder(orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (!canAccessMarket(req, order.market || "ro")) return res.status(403).json({ message: "Access denied for this market" });
+    const [shipments, events] = await Promise.all([
+      db.select().from(wmsShipments).where(eq(wmsShipments.orderId, orderId)).orderBy(desc(wmsShipments.updatedAt)),
+      db.select().from(wmsOrderEvents).where(eq(wmsOrderEvents.orderId, orderId)).orderBy(desc(wmsOrderEvents.occurredAt)),
+    ]);
+    res.json({ fulfillmentStatus: order.fulfillmentStatus, partnerId: order.fulfillmentPartnerId, shipments, events });
+  });
+
+  app.post("/admin/api/orders/:id/wms/requeue", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const orderId = Number(req.params.id);
+    const order = await storage.getOrder(orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (!canAccessMarket(req, order.market || "ro")) return res.status(403).json({ message: "Access denied for this market" });
+    const [updated] = await db.update(orders).set({
+      fulfillmentStatus: order.fulfillmentPartnerId ? "ready" : "unassigned",
+      updatedAt: new Date(),
+    }).where(eq(orders.id, orderId)).returning();
+    res.json({ order: updated });
+  });
+
   // Serve uploaded files
   app.get("/uploads/products/:filename", serveUploads);
 

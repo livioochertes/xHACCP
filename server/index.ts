@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { registerRoutes } from "./routes";
 import { registerAdminRoutes } from "./admin-routes";
+import { registerWmsRoutes } from "./wms-routes";
 import { registerMarketingAdminRoutes } from "./marketing-admin-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase, seedCategoryTranslations, seedMarketSettings } from "./sample-data";
@@ -131,6 +132,7 @@ app.use((req, res, next) => {
   
   // Register admin routes FIRST before any other middleware
   await registerAdminRoutes(app);
+  registerWmsRoutes(app);
   registerMarketingAdminRoutes(app);
   
   const server = await registerRoutes(app);

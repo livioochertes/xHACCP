@@ -22,6 +22,8 @@ import {
   marketingCampaigns,
   productMarkets,
   compositeProductComponents,
+  fulfillmentPartners,
+  marketFulfillment,
   type User,
   type InsertUser,
   type Category,
@@ -79,6 +81,7 @@ import {
   type BlogPostTranslation,
 } from "@shared/schema";
 import { db } from "./db";
+import crypto from "node:crypto";
 import { compositeConfigurationKey } from "./composite-products";
 import { filterPublicReviews } from "./review-validation";
 import { eq, desc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, notExists } from "drizzle-orm";
@@ -885,7 +888,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order> {
-    const [newOrder] = await db.insert(orders).values(order).returning();
+    const [newOrder] = await db.insert(orders).values({
+      ...order,
+      publicOrderRef: order.publicOrderRef || `ord_${crypto.randomBytes(18).toString("base64url")}`,
+    }).returning();
     
     const orderItemsWithOrderId = items.map(item => ({
       ...item,
@@ -909,16 +915,36 @@ export class DatabaseStorage implements IStorage {
   async markOrderPaid(id: number): Promise<Order | null> {
     // Callback and webhook can arrive at the same time. Claim the transition
     // atomically so only one of them performs invoice/email side effects.
-    const [updatedOrder] = await db
-      .update(orders)
-      .set({
-        paymentStatus: "paid",
-        status: "processing",
-        updatedAt: new Date(),
-      })
-      .where(and(eq(orders.id, id), ne(orders.paymentStatus, "paid")))
-      .returning();
-    return updatedOrder ?? null;
+    return db.transaction(async (tx) => {
+      const [current] = await tx.select().from(orders).where(eq(orders.id, id)).limit(1);
+      if (!current || current.paymentStatus === "paid") return null;
+      const [route] = await tx
+        .select({ partnerId: marketFulfillment.partnerId })
+        .from(marketFulfillment)
+        .innerJoin(fulfillmentPartners, eq(fulfillmentPartners.id, marketFulfillment.partnerId))
+        .where(and(
+          eq(marketFulfillment.market, current.market || "ro"),
+          eq(marketFulfillment.isActive, true),
+          eq(fulfillmentPartners.isActive, true),
+        ))
+        .limit(1);
+      const now = new Date();
+      const partnerId = current.fulfillmentPartnerId ?? route?.partnerId ?? null;
+      const [updatedOrder] = await tx
+        .update(orders)
+        .set({
+          paymentStatus: "paid",
+          status: "processing",
+          fulfillmentPartnerId: partnerId,
+          fulfillmentStatus: partnerId ? (current.fulfillmentStatus === "unassigned" ? "ready" : current.fulfillmentStatus) : "unassigned",
+          fulfillmentAssignedAt: current.fulfillmentAssignedAt || (partnerId ? now : null),
+          confirmedAt: current.confirmedAt || (partnerId ? now : null),
+          updatedAt: now,
+        })
+        .where(and(eq(orders.id, id), ne(orders.paymentStatus, "paid")))
+        .returning();
+      return updatedOrder ?? null;
+    });
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {
@@ -933,17 +959,35 @@ export class DatabaseStorage implements IStorage {
   async acceptOrder(id: number): Promise<Order | null> {
     // Conditional claim: only succeeds when the order has NOT been claimed by manual processing.
     // This makes Accept and Manual mutually exclusive — the first one atomically wins.
-    const [updatedOrder] = await db
-      .update(orders)
-      .set({ status: 'processing', updatedAt: new Date() })
-      .where(
-        and(
-          eq(orders.id, id),
-          sql`(source IS NULL OR source = 'website')`
-        )
-      )
-      .returning();
-    return updatedOrder || null;
+    return db.transaction(async (tx) => {
+      const [current] = await tx.select().from(orders).where(eq(orders.id, id)).limit(1);
+      if (!current || (current.source && current.source !== "website")) return null;
+      const [route] = await tx
+        .select({ partnerId: marketFulfillment.partnerId })
+        .from(marketFulfillment)
+        .innerJoin(fulfillmentPartners, eq(fulfillmentPartners.id, marketFulfillment.partnerId))
+        .where(and(
+          eq(marketFulfillment.market, current.market || "ro"),
+          eq(marketFulfillment.isActive, true),
+          eq(fulfillmentPartners.isActive, true),
+        ))
+        .limit(1);
+      const now = new Date();
+      const partnerId = current.fulfillmentPartnerId ?? route?.partnerId ?? null;
+      const [updatedOrder] = await tx
+        .update(orders)
+        .set({
+          status: "processing",
+          fulfillmentPartnerId: partnerId,
+          fulfillmentStatus: partnerId ? (current.fulfillmentStatus === "unassigned" ? "ready" : current.fulfillmentStatus) : "unassigned",
+          fulfillmentAssignedAt: current.fulfillmentAssignedAt || (partnerId ? now : null),
+          confirmedAt: current.confirmedAt || (partnerId ? now : null),
+          updatedAt: now,
+        })
+        .where(and(eq(orders.id, id), sql`(source IS NULL OR source = 'website')`))
+        .returning();
+      return updatedOrder || null;
+    });
   }
 
   async linkGuestOrdersToUser(email: string, userId: number): Promise<number> {

@@ -354,6 +354,16 @@ import {
         return saved || 'all';
       });
       const [orders, setOrders] = useState([]);
+      const [wmsOverview, setWmsOverview] = useState({ partners: [], routing: [] });
+      const [wmsLoading, setWmsLoading] = useState(false);
+      const [wmsPartnerForm, setWmsPartnerForm] = useState({ name: '', code: '' });
+      const [wmsKeyForm, setWmsKeyForm] = useState({ partnerId: '', environment: 'production' });
+      const [wmsKeys, setWmsKeys] = useState([]);
+      const [wmsSelectedPartner, setWmsSelectedPartner] = useState(null);
+      const [wmsPlaintextKey, setWmsPlaintextKey] = useState('');
+      const [wmsAudit, setWmsAudit] = useState([]);
+      const [wmsOrderId, setWmsOrderId] = useState('');
+      const [wmsOrderTimeline, setWmsOrderTimeline] = useState(null);
       const [users, setUsers] = useState([]);
       const [products, setProducts] = useState([]);
       const [categories, setCategories] = useState([]);
@@ -835,6 +845,101 @@ import {
         } catch (err) {
           console.error('Network error fetching orders:', err);
         }
+      };
+
+      const fetchWmsOverview = async () => {
+        setWmsLoading(true);
+        try {
+          const response = await fetch('/admin/api/wms/overview', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Failed to load WMS');
+          setWmsOverview(data);
+          const auditResponse = await fetch('/admin/api/wms/audit?limit=20', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (auditResponse.ok) setWmsAudit(await auditResponse.json());
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          setWmsLoading(false);
+        }
+      };
+
+      const createWmsPartner = async () => {
+        const response = await fetch('/admin/api/wms/partners', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(wmsPartnerForm)
+        });
+        const data = await response.json();
+        if (!response.ok) return alert(data.message || 'Failed to create partner');
+        setWmsPartnerForm({ name: '', code: '' });
+        fetchWmsOverview();
+      };
+
+      const routeWmsMarket = async (market, partnerId) => {
+        const response = partnerId
+          ? await fetch(`/admin/api/wms/routing/${market}`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ partnerId: Number(partnerId) })
+            })
+          : await fetch(`/admin/api/wms/routing/${market}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+        const data = await response.json();
+        if (!response.ok) return alert(data.message || 'Failed to update routing');
+        fetchWmsOverview();
+      };
+
+      const loadWmsKeys = async (partner) => {
+        const response = await fetch(`/admin/api/wms/partners/${partner.id}/keys`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) return alert(data.message || 'Failed to load keys');
+        setWmsSelectedPartner(partner);
+        setWmsKeys(data.keys || []);
+        setWmsKeyForm({ partnerId: String(partner.id), environment: 'production' });
+      };
+
+      const createWmsKey = async () => {
+        if (!wmsKeyForm.partnerId) return alert('Select a partner first');
+        const response = await fetch(`/admin/api/wms/partners/${wmsKeyForm.partnerId}/keys`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ environment: wmsKeyForm.environment })
+        });
+        const data = await response.json();
+        if (!response.ok) return alert(data.message || 'Failed to create key');
+        setWmsPlaintextKey(data.plaintext);
+        loadWmsKeys(wmsSelectedPartner || { id: Number(wmsKeyForm.partnerId) });
+      };
+
+      const revokeWmsKey = async (keyId) => {
+        if (!window.confirm('Revoci această cheie WMS? Partenerul nu o va mai putea folosi.')) return;
+        const response = await fetch(`/admin/api/wms/keys/${keyId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) return alert(data.message || 'Failed to revoke key');
+        if (wmsSelectedPartner) loadWmsKeys(wmsSelectedPartner);
+        fetchWmsOverview();
+      };
+
+      const loadWmsOrderTimeline = async () => {
+        const orderId = Number(wmsOrderId);
+        if (!Number.isInteger(orderId) || orderId < 1) return alert('Introdu un ID de comandă valid');
+        const response = await fetch(`/admin/api/orders/${orderId}/wms`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) return alert(data.message || 'Timeline indisponibil');
+        setWmsOrderTimeline(data);
       };
 
       const fetchProducts = async (marketOverride) => {
@@ -2752,6 +2857,8 @@ import {
           fetchBlogPosts();
         } else if (view === 'google-feed') {
           fetchGoogleFeed();
+        } else if (view === 'wms') {
+          fetchWmsOverview();
         }
       };
       
@@ -2798,6 +2905,124 @@ import {
       
       const renderContent = () => {
         switch (activeView) {
+          case 'wms': {
+            const visibleMarkets = adminIsSuperAdmin ? ['ro', 'fr', 'com'] : (admin?.adminMarkets || []);
+            const partnerForMarket = (market) => wmsOverview.routing.find(route => route.market === market && route.isActive);
+            return (
+              <div style={{background:'white',padding:'30px',borderRadius:'8px',boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'22px'}}>
+                  <div>
+                    <h3 style={{color:'#333',margin:'0 0 6px'}}>🚚 WMS partners</h3>
+                    <p style={{color:'#6c757d',margin:0}}>Rutare marketplace, chei API și starea integrării logistice.</p>
+                  </div>
+                  <button className="btn" onClick={fetchWmsOverview} style={{width:'auto',padding:'8px 16px',background:'#0d6efd'}}>
+                    {wmsLoading ? 'Se încarcă...' : '↻ Reîncarcă'}
+                  </button>
+                </div>
+
+                <div style={{display:'grid',gridTemplateColumns:'minmax(280px,1fr) minmax(280px,1fr)',gap:'20px',marginBottom:'24px'}}>
+                  <div style={{border:'1px solid #dee2e6',borderRadius:'8px',padding:'18px'}}>
+                    <h4 style={{margin:'0 0 14px',color:'#333'}}>Adaugă partener</h4>
+                    <input value={wmsPartnerForm.name} onChange={e=>setWmsPartnerForm({...wmsPartnerForm,name:e.target.value})} placeholder="Nume firmă logistică" style={{width:'100%',padding:'10px',marginBottom:'8px',boxSizing:'border-box',border:'1px solid #ced4da',borderRadius:'5px'}} />
+                    <input value={wmsPartnerForm.code} onChange={e=>setWmsPartnerForm({...wmsPartnerForm,code:e.target.value})} placeholder="cod-partener" style={{width:'100%',padding:'10px',marginBottom:'10px',boxSizing:'border-box',border:'1px solid #ced4da',borderRadius:'5px'}} />
+                    <button onClick={createWmsPartner} className="btn" style={{width:'auto',padding:'8px 14px',background:'#198754'}}>+ Creează partener</button>
+                  </div>
+                  <div style={{border:'1px solid #dee2e6',borderRadius:'8px',padding:'18px'}}>
+                    <h4 style={{margin:'0 0 14px',color:'#333'}}>Cheie nouă</h4>
+                    <select value={wmsKeyForm.partnerId} onChange={e=>setWmsKeyForm({...wmsKeyForm,partnerId:e.target.value})} style={{width:'100%',padding:'10px',marginBottom:'8px',border:'1px solid #ced4da',borderRadius:'5px'}}>
+                      <option value="">Selectează partenerul</option>
+                      {wmsOverview.partners.map(partner => <option key={partner.id} value={partner.id}>{partner.name} ({partner.code})</option>)}
+                    </select>
+                    <select value={wmsKeyForm.environment} onChange={e=>setWmsKeyForm({...wmsKeyForm,environment:e.target.value})} style={{width:'100%',padding:'10px',marginBottom:'10px',border:'1px solid #ced4da',borderRadius:'5px'}}>
+                      <option value="production">Production</option>
+                      <option value="sandbox">Sandbox</option>
+                    </select>
+                    <button onClick={createWmsKey} className="btn" style={{width:'auto',padding:'8px 14px',background:'#6f42c1'}}>🔑 Generează cheie</button>
+                  </div>
+                </div>
+
+                {wmsPlaintextKey && (
+                  <div style={{background:'#fff3cd',border:'1px solid #ffecb5',padding:'14px',borderRadius:'7px',marginBottom:'22px'}}>
+                    <strong>Cheia este afișată o singură dată:</strong>
+                    <div style={{display:'flex',gap:'8px',marginTop:'8px'}}>
+                      <input readOnly value={wmsPlaintextKey} style={{flex:1,padding:'9px',fontFamily:'monospace',border:'1px solid #ced4da',borderRadius:'4px'}} />
+                      <button onClick={()=>navigator.clipboard?.writeText(wmsPlaintextKey)} className="btn" style={{width:'auto',padding:'8px 12px'}}>Copiază</button>
+                      <button onClick={()=>setWmsPlaintextKey('')} className="btn btn-secondary" style={{width:'auto',padding:'8px 12px'}}>Închide</button>
+                    </div>
+                  </div>
+                )}
+
+                <h4 style={{color:'#333',margin:'0 0 12px'}}>Rutare marketplace</h4>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:'12px',marginBottom:'24px'}}>
+                  {visibleMarkets.map(market => {
+                    const route = partnerForMarket(market);
+                    return <div key={market} style={{border:'1px solid #dee2e6',borderRadius:'7px',padding:'13px'}}>
+                      <div style={{fontWeight:'700',marginBottom:'8px'}}>{market.toUpperCase()}</div>
+                      <select value={route?.partnerId || ''} onChange={e=>routeWmsMarket(market,e.target.value)} style={{width:'100%',padding:'8px',border:'1px solid #ced4da',borderRadius:'4px'}}>
+                        <option value="">Fără rutare</option>
+                        {wmsOverview.partners.filter(partner=>partner.isActive).map(partner=><option key={partner.id} value={partner.id}>{partner.name}</option>)}
+                      </select>
+                    </div>;
+                  })}
+                </div>
+
+                <h4 style={{color:'#333',margin:'0 0 12px'}}>Parteneri activi</h4>
+                <div style={{overflowX:'auto'}}>
+                  <table style={{width:'100%',borderCollapse:'collapse'}}>
+                    <thead><tr style={{background:'#f8f9fa'}}><th style={{textAlign:'left',padding:'10px'}}>Nume</th><th style={{textAlign:'left',padding:'10px'}}>Cod</th><th style={{textAlign:'left',padding:'10px'}}>Piețe</th><th style={{textAlign:'left',padding:'10px'}}>Chei</th><th style={{padding:'10px'}}>Acțiuni</th></tr></thead>
+                    <tbody>
+                      {wmsOverview.partners.map(partner => <tr key={partner.id} style={{borderTop:'1px solid #eee'}}>
+                        <td style={{padding:'10px'}}>{partner.name} {!partner.isActive && <span style={{color:'#dc3545'}}>(inactiv)</span>}</td>
+                        <td style={{padding:'10px',fontFamily:'monospace'}}>{partner.code}</td>
+                        <td style={{padding:'10px'}}>{partner.markets?.join(', ') || '—'}</td>
+                        <td style={{padding:'10px'}}>{partner.keyCount || 0}</td>
+                        <td style={{padding:'10px',textAlign:'right'}}><button onClick={()=>loadWmsKeys(partner)} className="btn" style={{width:'auto',padding:'6px 10px',background:'#6c757d'}}>Vezi cheile</button></td>
+                      </tr>)}
+                    </tbody>
+                  </table>
+                  {!wmsOverview.partners.length && <p style={{color:'#6c757d'}}>Nu există încă parteneri WMS.</p>}
+                </div>
+
+                {wmsSelectedPartner && (
+                  <div style={{marginTop:'22px',borderTop:'1px solid #dee2e6',paddingTop:'18px'}}>
+                    <h4 style={{color:'#333',margin:'0 0 12px'}}>Chei: {wmsSelectedPartner.name}</h4>
+                    {wmsKeys.map(key => <div key={key.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #eee'}}>
+                      <span><code>{key.keyPrefix}…</code> · {key.environment} · {key.isRevoked ? 'revocată' : 'activă'}</span>
+                      {!key.isRevoked && <button onClick={()=>revokeWmsKey(key.id)} className="btn" style={{width:'auto',padding:'5px 10px',background:'#dc3545'}}>Revocă</button>}
+                    </div>)}
+                    {!wmsKeys.length && <p style={{color:'#6c757d'}}>Nu există chei pentru acest partener.</p>}
+                  </div>
+                )}
+
+                <div style={{display:'grid',gridTemplateColumns:'minmax(280px,1fr) minmax(280px,1fr)',gap:'20px',marginTop:'24px'}}>
+                  <div style={{border:'1px solid #dee2e6',borderRadius:'8px',padding:'18px'}}>
+                    <h4 style={{margin:'0 0 12px',color:'#333'}}>Timeline comandă</h4>
+                    <div style={{display:'flex',gap:'8px'}}>
+                      <input value={wmsOrderId} onChange={e=>setWmsOrderId(e.target.value)} placeholder="ID comandă intern admin" style={{flex:1,padding:'9px',border:'1px solid #ced4da',borderRadius:'5px'}} />
+                      <button onClick={loadWmsOrderTimeline} className="btn" style={{width:'auto',padding:'7px 12px',background:'#0d6efd'}}>Încarcă</button>
+                    </div>
+                    {wmsOrderTimeline && (
+                      <div style={{marginTop:'12px',fontSize:'13px'}}>
+                        <div><strong>Fulfillment:</strong> {wmsOrderTimeline.fulfillmentStatus || '—'} · <strong>Partener:</strong> {wmsOrderTimeline.partnerId || '—'}</div>
+                        <div style={{marginTop:'8px'}}><strong>Expedieri</strong> ({wmsOrderTimeline.shipments?.length || 0})</div>
+                        {wmsOrderTimeline.shipments?.map(shipment => <div key={shipment.id} style={{padding:'5px 0',color:'#495057'}}>{shipment.parcelId} · {shipment.trackingNumber || 'fără tracking'} · {shipment.status}</div>)}
+                        <div style={{marginTop:'8px'}}><strong>Evenimente</strong> ({wmsOrderTimeline.events?.length || 0})</div>
+                        {wmsOrderTimeline.events?.slice(0,6).map(event => <div key={event.id} style={{padding:'5px 0',color:'#495057'}}>{event.status} · {new Date(event.occurredAt).toLocaleString()}</div>)}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{border:'1px solid #dee2e6',borderRadius:'8px',padding:'18px'}}>
+                    <h4 style={{margin:'0 0 12px',color:'#333'}}>Ultimele requesturi WMS</h4>
+                    {wmsAudit.slice(0,8).map(entry => <div key={entry.id} style={{padding:'6px 0',borderBottom:'1px solid #f1f3f5',fontSize:'12px'}}>
+                      <strong>{entry.statusCode}</strong> · {entry.method} {entry.path}<br />
+                      <span style={{color:'#6c757d'}}>{entry.requestId} · {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : ''}</span>
+                    </div>)}
+                    {!wmsAudit.length && <p style={{color:'#6c757d',fontSize:'13px'}}>Nu există requesturi WMS înregistrate.</p>}
+                  </div>
+                </div>
+              </div>
+            );
+          }
           case 'orders':
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
@@ -12605,6 +12830,13 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
             >
               <span style={{fontSize: '18px'}}>📣</span>
               <span style={{fontSize: '12px'}}>{t('nav.marketing')}</span>
+            </button>
+            <button
+              className={`nav-tab ${activeView === 'wms' ? 'active' : ''}`}
+              onClick={() => handleViewChange('wms')}
+            >
+              <span style={{fontSize: '18px'}}>🚚</span>
+              <span style={{fontSize: '12px'}}>WMS</span>
             </button>
           </div>
           

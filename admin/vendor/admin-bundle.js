@@ -12989,6 +12989,16 @@
       return saved || "all";
     });
     const [orders, setOrders] = (0, import_react13.useState)([]);
+    const [wmsOverview, setWmsOverview] = (0, import_react13.useState)({ partners: [], routing: [] });
+    const [wmsLoading, setWmsLoading] = (0, import_react13.useState)(false);
+    const [wmsPartnerForm, setWmsPartnerForm] = (0, import_react13.useState)({ name: "", code: "" });
+    const [wmsKeyForm, setWmsKeyForm] = (0, import_react13.useState)({ partnerId: "", environment: "production" });
+    const [wmsKeys, setWmsKeys] = (0, import_react13.useState)([]);
+    const [wmsSelectedPartner, setWmsSelectedPartner] = (0, import_react13.useState)(null);
+    const [wmsPlaintextKey, setWmsPlaintextKey] = (0, import_react13.useState)("");
+    const [wmsAudit, setWmsAudit] = (0, import_react13.useState)([]);
+    const [wmsOrderId, setWmsOrderId] = (0, import_react13.useState)("");
+    const [wmsOrderTimeline, setWmsOrderTimeline] = (0, import_react13.useState)(null);
     const [users, setUsers] = (0, import_react13.useState)([]);
     const [products, setProducts] = (0, import_react13.useState)([]);
     const [categories, setCategories] = (0, import_react13.useState)([]);
@@ -13403,6 +13413,92 @@
       } catch (err) {
         console.error("Network error fetching orders:", err);
       }
+    };
+    const fetchWmsOverview = async () => {
+      setWmsLoading(true);
+      try {
+        const response = await fetch("/admin/api/wms/overview", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Failed to load WMS");
+        setWmsOverview(data);
+        const auditResponse = await fetch("/admin/api/wms/audit?limit=20", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (auditResponse.ok) setWmsAudit(await auditResponse.json());
+      } catch (error2) {
+        alert(error2.message);
+      } finally {
+        setWmsLoading(false);
+      }
+    };
+    const createWmsPartner = async () => {
+      const response = await fetch("/admin/api/wms/partners", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(wmsPartnerForm)
+      });
+      const data = await response.json();
+      if (!response.ok) return alert(data.message || "Failed to create partner");
+      setWmsPartnerForm({ name: "", code: "" });
+      fetchWmsOverview();
+    };
+    const routeWmsMarket = async (market, partnerId) => {
+      const response = partnerId ? await fetch(`/admin/api/wms/routing/${market}`, {
+        method: "PUT",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ partnerId: Number(partnerId) })
+      }) : await fetch(`/admin/api/wms/routing/${market}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) return alert(data.message || "Failed to update routing");
+      fetchWmsOverview();
+    };
+    const loadWmsKeys = async (partner) => {
+      const response = await fetch(`/admin/api/wms/partners/${partner.id}/keys`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) return alert(data.message || "Failed to load keys");
+      setWmsSelectedPartner(partner);
+      setWmsKeys(data.keys || []);
+      setWmsKeyForm({ partnerId: String(partner.id), environment: "production" });
+    };
+    const createWmsKey = async () => {
+      if (!wmsKeyForm.partnerId) return alert("Select a partner first");
+      const response = await fetch(`/admin/api/wms/partners/${wmsKeyForm.partnerId}/keys`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ environment: wmsKeyForm.environment })
+      });
+      const data = await response.json();
+      if (!response.ok) return alert(data.message || "Failed to create key");
+      setWmsPlaintextKey(data.plaintext);
+      loadWmsKeys(wmsSelectedPartner || { id: Number(wmsKeyForm.partnerId) });
+    };
+    const revokeWmsKey = async (keyId) => {
+      if (!window.confirm("Revoci aceast\u0103 cheie WMS? Partenerul nu o va mai putea folosi.")) return;
+      const response = await fetch(`/admin/api/wms/keys/${keyId}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) return alert(data.message || "Failed to revoke key");
+      if (wmsSelectedPartner) loadWmsKeys(wmsSelectedPartner);
+      fetchWmsOverview();
+    };
+    const loadWmsOrderTimeline = async () => {
+      const orderId = Number(wmsOrderId);
+      if (!Number.isInteger(orderId) || orderId < 1) return alert("Introdu un ID de comand\u0103 valid");
+      const response = await fetch(`/admin/api/orders/${orderId}/wms`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok) return alert(data.message || "Timeline indisponibil");
+      setWmsOrderTimeline(data);
     };
     const fetchProducts = async (marketOverride) => {
       const requestId = ++productsRequestIdRef.current;
@@ -15129,6 +15225,8 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
         fetchBlogPosts();
       } else if (view === "google-feed") {
         fetchGoogleFeed();
+      } else if (view === "wms") {
+        fetchWmsOverview();
       }
     };
     const handleLogout = async () => {
@@ -15161,6 +15259,168 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
     }
     const renderContent = () => {
       switch (activeView) {
+        case "wms": {
+          const visibleMarkets = adminIsSuperAdmin ? ["ro", "fr", "com"] : admin?.adminMarkets || [];
+          const partnerForMarket = (market) => wmsOverview.routing.find((route) => route.market === market && route.isActive);
+          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0 0 6px" }, children: "\u{1F69A} WMS partners" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", margin: 0 }, children: "Rutare marketplace, chei API \u0219i starea integr\u0103rii logistice." })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { className: "btn", onClick: fetchWmsOverview, style: { width: "auto", padding: "8px 16px", background: "#0d6efd" }, children: wmsLoading ? "Se \xEEncarc\u0103..." : "\u21BB Re\xEEncarc\u0103" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(280px,1fr) minmax(280px,1fr)", gap: "20px", marginBottom: "24px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 14px", color: "#333" }, children: "Adaug\u0103 partener" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsPartnerForm.name, onChange: (e2) => setWmsPartnerForm({ ...wmsPartnerForm, name: e2.target.value }), placeholder: "Nume firm\u0103 logistic\u0103", style: { width: "100%", padding: "10px", marginBottom: "8px", boxSizing: "border-box", border: "1px solid #ced4da", borderRadius: "5px" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsPartnerForm.code, onChange: (e2) => setWmsPartnerForm({ ...wmsPartnerForm, code: e2.target.value }), placeholder: "cod-partener", style: { width: "100%", padding: "10px", marginBottom: "10px", boxSizing: "border-box", border: "1px solid #ced4da", borderRadius: "5px" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: createWmsPartner, className: "btn", style: { width: "auto", padding: "8px 14px", background: "#198754" }, children: "+ Creeaz\u0103 partener" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 14px", color: "#333" }, children: "Cheie nou\u0103" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: wmsKeyForm.partnerId, onChange: (e2) => setWmsKeyForm({ ...wmsKeyForm, partnerId: e2.target.value }), style: { width: "100%", padding: "10px", marginBottom: "8px", border: "1px solid #ced4da", borderRadius: "5px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Selecteaz\u0103 partenerul" }),
+                  wmsOverview.partners.map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: partner.id, children: [
+                    partner.name,
+                    " (",
+                    partner.code,
+                    ")"
+                  ] }, partner.id))
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: wmsKeyForm.environment, onChange: (e2) => setWmsKeyForm({ ...wmsKeyForm, environment: e2.target.value }), style: { width: "100%", padding: "10px", marginBottom: "10px", border: "1px solid #ced4da", borderRadius: "5px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "production", children: "Production" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "sandbox", children: "Sandbox" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: createWmsKey, className: "btn", style: { width: "auto", padding: "8px 14px", background: "#6f42c1" }, children: "\u{1F511} Genereaz\u0103 cheie" })
+              ] })
+            ] }),
+            wmsPlaintextKey && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#fff3cd", border: "1px solid #ffecb5", padding: "14px", borderRadius: "7px", marginBottom: "22px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Cheia este afi\u0219at\u0103 o singur\u0103 dat\u0103:" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", marginTop: "8px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { readOnly: true, value: wmsPlaintextKey, style: { flex: 1, padding: "9px", fontFamily: "monospace", border: "1px solid #ced4da", borderRadius: "4px" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => navigator.clipboard?.writeText(wmsPlaintextKey), className: "btn", style: { width: "auto", padding: "8px 12px" }, children: "Copiaz\u0103" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setWmsPlaintextKey(""), className: "btn btn-secondary", style: { width: "auto", padding: "8px 12px" }, children: "\xCEnchide" })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: "Rutare marketplace" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px", marginBottom: "24px" }, children: visibleMarkets.map((market) => {
+              const route = partnerForMarket(market);
+              return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "7px", padding: "13px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontWeight: "700", marginBottom: "8px" }, children: market.toUpperCase() }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: route?.partnerId || "", onChange: (e2) => routeWmsMarket(market, e2.target.value), style: { width: "100%", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "F\u0103r\u0103 rutare" }),
+                  wmsOverview.partners.filter((partner) => partner.isActive).map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: partner.id, children: partner.name }, partner.id))
+                ] })
+              ] }, market);
+            }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: "Parteneri activi" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { overflowX: "auto" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { background: "#f8f9fa" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: "Nume" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: "Cod" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: "Pie\u021Be" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: "Chei" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px" }, children: "Ac\u021Biuni" })
+                ] }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: wmsOverview.partners.map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderTop: "1px solid #eee" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "10px" }, children: [
+                    partner.name,
+                    " ",
+                    !partner.isActive && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#dc3545" }, children: "(inactiv)" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px", fontFamily: "monospace" }, children: partner.code }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px" }, children: partner.markets?.join(", ") || "\u2014" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px" }, children: partner.keyCount || 0 }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px", textAlign: "right" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => loadWmsKeys(partner), className: "btn", style: { width: "auto", padding: "6px 10px", background: "#6c757d" }, children: "Vezi cheile" }) })
+                ] }, partner.id)) })
+              ] }),
+              !wmsOverview.partners.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: "Nu exist\u0103 \xEEnc\u0103 parteneri WMS." })
+            ] }),
+            wmsSelectedPartner && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "22px", borderTop: "1px solid #dee2e6", paddingTop: "18px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: [
+                "Chei: ",
+                wmsSelectedPartner.name
+              ] }),
+              wmsKeys.map((key) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #eee" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("code", { children: [
+                    key.keyPrefix,
+                    "\u2026"
+                  ] }),
+                  " \xB7 ",
+                  key.environment,
+                  " \xB7 ",
+                  key.isRevoked ? "revocat\u0103" : "activ\u0103"
+                ] }),
+                !key.isRevoked && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => revokeWmsKey(key.id), className: "btn", style: { width: "auto", padding: "5px 10px", background: "#dc3545" }, children: "Revoc\u0103" })
+              ] }, key.id)),
+              !wmsKeys.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: "Nu exist\u0103 chei pentru acest partener." })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(280px,1fr) minmax(280px,1fr)", gap: "20px", marginTop: "24px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 12px", color: "#333" }, children: "Timeline comand\u0103" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsOrderId, onChange: (e2) => setWmsOrderId(e2.target.value), placeholder: "ID comand\u0103 intern admin", style: { flex: 1, padding: "9px", border: "1px solid #ced4da", borderRadius: "5px" } }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: loadWmsOrderTimeline, className: "btn", style: { width: "auto", padding: "7px 12px", background: "#0d6efd" }, children: "\xCEncarc\u0103" })
+                ] }),
+                wmsOrderTimeline && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "12px", fontSize: "13px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Fulfillment:" }),
+                    " ",
+                    wmsOrderTimeline.fulfillmentStatus || "\u2014",
+                    " \xB7 ",
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Partener:" }),
+                    " ",
+                    wmsOrderTimeline.partnerId || "\u2014"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "8px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Expedieri" }),
+                    " (",
+                    wmsOrderTimeline.shipments?.length || 0,
+                    ")"
+                  ] }),
+                  wmsOrderTimeline.shipments?.map((shipment) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "5px 0", color: "#495057" }, children: [
+                    shipment.parcelId,
+                    " \xB7 ",
+                    shipment.trackingNumber || "f\u0103r\u0103 tracking",
+                    " \xB7 ",
+                    shipment.status
+                  ] }, shipment.id)),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "8px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Evenimente" }),
+                    " (",
+                    wmsOrderTimeline.events?.length || 0,
+                    ")"
+                  ] }),
+                  wmsOrderTimeline.events?.slice(0, 6).map((event) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "5px 0", color: "#495057" }, children: [
+                    event.status,
+                    " \xB7 ",
+                    new Date(event.occurredAt).toLocaleString()
+                  ] }, event.id))
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 12px", color: "#333" }, children: "Ultimele requesturi WMS" }),
+                wmsAudit.slice(0, 8).map((entry) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "6px 0", borderBottom: "1px solid #f1f3f5", fontSize: "12px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: entry.statusCode }),
+                  " \xB7 ",
+                  entry.method,
+                  " ",
+                  entry.path,
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("br", {}),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#6c757d" }, children: [
+                    entry.requestId,
+                    " \xB7 ",
+                    entry.createdAt ? new Date(entry.createdAt).toLocaleString() : ""
+                  ] })
+                ] }, entry.id)),
+                !wmsAudit.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontSize: "13px" }, children: "Nu exist\u0103 requesturi WMS \xEEnregistrate." })
+              ] })
+            ] })
+          ] });
+        }
         case "orders":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
@@ -25707,6 +25967,17 @@ ${selectedOrders.map((id) => {
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F4E3}" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: t2("nav.marketing") })
+            ]
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+          "button",
+          {
+            className: `nav-tab ${activeView === "wms" ? "active" : ""}`,
+            onClick: () => handleViewChange("wms"),
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px" }, children: "\u{1F69A}" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px" }, children: "WMS" })
             ]
           }
         )
