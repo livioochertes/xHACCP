@@ -1,5 +1,9 @@
 # WMS production readiness
 
+See [WMS Integration API](wms-api.md) for the partner-facing endpoint
+contract. This document covers the xHACCP operator checklist for publishing
+and monitoring it.
+
 Use this checklist before connecting the first warehouse. The production API
 key must be stored in Replit Secrets or the warehouse's secret manager. Never
 paste the plaintext key into chat, a ticket, a commit, or this file.
