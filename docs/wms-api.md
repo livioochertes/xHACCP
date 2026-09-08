@@ -122,7 +122,7 @@ Errors use this format:
 
 | HTTP | Error code(s) | Meaning |
 | ---: | --- | --- |
-| `400` | `UNAUTHENTICATED`, `IDEMPOTENCY_KEY_REQUIRED`, `INVALID_CURSOR`, `INVALID_UPDATED_SINCE` | The request is malformed or authentication is missing |
+| `400` | `IDEMPOTENCY_KEY_REQUIRED`, `INVALID_CURSOR`, `INVALID_UPDATED_SINCE` | The request is malformed |
 | `401` | `UNAUTHENTICATED` | The key is missing, invalid, revoked, or belongs to an inactive partner |
 | `403` | `INSUFFICIENT_SCOPE`, `MARKET_NOT_ALLOWED` | The key is valid but is not authorized for the operation or market |
 | `404` | `ORDER_NOT_FOUND` | The order does not exist, is not visible to this partner, or is not fulfillable |
@@ -143,7 +143,7 @@ An order becomes available to a WMS only when all of the following are true:
 4. the fulfillment status is one of `ready`, `acknowledged`, `picking`, `packed`, `shipped`, or `delivered`;
 5. the order is routed to the authenticated partner's ID and an allowed marketplace.
 
-Orders with products that cannot be resolved to the catalog SKU are not useful to the WMS and should be reported to xHACCP support if they are expected but absent.
+The `sku` field is resolved from the catalog product code. If a catalog product has no product code, the serialized value may be `null`; report this to xHACCP before accepting the order into warehouse processing.
 
 Routing rules:
 
@@ -388,7 +388,7 @@ curl --fail-with-body -X POST \
   "https://xhaccp.fr/api/wms/v1/orders/ord_01HXYZ.../ack"
 ```
 
-The body is JSON. `wms_order_ref` is accepted as partner metadata; `metadata` is returned in the acknowledgement response. The API does not require a specific body field, but sending your own order reference is strongly recommended.
+The body is JSON. The API does not require a specific body field, but sending your own `wms_order_ref` and a `metadata` object is strongly recommended for warehouse reconciliation. The `metadata` object is returned in the acknowledgement response.
 
 Example response:
 
