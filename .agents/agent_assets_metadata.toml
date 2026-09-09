@@ -6,3 +6,18 @@ id = "mqsCSNlRovNVcIQsPQqoI"
 uri = "file://exports/blog-export-guide.md"
 type = "text"
 title = "Ghid export Blog AI — xHACCP"
+logical_id = "756ce1ea-befa-4bb7-ac14-1af2df3411f1"
+
+[[outputs]]
+id = "CxXDmFGFiD-rDL_D67rZ8"
+uri = "file://docs/xhaccp-wms-api-partner-guide.docx"
+type = "word_document"
+title = "xHACCP WMS API — Partner Integration Guide"
+description = "English DOCX partner documentation generated from docs/wms-api.md. Includes authentication, scopes, all WMS endpoints, request/response examples, pagination, idempotency, events, inventory, onboarding, operations, and current limitations."
+logical_id = "1b56c299-8d5f-4683-a446-32ccc8cb41f8"
+content_hash = "sha256:16527d4c9d8ecc4f23c436011b9ef52df50152d66518890c43921807751063b1"
+size = 51552
+mtime_ms = 1788935100322
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/1b56c299-8d5f-4683-a446-32ccc8cb41f8/9bba5307-1337-4e44-8614-a66e86e89afa"
+storage_version_token = "1788935163297535"
+content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
