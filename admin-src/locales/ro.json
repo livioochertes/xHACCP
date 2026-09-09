@@ -344,6 +344,7 @@
       "inventoryDesc": "Cantitatea disponibilă și codurile folosite pe facturi și în rapoarte.",
       "stockLabel": "Cantitate în stoc",
       "productCodeLabel": "Cod produs",
+      "eanLabel": "EAN (opțional)",
       "ncCodeLabel": "Cod NC",
       "cpvCodeLabel": "Cod CPV",
       "statusTitle": "Vizibilitate",

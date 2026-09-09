@@ -40,6 +40,15 @@ const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
 })();
 
+function normalizeOptionalEan(value: unknown): string | null {
+  const ean = value === null || value === undefined ? "" : String(value).trim();
+  if (!ean) return null;
+  if (!/^\d{8}$|^\d{12}$|^\d{13}$|^\d{14}$/.test(ean)) {
+    throw new Error("EAN must contain 8, 12, 13, or 14 digits");
+  }
+  return ean;
+}
+
 async function buildCombinedParcels(items: any[], storageRef: typeof storage): Promise<any[]> {
   const parcels: any[] = [];
   let parcelCounter = 1;
@@ -2878,6 +2887,12 @@ export async function registerAdminRoutes(app: Express) {
         const random = Math.random().toString(36).substring(2, 5).toUpperCase();
         productCode = `PRD-${timestamp}${random}`;
       }
+      let ean: string | null;
+      try {
+        ean = normalizeOptionalEan(productData.ean);
+      } catch {
+        return res.status(400).json({ message: "EAN must contain 8, 12, 13, or 14 digits" });
+      }
       
       // Process images array to extract clean URLs (handles both objects and strings)
       const cleanImages = processImagesArray(productData.images || []);
@@ -2921,6 +2936,7 @@ export async function registerAdminRoutes(app: Express) {
         ),
         price: parseFloat(productData.price),
         compareAtPrice: productData.compareAtPrice && productData.compareAtPrice !== '' ? parseFloat(productData.compareAtPrice) : undefined,
+        ean,
         vatValue: safeParseDecimal(productData.vatValue),
         vatPercentage: safeParseDecimal(productData.vatPercentage),
         categoryId,
@@ -3034,11 +3050,22 @@ export async function registerAdminRoutes(app: Express) {
           ? (productData.isService === true || productData.isService === 'true' ? 'service' : 'standard')
           : (existingProduct?.isService ? 'service' : 'standard'));
       const parsedStockQuantity = safeParseInt(productData.stockQuantity);
+      let normalizedEan: string | null | undefined;
+      if (Object.prototype.hasOwnProperty.call(productData, 'ean')) {
+        try {
+          normalizedEan = normalizeOptionalEan(productData.ean);
+        } catch {
+          return res.status(400).json({ message: "EAN must contain 8, 12, 13, or 14 digits" });
+        }
+      }
       const updatedProduct = await storage.updateProduct(productId, {
         ...productData,
         // Override fields that need special handling/normalization
         price: productData.price ? String(parseFloat(productData.price)) : undefined,
         compareAtPrice: safeDecimalString(productData.compareAtPrice),
+        ...(Object.prototype.hasOwnProperty.call(productData, 'ean')
+          ? { ean: normalizedEan }
+          : {}),
         ...(productData.categoryId !== undefined
           ? { categoryId: safeParseInt(productData.categoryId) }
           : {}),
@@ -3986,9 +4013,9 @@ export async function registerAdminRoutes(app: Express) {
       }
       
       // Generate CSV content
-      const csvHeader = "ID,Name,Price,Category,Stock,VAT%,Product Code,NC Code,CPV Code,Description\n";
+      const csvHeader = "ID,Name,Price,Category,Stock,VAT%,Product Code,EAN,NC Code,CPV Code,Description\n";
       const csvRows = products.map(product => 
-        `${product.id},"${product.name}",${product.price},"${product.category?.name || 'N/A'}",${product.stockQuantity || 0},${product.vatValue || 0},"${product.productCode || ''}","${product.ncCode || ''}","${product.cpvCode || ''}","${product.description || ''}"`
+        `${product.id},"${product.name}",${product.price},"${product.category?.name || 'N/A'}",${product.stockQuantity || 0},${product.vatValue || 0},"${product.productCode || ''}","${product.ean || ''}","${product.ncCode || ''}","${product.cpvCode || ''}","${product.description || ''}"`
       ).join('\n');
       
       const csvContent = csvHeader + csvRows;
@@ -5604,6 +5631,7 @@ export async function registerAdminRoutes(app: Express) {
         vatValue: number;
         currency: string;
         productCode: string;
+        ean: string | null;
         ncCode: string;
         cpvCode: string;
         supplierName: string;
@@ -5648,6 +5676,13 @@ export async function registerAdminRoutes(app: Express) {
         if (!validStatuses.includes(status)) { parseErrors.push(`Rândul ${rowNumber}: Status invalid (${status})`); continue; }
 
         const productCode = row['Product Code']?.toString()?.trim() || '';
+        let ean: string | null;
+        try {
+          ean = normalizeOptionalEan(row['EAN']);
+        } catch {
+          parseErrors.push(`Rândul ${rowNumber}: EAN trebuie să conțină 8, 12, 13 sau 14 cifre`);
+          continue;
+        }
 
         const parsed: ParsedRow = {
           rowNumber,
@@ -5660,6 +5695,7 @@ export async function registerAdminRoutes(app: Express) {
           vatValue: parseFloat(row['VAT %']?.toString()?.replace('%', '').replace(',', '.') || defaultVatPercentage.toString()),
           currency: row['Currency']?.toString()?.trim()?.toUpperCase() || defaultCurrency,
           productCode,
+          ean,
           ncCode: row['NC Code']?.toString()?.trim() || '',
           cpvCode: row['CPV Code']?.toString()?.trim() || '',
           supplierName: row['Supplier Name']?.toString()?.trim() || 'xHACCP Direct',
@@ -5726,7 +5762,7 @@ export async function registerAdminRoutes(app: Express) {
       for (const parsed of parsedRows) {
         try {
           const { productName, price, stockQuantity, finalCategoryId, description, status,
-                  vatValue, currency, productCode, ncCode, cpvCode, supplierName,
+                  vatValue, currency, productCode, ean, ncCode, cpvCode, supplierName,
                   weight, length, width, height, piecesPerPackage, rowNumber, existingId } = parsed;
 
           // ── Update path (existing product, code match, strategy = 'update') ───
@@ -5746,7 +5782,7 @@ export async function registerAdminRoutes(app: Express) {
               const supplierId = await getOrCreateSupplier(supplierName);
               await storage.updateProduct(existingId, {
                 name: productName, description, supplierId,
-                productCode, ncCode, cpvCode, status,
+                productCode, ean, ncCode, cpvCode, status,
                 weight: weight as any, length: length.toString(), width: width.toString(),
                 height: height.toString(), piecesPerPackage,
               });
@@ -5790,6 +5826,9 @@ export async function registerAdminRoutes(app: Express) {
               skipped++;
               continue;
             }
+            if (ean !== null) {
+              await storage.updateProduct(existingByName.id, { ean });
+            }
             for (const mkt of targetMarkets) {
               await storage.setProductMarket({
                 productId: existingByName.id,
@@ -5827,6 +5866,7 @@ export async function registerAdminRoutes(app: Express) {
             supplierId, stockQuantity, featured: false, images: [],
             vatValue: vatValue.toString(), vatPercentage: vatValue.toString(),
             currency, productCode, ncCode, cpvCode, status,
+            ean,
             weight, length: length.toString(), width: width.toString(),
             height: height.toString(), piecesPerPackage,
           };

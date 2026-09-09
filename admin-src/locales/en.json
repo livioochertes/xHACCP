@@ -344,6 +344,7 @@
       "inventoryDesc": "Available quantity and the codes used on invoices and reports.",
       "stockLabel": "Stock Quantity",
       "productCodeLabel": "Product Code",
+      "eanLabel": "EAN (optional)",
       "ncCodeLabel": "NC Code",
       "cpvCodeLabel": "CPV Code",
       "statusTitle": "Visibility",

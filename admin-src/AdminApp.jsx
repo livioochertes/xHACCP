@@ -578,6 +578,7 @@ import {
               : (editingProduct.vatPercentage || (selectedMarketTab === 'ro' ? '19.00' : '0.00')),
             currency: editingProduct.currency || 'EUR',
             productCode: editingProduct.productCode || '',
+            ean: editingProduct.ean || '',
             ncCode: editingProduct.ncCode || '',
             cpvCode: editingProduct.cpvCode || '',
             status: editingProduct.status || 'active',
@@ -2032,6 +2033,7 @@ import {
             'Status': 'active',
             'VAT %': '21',
             'Product Code': 'KO001',
+            'EAN': '5941234567890',
             'NC Code': '3924100000',
             'CPV Code': '39830000-9',
             'Supplier Name': 'xHACCP Direct',
@@ -2051,6 +2053,7 @@ import {
             'Status': 'active',
             'VAT %': '21',
             'Product Code': 'KO002',
+            'EAN': '',
             'NC Code': '4821100000',
             'CPV Code': '30199700-3',
             'Supplier Name': 'xHACCP Direct',
@@ -2078,6 +2081,7 @@ import {
           { Field: 'Status', Required: 'No', Description: 'Product status: active, inactive, draft, discontinued' },
           { Field: 'VAT %', Required: 'No', Description: 'VAT percentage (default: 19)' },
           { Field: 'Product Code', Required: 'No', Description: 'Alphanumeric product code' },
+          { Field: 'EAN', Required: 'No', Description: 'Optional EAN/GTIN identifier (8, 12, 13, or 14 digits)' },
           { Field: 'NC Code', Required: 'No', Description: 'Nomenclature code' },
           { Field: 'CPV Code', Required: 'No', Description: 'Common Procurement Vocabulary code' },
           { Field: 'Supplier Name', Required: 'No', Description: 'Supplier name (default: xHACCP Direct)' },
@@ -2129,6 +2133,7 @@ import {
             'Status': p.status || 'active',
             'VAT %': p.vatValue != null ? String(p.vatValue) : (p.vatPercentage != null ? String(p.vatPercentage) : ''),
             'Product Code': p.productCode || '',
+            'EAN': p.ean || '',
             'NC Code': p.ncCode || '',
             'CPV Code': p.cpvCode || '',
             'Supplier Name': supplierById.get(p.supplierId) || '',
@@ -3631,6 +3636,7 @@ import {
                             vatPercentage: defaults.vatPercentage || (selectedMarketTab === 'fr' ? '20.00' : selectedMarketTab === 'ro' ? '19.00' : '0.00'),
                             currency: defaults.currency || 'RON',
                             productCode: generatedCode,
+                            ean: '',
                             ncCode: '',
                             cpvCode: '',
                             status: 'active',
@@ -7858,6 +7864,7 @@ import {
           vatPercentage: '21.00',
           currency: 'RON',
           productCode: '',
+          ean: '',
           ncCode: '',
           cpvCode: '',
           status: 'active',
@@ -8357,7 +8364,7 @@ import {
               name: '', description: '', price: '', compareAtPrice: '',
               categoryId: '', supplierId: '', imageUrl: '', stockQuantity: '',
               featured: false, vatValue: '', vatPercentage: '21.00', currency: 'EUR',
-              productCode: '', ncCode: '', cpvCode: '', status: 'active', images: [],
+              productCode: '', ean: '', ncCode: '', cpvCode: '', status: 'active', images: [],
               weight: '', length: '', width: '', height: '', piecesPerPackage: '',
               productQuantity: '', specs: [], volumeDiscounts: [], priority: 0, productType: 'standard', isService: false, isComposite: false
             });
@@ -8891,7 +8898,7 @@ import {
                       <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
                         {t('products.modal.pricingDesc')}
                       </div>
-                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px'}}>
                         <div className="form-group">
                           <label className="form-label">{t('products.modal.priceLabel')}</label>
                           <input
@@ -9196,6 +9203,19 @@ import {
                             onChange={(e) => setProductFormData({...productFormData, productCode: e.target.value})}
                             placeholder="ABC-123-DEF"
                           />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">{t('products.modal.eanLabel')}</label>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength="14"
+                            className="form-input"
+                            value={productFormData.ean}
+                            onChange={(e) => setProductFormData({...productFormData, ean: e.target.value})}
+                            placeholder="5941234567890"
+                          />
+                          <small style={{color: '#6c757d'}}>Opțional: 8, 12, 13 sau 14 cifre</small>
                         </div>
                       </div>
                       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px'}}>
@@ -9854,6 +9874,7 @@ import {
                             vatPercentage: '21.00',
                             currency: 'RON',
                             productCode: '',
+                            ean: '',
                             ncCode: '',
                             cpvCode: '',
                             status: 'active',

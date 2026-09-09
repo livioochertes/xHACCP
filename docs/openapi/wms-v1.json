@@ -118,7 +118,8 @@
                       "identifiers": {
                         "xhaccp_product_id": "prod_123",
                         "slug": "kit-etiquettes-haccp",
-                        "product_code": "XH-SET-L"
+                        "product_code": "XH-SET-L",
+                        "ean": "5941234567890"
                       },
                       "designation": {
                         "ro": "Set de etichete HACCP",
@@ -1146,7 +1147,8 @@
             "example": {
               "xhaccp_product_id": "prod_123",
               "slug": "kit-etiquettes-haccp",
-              "product_code": "XH-SET-L"
+              "product_code": "XH-SET-L",
+              "ean": "5941234567890"
             }
           },
           "designation": {

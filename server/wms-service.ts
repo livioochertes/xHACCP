@@ -331,6 +331,7 @@ export function buildWmsCatalogIdentifiers(product: {
   id: number;
   slug: string;
   productCode: string | null;
+  ean: string | null;
   ncCode: string | null;
   cpvCode: string | null;
 }): Record<string, string> {
@@ -339,6 +340,7 @@ export function buildWmsCatalogIdentifiers(product: {
     slug: product.slug,
   };
   if (product.productCode) identifiers.product_code = product.productCode;
+  if (product.ean) identifiers.ean = product.ean;
   if (product.ncCode) identifiers.nc_code = product.ncCode;
   if (product.cpvCode) identifiers.cpv_code = product.cpvCode;
   return identifiers;

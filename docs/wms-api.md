@@ -315,7 +315,8 @@ Example response:
       "identifiers": {
         "xhaccp_product_id": "prod_123",
         "slug": "kit-etiquettes-haccp",
-        "product_code": "XH-SET-L"
+        "product_code": "XH-SET-L",
+        "ean": "5941234567890"
       },
       "designation": {
         "ro": "Set de etichete HACCP",
@@ -368,8 +369,9 @@ endpoint because they cannot be safely matched to incoming order lines.
 `identifiers` contains stable values that SLL can use to match received goods
 with the catalog. It always includes `xhaccp_product_id` and `slug`, and
 includes the product code plus any other stored classification codes. The
-object is extensible so EAN, vendor reference, or another identifier can be
-added without changing the response shape.
+object also includes `ean` when the optional EAN/GTIN field is populated. It
+is extensible so a vendor reference or another identifier can be added without
+changing the response shape.
 
 `designation` is a locale-keyed object of available product names. It includes
 all stored translations and adds the market's fallback locale (`ro`, `fr`, or

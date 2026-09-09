@@ -20,3 +20,4 @@
 - [Review query URL convention](review-query-keys.md) — nested review endpoints must be complete in queryKey[0]; extra key segments are not converted into URL paths.
 - [Development schema sync](dev-schema-sync.md) — use development database tooling when Drizzle push cannot receive its interactive confirmation.
 - [WMS credential monitoring](wms-monitoring.md) — scheduled WMS checks need durable shared alert state and credential-safe notifications outside the autoscaled web process.
+- [WMS partner guide DOCX](wms-partner-guide-docx.md) — the existing guide may lack Word heading styles; preserve it with python-docx when Pandoc is unavailable.

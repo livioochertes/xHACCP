@@ -102,6 +102,7 @@ export const products = pgTable("products", {
   vatPercentage: decimal("vat_percentage", { precision: 5, scale: 2 }).default("19.00"), // VAT % for each product
   currency: varchar("currency", { length: 3 }).default("EUR"), // Currency for each product
   productCode: varchar("product_code", { length: 50 }),
+  ean: varchar("ean", { length: 14 }),
   ncCode: varchar("nc_code", { length: 50 }),
   cpvCode: varchar("cpv_code", { length: 50 }),
   status: varchar("status", { length: 20 }).default("active"),

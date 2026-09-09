@@ -10771,6 +10771,7 @@
         inventoryDesc: "Available quantity and the codes used on invoices and reports.",
         stockLabel: "Stock Quantity",
         productCodeLabel: "Product Code",
+        eanLabel: "EAN (optional)",
         ncCodeLabel: "NC Code",
         cpvCodeLabel: "CPV Code",
         statusTitle: "Visibility",
@@ -11478,6 +11479,7 @@
         inventoryDesc: "Cantitatea disponibil\u0103 \u0219i codurile folosite pe facturi \u0219i \xEEn rapoarte.",
         stockLabel: "Cantitate \xEEn stoc",
         productCodeLabel: "Cod produs",
+        eanLabel: "EAN (op\u021Bional)",
         ncCodeLabel: "Cod NC",
         cpvCodeLabel: "Cod CPV",
         statusTitle: "Vizibilitate",
@@ -12185,6 +12187,7 @@
         inventoryDesc: "Quantit\xE9 disponible et codes utilis\xE9s sur les factures et rapports.",
         stockLabel: "Quantit\xE9 en stock",
         productCodeLabel: "Code produit",
+        eanLabel: "EAN (facultatif)",
         ncCodeLabel: "Code NC",
         cpvCodeLabel: "Code CPV",
         statusTitle: "Visibilit\xE9",
@@ -13191,6 +13194,7 @@
           vatPercentage: selectedMarketTab === "fr" && (!editingProduct.vatPercentage || Number(editingProduct.vatPercentage) === 21) ? "20.00" : editingProduct.vatPercentage || (selectedMarketTab === "ro" ? "19.00" : "0.00"),
           currency: editingProduct.currency || "EUR",
           productCode: editingProduct.productCode || "",
+          ean: editingProduct.ean || "",
           ncCode: editingProduct.ncCode || "",
           cpvCode: editingProduct.cpvCode || "",
           status: editingProduct.status || "active",
@@ -14496,6 +14500,7 @@ Failed: ${result.failed}`);
           "Status": "active",
           "VAT %": "21",
           "Product Code": "KO001",
+          "EAN": "5941234567890",
           "NC Code": "3924100000",
           "CPV Code": "39830000-9",
           "Supplier Name": "xHACCP Direct",
@@ -14515,6 +14520,7 @@ Failed: ${result.failed}`);
           "Status": "active",
           "VAT %": "21",
           "Product Code": "KO002",
+          "EAN": "",
           "NC Code": "4821100000",
           "CPV Code": "30199700-3",
           "Supplier Name": "xHACCP Direct",
@@ -14538,6 +14544,7 @@ Failed: ${result.failed}`);
         { Field: "Status", Required: "No", Description: "Product status: active, inactive, draft, discontinued" },
         { Field: "VAT %", Required: "No", Description: "VAT percentage (default: 19)" },
         { Field: "Product Code", Required: "No", Description: "Alphanumeric product code" },
+        { Field: "EAN", Required: "No", Description: "Optional EAN/GTIN identifier (8, 12, 13, or 14 digits)" },
         { Field: "NC Code", Required: "No", Description: "Nomenclature code" },
         { Field: "CPV Code", Required: "No", Description: "Common Procurement Vocabulary code" },
         { Field: "Supplier Name", Required: "No", Description: "Supplier name (default: xHACCP Direct)" },
@@ -14583,6 +14590,7 @@ Failed: ${result.failed}`);
           "Status": p.status || "active",
           "VAT %": p.vatValue != null ? String(p.vatValue) : p.vatPercentage != null ? String(p.vatPercentage) : "",
           "Product Code": p.productCode || "",
+          "EAN": p.ean || "",
           "NC Code": p.ncCode || "",
           "CPV Code": p.cpvCode || "",
           "Supplier Name": supplierById.get(p.supplierId) || "",
@@ -16049,6 +16057,7 @@ This action cannot be undone.`)) {
                         vatPercentage: defaults.vatPercentage || (selectedMarketTab === "fr" ? "20.00" : selectedMarketTab === "ro" ? "19.00" : "0.00"),
                         currency: defaults.currency || "RON",
                         productCode: generatedCode,
+                        ean: "",
                         ncCode: "",
                         cpvCode: "",
                         status: "active",
@@ -20764,6 +20773,7 @@ Cordialement,`
         vatPercentage: "21.00",
         currency: "RON",
         productCode: "",
+        ean: "",
         ncCode: "",
         cpvCode: "",
         status: "active",
@@ -21186,6 +21196,7 @@ Cordialement,`
             vatPercentage: "21.00",
             currency: "EUR",
             productCode: "",
+            ean: "",
             ncCode: "",
             cpvCode: "",
             status: "active",
@@ -21717,7 +21728,7 @@ Cordialement,`
                 t2("products.modal.pricingTitle")
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.pricingDesc") }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.priceLabel") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -22012,6 +22023,22 @@ Cordialement,`
                       placeholder: "ABC-123-DEF"
                     }
                   )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: t2("products.modal.eanLabel") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      inputMode: "numeric",
+                      maxLength: "14",
+                      className: "form-input",
+                      value: productFormData.ean,
+                      onChange: (e2) => setProductFormData({ ...productFormData, ean: e2.target.value }),
+                      placeholder: "5941234567890"
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("small", { style: { color: "#6c757d" }, children: "Op\u021Bional: 8, 12, 13 sau 14 cifre" })
                 ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px" }, children: [
@@ -22760,6 +22787,7 @@ Cordialement,`
                       vatPercentage: "21.00",
                       currency: "RON",
                       productCode: "",
+                      ean: "",
                       ncCode: "",
                       cpvCode: "",
                       status: "active",
