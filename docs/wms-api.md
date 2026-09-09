@@ -7,7 +7,9 @@
 **Transport:** HTTPS with JSON request and response bodies  
 **Time zone:** UTC; timestamps use ISO 8601 format
 
-**Machine-readable contract:** [OpenAPI 3 contract for WMS v1](openapi/wms-v1.json)
+**Machine-readable contract:** [OpenAPI 3.0.3 contract for WMS v1](openapi/wms-v1.json)
+
+**Contract version:** `1.0.0`
 
 This API allows an approved logistics partner to:
 
@@ -17,6 +19,69 @@ This API allows an approved logistics partner to:
 - send inventory quantities by SKU.
 
 The WMS always initiates the communication. xHACCP does not call the partner's API, poll the partner, or send ASN messages in the current integration phase.
+
+## 0. Machine-readable contract
+
+The versioned OpenAPI contract is available at:
+
+```text
+docs/openapi/wms-v1.json
+```
+
+It describes the six public WMS operations:
+
+- `GET /health`
+- `GET /orders`
+- `GET /orders/{publicOrderRef}`
+- `POST /orders/{publicOrderRef}/ack`
+- `POST /orders/{publicOrderRef}/events`
+- `POST /inventory`
+
+The document includes:
+
+- Bearer authentication and required scope declarations;
+- query parameters, path parameters, and the required `X-Idempotency-Key` header;
+- request and response schemas;
+- cursor pagination;
+- order, parcel, event, and inventory examples;
+- standard error responses and `X-Request-Id`/`Retry-After` headers.
+
+### Importing the contract
+
+The JSON file can be imported directly into tools that support OpenAPI 3.0.3:
+
+1. Download or copy `docs/openapi/wms-v1.json`.
+2. Import it into Postman, Insomnia, Swagger UI, or another OpenAPI-compatible client.
+3. Set the server URL to the environment URL provided by xHACCP.
+4. Configure the `bearerAuth` value with the warehouse API key.
+5. Keep the `X-Idempotency-Key` header enabled for acknowledgement, event, and inventory requests.
+
+The OpenAPI `servers` entry shows the production example URL. Partners must use the published base URL supplied by xHACCP for their assigned environment.
+
+### Contract validation
+
+The repository validates the machine-readable contract against `server/wms-routes.ts`:
+
+```bash
+npm run validate:wms-openapi
+```
+
+The validator checks that:
+
+- every implemented WMS route is present in the OpenAPI document;
+- the OpenAPI document does not advertise an undeclared WMS route;
+- every protected operation declares the correct scope;
+- the health endpoint is explicitly public;
+- required response codes and schemas exist;
+- the documented error codes are represented in the contract.
+
+The WMS test command runs both the contract tests and this OpenAPI validation:
+
+```bash
+npm run test:wms
+```
+
+The OpenAPI contract remains version `1.0.0` while the `/api/wms/v1` behavior stays backward compatible. A breaking contract change requires a new API version and a coordinated partner migration.
 
 ## 1. Environments and base URL
 

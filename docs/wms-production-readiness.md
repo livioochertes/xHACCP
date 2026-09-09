@@ -21,10 +21,17 @@ paste the plaintext key into chat, a ticket, a commit, or this file.
    drop, stop and resolve the schema difference before continuing.
 5. Confirm the published app responds to
    `GET /api/wms/v1/health` with HTTP 200.
+6. Validate the repository contract before publishing:
+   `npm run validate:wms-openapi`.
 
 The repository does not run DDL during build or startup. Development schema
 changes are applied through the normal post-merge flow, and production schema
 changes are applied by Publish.
+
+The partner-facing machine-readable contract is
+`docs/openapi/wms-v1.json`. Run `npm run test:wms` before release; this also
+checks the WMS route list, scopes, response codes, schemas, and documented
+error codes for drift.
 
 ## 2. Record one routing decision per marketplace
 
