@@ -7,6 +7,8 @@
 **Transport:** HTTPS with JSON request and response bodies  
 **Time zone:** UTC; timestamps use ISO 8601 format
 
+**Machine-readable contract:** [OpenAPI 3 contract for WMS v1](openapi/wms-v1.json)
+
 This API allows an approved logistics partner to:
 
 - pull orders that are ready for fulfillment;
@@ -715,7 +717,6 @@ The following are intentionally outside the current partner API contract:
 - ASN/inbound notice synchronization;
 - automatic refunds for WMS cancellation or return events;
 - tracking URL storage or carrier-specific tracking URL generation;
-- a separate public sandbox host;
-- a public OpenAPI document.
+- a separate public sandbox host.
 
 If any of these capabilities is required, agree the contract with xHACCP before implementing it in the WMS.
