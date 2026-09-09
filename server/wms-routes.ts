@@ -3,6 +3,7 @@ import {
   authenticateWmsApiKey,
   getWmsOrderForPartner,
   hasScope,
+  listWmsCatalog,
   listWmsOrders,
   acknowledgeWmsOrder,
   recordWmsEvent,
@@ -40,7 +41,7 @@ function sendError(res: Response, req: Request, status: number, code: string, me
   return res.status(status).json(standardError(code, message, req.wmsRequestId || "unknown", details));
 }
 
-function requireScope(scope: "orders:read" | "orders:ack" | "orders:events" | "inventory:write") {
+function requireScope(scope: "catalog:read" | "orders:read" | "orders:ack" | "orders:events" | "inventory:write") {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.wmsContext || !hasScope(req.wmsContext, scope)) {
       return sendError(res, req, 403, "INSUFFICIENT_SCOPE", `Scope ${scope} is required`);
@@ -104,6 +105,38 @@ export function registerWmsRoutes(app: Express) {
       next();
     } catch (error) {
       next(error);
+    }
+  });
+
+  app.get("/api/wms/v1/catalog", requireScope("catalog:read"), async (req, res) => {
+    try {
+      const context = req.wmsContext!;
+      const market = req.query.market ? String(req.query.market) : undefined;
+      if (market && !context.markets.includes(market)) {
+        return sendError(res, req, 403, "MARKET_NOT_ALLOWED", "The API key is not routed to this market");
+      }
+      const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 100);
+      const updatedSince = parseDate(req.query.updated_since);
+      if (req.query.updated_since && !updatedSince) {
+        return sendError(res, req, 400, "INVALID_UPDATED_SINCE", "updated_since must be an ISO timestamp");
+      }
+      if (req.query.cursor && !String(req.query.cursor).trim()) {
+        return sendError(res, req, 400, "INVALID_CURSOR", "cursor is invalid");
+      }
+      const result = await listWmsCatalog({
+        context,
+        market,
+        updatedSince,
+        cursor: req.query.cursor ? String(req.query.cursor) : undefined,
+        limit,
+      });
+      res.json({ data: result.products, pagination: { next_cursor: result.nextCursor, limit } });
+    } catch (error) {
+      if ((error as any)?.code === "INVALID_CURSOR") {
+        return sendError(res, req, 400, "INVALID_CURSOR", "cursor is invalid");
+      }
+      console.error("[WMS] list catalog failed", error);
+      sendError(res, req, 500, "INTERNAL_ERROR", "Unable to list catalog");
     }
   });
 

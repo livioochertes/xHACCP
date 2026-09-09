@@ -3,12 +3,15 @@ import assert from "node:assert/strict";
 import {
   createPlaintextWmsApiKey,
   decodeWmsCursor,
+  decodeWmsCatalogCursor,
   encodeWmsCursor,
+  encodeWmsCatalogCursor,
   hashWmsApiKey,
   isFulfillable,
   normalizeEventStatus,
   summarizeWmsRouting,
   standardError,
+  WMS_SCOPES,
 } from "./wms-service.js";
 
 test("WMS API keys are prefixed and only their SHA-256 hash is used", () => {
@@ -41,6 +44,18 @@ test("cursor encoding is stable and round-trips UTC timestamps", () => {
   assert.equal(decoded!.id, 42);
   assert.equal(decoded!.confirmedAt.toISOString(), timestamp.toISOString());
   assert.equal(decodeWmsCursor("not-a-cursor"), null);
+});
+
+test("catalog cursor preserves timestamp, product, and market", () => {
+  const timestamp = new Date("2026-09-09T12:00:00.000Z");
+  const cursor = encodeWmsCatalogCursor(timestamp, 42, "fr");
+  const decoded = decodeWmsCatalogCursor(cursor);
+  assert.ok(decoded);
+  assert.equal(decoded!.productId, 42);
+  assert.equal(decoded!.market, "fr");
+  assert.equal(decoded!.updatedAt.toISOString(), timestamp.toISOString());
+  assert.equal(decodeWmsCatalogCursor("not-a-cursor"), null);
+  assert.ok(WMS_SCOPES.includes("catalog:read"));
 });
 
 test("fulfillment eligibility requires payment and a confirmed partner snapshot", () => {

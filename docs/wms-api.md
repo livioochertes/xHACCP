@@ -13,6 +13,7 @@
 
 This API allows an approved logistics partner to:
 
+- pull the active product catalog for an authorized marketplace;
 - pull orders that are ready for fulfillment;
 - acknowledge that an order was imported into the WMS;
 - send fulfillment status events and parcel tracking data;
@@ -28,9 +29,10 @@ The versioned OpenAPI contract is available at:
 docs/openapi/wms-v1.json
 ```
 
-It describes the six public WMS operations:
+It describes the seven public WMS operations:
 
 - `GET /health`
+- `GET /catalog`
 - `GET /orders`
 - `GET /orders/{publicOrderRef}`
 - `POST /orders/{publicOrderRef}/ack`
@@ -124,6 +126,7 @@ Keys are issued with one or more scopes:
 
 | Scope | Allows |
 | --- | --- |
+| `catalog:read` | Read active products for routed marketplaces |
 | `orders:read` | List and retrieve orders |
 | `orders:ack` | Acknowledge an imported order |
 | `orders:events` | Send fulfillment events and tracking parcels |
@@ -228,6 +231,7 @@ The shop status (`status`) and the WMS fulfillment status (`fulfillment_status`)
 | Method | Endpoint | Scope | Purpose |
 | --- | --- | --- | --- |
 | `GET` | `/health` | None | Public service health check |
+| `GET` | `/catalog` | `catalog:read` | Cursor-paginated marketplace product catalog |
 | `GET` | `/orders` | `orders:read` | Cursor-paginated order list |
 | `GET` | `/orders/{public_order_ref}` | `orders:read` | Full order detail |
 | `POST` | `/orders/{public_order_ref}/ack` | `orders:ack` | Confirm WMS import |
@@ -265,6 +269,98 @@ X-Request-Id: wms_abc123_example
 ```
 
 The health endpoint confirms that the HTTP service is responding. It does not authenticate a warehouse key or confirm that a specific partner is routed.
+
+## Product catalog
+
+### `GET /catalog`
+
+Required scope: `catalog:read`.
+
+This endpoint returns the active products assigned to the authenticated
+partner's routed marketplace(s). It is read-only and can be used to initialize
+or reconcile the WMS SKU catalog before importing orders.
+
+```bash
+curl --fail-with-body \
+  -H "Authorization: Bearer ${WMS_API_KEY}" \
+  "https://xhaccp.fr/api/wms/v1/catalog?market=fr&limit=50"
+```
+
+### Query parameters
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `market` | No | Restrict the response to `ro`, `fr`, or `com`. The market must already be routed to the key's partner. When omitted, one row is returned for each active product-market assignment in the key's authorized markets. |
+| `updated_since` | No | ISO timestamp. Returns catalog rows whose effective `updated_at` is later than this value. The value includes changes to the shared product and marketplace-specific overrides. |
+| `limit` | No | Number of records requested. Default `50`; maximum `100`. |
+| `cursor` | No | Opaque cursor returned in `pagination.next_cursor`. |
+
+Only products with global status `active` and an active marketplace assignment
+are returned. The response uses the marketplace price, comparison price,
+currency, availability, and category when configured; otherwise it falls back
+to the shared product value or the marketplace currency setting.
+
+Names, slugs, and descriptions use the marketplace translation when available:
+Romanian for `ro`, French for `fr`, and English for `com`. If a translation is
+missing, the shared product value is returned.
+
+Example response:
+
+```json
+{
+  "data": [
+    {
+      "id": "prod_123",
+      "sku": "XH-SET-L",
+      "market": "fr",
+      "name": "Kit d'étiquettes HACCP",
+      "slug": "kit-etiquettes-haccp",
+      "description": "Food safety label set.",
+      "category": {
+        "id": "cat_12",
+        "name": "Étiquettes",
+        "slug": "etiquettes"
+      },
+      "price": "132.83",
+      "compare_at_price": null,
+      "currency": "EUR",
+      "vat_percentage": "20.00",
+      "product_type": "standard",
+      "is_service": false,
+      "is_composite": false,
+      "availability": {
+        "in_stock": true,
+        "stock_quantity": 140
+      },
+      "logistics": {
+        "weight": "2.100",
+        "length": "40.00",
+        "width": "30.00",
+        "height": "20.00",
+        "pieces_per_package": 1,
+        "product_quantity": "1 set"
+      },
+      "specs": [],
+      "updated_at": "2026-09-09T06:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "next_cursor": null,
+    "limit": 50
+  }
+}
+```
+
+`sku` is the product code used to match catalog entries with order items and
+inventory updates. It may be `null` for products without a product code;
+report those products to xHACCP before accepting orders that contain them.
+
+The `availability` values are the current storefront snapshot. Inventory
+updates from the WMS must still be sent through `POST /inventory`; do not use
+the catalog snapshot as the inventory write channel.
+
+Use `updated_since` for reconciliation and continue from
+`pagination.next_cursor` until it is `null`. Never decode or modify a cursor.
 
 ## 8. List orders
 

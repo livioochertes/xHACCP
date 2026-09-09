@@ -22,6 +22,7 @@ check(spec.components?.securitySchemes?.bearerAuth?.type === "http", "bearerAuth
 
 const expectedRoutes = new Map([
   [routeKey("GET", "/health"), null],
+  [routeKey("GET", "/catalog"), "catalog:read"],
   [routeKey("GET", "/orders"), "orders:read"],
   [routeKey("GET", "/orders/{publicOrderRef}"), "orders:read"],
   [routeKey("POST", "/orders/{publicOrderRef}/ack"), "orders:ack"],
@@ -63,6 +64,7 @@ const requireResponses = (key, codes) => {
   for (const code of codes) check(actual.has(code), `${key} is missing documented response ${code}`);
 };
 requireResponses("GET /health", ["200"]);
+requireResponses("GET /catalog", ["200", "400", "401", "403", "429", "500"]);
 requireResponses("GET /orders", ["200", "400", "401", "403", "429", "500"]);
 requireResponses("GET /orders/{publicOrderRef}", ["200", "401", "403", "404", "429", "500"]);
 requireResponses("POST /orders/{publicOrderRef}/ack", ["200", "400", "401", "403", "404", "409", "429", "500"]);
@@ -72,6 +74,10 @@ requireResponses("POST /inventory", ["200", "400", "401", "403", "409", "422", "
 const schemas = spec.components?.schemas || {};
 for (const name of [
   "HealthResponse",
+  "CatalogListResponse",
+  "WmsCatalogProduct",
+  "CatalogAvailability",
+  "CatalogLogistics",
   "OrderListResponse",
   "OrderResponse",
   "WmsOrder",

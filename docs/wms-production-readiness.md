@@ -68,6 +68,12 @@ prefixes, and an authenticated orders request for each key. It never prints
 either plaintext key. Review the WMS audit log after the run and confirm the
 two requests belong to the expected partner and key records.
 
+New or rotated keys should include the `catalog:read` scope. Verify the
+catalog read separately with
+`GET /api/wms/v1/catalog?market=<authorized-market>&limit=1`; keys created
+before the catalog endpoint was introduced must be replaced if they do not
+already contain this scope.
+
 After the warehouse passes its own sandbox test, keep the sandbox key for
 future certification and only then enable the production route/key.
 

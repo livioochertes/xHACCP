@@ -17,6 +17,10 @@
       "description": "Unauthenticated service monitoring"
     },
     {
+      "name": "Catalog",
+      "description": "Read active products available in routed marketplaces"
+    },
+    {
       "name": "Orders",
       "description": "Read and acknowledge partner-routed orders"
     },
@@ -63,6 +67,108 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/catalog": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "List marketplace catalog products",
+        "description": "Returns active catalog products for the authenticated partner's routed marketplaces. Use market to restrict the response to one authorized marketplace. Results use stable cursor pagination; do not decode or modify next_cursor.",
+        "operationId": "listWmsCatalog",
+        "x-required-scope": "catalog:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Market"
+          },
+          {
+            "$ref": "#/components/parameters/CatalogUpdatedSince"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": ["catalog:read"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of active marketplace catalog products.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogListResponse"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "prod_123",
+                      "sku": "XH-SET-L",
+                      "market": "fr",
+                      "name": "Kit d'étiquettes HACCP",
+                      "slug": "kit-etiquettes-haccp",
+                      "description": "Food safety label set.",
+                      "category": {
+                        "id": "cat_12",
+                        "name": "Étiquettes",
+                        "slug": "etiquettes"
+                      },
+                      "price": "132.83",
+                      "compare_at_price": null,
+                      "currency": "EUR",
+                      "vat_percentage": "20.00",
+                      "product_type": "standard",
+                      "is_service": false,
+                      "is_composite": false,
+                      "availability": {
+                        "in_stock": true,
+                        "stock_quantity": 140
+                      },
+                      "logistics": {
+                        "weight": "2.100",
+                        "length": "40.00",
+                        "width": "30.00",
+                        "height": "20.00",
+                        "pieces_per_package": 1,
+                        "product_quantity": "1 set"
+                      },
+                      "specs": [],
+                      "updated_at": "2026-09-09T06:00:00.000Z"
+                    }
+                  ],
+                  "pagination": {
+                    "next_cursor": null,
+                    "limit": 50
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
           }
         }
       }
@@ -633,6 +739,17 @@
         },
         "example": "2026-09-08T06:00:00Z"
       },
+      "CatalogUpdatedSince": {
+        "name": "updated_since",
+        "in": "query",
+        "required": false,
+        "description": "Return catalog rows whose effective updated_at is later than this ISO timestamp. The timestamp covers both the shared product and marketplace-specific product data.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "example": "2026-09-08T06:00:00Z"
+      },
       "Limit": {
         "name": "limit",
         "in": "query",
@@ -957,6 +1074,189 @@
           "timestamp": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "CatalogListResponse": {
+        "type": "object",
+        "required": ["data", "pagination"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WmsCatalogProduct"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "WmsCatalogProduct": {
+        "type": "object",
+        "required": [
+          "id",
+          "sku",
+          "market",
+          "name",
+          "slug",
+          "description",
+          "category",
+          "price",
+          "compare_at_price",
+          "currency",
+          "vat_percentage",
+          "product_type",
+          "is_service",
+          "is_composite",
+          "availability",
+          "logistics",
+          "specs",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable public catalog product reference.",
+            "example": "prod_123"
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true,
+            "example": "XH-SET-L"
+          },
+          "market": {
+            "type": "string",
+            "enum": ["ro", "fr", "com"]
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "nullable": true,
+            "type": "object",
+            "required": ["id", "name", "slug"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "cat_12"
+              },
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              }
+            }
+          },
+          "price": {
+            "type": "string",
+            "description": "Decimal market price.",
+            "example": "132.83"
+          },
+          "compare_at_price": {
+            "type": "string",
+            "nullable": true,
+            "description": "Decimal market comparison price, when configured."
+          },
+          "currency": {
+            "type": "string",
+            "example": "EUR"
+          },
+          "vat_percentage": {
+            "type": "string",
+            "nullable": true,
+            "example": "20.00"
+          },
+          "product_type": {
+            "type": "string",
+            "enum": ["standard", "service", "subscription"]
+          },
+          "is_service": {
+            "type": "boolean"
+          },
+          "is_composite": {
+            "type": "boolean"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/CatalogAvailability"
+          },
+          "logistics": {
+            "$ref": "#/components/schemas/CatalogLogistics"
+          },
+          "specs": {
+            "type": "array",
+            "description": "Flexible product specifications. The array contains the catalog's stored specification objects.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CatalogAvailability": {
+        "type": "object",
+        "required": ["in_stock", "stock_quantity"],
+        "properties": {
+          "in_stock": {
+            "type": "boolean"
+          },
+          "stock_quantity": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "CatalogLogistics": {
+        "type": "object",
+        "required": [
+          "weight",
+          "length",
+          "width",
+          "height",
+          "pieces_per_package",
+          "product_quantity"
+        ],
+        "properties": {
+          "weight": {
+            "type": "string",
+            "nullable": true,
+            "description": "Weight in kilograms."
+          },
+          "length": {
+            "type": "string",
+            "nullable": true,
+            "description": "Length in centimetres."
+          },
+          "width": {
+            "type": "string",
+            "nullable": true,
+            "description": "Width in centimetres."
+          },
+          "height": {
+            "type": "string",
+            "nullable": true,
+            "description": "Height in centimetres."
+          },
+          "pieces_per_package": {
+            "type": "integer",
+            "nullable": true
+          },
+          "product_quantity": {
+            "type": "string",
+            "nullable": true,
+            "description": "Net content or package quantity, for example 1 set or 500g."
           }
         }
       },

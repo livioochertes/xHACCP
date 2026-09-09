@@ -3,9 +3,13 @@ import { and, asc, desc, eq, gt, inArray, isNotNull, lt, ne, or, sql } from "dri
 import {
   fulfillmentPartners,
   marketFulfillment,
+  marketSettings,
   orders,
   orderItems,
   products,
+  productMarkets,
+  productTranslations,
+  categories,
   wmsApiKeys,
   wmsAuditLogs,
   wmsIdempotencyKeys,
@@ -18,7 +22,7 @@ import { db } from "./db";
 import { sendEmail, getSenderForMarket } from "./email-service.js";
 
 export const WMS_MARKETS = ["ro", "fr", "com"] as const;
-export const WMS_SCOPES = ["orders:read", "orders:ack", "orders:events", "inventory:write"] as const;
+export const WMS_SCOPES = ["catalog:read", "orders:read", "orders:ack", "orders:events", "inventory:write"] as const;
 export type WmsScope = (typeof WMS_SCOPES)[number];
 export type WmsMarket = (typeof WMS_MARKETS)[number];
 
@@ -140,6 +144,36 @@ export function decodeWmsCursor(value: string | undefined): { confirmedAt: Date;
     const date = new Date(parsed.confirmedAt);
     if (!Number.isFinite(date.getTime()) || !Number.isInteger(parsed.id)) return null;
     return { confirmedAt: date, id: parsed.id };
+  } catch {
+    return null;
+  }
+}
+
+export function encodeWmsCatalogCursor(updatedAt: Date, productId: number, market: string): string {
+  return Buffer.from(JSON.stringify({
+    updatedAt: updatedAt.toISOString(),
+    productId,
+    market,
+  }), "utf8").toString("base64url");
+}
+
+export function decodeWmsCatalogCursor(value: string | undefined): {
+  updatedAt: Date;
+  productId: number;
+  market: string;
+} | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+    const updatedAt = new Date(parsed.updatedAt);
+    if (
+      !Number.isFinite(updatedAt.getTime())
+      || !Number.isInteger(parsed.productId)
+      || parsed.productId < 1
+      || typeof parsed.market !== "string"
+      || !WMS_MARKETS.includes(parsed.market as WmsMarket)
+    ) return null;
+    return { updatedAt, productId: parsed.productId, market: parsed.market };
   } catch {
     return null;
   }
@@ -267,6 +301,136 @@ export async function listWmsOrders(params: {
     orders: result,
     nextCursor: orderRows.length > params.limit && last?.confirmedAt ? encodeWmsCursor(last.confirmedAt, last.id) : null,
   };
+}
+
+function catalogLanguageForMarket(market: string): string {
+  if (market === "fr") return "fr";
+  if (market === "com") return "en";
+  return "ro";
+}
+
+export async function listWmsCatalog(params: {
+  context: WmsAuthContext;
+  market?: string;
+  updatedSince?: Date;
+  cursor?: string;
+  limit: number;
+}) {
+  const allowedMarkets = params.market ? [params.market] : params.context.markets;
+  if (allowedMarkets.length === 0) return { products: [], nextCursor: null };
+
+  const cursor = decodeWmsCatalogCursor(params.cursor);
+  if (params.cursor && !cursor) {
+    const error = new Error("cursor is invalid");
+    (error as any).code = "INVALID_CURSOR";
+    throw error;
+  }
+
+  const catalogUpdatedAt = sql<Date>`greatest(
+    coalesce(${products.updatedAt}, ${products.createdAt}, to_timestamp(0)),
+    coalesce(${productMarkets.updatedAt}, ${productMarkets.createdAt}, to_timestamp(0))
+  )`;
+  const conditions = [
+    inArray(productMarkets.market, allowedMarkets),
+    eq(productMarkets.isActive, true),
+    eq(products.status, "active"),
+  ];
+  if (params.updatedSince) conditions.push(gt(catalogUpdatedAt, params.updatedSince));
+  if (cursor) {
+    conditions.push(or(
+      gt(catalogUpdatedAt, cursor.updatedAt),
+      and(
+        eq(catalogUpdatedAt, cursor.updatedAt),
+        or(
+          gt(products.id, cursor.productId),
+          and(eq(products.id, cursor.productId), gt(productMarkets.market, cursor.market)),
+        ),
+      ),
+    )!);
+  }
+
+  const rows = await db.select({
+    product: products,
+    marketProduct: productMarkets,
+    category: categories,
+    updatedAt: catalogUpdatedAt,
+  })
+    .from(productMarkets)
+    .innerJoin(products, eq(products.id, productMarkets.productId))
+    .leftJoin(categories, eq(categories.id, productMarkets.categoryId))
+    .where(and(...conditions))
+    .orderBy(asc(catalogUpdatedAt), asc(products.id), asc(productMarkets.market))
+    .limit(params.limit + 1);
+
+  const page = rows.slice(0, params.limit);
+  const productIds = [...new Set(page.map(row => row.product.id))];
+  const languages = [...new Set(allowedMarkets.map(catalogLanguageForMarket))];
+  const translations = productIds.length && languages.length
+    ? await db.select().from(productTranslations).where(and(
+      inArray(productTranslations.productId, productIds),
+      inArray(productTranslations.language, languages),
+    ))
+    : [];
+  const translationByKey = new Map(
+    translations.map(translation => [`${translation.productId}:${translation.language}`, translation]),
+  );
+  const settings = await db.select({
+    market: marketSettings.market,
+    currency: marketSettings.currency,
+  }).from(marketSettings).where(inArray(marketSettings.market, allowedMarkets));
+  const currencyByMarket = new Map(settings.map(setting => [setting.market, setting.currency]));
+
+  const result = page.map(row => {
+    const market = row.marketProduct.market;
+    const translation = translationByKey.get(`${row.product.id}:${catalogLanguageForMarket(market)}`);
+    const category = row.category?.marketCode === market
+      ? {
+          id: `cat_${row.category.id}`,
+          name: row.category.name,
+          slug: row.category.slug,
+        }
+      : null;
+    const updatedAt = row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt);
+    return {
+      id: `prod_${row.product.id}`,
+      sku: row.product.productCode || null,
+      market,
+      name: translation?.name || row.product.name,
+      slug: translation?.slug || row.product.slug,
+      description: translation?.description ?? row.product.description ?? null,
+      category,
+      price: row.marketProduct.price ?? row.product.price,
+      compare_at_price: row.marketProduct.compareAtPrice ?? row.product.compareAtPrice ?? null,
+      currency: row.marketProduct.currency ?? currencyByMarket.get(market) ?? row.product.currency,
+      vat_percentage: row.product.vatPercentage,
+      product_type: row.product.productType,
+      is_service: Boolean(row.product.isService || row.product.productType === "service"),
+      is_composite: Boolean(row.product.isComposite),
+      availability: {
+        in_stock: row.marketProduct.inStock ?? row.product.inStock ?? false,
+        stock_quantity: row.marketProduct.stockQuantity ?? row.product.stockQuantity ?? 0,
+      },
+      logistics: {
+        weight: row.product.weight,
+        length: row.product.length,
+        width: row.product.width,
+        height: row.product.height,
+        pieces_per_package: row.product.piecesPerPackage,
+        product_quantity: row.product.productQuantity,
+      },
+      specs: row.product.specs || [],
+      updated_at: updatedAt.toISOString(),
+    };
+  });
+  const last = page[page.length - 1];
+  const nextCursor = rows.length > params.limit && last
+    ? encodeWmsCatalogCursor(
+        last.updatedAt instanceof Date ? last.updatedAt : new Date(last.updatedAt),
+        last.product.id,
+        last.marketProduct.market,
+      )
+    : null;
+  return { products: result, nextCursor };
 }
 
 function serializeWmsOrder(order: Order, items: any[], shipments: any[], events: any[]) {
