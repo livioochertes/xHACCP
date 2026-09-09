@@ -115,6 +115,16 @@
                     {
                       "id": "prod_123",
                       "sku": "XH-SET-L",
+                      "identifiers": {
+                        "xhaccp_product_id": "prod_123",
+                        "slug": "kit-etiquettes-haccp",
+                        "product_code": "XH-SET-L"
+                      },
+                      "designation": {
+                        "ro": "Set de etichete HACCP",
+                        "fr": "Kit d'étiquettes HACCP",
+                        "en": "HACCP label kit"
+                      },
                       "market": "fr",
                       "name": "Kit d'étiquettes HACCP",
                       "slug": "kit-etiquettes-haccp",
@@ -1097,6 +1107,8 @@
         "required": [
           "id",
           "sku",
+          "identifiers",
+          "designation",
           "market",
           "name",
           "slug",
@@ -1122,8 +1134,33 @@
           },
           "sku": {
             "type": "string",
-            "nullable": true,
             "example": "XH-SET-L"
+          },
+          "identifiers": {
+            "type": "object",
+            "description": "Stable identifiers that SLL can use to match received goods with the catalog. Additional identifier keys may be added without changing the endpoint.",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "xhaccp_product_id": "prod_123",
+              "slug": "kit-etiquettes-haccp",
+              "product_code": "XH-SET-L"
+            }
+          },
+          "designation": {
+            "type": "object",
+            "description": "Localized product designations keyed by language locale, for example ro, fr, or en.",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "ro": "Set de etichete HACCP",
+              "fr": "Kit d'étiquettes HACCP",
+              "en": "HACCP label kit"
+            }
           },
           "market": {
             "type": "string",

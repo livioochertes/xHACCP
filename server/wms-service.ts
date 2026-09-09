@@ -420,6 +420,9 @@ export async function listWmsCatalog(params: {
   const result = page.map(row => {
     const market = row.marketProduct.market;
     const productTranslationsForProduct = translationsByProductId.get(row.product.id) || [];
+    const marketTranslation = productTranslationsForProduct.find(
+      translation => translation.language === catalogLanguageForMarket(market),
+    );
     const designation = buildWmsCatalogDesignation(
       row.product.name,
       market,
@@ -439,9 +442,9 @@ export async function listWmsCatalog(params: {
       identifiers: buildWmsCatalogIdentifiers(row.product),
       designation,
       market,
-      name: translation?.name || row.product.name,
-      slug: translation?.slug || row.product.slug,
-      description: translation?.description ?? row.product.description ?? null,
+      name: marketTranslation?.name || row.product.name,
+      slug: marketTranslation?.slug || row.product.slug,
+      description: marketTranslation?.description ?? row.product.description ?? null,
       category,
       price: row.marketProduct.price ?? row.product.price,
       compare_at_price: row.marketProduct.compareAtPrice ?? row.product.compareAtPrice ?? null,

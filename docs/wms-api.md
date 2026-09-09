@@ -312,6 +312,16 @@ Example response:
     {
       "id": "prod_123",
       "sku": "XH-SET-L",
+      "identifiers": {
+        "xhaccp_product_id": "prod_123",
+        "slug": "kit-etiquettes-haccp",
+        "product_code": "XH-SET-L"
+      },
+      "designation": {
+        "ro": "Set de etichete HACCP",
+        "fr": "Kit d'étiquettes HACCP",
+        "en": "HACCP label kit"
+      },
       "market": "fr",
       "name": "Kit d'étiquettes HACCP",
       "slug": "kit-etiquettes-haccp",
@@ -352,8 +362,18 @@ Example response:
 ```
 
 `sku` is the product code used to match catalog entries with order items and
-inventory updates. It may be `null` for products without a product code;
-report those products to xHACCP before accepting orders that contain them.
+inventory updates. Products without a product code are not returned by this
+endpoint because they cannot be safely matched to incoming order lines.
+
+`identifiers` contains stable values that SLL can use to match received goods
+with the catalog. It always includes `xhaccp_product_id` and `slug`, and
+includes the product code plus any other stored classification codes. The
+object is extensible so EAN, vendor reference, or another identifier can be
+added without changing the response shape.
+
+`designation` is a locale-keyed object of available product names. It includes
+all stored translations and adds the market's fallback locale (`ro`, `fr`, or
+`en`) from the shared product name when that translation is missing.
 
 The `availability` values are the current storefront snapshot. Inventory
 updates from the WMS must still be sent through `POST /inventory`; do not use
