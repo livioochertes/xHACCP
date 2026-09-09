@@ -6,6 +6,8 @@ import {
   decodeWmsCatalogCursor,
   encodeWmsCursor,
   encodeWmsCatalogCursor,
+  buildWmsCatalogDesignation,
+  buildWmsCatalogIdentifiers,
   hashWmsApiKey,
   isFulfillable,
   normalizeEventStatus,
@@ -56,6 +58,38 @@ test("catalog cursor preserves timestamp, product, and market", () => {
   assert.equal(decoded!.updatedAt.toISOString(), timestamp.toISOString());
   assert.equal(decodeWmsCatalogCursor("not-a-cursor"), null);
   assert.ok(WMS_SCOPES.includes("catalog:read"));
+});
+
+test("catalog articles expose matching identifiers and localized designations", () => {
+  assert.deepEqual(
+    buildWmsCatalogIdentifiers({
+      id: 42,
+      slug: "haccp-kit",
+      productCode: "SKU-42",
+      ncCode: "NC-01",
+      cpvCode: null,
+    }),
+    {
+      xhaccp_product_id: "prod_42",
+      slug: "haccp-kit",
+      product_code: "SKU-42",
+      nc_code: "NC-01",
+    },
+  );
+  assert.deepEqual(
+    buildWmsCatalogDesignation("Fallback name", "fr", [
+      { language: "ro", name: "Denumire" },
+      { language: "fr", name: "Désignation" },
+    ]),
+    {
+      ro: "Denumire",
+      fr: "Désignation",
+    },
+  );
+  assert.deepEqual(
+    buildWmsCatalogDesignation("Fallback name", "com", []),
+    { en: "Fallback name" },
+  );
 });
 
 test("fulfillment eligibility requires payment and a confirmed partner snapshot", () => {

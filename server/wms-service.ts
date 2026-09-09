@@ -309,6 +309,41 @@ function catalogLanguageForMarket(market: string): string {
   return "ro";
 }
 
+export function buildWmsCatalogDesignation(
+  fallbackName: string,
+  market: string,
+  translations: Array<{ language: string; name: string | null | undefined }>,
+): Record<string, string> {
+  const designation: Record<string, string> = {};
+  for (const translation of translations) {
+    if (translation.language && translation.name?.trim()) {
+      designation[translation.language] = translation.name.trim();
+    }
+  }
+  const marketLanguage = catalogLanguageForMarket(market);
+  if (!designation[marketLanguage] && fallbackName.trim()) {
+    designation[marketLanguage] = fallbackName.trim();
+  }
+  return designation;
+}
+
+export function buildWmsCatalogIdentifiers(product: {
+  id: number;
+  slug: string;
+  productCode: string | null;
+  ncCode: string | null;
+  cpvCode: string | null;
+}): Record<string, string> {
+  const identifiers: Record<string, string> = {
+    xhaccp_product_id: `prod_${product.id}`,
+    slug: product.slug,
+  };
+  if (product.productCode) identifiers.product_code = product.productCode;
+  if (product.ncCode) identifiers.nc_code = product.ncCode;
+  if (product.cpvCode) identifiers.cpv_code = product.cpvCode;
+  return identifiers;
+}
+
 export async function listWmsCatalog(params: {
   context: WmsAuthContext;
   market?: string;
@@ -334,6 +369,7 @@ export async function listWmsCatalog(params: {
     inArray(productMarkets.market, allowedMarkets),
     eq(productMarkets.isActive, true),
     eq(products.status, "active"),
+    isNotNull(products.productCode),
   ];
   if (params.updatedSince) conditions.push(gt(catalogUpdatedAt, params.updatedSince));
   if (cursor) {
@@ -364,16 +400,17 @@ export async function listWmsCatalog(params: {
 
   const page = rows.slice(0, params.limit);
   const productIds = [...new Set(page.map(row => row.product.id))];
-  const languages = [...new Set(allowedMarkets.map(catalogLanguageForMarket))];
-  const translations = productIds.length && languages.length
+  const translations = productIds.length
     ? await db.select().from(productTranslations).where(and(
       inArray(productTranslations.productId, productIds),
-      inArray(productTranslations.language, languages),
     ))
     : [];
-  const translationByKey = new Map(
-    translations.map(translation => [`${translation.productId}:${translation.language}`, translation]),
-  );
+  const translationsByProductId = new Map<number, typeof translations>();
+  for (const translation of translations) {
+    const current = translationsByProductId.get(translation.productId) || [];
+    current.push(translation);
+    translationsByProductId.set(translation.productId, current);
+  }
   const settings = await db.select({
     market: marketSettings.market,
     currency: marketSettings.currency,
@@ -382,7 +419,12 @@ export async function listWmsCatalog(params: {
 
   const result = page.map(row => {
     const market = row.marketProduct.market;
-    const translation = translationByKey.get(`${row.product.id}:${catalogLanguageForMarket(market)}`);
+    const productTranslationsForProduct = translationsByProductId.get(row.product.id) || [];
+    const designation = buildWmsCatalogDesignation(
+      row.product.name,
+      market,
+      productTranslationsForProduct,
+    );
     const category = row.category?.marketCode === market
       ? {
           id: `cat_${row.category.id}`,
@@ -393,7 +435,9 @@ export async function listWmsCatalog(params: {
     const updatedAt = row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt);
     return {
       id: `prod_${row.product.id}`,
-      sku: row.product.productCode || null,
+      sku: row.product.productCode!,
+      identifiers: buildWmsCatalogIdentifiers(row.product),
+      designation,
       market,
       name: translation?.name || row.product.name,
       slug: translation?.slug || row.product.slug,
