@@ -21,3 +21,17 @@ mtime_ms = 1788979779051
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/1b56c299-8d5f-4683-a446-32ccc8cb41f8/0f53f792-dfd2-497d-a824-f43e65e6823e"
 storage_version_token = "1788979810579497"
 content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+[[outputs]]
+id = "hMjmVuPzUXsIqBSHmzfni"
+uri = "file://screenshots/chef-event-qr-card.jpg"
+type = "image"
+title = "Chef event QR card — 16:9 preview"
+description = "French electronic promotional card with the 20% offer, high-contrast QR code, and fallback registration URL."
+logical_id = "e6f34161-c5e2-45d1-9026-710b4c281951"
+content_hash = "sha256:b50362049e829d212fcb24612ed743319c38c313e4a7a00685e125ac715a85a1"
+size = 95932
+mtime_ms = 1789067174834
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/e6f34161-c5e2-45d1-9026-710b4c281951/43d2116b-284a-47fb-9b03-4678d8fb5d77"
+storage_version_token = "1789067241288097"
+content_type = "image/jpeg"
