@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, ChefHat, Mail, Percent, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ChefHat, Clock3, Mail, Percent, ShieldCheck } from "lucide-react";
 
 type Campaign = {
   name: string;
@@ -126,6 +126,14 @@ export default function ChefEvent() {
                   <p className="text-slate-600">
                     Le formulaire est terminé. Vérifiez votre boîte email pour retrouver votre code personnel de réduction.
                   </p>
+                   <div className="mt-5 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-left text-sm text-amber-950">
+                     <div className="flex items-start gap-3">
+                       <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+                       <p>
+                         <strong>Important :</strong> effectuez une première commande payée dans les 30 jours suivant votre inscription. Sans achat dans ce délai, le code devient invalide ; après activation, il reste valable 12 mois.
+                       </p>
+                     </div>
+                   </div>
                   <a
                     className="mt-5 inline-block font-medium text-blue-700 underline"
                     href="https://xhaccp.fr/products?category=etiquettes-alimentaires"
@@ -181,6 +189,14 @@ export default function ChefEvent() {
                         <Input required type="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} />
                       </label>
                     </div>
+                    <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 shadow-sm" role="note">
+                      <div className="flex items-start gap-3">
+                        <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+                        <p>
+                          <strong>Important :</strong> le code doit être activé par une première commande payée dans les 30 jours suivant votre inscription. Sans achat dans ce délai, il devient invalide ; après activation, il reste valable 12 mois.
+                        </p>
+                      </div>
+                    </div>
                     <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
                       <Checkbox checked={form.consent} onCheckedChange={(checked) => updateField("consent", checked === true)} />
                       <span>
@@ -192,7 +208,7 @@ export default function ChefEvent() {
                       {submitting ? "Envoi en cours…" : "Recevoir mon code de réduction"}
                     </Button>
                     <p className="text-center text-xs text-slate-500">
-                      Activez votre code dans les 30 jours suivant votre inscription pour bénéficier de 12 mois de validité sur tous les produits xHACCP France.
+                      La première commande doit être payée dans les 30 jours pour activer les 12 mois de validité.
                     </p>
                   </form>
                 </>

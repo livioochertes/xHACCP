@@ -71,9 +71,26 @@ export function ChefEventQrCard() {
               {" "}sur tous les produits xHACCP France.
             </p>
 
+            <div className="mt-7 flex max-w-[700px] items-start gap-3 rounded-2xl border-2 border-cyan-300/60 bg-cyan-300/10 px-4 py-3.5 shadow-[0_0_34px_rgba(34,211,238,.12)]">
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-300 text-[#071728]">
+                <Clock3 className="h-5 w-5" strokeWidth={2.2} />
+              </span>
+              <div>
+                <p className="text-[clamp(12px,1.05vw,15px)] font-black uppercase tracking-[.12em] text-cyan-200">
+                  Important · activation par achat
+                </p>
+                <p className="mt-1 text-[clamp(13px,1.15vw,17px)] font-semibold leading-[1.35] text-white">
+                  Effectuez une première commande payée dans les 30 jours.
+                </p>
+                <p className="mt-1 text-[clamp(11px,1vw,14px)] leading-[1.4] text-slate-300">
+                  Sans achat dans ce délai, le code devient invalide. Après activation, il reste valable 12 mois.
+                </p>
+              </div>
+            </div>
+
             <div className="chef-card-details mt-9 grid max-w-[700px] grid-cols-3 gap-x-5 gap-y-4 border-t border-white/15 pt-5">
               <Detail icon={Mail}>Code envoyé par email</Detail>
-              <Detail icon={Clock3}>Activez sous 30 jours · valable 12 mois</Detail>
+              <Detail icon={Clock3}>Activation par achat sous 30 jours</Detail>
               <Detail icon={ShieldCheck}>Sans montant minimum</Detail>
             </div>
           </section>
@@ -106,7 +123,7 @@ export function ChefEventQrCard() {
         </div>
 
         <footer className="flex flex-col gap-2 border-t border-white/10 pt-4 text-[10px] leading-relaxed text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-          <span>Activez votre code dans les 30 jours suivant l&apos;inscription pour conserver sa validité de 12 mois.</span>
+          <span>Le délai commence à l&apos;inscription · une commande payée est nécessaire pour activer les 12 mois.</span>
           <span className="shrink-0 font-semibold text-slate-300">Tous les produits · France</span>
         </footer>
       </div>

@@ -162,7 +162,7 @@ export function buildEventVoucherEmail(data: {
     to: data.to,
     from: getSenderForMarket("fr"),
     subject: "Votre offre xHACCP France — 20 % de réduction",
-    text: `Bonjour ${data.firstName},\n\nMerci pour votre inscription. Voici votre code personnel de réduction de ${data.discountValue} % : ${data.code}\n\nPour bénéficier de 12 mois de validité, utilisez ce code pour une première commande dans les 30 jours suivant votre inscription${activationDeadline ? `, au plus tard le ${activationDeadline}` : ""}. Après cette activation, il reste valable jusqu'au ${validUntil}, sans limite de commandes pendant sa période de validité.\n\nDécouvrir les étiquettes alimentaires : ${foodLabelsUrl}\n\nDécouvrir tous les produits : ${shopUrl}\n\nL'équipe xHACCP France`,
+    text: `Bonjour ${data.firstName},\n\nMerci pour votre inscription. Voici votre code personnel de réduction de ${data.discountValue} % : ${data.code}\n\nIMPORTANT — ACTIVATION PAR ACHAT : effectuez une première commande payée dans les 30 jours suivant votre inscription${activationDeadline ? `, au plus tard le ${activationDeadline}` : ""}. Sans achat dans ce délai, le code devient invalide. Après activation, il reste valable jusqu'au ${validUntil}, sans limite de commandes pendant sa période de validité.\n\nDécouvrir les étiquettes alimentaires : ${foodLabelsUrl}\n\nDécouvrir tous les produits : ${shopUrl}\n\nL'équipe xHACCP France`,
     html: `
       <!DOCTYPE html>
       <html lang="fr">
@@ -178,7 +178,10 @@ export function buildEventVoucherEmail(data: {
                 <div style="font-size:12px;color:#53657d;text-transform:uppercase;letter-spacing:1px;">Votre code personnel</div>
                 <div style="margin-top:8px;font-size:30px;font-weight:700;letter-spacing:3px;color:#0f2747;">${code}</div>
               </div>
-              <p style="line-height:1.6;">Pour bénéficier de 12 mois de validité, utilisez ce code pour une première commande dans les 30 jours suivant votre inscription${activationDeadline ? `, au plus tard le <strong>${activationDeadline}</strong>` : ""}. Après cette activation, il reste valable jusqu'au <strong>${validUntil}</strong>, sans limite de commandes pendant sa période de validité.</p>
+              <div style="margin:24px 0;padding:17px 18px;background:#fff6df;border:2px solid #e6a817;border-radius:12px;">
+                <div style="font-size:14px;font-weight:700;color:#855400;text-transform:uppercase;letter-spacing:.4px;">Important — activation par achat</div>
+                <p style="margin:8px 0 0;line-height:1.6;color:#5c430e;">Effectuez une première commande payée dans les 30 jours suivant votre inscription${activationDeadline ? `, au plus tard le <strong>${activationDeadline}</strong>` : ""}. Sans achat dans ce délai, le code devient invalide. Après activation, il reste valable jusqu'au <strong>${validUntil}</strong>.</p>
+              </div>
               <p style="text-align:center;margin:28px 0;">
                 <a href="${foodLabelsUrl}" style="display:inline-block;padding:14px 24px;border-radius:8px;background:#1976d2;color:#fff;text-decoration:none;font-weight:700;">Découvrir les étiquettes alimentaires</a>
               </p>
