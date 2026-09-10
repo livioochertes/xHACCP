@@ -135,6 +135,7 @@ export function buildEventVoucherEmail(data: {
   firstName: string;
   code: string;
   validUntil: Date;
+  activationDeadline?: Date;
   discountValue: string;
 }) {
   const firstName = escapeVoucherEmail(data.firstName);
@@ -145,6 +146,14 @@ export function buildEventVoucherEmail(data: {
     year: "numeric",
     timeZone: "Europe/Paris",
   });
+  const activationDeadline = data.activationDeadline
+    ? data.activationDeadline.toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "Europe/Paris",
+      })
+    : null;
   const discount = escapeVoucherEmail(data.discountValue);
   const shopUrl = "https://xhaccp.fr";
   const foodLabelsUrl = "https://xhaccp.fr/products?category=etiquettes-alimentaires";
@@ -153,7 +162,7 @@ export function buildEventVoucherEmail(data: {
     to: data.to,
     from: getSenderForMarket("fr"),
     subject: "Votre offre xHACCP France — 20 % de réduction",
-    text: `Bonjour ${data.firstName},\n\nMerci pour votre inscription. Voici votre code personnel de réduction de ${data.discountValue} % : ${data.code}\n\nIl est valable jusqu'au ${validUntil} sur tous les produits disponibles sur ${shopUrl}. Le code peut être utilisé sans limite pendant sa période de validité.\n\nDécouvrir les étiquettes alimentaires : ${foodLabelsUrl}\n\nDécouvrir tous les produits : ${shopUrl}\n\nL'équipe xHACCP France`,
+    text: `Bonjour ${data.firstName},\n\nMerci pour votre inscription. Voici votre code personnel de réduction de ${data.discountValue} % : ${data.code}\n\nPour bénéficier de 12 mois de validité, utilisez ce code pour une première commande dans les 30 jours suivant votre inscription${activationDeadline ? `, au plus tard le ${activationDeadline}` : ""}. Après cette activation, il reste valable jusqu'au ${validUntil}, sans limite de commandes pendant sa période de validité.\n\nDécouvrir les étiquettes alimentaires : ${foodLabelsUrl}\n\nDécouvrir tous les produits : ${shopUrl}\n\nL'équipe xHACCP France`,
     html: `
       <!DOCTYPE html>
       <html lang="fr">
@@ -169,7 +178,7 @@ export function buildEventVoucherEmail(data: {
                 <div style="font-size:12px;color:#53657d;text-transform:uppercase;letter-spacing:1px;">Votre code personnel</div>
                 <div style="margin-top:8px;font-size:30px;font-weight:700;letter-spacing:3px;color:#0f2747;">${code}</div>
               </div>
-              <p style="line-height:1.6;">Votre code est valable jusqu'au <strong>${validUntil}</strong>, sans limite de commandes pendant sa période de validité.</p>
+              <p style="line-height:1.6;">Pour bénéficier de 12 mois de validité, utilisez ce code pour une première commande dans les 30 jours suivant votre inscription${activationDeadline ? `, au plus tard le <strong>${activationDeadline}</strong>` : ""}. Après cette activation, il reste valable jusqu'au <strong>${validUntil}</strong>, sans limite de commandes pendant sa période de validité.</p>
               <p style="text-align:center;margin:28px 0;">
                 <a href="${foodLabelsUrl}" style="display:inline-block;padding:14px 24px;border-radius:8px;background:#1976d2;color:#fff;text-decoration:none;font-weight:700;">Découvrir les étiquettes alimentaires</a>
               </p>
@@ -190,6 +199,7 @@ export async function sendEventVoucherEmail(data: {
   firstName: string;
   code: string;
   validUntil: Date;
+  activationDeadline?: Date;
   discountValue: string;
 }): Promise<boolean> {
   return sendEmail(buildEventVoucherEmail(data));

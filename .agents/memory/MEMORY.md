@@ -22,3 +22,4 @@
 - [WMS credential monitoring](wms-monitoring.md) — scheduled WMS checks need durable shared alert state and credential-safe notifications outside the autoscaled web process.
 - [WMS partner guide DOCX](wms-partner-guide-docx.md) — the existing guide may lack Word heading styles; preserve it with python-docx when Pandoc is unavailable.
 - [Event voucher production seeding](event-voucher-production-seeding.md) — production may have campaign tables without seed rows; provision fixed campaigns idempotently at the public boundary.
+- [Event voucher activation window](event-voucher-activation-window.md) — a first paid purchase within 30 days preserves the original 12-month validity.

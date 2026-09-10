@@ -22,6 +22,7 @@ import path from "path";
 import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails, sendEventVoucherEmail } from './email-service.js';
 import { getMarketFromRequest, marketMatches } from "./market-routing.js";
+import { EVENT_VOUCHER_ACTIVATION_DAYS, getVoucherValidityError } from "./voucher-validity.js";
 import { registerSeoRoutes, build404Html, getBaseUrl } from './seo-routes.js';
 import { buildAIMarketCatalog, formatAIMarketCatalog } from './ai-catalog';
 import {
@@ -2634,18 +2635,10 @@ Sitemap: https://${domain}/sitemap.xml
         return res.status(404).json({ valid: false, message: "Voucher code not found" });
       }
 
-      // Check if voucher is active
-      if (!voucher.isActive) {
-        return res.status(400).json({ valid: false, message: "This voucher is no longer active" });
-      }
-
-      // Check validity dates
       const now = new Date();
-      if (voucher.validFrom && new Date(voucher.validFrom) > now) {
-        return res.status(400).json({ valid: false, message: "This voucher is not yet valid" });
-      }
-      if (voucher.validUntil && new Date(voucher.validUntil) < now) {
-        return res.status(400).json({ valid: false, message: "This voucher has expired" });
+      const validityError = getVoucherValidityError(voucher, now);
+      if (validityError) {
+        return res.status(400).json({ valid: false, message: validityError });
       }
 
       // Check max uses
@@ -2702,6 +2695,7 @@ Sitemap: https://${domain}/sitemap.xml
         discountType: campaign.discountType,
         discountValue: campaign.discountValue,
         validMonths: campaign.validMonths,
+        activationDays: EVENT_VOUCHER_ACTIVATION_DAYS,
         landingPath: "/chef-event",
       });
     } catch (error) {
@@ -2755,6 +2749,7 @@ Sitemap: https://${domain}/sitemap.xml
           firstName: result.registration.firstName,
           code: result.voucher.code,
           validUntil: result.voucher.validUntil!,
+          activationDeadline: result.voucher.activationDeadline!,
           discountValue: result.voucher.discountValue,
         });
         if (sent) {
@@ -2867,10 +2862,11 @@ Sitemap: https://${domain}/sitemap.xml
           const now = new Date();
           const validFrom = voucher.validFrom ? new Date(voucher.validFrom) : null;
           const validUntil = voucher.validUntil ? new Date(voucher.validUntil) : null;
+          const validityError = getVoucherValidityError(voucher, now);
           const maxUsesReached = voucher.maxUses && voucher.usedCount && voucher.usedCount >= voucher.maxUses;
           const minOrderMet = !voucher.minOrderAmount || subtotal >= parseFloat(voucher.minOrderAmount);
           
-          if (!maxUsesReached && minOrderMet && 
+          if (!validityError && !maxUsesReached && minOrderMet &&
               (!validFrom || now >= validFrom) && 
               (!validUntil || now <= validUntil)) {
             // Calculate discount based on voucher type
@@ -4086,10 +4082,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           const now = new Date();
           const validFrom = voucher.validFrom ? new Date(voucher.validFrom) : null;
           const validUntil = voucher.validUntil ? new Date(voucher.validUntil) : null;
+          const validityError = getVoucherValidityError(voucher, now);
           const maxUsesReached = voucher.maxUses && voucher.usedCount && voucher.usedCount >= voucher.maxUses;
           const minOrderMet = !voucher.minOrderAmount || subtotal >= parseFloat(voucher.minOrderAmount);
           
-          if (!maxUsesReached && minOrderMet && 
+          if (!validityError && !maxUsesReached && minOrderMet &&
               (!validFrom || now >= validFrom) && 
               (!validUntil || now <= validUntil)) {
             if (voucher.discountType === 'percentage') {

@@ -672,6 +672,8 @@ export const vouchers = pgTable("vouchers", {
   isActive: boolean("is_active").default(true),
   validFrom: timestamp("valid_from"),
   validUntil: timestamp("valid_until"),
+  activationDeadline: timestamp("activation_deadline"),
+  activatedAt: timestamp("activated_at"),
   marketCode: varchar("market_code", { length: 10 }).default("ro").notNull(), // ro, fr, com
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

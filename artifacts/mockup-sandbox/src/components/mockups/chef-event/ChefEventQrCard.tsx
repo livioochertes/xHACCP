@@ -73,7 +73,7 @@ export function ChefEventQrCard() {
 
             <div className="chef-card-details mt-9 grid max-w-[700px] grid-cols-3 gap-x-5 gap-y-4 border-t border-white/15 pt-5">
               <Detail icon={Mail}>Code envoyé par email</Detail>
-              <Detail icon={Clock3}>Valable pendant 12 mois</Detail>
+              <Detail icon={Clock3}>Activez sous 30 jours · valable 12 mois</Detail>
               <Detail icon={ShieldCheck}>Sans montant minimum</Detail>
             </div>
           </section>
@@ -106,7 +106,7 @@ export function ChefEventQrCard() {
         </div>
 
         <footer className="flex flex-col gap-2 border-t border-white/10 pt-4 text-[10px] leading-relaxed text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-          <span>En vous inscrivant, vous acceptez le traitement de vos données et la réception de cette offre promotionnelle.</span>
+          <span>Activez votre code dans les 30 jours suivant l&apos;inscription pour conserver sa validité de 12 mois.</span>
           <span className="shrink-0 font-semibold text-slate-300">Tous les produits · France</span>
         </footer>
       </div>

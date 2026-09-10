@@ -11,6 +11,7 @@ type Campaign = {
   name: string;
   discountValue: string;
   validMonths: number;
+  activationDays: number;
 };
 
 type FormData = {
@@ -191,7 +192,7 @@ export default function ChefEvent() {
                       {submitting ? "Envoi en cours…" : "Recevoir mon code de réduction"}
                     </Button>
                     <p className="text-center text-xs text-slate-500">
-                      Votre code sera valable pendant 12 mois sur tous les produits xHACCP France.
+                      Activez votre code dans les 30 jours suivant votre inscription pour bénéficier de 12 mois de validité sur tous les produits xHACCP France.
                     </p>
                   </form>
                 </>

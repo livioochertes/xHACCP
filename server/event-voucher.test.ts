@@ -8,6 +8,7 @@ test("builds a French event voucher email with the configured sender", () => {
     firstName: "<Ana>",
     code: "CHEF20-<SAFE>",
     validUntil: new Date("2027-09-10T10:00:00.000Z"),
+    activationDeadline: new Date("2026-10-10T10:00:00.000Z"),
     discountValue: "20.00",
   });
 
@@ -20,4 +21,6 @@ test("builds a French event voucher email with the configured sender", () => {
   assert.match(email.html, /10\/09\/2027/);
   assert.match(email.text, /https:\/\/xhaccp\.fr\/products\?category=etiquettes-alimentaires/);
   assert.match(email.html, /href="https:\/\/xhaccp\.fr\/products\?category=etiquettes-alimentaires"/);
+  assert.match(email.text, /30 jours.*10\/10\/2026/i);
+  assert.match(email.html, /10\/10\/2026/);
 });

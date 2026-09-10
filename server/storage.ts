@@ -89,6 +89,7 @@ import { db } from "./db";
 import crypto from "node:crypto";
 import { compositeConfigurationKey } from "./composite-products";
 import { filterPublicReviews } from "./review-validation";
+import { addDays, EVENT_VOUCHER_ACTIVATION_DAYS } from "./voucher-validity";
 import { eq, desc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, notExists } from "drizzle-orm";
 
 export interface AbandonedCartCandidate {
@@ -966,6 +967,15 @@ export class DatabaseStorage implements IStorage {
         })
         .where(and(eq(orders.id, id), ne(orders.paymentStatus, "paid")))
         .returning();
+      if (updatedOrder && current.paymentMethod === "viva" && current.voucherCode) {
+        await tx.update(vouchers)
+          .set({
+            usedCount: sql`COALESCE(${vouchers.usedCount}, 0) + 1`,
+            activatedAt: sql`COALESCE(${vouchers.activatedAt}, NOW())`,
+            updatedAt: now,
+          })
+          .where(eq(vouchers.code, current.voucherCode.toUpperCase()));
+      }
       return updatedOrder ?? null;
     });
   }
@@ -1796,7 +1806,8 @@ export class DatabaseStorage implements IStorage {
   async incrementVoucherUsage(id: number): Promise<Voucher> {
     const [updated] = await db.update(vouchers)
       .set({ 
-        usedCount: sql`${vouchers.usedCount} + 1`,
+        usedCount: sql`COALESCE(${vouchers.usedCount}, 0) + 1`,
+        activatedAt: sql`COALESCE(${vouchers.activatedAt}, NOW())`,
         updatedAt: new Date() 
       })
       .where(eq(vouchers.id, id))
@@ -1903,6 +1914,7 @@ export class DatabaseStorage implements IStorage {
 
       const validUntil = new Date(data.consentAt);
       validUntil.setMonth(validUntil.getMonth() + campaign.validMonths);
+      const activationDeadline = addDays(data.consentAt, EVENT_VOUCHER_ACTIVATION_DAYS);
       const code = `CHEF20-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
 
       const [voucher] = await tx.insert(vouchers).values({
@@ -1915,6 +1927,7 @@ export class DatabaseStorage implements IStorage {
         isActive: true,
         validFrom: data.consentAt,
         validUntil,
+        activationDeadline,
         marketCode: campaign.marketCode,
       }).returning();
 
