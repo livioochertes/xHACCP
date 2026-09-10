@@ -157,6 +157,7 @@ export function buildEventVoucherEmail(data: {
   const discount = escapeVoucherEmail(data.discountValue);
   const shopUrl = "https://xhaccp.fr";
   const foodLabelsUrl = "https://xhaccp.fr/products?category=etiquettes-alimentaires";
+  const logoUrl = "https://xhaccp.fr/attached_assets/logo_xHACCP-S1_1772812623761.png";
 
   return {
     to: data.to,
@@ -169,7 +170,10 @@ export function buildEventVoucherEmail(data: {
         <body style="margin:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#172033;">
           <div style="max-width:620px;margin:0 auto;padding:28px 16px;">
             <div style="background:#0f2747;padding:22px 24px;border-radius:14px 14px 0 0;text-align:center;">
-              <div style="font-size:26px;font-weight:700;color:#fff;">xHACCP France</div>
+              <div style="display:inline-block;padding:8px 16px;background:#fff;border-radius:10px;">
+                <img src="${logoUrl}" alt="xHACCP" width="180" style="display:block;width:180px;max-width:100%;height:auto;border:0;" />
+              </div>
+              <div style="margin-top:8px;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#8deaff;">France</div>
             </div>
             <div style="background:#fff;padding:30px 28px;border-radius:0 0 14px 14px;">
               <h1 style="margin:0 0 16px;color:#0f2747;font-size:25px;">Merci pour votre inscription, ${firstName} !</h1>
