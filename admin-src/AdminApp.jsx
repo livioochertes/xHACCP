@@ -472,6 +472,9 @@ import {
       const [vouchers, setVouchers] = useState([]);
       const [showAddVoucherModal, setShowAddVoucherModal] = useState(false);
       const [editingVoucher, setEditingVoucher] = useState(null);
+      const [eventVoucherData, setEventVoucherData] = useState(null);
+      const [eventVoucherLoading, setEventVoucherLoading] = useState(false);
+      const [eventVoucherSaving, setEventVoucherSaving] = useState(false);
       const [voucherForm, setVoucherForm] = useState({
         code: '',
         name: '',
@@ -671,7 +674,10 @@ import {
           fetchProducts(selectedMarketTab);
         }
         else if (activeView === 'suppliers') fetchSuppliers();
-        else if (activeView === 'vouchers') fetchVouchers();
+        else if (activeView === 'vouchers') {
+          fetchVouchers();
+          fetchEventVoucher();
+        }
         else if (activeView === 'blog') fetchBlogPosts();
         else if (activeView === 'google-feed') fetchGoogleFeed();
         else if (activeView === 'invoices') { setInvoiceMarketFilter('all'); fetchInvoices(selectedMarketTab); fetchInvoiceCounters(); }
@@ -1054,6 +1060,64 @@ import {
           }
         } catch (err) {
           console.error('Network error fetching vouchers:', err);
+        }
+      };
+
+      const fetchEventVoucher = async () => {
+        if (selectedMarketTab !== 'fr' && selectedMarketTab !== 'all') return;
+        setEventVoucherLoading(true);
+        try {
+          const response = await fetch('/admin/api/event-voucher', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (response.ok) setEventVoucherData(data);
+          else console.error('Failed to fetch event voucher:', data.message);
+        } catch (err) {
+          console.error('Network error fetching event voucher:', err);
+        } finally {
+          setEventVoucherLoading(false);
+        }
+      };
+
+      const updateEventVoucherCampaign = async (isActive) => {
+        setEventVoucherSaving(true);
+        try {
+          const response = await fetch('/admin/api/event-voucher/campaign', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ isActive })
+          });
+          const data = await response.json();
+          if (response.ok) {
+            setEventVoucherData((current) => current ? { ...current, campaign: data } : current);
+          } else {
+            alert(data.message || 'Impossible de modifier la campagne.');
+          }
+        } catch (err) {
+          alert('Erreur réseau pendant la mise à jour de la campagne.');
+        } finally {
+          setEventVoucherSaving(false);
+        }
+      };
+
+      const resendEventVoucherEmail = async (registrationId) => {
+        try {
+          const response = await fetch(`/admin/api/event-voucher/registrations/${registrationId}/resend`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            alert(data.message || 'Impossible de renvoyer l’email.');
+            return;
+          }
+          await fetchEventVoucher();
+        } catch (err) {
+          alert('Erreur réseau pendant le renvoi de l’email.');
         }
       };
 
@@ -5991,6 +6055,98 @@ import {
                 <p style={{color: '#666', marginBottom: '20px'}}>
                   {t('vouchers.description')}
                 </p>
+
+                {(selectedMarketTab === 'fr' || selectedMarketTab === 'all') && (
+                  <div style={{marginBottom: '28px', padding: '20px', borderRadius: '10px', border: '1px solid #cfe2ff', background: '#f4f8ff'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap'}}>
+                      <div>
+                        <h4 style={{margin: '0 0 6px', color: '#12345b'}}>🎫 Campagne événement chefs — France</h4>
+                        <p style={{margin: 0, color: '#52657d', fontSize: '13px'}}>
+                          QR code vers le formulaire public. Chaque inscription reçoit un code de 20 %, sans montant minimum, valable 12 mois.
+                        </p>
+                      </div>
+                      {eventVoucherData?.campaign && (
+                        <button
+                          type="button"
+                          disabled={eventVoucherSaving}
+                          onClick={() => updateEventVoucherCampaign(!eventVoucherData.campaign.isActive)}
+                          style={{
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '9px 14px',
+                            cursor: eventVoucherSaving ? 'wait' : 'pointer',
+                            color: '#fff',
+                            background: eventVoucherData.campaign.isActive ? '#dc3545' : '#198754'
+                          }}
+                        >
+                          {eventVoucherData.campaign.isActive ? 'Désactiver la campagne' : 'Activer la campagne'}
+                        </button>
+                      )}
+                    </div>
+
+                    {eventVoucherLoading && <p style={{color: '#52657d'}}>Chargement de la campagne…</p>}
+                    {!eventVoucherLoading && eventVoucherData?.campaign && (
+                      <>
+                        <div style={{display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', marginTop: '18px'}}>
+                          <img
+                            src={eventVoucherData.qrCodeDataUrl}
+                            alt="QR code de la campagne événement FR"
+                            style={{width: '180px', height: '180px', background: '#fff', padding: '8px', borderRadius: '8px'}}
+                          />
+                          <div style={{fontSize: '13px', color: '#52657d'}}>
+                            <div style={{marginBottom: '8px'}}><strong>Page publique :</strong> {eventVoucherData.publicUrl}</div>
+                            <div style={{marginBottom: '8px'}}><strong>Statut :</strong> {eventVoucherData.campaign.isActive ? 'Active' : 'Inactive'}</div>
+                            <div style={{marginBottom: '14px'}}><strong>Inscriptions :</strong> {eventVoucherData.registrations?.length || 0}</div>
+                            <a
+                              href={eventVoucherData.qrCodeDataUrl}
+                              download="xhaccp-fr-chef-event-qr.png"
+                              style={{display: 'inline-block', padding: '9px 13px', borderRadius: '6px', background: '#0d6efd', color: '#fff', textDecoration: 'none'}}
+                            >
+                              Télécharger le QR code
+                            </a>
+                          </div>
+                        </div>
+                        <div style={{overflowX: 'auto', marginTop: '20px'}}>
+                          <table style={{width: '100%', borderCollapse: 'collapse', background: '#fff'}}>
+                            <thead>
+                              <tr style={{background: '#eaf2ff'}}>
+                                <th style={{padding: '9px', textAlign: 'left'}}>Participant</th>
+                                <th style={{padding: '9px', textAlign: 'left'}}>Restaurant</th>
+                                <th style={{padding: '9px', textAlign: 'left'}}>Email</th>
+                                <th style={{padding: '9px', textAlign: 'left'}}>Code</th>
+                                <th style={{padding: '9px', textAlign: 'left'}}>Email</th>
+                                <th style={{padding: '9px', textAlign: 'left'}}>Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(eventVoucherData.registrations || []).map((registration) => (
+                                <tr key={registration.id} style={{borderTop: '1px solid #e1e8f0'}}>
+                                  <td style={{padding: '9px'}}>{registration.firstName} {registration.lastName}</td>
+                                  <td style={{padding: '9px'}}>{registration.restaurant}</td>
+                                  <td style={{padding: '9px'}}>{registration.email}</td>
+                                  <td style={{padding: '9px'}}><code>{registration.voucherCode || '—'}</code></td>
+                                  <td style={{padding: '9px'}}>{registration.emailStatus}</td>
+                                  <td style={{padding: '9px'}}>
+                                    <button
+                                      type="button"
+                                      onClick={() => resendEventVoucherEmail(registration.id)}
+                                      style={{border: '1px solid #0d6efd', color: '#0d6efd', background: '#fff', borderRadius: '5px', padding: '5px 8px', cursor: 'pointer'}}
+                                    >
+                                      Renvoyer
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                              {(!eventVoucherData.registrations || eventVoucherData.registrations.length === 0) && (
+                                <tr><td colSpan="6" style={{padding: '14px', textAlign: 'center', color: '#6c757d'}}>Aucune inscription pour le moment.</td></tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
                 
                 {vouchers.length > 0 ? (
                   <div style={{overflowX: 'auto'}}>

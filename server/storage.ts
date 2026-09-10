@@ -17,6 +17,8 @@ import {
   homepageHeroSettings,
   shippingSettings,
   vouchers,
+  eventVoucherCampaigns,
+  eventVoucherRegistrations,
   marketSettings,
   marketingSegments,
   marketingCampaigns,
@@ -63,6 +65,8 @@ import {
   type InsertShippingSettings,
   type Voucher,
   type InsertVoucher,
+  type EventVoucherCampaign,
+  type EventVoucherRegistration,
   type MarketSettings,
   type InsertMarketSettings,
   type MarketingSegment,
@@ -219,6 +223,20 @@ export interface IStorage {
   updateVoucher(id: number, voucher: Partial<InsertVoucher>): Promise<Voucher>;
   deleteVoucher(id: number): Promise<void>;
   incrementVoucherUsage(id: number): Promise<Voucher>;
+  getEventVoucherCampaign(slug: string, includeInactive?: boolean): Promise<EventVoucherCampaign | undefined>;
+  updateEventVoucherCampaign(id: number, campaign: Partial<EventVoucherCampaign>): Promise<EventVoucherCampaign>;
+  getEventVoucherRegistrations(campaignId: number): Promise<Array<EventVoucherRegistration & { voucherCode: string | null; validUntil: Date | null }>>;
+  registerEventVoucher(data: {
+    campaignId: number;
+    firstName: string;
+    lastName: string;
+    restaurant: string;
+    phone: string;
+    email: string;
+    consentAt: Date;
+  }): Promise<{ registration: EventVoucherRegistration; voucher: Voucher; alreadyRegistered: boolean }>;
+  markEventVoucherEmailSent(id: number): Promise<EventVoucherRegistration>;
+  markEventVoucherEmailFailed(id: number, error: string): Promise<EventVoucherRegistration>;
 
   // Blog post operations
   getBlogPosts(options?: { published?: boolean; language?: string; marketCode?: string; limit?: number; offset?: number }): Promise<BlogPost[]>;
@@ -1780,6 +1798,138 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date() 
       })
       .where(eq(vouchers.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getEventVoucherCampaign(slug: string, includeInactive = false): Promise<EventVoucherCampaign | undefined> {
+    const conditions = [eq(eventVoucherCampaigns.slug, slug)];
+    if (!includeInactive) {
+      conditions.push(eq(eventVoucherCampaigns.isActive, true));
+    }
+    const [campaign] = await db.select()
+      .from(eventVoucherCampaigns)
+      .where(and(...conditions))
+      .limit(1);
+    return campaign;
+  }
+
+  async updateEventVoucherCampaign(id: number, campaign: Partial<EventVoucherCampaign>): Promise<EventVoucherCampaign> {
+    const [updated] = await db.update(eventVoucherCampaigns)
+      .set({ ...campaign, updatedAt: new Date() })
+      .where(eq(eventVoucherCampaigns.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getEventVoucherRegistrations(
+    campaignId: number,
+  ): Promise<Array<EventVoucherRegistration & { voucherCode: string | null; validUntil: Date | null }>> {
+    const rows = await db.select({
+      registration: eventVoucherRegistrations,
+      voucherCode: vouchers.code,
+      validUntil: vouchers.validUntil,
+    })
+      .from(eventVoucherRegistrations)
+      .leftJoin(vouchers, eq(eventVoucherRegistrations.voucherId, vouchers.id))
+      .where(eq(eventVoucherRegistrations.campaignId, campaignId))
+      .orderBy(desc(eventVoucherRegistrations.createdAt));
+
+    return rows.map(({ registration, voucherCode, validUntil }) => ({
+      ...registration,
+      voucherCode: voucherCode ?? null,
+      validUntil: validUntil ?? null,
+    }));
+  }
+
+  async registerEventVoucher(data: {
+    campaignId: number;
+    firstName: string;
+    lastName: string;
+    restaurant: string;
+    phone: string;
+    email: string;
+    consentAt: Date;
+  }): Promise<{ registration: EventVoucherRegistration; voucher: Voucher; alreadyRegistered: boolean }> {
+    const email = data.email.trim().toLowerCase();
+
+    return db.transaction(async (tx) => {
+      const [existing] = await tx.select({
+        registration: eventVoucherRegistrations,
+        voucher: vouchers,
+      })
+        .from(eventVoucherRegistrations)
+        .innerJoin(vouchers, eq(eventVoucherRegistrations.voucherId, vouchers.id))
+        .where(and(
+          eq(eventVoucherRegistrations.campaignId, data.campaignId),
+          eq(eventVoucherRegistrations.email, email),
+        ))
+        .limit(1);
+
+      if (existing) {
+        return {
+          registration: existing.registration,
+          voucher: existing.voucher,
+          alreadyRegistered: true,
+        };
+      }
+
+      const [campaign] = await tx.select()
+        .from(eventVoucherCampaigns)
+        .where(and(
+          eq(eventVoucherCampaigns.id, data.campaignId),
+          eq(eventVoucherCampaigns.isActive, true),
+        ))
+        .limit(1);
+      if (!campaign) {
+        throw new Error("Event voucher campaign is not active");
+      }
+
+      const validUntil = new Date(data.consentAt);
+      validUntil.setMonth(validUntil.getMonth() + campaign.validMonths);
+      const code = `CHEF20-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
+
+      const [voucher] = await tx.insert(vouchers).values({
+        code,
+        name: campaign.name,
+        discountType: campaign.discountType,
+        discountValue: campaign.discountValue,
+        minOrderAmount: null,
+        maxUses: null,
+        isActive: true,
+        validFrom: data.consentAt,
+        validUntil,
+        marketCode: campaign.marketCode,
+      }).returning();
+
+      const [registration] = await tx.insert(eventVoucherRegistrations).values({
+        campaignId: data.campaignId,
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        restaurant: data.restaurant.trim(),
+        phone: data.phone.trim(),
+        email,
+        voucherId: voucher.id,
+        consentAt: data.consentAt,
+        emailStatus: "pending",
+      }).returning();
+
+      return { registration, voucher, alreadyRegistered: false };
+    });
+  }
+
+  async markEventVoucherEmailSent(id: number): Promise<EventVoucherRegistration> {
+    const [updated] = await db.update(eventVoucherRegistrations)
+      .set({ emailStatus: "sent", emailSentAt: new Date(), emailError: null, updatedAt: new Date() })
+      .where(eq(eventVoucherRegistrations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async markEventVoucherEmailFailed(id: number, error: string): Promise<EventVoucherRegistration> {
+    const [updated] = await db.update(eventVoucherRegistrations)
+      .set({ emailStatus: "failed", emailError: error.slice(0, 1000), updatedAt: new Date() })
+      .where(eq(eventVoucherRegistrations.id, id))
       .returning();
     return updated;
   }

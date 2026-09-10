@@ -677,6 +677,39 @@ export const vouchers = pgTable("vouchers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Public event voucher campaigns and registrations
+export const eventVoucherCampaigns = pgTable("event_voucher_campaigns", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  marketCode: varchar("market_code", { length: 10 }).notNull().default("fr"),
+  discountType: varchar("discount_type", { length: 20 }).notNull().default("percentage"),
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull().default("20.00"),
+  validMonths: integer("valid_months").notNull().default(12),
+  isActive: boolean("is_active").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const eventVoucherRegistrations = pgTable("event_voucher_registrations", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").notNull().references(() => eventVoucherCampaigns.id, { onDelete: "cascade" }),
+  firstName: varchar("first_name", { length: 100 }).notNull(),
+  lastName: varchar("last_name", { length: 100 }).notNull(),
+  restaurant: varchar("restaurant", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 40 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  voucherId: integer("voucher_id").references(() => vouchers.id, { onDelete: "set null" }),
+  consentAt: timestamp("consent_at").notNull(),
+  emailStatus: varchar("email_status", { length: 20 }).notNull().default("pending"),
+  emailSentAt: timestamp("email_sent_at"),
+  emailError: text("email_error"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  campaignEmailUnique: uniqueIndex("event_voucher_campaign_email_unique").on(table.campaignId, table.email),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
@@ -950,6 +983,18 @@ export const insertVoucherSchema = createInsertSchema(vouchers).omit({
   updatedAt: true,
 });
 
+export const insertEventVoucherCampaignSchema = createInsertSchema(eventVoucherCampaigns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEventVoucherRegistrationSchema = createInsertSchema(eventVoucherRegistrations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertMarketSettingsSchema = createInsertSchema(marketSettings).omit({
   id: true,
   createdAt: true,
@@ -1017,6 +1062,10 @@ export type ShippingSettings = typeof shippingSettings.$inferSelect;
 export type InsertShippingSettings = z.infer<typeof insertShippingSettingsSchema>;
 export type Voucher = typeof vouchers.$inferSelect;
 export type InsertVoucher = z.infer<typeof insertVoucherSchema>;
+export type EventVoucherCampaign = typeof eventVoucherCampaigns.$inferSelect;
+export type InsertEventVoucherCampaign = z.infer<typeof insertEventVoucherCampaignSchema>;
+export type EventVoucherRegistration = typeof eventVoucherRegistrations.$inferSelect;
+export type InsertEventVoucherRegistration = z.infer<typeof insertEventVoucherRegistrationSchema>;
 export type MarketSettings = typeof marketSettings.$inferSelect;
 export type InsertMarketSettings = z.infer<typeof insertMarketSettingsSchema>;
 export type MarketingSegment = typeof marketingSegments.$inferSelect;

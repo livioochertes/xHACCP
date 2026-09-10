@@ -121,6 +121,76 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
   }
 }
 
+function escapeVoucherEmail(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+export function buildEventVoucherEmail(data: {
+  to: string;
+  firstName: string;
+  code: string;
+  validUntil: Date;
+  discountValue: string;
+}) {
+  const firstName = escapeVoucherEmail(data.firstName);
+  const code = escapeVoucherEmail(data.code);
+  const validUntil = data.validUntil.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Europe/Paris",
+  });
+  const discount = escapeVoucherEmail(data.discountValue);
+  const shopUrl = "https://xhaccp.fr";
+
+  return {
+    to: data.to,
+    from: getSenderForMarket("fr"),
+    subject: "Votre offre xHACCP France — 20 % de réduction",
+    text: `Bonjour ${data.firstName},\n\nMerci pour votre inscription. Voici votre code personnel de réduction de ${data.discountValue} % : ${data.code}\n\nIl est valable jusqu'au ${validUntil} sur tous les produits disponibles sur ${shopUrl}. Le code peut être utilisé sans limite pendant sa période de validité.\n\nDécouvrir les produits : ${shopUrl}\n\nL'équipe xHACCP France`,
+    html: `
+      <!DOCTYPE html>
+      <html lang="fr">
+        <body style="margin:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#172033;">
+          <div style="max-width:620px;margin:0 auto;padding:28px 16px;">
+            <div style="background:#0f2747;padding:22px 24px;border-radius:14px 14px 0 0;text-align:center;">
+              <div style="font-size:26px;font-weight:700;color:#fff;">xHACCP France</div>
+            </div>
+            <div style="background:#fff;padding:30px 28px;border-radius:0 0 14px 14px;">
+              <h1 style="margin:0 0 16px;color:#0f2747;font-size:25px;">Merci pour votre inscription, ${firstName} !</h1>
+              <p style="font-size:16px;line-height:1.6;">Profitez de <strong>${discount} % de réduction</strong> sur tous les produits de xHACCP France.</p>
+              <div style="margin:26px 0;padding:20px;text-align:center;background:#eef6ff;border:2px dashed #1976d2;border-radius:12px;">
+                <div style="font-size:12px;color:#53657d;text-transform:uppercase;letter-spacing:1px;">Votre code personnel</div>
+                <div style="margin-top:8px;font-size:30px;font-weight:700;letter-spacing:3px;color:#0f2747;">${code}</div>
+              </div>
+              <p style="line-height:1.6;">Votre code est valable jusqu'au <strong>${validUntil}</strong>, sans limite de commandes pendant sa période de validité.</p>
+              <p style="text-align:center;margin:28px 0;">
+                <a href="${shopUrl}" style="display:inline-block;padding:14px 24px;border-radius:8px;background:#1976d2;color:#fff;text-decoration:none;font-weight:700;">Découvrir xHACCP France</a>
+              </p>
+              <p style="font-size:12px;color:#68758a;line-height:1.5;">Cette offre est liée à votre inscription à l'événement. Pour toute question, contactez l'équipe xHACCP France.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+}
+
+export async function sendEventVoucherEmail(data: {
+  to: string;
+  firstName: string;
+  code: string;
+  validUntil: Date;
+  discountValue: string;
+}): Promise<boolean> {
+  return sendEmail(buildEventVoucherEmail(data));
+}
+
 export async function sendSubscriptionRenewalEmail(
   customerEmail: string,
   order: OrderWithItems,

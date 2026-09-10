@@ -27,7 +27,7 @@ import {
   saveGoogleMerchantFeed,
   type MerchantMarket,
 } from "./google-merchant-feed";
-import { getSenderForMarket, sendEmail } from "./email-service";
+import { getSenderForMarket, sendEmail, sendEventVoucherEmail } from "./email-service";
 import { localizeAdminCategories as localizeCategoryRows } from "./admin-category-localization";
 import {
   createPlaintextWmsApiKey,
@@ -39,6 +39,7 @@ import {
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
 })();
+const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
 
 function normalizeOptionalEan(value: unknown): string | null {
   const ean = value === null || value === undefined ? "" : String(value).trim();
@@ -6314,6 +6315,76 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("Error updating shipping settings:", error);
       res.status(500).json({ message: "Failed to update shipping settings" });
+    }
+  });
+
+  app.get("/admin/api/event-voucher", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!canAccessMarket(req, "fr")) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG, true);
+      if (!campaign) return res.status(404).json({ message: "Event voucher campaign not found" });
+      const registrations = await storage.getEventVoucherRegistrations(campaign.id);
+      const publicUrl = "https://xhaccp.fr/chef-event";
+      const qrCodeDataUrl = await QRCode.toDataURL(publicUrl, { width: 320, margin: 2 });
+      res.json({ campaign, registrations, publicUrl, qrCodeDataUrl });
+    } catch (error) {
+      console.error("Error fetching event voucher campaign:", error);
+      res.status(500).json({ message: "Failed to fetch event voucher campaign" });
+    }
+  });
+
+  app.put("/admin/api/event-voucher/campaign", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!canAccessMarket(req, "fr")) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG, true);
+      if (!campaign) return res.status(404).json({ message: "Event voucher campaign not found" });
+      const updated = await storage.updateEventVoucherCampaign(campaign.id, {
+        name: typeof req.body?.name === "string" && req.body.name.trim()
+          ? req.body.name.trim().slice(0, 255)
+          : campaign.name,
+        isActive: typeof req.body?.isActive === "boolean" ? req.body.isActive : campaign.isActive,
+      });
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating event voucher campaign:", error);
+      res.status(500).json({ message: "Failed to update event voucher campaign" });
+    }
+  });
+
+  app.post("/admin/api/event-voucher/registrations/:id/resend", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!canAccessMarket(req, "fr")) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG, true);
+      if (!campaign) return res.status(404).json({ message: "Event voucher campaign not found" });
+      const registrationId = Number(req.params.id);
+      const registration = (await storage.getEventVoucherRegistrations(campaign.id))
+        .find(item => item.id === registrationId);
+      if (!registration || !registration.voucherCode || !registration.validUntil) {
+        return res.status(404).json({ message: "Registration not found" });
+      }
+
+      const sent = await sendEventVoucherEmail({
+        to: registration.email,
+        firstName: registration.firstName,
+        code: registration.voucherCode,
+        validUntil: registration.validUntil,
+        discountValue: campaign.discountValue,
+      });
+      if (sent) {
+        await storage.markEventVoucherEmailSent(registration.id);
+        return res.json({ success: true });
+      }
+      await storage.markEventVoucherEmailFailed(registration.id, "SendGrid did not accept the event voucher email");
+      res.status(502).json({ message: "Email could not be sent" });
+    } catch (error) {
+      console.error("Error resending event voucher email:", error);
+      res.status(500).json({ message: "Failed to resend event voucher email" });
     }
   });
 

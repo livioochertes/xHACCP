@@ -13103,6 +13103,9 @@
     const [vouchers, setVouchers] = (0, import_react13.useState)([]);
     const [showAddVoucherModal, setShowAddVoucherModal] = (0, import_react13.useState)(false);
     const [editingVoucher, setEditingVoucher] = (0, import_react13.useState)(null);
+    const [eventVoucherData, setEventVoucherData] = (0, import_react13.useState)(null);
+    const [eventVoucherLoading, setEventVoucherLoading] = (0, import_react13.useState)(false);
+    const [eventVoucherSaving, setEventVoucherSaving] = (0, import_react13.useState)(false);
     const [voucherForm, setVoucherForm] = (0, import_react13.useState)({
       code: "",
       name: "",
@@ -13275,8 +13278,10 @@
       else if (activeView === "products") {
         fetchProducts(selectedMarketTab);
       } else if (activeView === "suppliers") fetchSuppliers();
-      else if (activeView === "vouchers") fetchVouchers();
-      else if (activeView === "blog") fetchBlogPosts();
+      else if (activeView === "vouchers") {
+        fetchVouchers();
+        fetchEventVoucher();
+      } else if (activeView === "blog") fetchBlogPosts();
       else if (activeView === "google-feed") fetchGoogleFeed();
       else if (activeView === "invoices") {
         setInvoiceMarketFilter("all");
@@ -13598,6 +13603,61 @@
         }
       } catch (err) {
         console.error("Network error fetching vouchers:", err);
+      }
+    };
+    const fetchEventVoucher = async () => {
+      if (selectedMarketTab !== "fr" && selectedMarketTab !== "all") return;
+      setEventVoucherLoading(true);
+      try {
+        const response = await fetch("/admin/api/event-voucher", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (response.ok) setEventVoucherData(data);
+        else console.error("Failed to fetch event voucher:", data.message);
+      } catch (err) {
+        console.error("Network error fetching event voucher:", err);
+      } finally {
+        setEventVoucherLoading(false);
+      }
+    };
+    const updateEventVoucherCampaign = async (isActive) => {
+      setEventVoucherSaving(true);
+      try {
+        const response = await fetch("/admin/api/event-voucher/campaign", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({ isActive })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setEventVoucherData((current) => current ? { ...current, campaign: data } : current);
+        } else {
+          alert(data.message || "Impossible de modifier la campagne.");
+        }
+      } catch (err) {
+        alert("Erreur r\xE9seau pendant la mise \xE0 jour de la campagne.");
+      } finally {
+        setEventVoucherSaving(false);
+      }
+    };
+    const resendEventVoucherEmail = async (registrationId) => {
+      try {
+        const response = await fetch(`/admin/api/event-voucher/registrations/${registrationId}/resend`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          alert(data.message || "Impossible de renvoyer l\u2019email.");
+          return;
+        }
+        await fetchEventVoucher();
+      } catch (err) {
+        alert("Erreur r\xE9seau pendant le renvoi de l\u2019email.");
       }
     };
     const fetchInvoices = async (mktFilter) => {
@@ -18721,6 +18781,103 @@ This action cannot be undone.`)) {
               )
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", marginBottom: "20px" }, children: t2("vouchers.description") }),
+            (selectedMarketTab === "fr" || selectedMarketTab === "all") && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "28px", padding: "20px", borderRadius: "10px", border: "1px solid #cfe2ff", background: "#f4f8ff" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", flexWrap: "wrap" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 6px", color: "#12345b" }, children: "\u{1F3AB} Campagne \xE9v\xE9nement chefs \u2014 France" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#52657d", fontSize: "13px" }, children: "QR code vers le formulaire public. Chaque inscription re\xE7oit un code de 20 %, sans montant minimum, valable 12 mois." })
+                ] }),
+                eventVoucherData?.campaign && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "button",
+                  {
+                    type: "button",
+                    disabled: eventVoucherSaving,
+                    onClick: () => updateEventVoucherCampaign(!eventVoucherData.campaign.isActive),
+                    style: {
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "9px 14px",
+                      cursor: eventVoucherSaving ? "wait" : "pointer",
+                      color: "#fff",
+                      background: eventVoucherData.campaign.isActive ? "#dc3545" : "#198754"
+                    },
+                    children: eventVoucherData.campaign.isActive ? "D\xE9sactiver la campagne" : "Activer la campagne"
+                  }
+                )
+              ] }),
+              eventVoucherLoading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#52657d" }, children: "Chargement de la campagne\u2026" }),
+              !eventVoucherLoading && eventVoucherData?.campaign && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "20px", alignItems: "center", flexWrap: "wrap", marginTop: "18px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "img",
+                    {
+                      src: eventVoucherData.qrCodeDataUrl,
+                      alt: "QR code de la campagne \xE9v\xE9nement FR",
+                      style: { width: "180px", height: "180px", background: "#fff", padding: "8px", borderRadius: "8px" }
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "13px", color: "#52657d" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "8px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Page publique :" }),
+                      " ",
+                      eventVoucherData.publicUrl
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "8px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Statut :" }),
+                      " ",
+                      eventVoucherData.campaign.isActive ? "Active" : "Inactive"
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "14px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Inscriptions :" }),
+                      " ",
+                      eventVoucherData.registrations?.length || 0
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "a",
+                      {
+                        href: eventVoucherData.qrCodeDataUrl,
+                        download: "xhaccp-fr-chef-event-qr.png",
+                        style: { display: "inline-block", padding: "9px 13px", borderRadius: "6px", background: "#0d6efd", color: "#fff", textDecoration: "none" },
+                        children: "T\xE9l\xE9charger le QR code"
+                      }
+                    )
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto", marginTop: "20px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", background: "#fff" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { background: "#eaf2ff" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "9px", textAlign: "left" }, children: "Participant" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "9px", textAlign: "left" }, children: "Restaurant" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "9px", textAlign: "left" }, children: "Email" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "9px", textAlign: "left" }, children: "Code" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "9px", textAlign: "left" }, children: "Email" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "9px", textAlign: "left" }, children: "Action" })
+                  ] }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tbody", { children: [
+                    (eventVoucherData.registrations || []).map((registration) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderTop: "1px solid #e1e8f0" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "9px" }, children: [
+                        registration.firstName,
+                        " ",
+                        registration.lastName
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "9px" }, children: registration.restaurant }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "9px" }, children: registration.email }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "9px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("code", { children: registration.voucherCode || "\u2014" }) }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "9px" }, children: registration.emailStatus }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "9px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          type: "button",
+                          onClick: () => resendEventVoucherEmail(registration.id),
+                          style: { border: "1px solid #0d6efd", color: "#0d6efd", background: "#fff", borderRadius: "5px", padding: "5px 8px", cursor: "pointer" },
+                          children: "Renvoyer"
+                        }
+                      ) })
+                    ] }, registration.id)),
+                    (!eventVoucherData.registrations || eventVoucherData.registrations.length === 0) && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tr", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { colSpan: "6", style: { padding: "14px", textAlign: "center", color: "#6c757d" }, children: "Aucune inscription pour le moment." }) })
+                  ] })
+                ] }) })
+              ] })
+            ] }),
             vouchers.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("vouchers.code") }),

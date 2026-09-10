@@ -13,13 +13,14 @@ import { db } from "./db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import rateLimit from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import QRCode from "qrcode";
 import path from "path";
 import { createInvoiceService } from './invoice-service.js';
-import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
+import { sendNotificationPreferencesEmail, sendContactFormEmails, sendEventVoucherEmail } from './email-service.js';
 import { getMarketFromRequest, marketMatches } from "./market-routing.js";
 import { registerSeoRoutes, build404Html, getBaseUrl } from './seo-routes.js';
 import { buildAIMarketCatalog, formatAIMarketCatalog } from './ai-catalog';
@@ -44,6 +45,15 @@ import {
   type CompositeComponentSource,
 } from "./composite-products";
 import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
+
+const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
+const eventVoucherRegistrationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Trop de tentatives. Veuillez réessayer plus tard." },
+});
 
 async function invoiceMatchesRequestMarket(invoice: { market?: string | null; orderId?: number | null }, market: "ro" | "fr" | "com"): Promise<boolean> {
   if (!marketMatches(invoice.market, market)) return false;
@@ -2658,6 +2668,99 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
+  app.get("/api/event-voucher/campaign", async (req, res) => {
+    try {
+      if (getMarketFromRequest(req) !== "fr") {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+      const campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG);
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+      res.json({
+        slug: campaign.slug,
+        name: campaign.name,
+        marketCode: campaign.marketCode,
+        discountType: campaign.discountType,
+        discountValue: campaign.discountValue,
+        validMonths: campaign.validMonths,
+        landingPath: "/chef-event",
+      });
+    } catch (error) {
+      console.error("Get event voucher campaign error:", error);
+      res.status(500).json({ message: "Failed to load campaign" });
+    }
+  });
+
+  app.post("/api/event-voucher/register", eventVoucherRegistrationLimiter, async (req, res) => {
+    try {
+      if (getMarketFromRequest(req) !== "fr") {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      const campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG);
+      if (!campaign) {
+        return res.status(404).json({ message: "Cette campagne n'est plus disponible." });
+      }
+
+      const firstName = typeof req.body?.firstName === "string" ? req.body.firstName.trim() : "";
+      const lastName = typeof req.body?.lastName === "string" ? req.body.lastName.trim() : "";
+      const restaurant = typeof req.body?.restaurant === "string" ? req.body.restaurant.trim() : "";
+      const phone = typeof req.body?.phone === "string" ? req.body.phone.trim() : "";
+      const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+      const consent = req.body?.consent === true;
+
+      if (!firstName || firstName.length > 100 ||
+          !lastName || lastName.length > 100 ||
+          !restaurant || restaurant.length > 255 ||
+          !phone || phone.length > 40 ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 255) {
+        return res.status(400).json({ message: "Veuillez compléter correctement tous les champs obligatoires." });
+      }
+      if (!consent) {
+        return res.status(400).json({ message: "Votre consentement est nécessaire pour recevoir l'offre par email." });
+      }
+
+      const result = await storage.registerEventVoucher({
+        campaignId: campaign.id,
+        firstName,
+        lastName,
+        restaurant,
+        phone,
+        email,
+        consentAt: new Date(),
+      });
+
+      if (result.registration.emailStatus !== "sent") {
+        const sent = await sendEventVoucherEmail({
+          to: result.registration.email,
+          firstName: result.registration.firstName,
+          code: result.voucher.code,
+          validUntil: result.voucher.validUntil!,
+          discountValue: result.voucher.discountValue,
+        });
+        if (sent) {
+          await storage.markEventVoucherEmailSent(result.registration.id);
+        } else {
+          await storage.markEventVoucherEmailFailed(
+            result.registration.id,
+            "SendGrid did not accept the event voucher email",
+          );
+          return res.status(502).json({ message: "Votre inscription est enregistrée, mais l'email n'a pas pu être envoyé. Veuillez réessayer." });
+        }
+      }
+
+      res.json({
+        success: true,
+        alreadyRegistered: result.alreadyRegistered,
+        message: "Merci ! Votre code de réduction vous a été envoyé par email.",
+      });
+    } catch (error) {
+      console.error("Register event voucher error:", error);
+      res.status(500).json({ message: "Une erreur est survenue. Veuillez réessayer." });
+    }
+  });
+
   // Order routes
   app.get("/api/orders", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -4966,14 +5069,14 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   const KNOWN_SPA_EXACT = new Set([
     '/cart', '/checkout', '/merci', '/login', '/account',
     '/products', '/blog', '/about', '/b2b', '/terms', '/privacy',
-    '/ai-assistant', '/',
+    '/ai-assistant', '/chef-event', '/',
   ]);
   const KNOWN_SPA_PREFIXES = [
     '/account/', '/invoice/', '/pay/', '/auth/',
     '/api/', '/r2/', '/uploads/', '/attached_assets/', '/assets/',
     '/admin', '/admin/vendor', '/@', '/__', '/_vite',
     '/products/', '/blog/', '/about', '/b2b', '/terms', '/privacy',
-    '/ai-assistant', '/cart', '/checkout', '/merci', '/login',
+    '/ai-assistant', '/chef-event', '/cart', '/checkout', '/merci', '/login',
   ];
 
   app.get('*', (req, res, next) => {
