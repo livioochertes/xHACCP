@@ -121,10 +121,16 @@ export default function ChefEvent() {
               ) : success ? (
                 <div className="py-8 text-center">
                   <CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-emerald-600" />
-                  <h2 className="mb-3 text-2xl font-bold text-slate-900">Votre offre est en route !</h2>
+                  <h2 className="mb-3 text-2xl font-bold text-slate-900">Merci pour votre inscription !</h2>
                   <p className="text-slate-600">
-                    Vérifiez votre boîte email pour retrouver votre code personnel de réduction.
+                    Le formulaire est terminé. Vérifiez votre boîte email pour retrouver votre code personnel de réduction.
                   </p>
+                  <a
+                    className="mt-5 inline-block font-medium text-blue-700 underline"
+                    href="https://xhaccp.fr/products?category=etiquettes-alimentaires"
+                  >
+                    Découvrir les étiquettes alimentaires
+                  </a>
                   <Button className="mt-7" onClick={() => setSuccess(false)}>
                     Inscrire une autre personne
                   </Button>

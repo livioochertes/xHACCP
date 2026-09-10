@@ -147,12 +147,13 @@ export function buildEventVoucherEmail(data: {
   });
   const discount = escapeVoucherEmail(data.discountValue);
   const shopUrl = "https://xhaccp.fr";
+  const foodLabelsUrl = "https://xhaccp.fr/products?category=etiquettes-alimentaires";
 
   return {
     to: data.to,
     from: getSenderForMarket("fr"),
     subject: "Votre offre xHACCP France — 20 % de réduction",
-    text: `Bonjour ${data.firstName},\n\nMerci pour votre inscription. Voici votre code personnel de réduction de ${data.discountValue} % : ${data.code}\n\nIl est valable jusqu'au ${validUntil} sur tous les produits disponibles sur ${shopUrl}. Le code peut être utilisé sans limite pendant sa période de validité.\n\nDécouvrir les produits : ${shopUrl}\n\nL'équipe xHACCP France`,
+    text: `Bonjour ${data.firstName},\n\nMerci pour votre inscription. Voici votre code personnel de réduction de ${data.discountValue} % : ${data.code}\n\nIl est valable jusqu'au ${validUntil} sur tous les produits disponibles sur ${shopUrl}. Le code peut être utilisé sans limite pendant sa période de validité.\n\nDécouvrir les étiquettes alimentaires : ${foodLabelsUrl}\n\nDécouvrir tous les produits : ${shopUrl}\n\nL'équipe xHACCP France`,
     html: `
       <!DOCTYPE html>
       <html lang="fr">
@@ -170,7 +171,10 @@ export function buildEventVoucherEmail(data: {
               </div>
               <p style="line-height:1.6;">Votre code est valable jusqu'au <strong>${validUntil}</strong>, sans limite de commandes pendant sa période de validité.</p>
               <p style="text-align:center;margin:28px 0;">
-                <a href="${shopUrl}" style="display:inline-block;padding:14px 24px;border-radius:8px;background:#1976d2;color:#fff;text-decoration:none;font-weight:700;">Découvrir xHACCP France</a>
+                <a href="${foodLabelsUrl}" style="display:inline-block;padding:14px 24px;border-radius:8px;background:#1976d2;color:#fff;text-decoration:none;font-weight:700;">Découvrir les étiquettes alimentaires</a>
+              </p>
+              <p style="text-align:center;margin:0 0 24px;">
+                <a href="${shopUrl}" style="color:#1976d2;font-weight:700;">Voir tous les produits xHACCP France</a>
               </p>
               <p style="font-size:12px;color:#68758a;line-height:1.5;">Cette offre est liée à votre inscription à l'événement. Pour toute question, contactez l'équipe xHACCP France.</p>
             </div>

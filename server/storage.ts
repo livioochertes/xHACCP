@@ -66,6 +66,7 @@ import {
   type Voucher,
   type InsertVoucher,
   type EventVoucherCampaign,
+  type InsertEventVoucherCampaign,
   type EventVoucherRegistration,
   type MarketSettings,
   type InsertMarketSettings,
@@ -224,6 +225,7 @@ export interface IStorage {
   deleteVoucher(id: number): Promise<void>;
   incrementVoucherUsage(id: number): Promise<Voucher>;
   getEventVoucherCampaign(slug: string, includeInactive?: boolean): Promise<EventVoucherCampaign | undefined>;
+  ensureEventVoucherCampaign(campaign: InsertEventVoucherCampaign): Promise<EventVoucherCampaign>;
   updateEventVoucherCampaign(id: number, campaign: Partial<EventVoucherCampaign>): Promise<EventVoucherCampaign>;
   getEventVoucherRegistrations(campaignId: number): Promise<Array<EventVoucherRegistration & { voucherCode: string | null; validUntil: Date | null }>>;
   registerEventVoucher(data: {
@@ -1812,6 +1814,20 @@ export class DatabaseStorage implements IStorage {
       .where(and(...conditions))
       .limit(1);
     return campaign;
+  }
+
+  async ensureEventVoucherCampaign(campaign: InsertEventVoucherCampaign): Promise<EventVoucherCampaign> {
+    const [created] = await db.insert(eventVoucherCampaigns)
+      .values(campaign)
+      .onConflictDoNothing({ target: eventVoucherCampaigns.slug })
+      .returning();
+    if (created) return created;
+
+    const existing = await this.getEventVoucherCampaign(campaign.slug, true);
+    if (!existing) {
+      throw new Error(`Event voucher campaign "${campaign.slug}" could not be provisioned`);
+    }
+    return existing;
   }
 
   async updateEventVoucherCampaign(id: number, campaign: Partial<EventVoucherCampaign>): Promise<EventVoucherCampaign> {

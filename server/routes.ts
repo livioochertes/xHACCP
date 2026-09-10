@@ -47,6 +47,15 @@ import {
 import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
 
 const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
+const EVENT_VOUCHER_CAMPAIGN_DEFAULTS = {
+  slug: EVENT_VOUCHER_CAMPAIGN_SLUG,
+  name: "Offre événement chefs FR",
+  marketCode: "fr",
+  discountType: "percentage",
+  discountValue: "20.00",
+  validMonths: 12,
+  isActive: true,
+} as const;
 const eventVoucherRegistrationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
@@ -54,6 +63,15 @@ const eventVoucherRegistrationLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: "Trop de tentatives. Veuillez réessayer plus tard." },
 });
+
+async function getPublicEventVoucherCampaign() {
+  let campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG);
+  if (!campaign) {
+    await storage.ensureEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_DEFAULTS);
+    campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG);
+  }
+  return campaign;
+}
 
 async function invoiceMatchesRequestMarket(invoice: { market?: string | null; orderId?: number | null }, market: "ro" | "fr" | "com"): Promise<boolean> {
   if (!marketMatches(invoice.market, market)) return false;
@@ -2673,7 +2691,7 @@ Sitemap: https://${domain}/sitemap.xml
       if (getMarketFromRequest(req) !== "fr") {
         return res.status(404).json({ message: "Campaign not found" });
       }
-      const campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG);
+      const campaign = await getPublicEventVoucherCampaign();
       if (!campaign) {
         return res.status(404).json({ message: "Campaign not found" });
       }
@@ -2698,7 +2716,7 @@ Sitemap: https://${domain}/sitemap.xml
         return res.status(404).json({ message: "Campaign not found" });
       }
 
-      const campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG);
+      const campaign = await getPublicEventVoucherCampaign();
       if (!campaign) {
         return res.status(404).json({ message: "Cette campagne n'est plus disponible." });
       }

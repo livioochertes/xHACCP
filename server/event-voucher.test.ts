@@ -18,4 +18,6 @@ test("builds a French event voucher email with the configured sender", () => {
   assert.match(email.html, /CHEF20-&lt;SAFE&gt;/);
   assert.doesNotMatch(email.html, /<Ana>|CHEF20-<SAFE>/);
   assert.match(email.html, /10\/09\/2027/);
+  assert.match(email.text, /https:\/\/xhaccp\.fr\/products\?category=etiquettes-alimentaires/);
+  assert.match(email.html, /href="https:\/\/xhaccp\.fr\/products\?category=etiquettes-alimentaires"/);
 });
