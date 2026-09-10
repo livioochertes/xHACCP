@@ -1886,14 +1886,14 @@ export class DatabaseStorage implements IStorage {
         voucher: vouchers,
       })
         .from(eventVoucherRegistrations)
-        .innerJoin(vouchers, eq(eventVoucherRegistrations.voucherId, vouchers.id))
+        .leftJoin(vouchers, eq(eventVoucherRegistrations.voucherId, vouchers.id))
         .where(and(
           eq(eventVoucherRegistrations.campaignId, data.campaignId),
           eq(eventVoucherRegistrations.email, email),
         ))
         .limit(1);
 
-      if (existing) {
+      if (existing?.voucher) {
         return {
           registration: existing.registration,
           voucher: existing.voucher,
@@ -1931,8 +1931,7 @@ export class DatabaseStorage implements IStorage {
         marketCode: campaign.marketCode,
       }).returning();
 
-      const [registration] = await tx.insert(eventVoucherRegistrations).values({
-        campaignId: data.campaignId,
+      const registrationValues = {
         firstName: data.firstName.trim(),
         lastName: data.lastName.trim(),
         restaurant: data.restaurant.trim(),
@@ -1940,8 +1939,20 @@ export class DatabaseStorage implements IStorage {
         email,
         voucherId: voucher.id,
         consentAt: data.consentAt,
-        emailStatus: "pending",
-      }).returning();
+        emailStatus: "pending" as const,
+        emailSentAt: null,
+        emailError: null,
+        updatedAt: new Date(),
+      };
+      const [registration] = existing
+        ? await tx.update(eventVoucherRegistrations)
+          .set(registrationValues)
+          .where(eq(eventVoucherRegistrations.id, existing.registration.id))
+          .returning()
+        : await tx.insert(eventVoucherRegistrations).values({
+          campaignId: data.campaignId,
+          ...registrationValues,
+        }).returning();
 
       return { registration, voucher, alreadyRegistered: false };
     });
