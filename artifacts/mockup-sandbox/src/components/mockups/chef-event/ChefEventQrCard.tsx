@@ -49,7 +49,9 @@ export function ChefEventQrCard() {
                   className="h-full w-full object-contain"
                 />
               </div>
-              <div className="text-[9px] font-semibold uppercase tracking-[.32em] text-cyan-300/80">France</div>
+              <div className="mt-2.5 text-center text-[9px] font-semibold uppercase tracking-[.32em] text-cyan-300/80 [text-indent:.32em]">
+                France
+              </div>
             </div>
           </div>
           <div className="hidden items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[10px] font-bold uppercase tracking-[.2em] text-slate-300 sm:flex">
