@@ -97,6 +97,8 @@ function getPreviewExamplePath(): string {
 }
 
 function Gallery() {
+  const basePath = getBasePath();
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
       <div className="text-center max-w-md">
@@ -112,6 +114,22 @@ function Gallery() {
             {getPreviewExamplePath()}
           </code>
         </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <a
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700"
+            href={`${basePath}/exports/chef-event-qr-card.png`}
+            download
+          >
+            Télécharger PNG · 1920×1080
+          </a>
+          <a
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            href={`${basePath}/exports/chef-event-qr-card.pdf`}
+            download
+          >
+            Télécharger PDF · 16:9
+          </a>
+        </div>
       </div>
     </div>
   );
