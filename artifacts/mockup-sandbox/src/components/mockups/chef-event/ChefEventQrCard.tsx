@@ -1,4 +1,4 @@
-import { ArrowUpRight, ChefHat, Clock3, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUpRight, Clock3, Mail, ShieldCheck, Sparkles } from "lucide-react";
 
 const registrationUrl = "https://xhaccp.fr/chef-event";
 
@@ -41,11 +41,14 @@ export function ChefEventQrCard() {
       <div className="relative mx-auto flex min-h-screen max-w-[1440px] flex-col px-[clamp(24px,5vw,72px)] py-[clamp(22px,4.2vw,56px)]">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-300/10 text-cyan-200 shadow-[0_0_30px_rgba(34,211,238,.12)]">
-              <ChefHat className="h-5 w-5" strokeWidth={1.7} />
-            </div>
             <div>
-              <div className="text-[clamp(16px,1.8vw,25px)] font-black tracking-[.18em] text-white">xHACCP</div>
+              <div className="flex h-[clamp(42px,4.2vw,58px)] w-[clamp(132px,12vw,170px)] items-center overflow-hidden rounded-xl bg-white px-2 shadow-[0_0_30px_rgba(34,211,238,.12)]">
+                <img
+                  src="/__mockup/images/xhaccp-logo.png"
+                  alt="xHACCP"
+                  className="h-full w-full object-contain"
+                />
+              </div>
               <div className="text-[9px] font-semibold uppercase tracking-[.32em] text-cyan-300/80">France</div>
             </div>
           </div>
