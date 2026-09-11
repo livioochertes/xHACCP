@@ -1829,4 +1829,1835 @@
       }
     }
   }
+}{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "xHACCP WMS Integration API",
+    "version": "1.0.0",
+    "description": "Versioned partner contract for the xHACCP warehouse management system API. Timestamps are ISO 8601 in UTC and money values are decimal strings."
+  },
+  "servers": [
+    {
+      "url": "https://xhaccp.fr/api/wms/v1",
+      "description": "Production (use the base URL supplied by xHACCP for your environment)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Unauthenticated service monitoring"
+    },
+    {
+      "name": "Catalog",
+      "description": "Read active products available in routed marketplaces"
+    },
+    {
+      "name": "Orders",
+      "description": "Read and acknowledge partner-routed orders"
+    },
+    {
+      "name": "Events",
+      "description": "Send fulfillment state and parcel updates"
+    },
+    {
+      "name": "Inventory",
+      "description": "Send SKU inventory quantities"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Check WMS API health",
+        "description": "Public endpoint for uptime monitoring. It does not validate a warehouse key or routing.",
+        "operationId": "getWmsHealth",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "The HTTP service is responding.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "ok": true,
+                  "service": "xhaccp-wms-api",
+                  "version": "v1",
+                  "timestamp": "2026-09-08T06:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog": {
+      "get": {
+        "tags": ["Catalog"],
+        "summary": "List marketplace catalog products",
+        "description": "Returns active catalog products for the authenticated partner's routed marketplaces. Use market to restrict the response to one authorized marketplace. Results use stable cursor pagination; do not decode or modify next_cursor.",
+        "operationId": "listWmsCatalog",
+        "x-required-scope": "catalog:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Market"
+          },
+          {
+            "$ref": "#/components/parameters/CatalogUpdatedSince"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": ["catalog:read"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of active marketplace catalog products.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogListResponse"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "prod_123",
+                      "sku": "XH-SET-L",
+                      "identifiers": {
+                        "xhaccp_product_id": "prod_123",
+                        "slug": "kit-etiquettes-haccp",
+                        "product_code": "XH-SET-L",
+                        "ean": "5941234567890"
+                      },
+                      "designation": {
+                        "ro": "Set de etichete HACCP",
+                        "fr": "Kit d'étiquettes HACCP",
+                        "en": "HACCP label kit"
+                      },
+                      "market": "fr",
+                      "name": "Kit d'étiquettes HACCP",
+                      "slug": "kit-etiquettes-haccp",
+                      "description": "Food safety label set.",
+                      "category": {
+                        "id": "cat_12",
+                        "name": "Étiquettes",
+                        "slug": "etiquettes"
+                      },
+                      "price": "132.83",
+                      "compare_at_price": null,
+                      "currency": "EUR",
+                      "vat_percentage": "20.00",
+                      "product_type": "standard",
+                      "is_service": false,
+                      "is_composite": false,
+                      "availability": {
+                        "in_stock": true,
+                        "stock_quantity": 140
+                      },
+                      "logistics": {
+                        "weight": "2.100",
+                        "length": "40.00",
+                        "width": "30.00",
+                        "height": "20.00",
+                        "pieces_per_package": 1,
+                        "product_quantity": "1 set"
+                      },
+                      "specs": [],
+                      "updated_at": "2026-09-09T06:00:00.000Z"
+                    }
+                  ],
+                  "pagination": {
+                    "next_cursor": null,
+                    "limit": 50
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "List orders",
+        "description": "Returns orders routed to the authenticated partner. Results use stable cursor pagination; do not decode or modify next_cursor.",
+        "operationId": "listWmsOrders",
+        "x-required-scope": "orders:read",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Market"
+          },
+          {
+            "$ref": "#/components/parameters/OrderStatusFilter"
+          },
+          {
+            "$ref": "#/components/parameters/UpdatedSince"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": ["orders:read"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of partner-routed orders.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderListResponse"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "ord_01HXYZ",
+                      "market": "fr",
+                      "currency": "EUR",
+                      "status": "confirmed",
+                      "fulfillment_status": "ready",
+                      "confirmed_at": "2026-09-08T06:00:00.000Z",
+                      "updated_at": "2026-09-08T06:00:00.000Z",
+                      "totals": {
+                        "total": "265.65",
+                        "shipping": "9.90"
+                      },
+                      "payment": {
+                        "method": "card",
+                        "status": "paid"
+                      },
+                      "customer": {
+                        "email": "marie@example.com",
+                        "first_name": "Marie",
+                        "last_name": "Durand",
+                        "phone": "+33612345678"
+                      },
+                      "shipping_address": {
+                        "firstName": "Marie",
+                        "lastName": "Durand",
+                        "streetAddress": "12 rue de la Mer",
+                        "city": "Nice",
+                        "zipCode": "06000",
+                        "country": "FR",
+                        "phone": "+33612345678",
+                        "email": "marie@example.com"
+                      },
+                      "billing_address": {},
+                      "notes": "Leave at reception",
+                      "items": [
+                        {
+                          "sku": "XH-SET-L",
+                          "name": "HACCP label set",
+                          "quantity": 2,
+                          "unit_price": "132.83",
+                          "total_price": "265.66",
+                          "weight": "2100",
+                          "configuration": null
+                        }
+                      ],
+                      "shipments": [],
+                      "events": []
+                    }
+                  ],
+                  "pagination": {
+                    "next_cursor": "eyJjb25maXJtZWRBdCI6IjIwMjYtMDktMDhUMDY6MDA6MDAuMDAwWiIsImlkIjoxMjM0fQ",
+                    "limit": 50
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/orders/{publicOrderRef}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PublicOrderRef"
+        }
+      ],
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Get an order",
+        "description": "Returns the full order shape, including stored WMS events and parcels. An order belonging to another partner is reported as not found.",
+        "operationId": "getWmsOrder",
+        "x-required-scope": "orders:read",
+        "security": [
+          {
+            "bearerAuth": ["orders:read"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested partner-routed order.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                },
+                "example": {
+                  "data": {
+                    "id": "ord_01HXYZ",
+                    "market": "fr",
+                    "currency": "EUR",
+                    "status": "confirmed",
+                    "fulfillment_status": "shipped",
+                    "confirmed_at": "2026-09-08T06:00:00.000Z",
+                    "updated_at": "2026-09-08T14:02:00.000Z",
+                    "totals": {
+                      "total": "265.65",
+                      "shipping": "9.90"
+                    },
+                    "payment": {
+                      "method": "card",
+                      "status": "paid"
+                    },
+                    "customer": {
+                      "email": "marie@example.com",
+                      "first_name": "Marie",
+                      "last_name": "Durand",
+                      "phone": "+33612345678"
+                    },
+                    "shipping_address": {},
+                    "billing_address": {},
+                    "notes": null,
+                    "items": [],
+                    "shipments": [
+                      {
+                        "parcel_id": "PARCEL-001",
+                        "tracking_number": "6A12345678901",
+                        "carrier": "colissimo",
+                        "status": "shipped",
+                        "updated_at": "2026-09-08T14:02:00.000Z"
+                      }
+                    ],
+                    "events": [
+                      {
+                        "event_id": "evt_01J",
+                        "type": "shipped",
+                        "status": "shipped",
+                        "occurred_at": "2026-09-08T14:02:00.000Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/OrderNotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/orders/{publicOrderRef}/ack": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PublicOrderRef"
+        }
+      ],
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Acknowledge an order import",
+        "description": "Marks a partner-routed order as imported by the WMS. The operation is forward-only and idempotent.",
+        "operationId": "acknowledgeWmsOrder",
+        "x-required-scope": "orders:ack",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": ["orders:ack"]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcknowledgeRequest"
+              },
+              "example": {
+                "wms_order_ref": "SLL-88123",
+                "metadata": {
+                  "import_batch": "2026-09-08-0600"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The order was acknowledged or was already at a later fulfillment state.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcknowledgeResponse"
+                },
+                "example": {
+                  "data": {
+                    "id": "ord_01HXYZ",
+                    "fulfillment_status": "acknowledged",
+                    "acknowledged_at": "2026-09-08T06:03:12.000Z",
+                    "metadata": {
+                      "import_batch": "2026-09-08-0600"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/IdempotencyKeyRequired"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/OrderNotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/IdempotencyConflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/orders/{publicOrderRef}/events": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PublicOrderRef"
+        }
+      ],
+      "post": {
+        "tags": ["Events"],
+        "summary": "Send a fulfillment event",
+        "description": "Stores a partner event and optionally updates parcel tracking. Repeating event_id returns a successful duplicate response.",
+        "operationId": "recordWmsEvent",
+        "x-required-scope": "orders:events",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": ["orders:events"]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventRequest"
+              },
+              "example": {
+                "event_id": "evt_01J_SHIPPED_001",
+                "event_type": "shipped",
+                "occurred_at": "2026-09-08T14:02:00Z",
+                "wms_order_ref": "SLL-88123",
+                "shipments": [
+                  {
+                    "parcel_id": "PARCEL-001",
+                    "carrier": "colissimo",
+                    "tracking_number": "6A12345678901"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The event was recorded, or an existing event_id was recognized as a duplicate.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventResponse"
+                },
+                "examples": {
+                  "created": {
+                    "value": {
+                      "data": {
+                        "event_id": "evt_01J_SHIPPED_001",
+                        "status": "shipped"
+                      }
+                    }
+                  },
+                  "duplicate": {
+                    "value": {
+                      "data": {
+                        "event_id": "evt_01J_SHIPPED_001",
+                        "status": "shipped"
+                      },
+                      "duplicate": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/IdempotencyKeyRequired"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/OrderNotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/IdempotencyConflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/InvalidEvent"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/inventory": {
+      "post": {
+        "tags": ["Inventory"],
+        "summary": "Send inventory quantities",
+        "description": "Stores a batch of 1 to 1,000 inventory entries for the authenticated partner. Unknown SKUs and stale entries are reported in the response rather than failing the complete batch.",
+        "operationId": "updateWmsInventory",
+        "x-required-scope": "inventory:write",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": ["inventory:write"]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryRequest"
+              },
+              "example": {
+                "items": [
+                  {
+                    "sku": "XH-SET-L",
+                    "quantity": 140,
+                    "available_quantity": 134,
+                    "updated_at": "2026-09-08T06:00:00Z"
+                  },
+                  {
+                    "sku": "XH-SET-S",
+                    "quantity": 88,
+                    "available_quantity": 88,
+                    "updated_at": "2026-09-08T06:00:00Z"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The inventory batch was processed.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/X-Request-Id"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryResponse"
+                },
+                "example": {
+                  "data": {
+                    "accepted_skus": ["XH-SET-L"],
+                    "ignored_stale_skus": [],
+                    "unknown_skus": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/IdempotencyKeyRequired"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/IdempotencyConflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/InvalidInventoryBatch"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "WMS API key",
+        "description": "Use the partner-specific key as Authorization: Bearer <key>. Sandbox and production keys are separate."
+      }
+    },
+    "headers": {
+      "X-Request-Id": {
+        "description": "Request correlation identifier. Include it in support requests.",
+        "schema": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "example": "wms_abc123_example"
+      }
+    },
+    "parameters": {
+      "PublicOrderRef": {
+        "name": "publicOrderRef",
+        "in": "path",
+        "required": true,
+        "description": "Public order reference returned by xHACCP, not the internal numeric database ID.",
+        "schema": {
+          "type": "string"
+        },
+        "example": "ord_01HXYZ"
+      },
+      "Market": {
+        "name": "market",
+        "in": "query",
+        "required": false,
+        "description": "Restrict results to a market already routed to this API key's partner.",
+        "schema": {
+          "type": "string",
+          "enum": ["ro", "fr", "com"]
+        },
+        "example": "fr"
+      },
+      "OrderStatusFilter": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "description": "Comma-separated fulfillment statuses.",
+        "style": "form",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "ready,acknowledged"
+        }
+      },
+      "UpdatedSince": {
+        "name": "updated_since",
+        "in": "query",
+        "required": false,
+        "description": "Return orders whose updated_at is later than this ISO timestamp.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "example": "2026-09-08T06:00:00Z"
+      },
+      "CatalogUpdatedSince": {
+        "name": "updated_since",
+        "in": "query",
+        "required": false,
+        "description": "Return catalog rows whose effective updated_at is later than this ISO timestamp. The timestamp covers both the shared product and marketplace-specific product data.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "example": "2026-09-08T06:00:00Z"
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Requested page size. The server defaults to 50 and clamps values to the range 1-100.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50
+        },
+        "example": 50
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque cursor returned in pagination.next_cursor.",
+        "schema": {
+          "type": "string"
+        },
+        "example": "eyJjb25maXJtZWRBdCI6IjIwMjYtMDktMDhUMDY6MDA6MDAuMDAwWiIsImlkIjoxMjM0fQ"
+      },
+      "IdempotencyKey": {
+        "name": "X-Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "description": "Stable key for the logical write operation. Maximum 160 characters. Reuse the same key and unchanged body when retrying.",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "example": "event-evt-01J-shipped"
+      }
+    },
+    "responses": {
+      "InvalidRequest": {
+        "description": "The request is malformed.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "invalidCursor": {
+                "value": {
+                  "error": {
+                    "code": "INVALID_CURSOR",
+                    "message": "cursor is invalid",
+                    "request_id": "wms_abc123_example"
+                  }
+                }
+              },
+              "invalidUpdatedSince": {
+                "value": {
+                  "error": {
+                    "code": "INVALID_UPDATED_SINCE",
+                    "message": "updated_since must be an ISO timestamp",
+                    "request_id": "wms_abc123_example"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "IdempotencyKeyRequired": {
+        "description": "X-Idempotency-Key is missing or too long.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "IDEMPOTENCY_KEY_REQUIRED",
+                "message": "X-Idempotency-Key is required",
+                "request_id": "wms_abc123_example"
+              }
+            }
+          }
+        }
+      },
+      "Unauthenticated": {
+        "description": "Bearer key is missing, invalid, revoked, or belongs to an inactive partner.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "UNAUTHENTICATED",
+                "message": "Invalid or revoked API key",
+                "request_id": "wms_abc123_example"
+              }
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "The key is valid but lacks the required scope or market access.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "insufficientScope": {
+                "value": {
+                  "error": {
+                    "code": "INSUFFICIENT_SCOPE",
+                    "message": "Scope orders:read is required",
+                    "request_id": "wms_abc123_example"
+                  }
+                }
+              },
+              "marketNotAllowed": {
+                "value": {
+                  "error": {
+                    "code": "MARKET_NOT_ALLOWED",
+                    "message": "The API key is not routed to this market",
+                    "request_id": "wms_abc123_example"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "OrderNotFound": {
+        "description": "Order does not exist, is not visible to this partner, or is no longer fulfillable.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "ORDER_NOT_FOUND",
+                "message": "Order not found",
+                "request_id": "wms_abc123_example"
+              }
+            }
+          }
+        }
+      },
+      "IdempotencyConflict": {
+        "description": "The idempotency key is in progress, or was reused with a different request body.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "inProgress": {
+                "value": {
+                  "error": {
+                    "code": "IDEMPOTENCY_IN_PROGRESS",
+                    "message": "A request with this idempotency key is already being processed",
+                    "request_id": "wms_abc123_example"
+                  }
+                }
+              },
+              "reused": {
+                "value": {
+                  "error": {
+                    "code": "IDEMPOTENCY_KEY_REUSED",
+                    "message": "idempotency key was already used with a different request body",
+                    "request_id": "wms_abc123_example"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "InvalidEvent": {
+        "description": "The event body does not contain a valid event_id and accepted event type.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "INVALID_EVENT",
+                "message": "event_id, event_type and a valid occurred_at are required",
+                "request_id": "wms_abc123_example"
+              }
+            }
+          }
+        }
+      },
+      "InvalidInventoryBatch": {
+        "description": "The batch does not contain between 1 and 1,000 entries.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "INVALID_INVENTORY_BATCH",
+                "message": "Inventory batch must contain between 1 and 1000 items",
+                "request_id": "wms_abc123_example"
+              }
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "The per-key limit of 120 requests per minute was exceeded.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          },
+          "Retry-After": {
+            "description": "Seconds to wait before retrying.",
+            "schema": {
+              "type": "integer",
+              "example": 60
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "RATE_LIMITED",
+                "message": "Rate limit exceeded",
+                "request_id": "wms_abc123_example"
+              }
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "xHACCP could not complete the request.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/X-Request-Id"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "Unable to complete WMS request",
+                "request_id": "wms_abc123_example"
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "required": ["ok", "service", "version", "timestamp"],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "example": true
+          },
+          "service": {
+            "type": "string",
+            "example": "xhaccp-wms-api"
+          },
+          "version": {
+            "type": "string",
+            "example": "v1"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CatalogListResponse": {
+        "type": "object",
+        "required": ["data", "pagination"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WmsCatalogProduct"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "WmsCatalogProduct": {
+        "type": "object",
+        "required": [
+          "id",
+          "sku",
+          "identifiers",
+          "designation",
+          "market",
+          "name",
+          "slug",
+          "description",
+          "category",
+          "price",
+          "compare_at_price",
+          "currency",
+          "vat_percentage",
+          "product_type",
+          "is_service",
+          "is_composite",
+          "availability",
+          "logistics",
+          "specs",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable public catalog product reference.",
+            "example": "prod_123"
+          },
+          "sku": {
+            "type": "string",
+            "example": "XH-SET-L"
+          },
+          "identifiers": {
+            "type": "object",
+            "description": "Stable identifiers that SLL can use to match received goods with the catalog. Additional identifier keys may be added without changing the endpoint.",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "xhaccp_product_id": "prod_123",
+              "slug": "kit-etiquettes-haccp",
+              "product_code": "XH-SET-L",
+              "ean": "5941234567890"
+            }
+          },
+          "designation": {
+            "type": "object",
+            "description": "Localized product designations keyed by language locale, for example ro, fr, or en.",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "ro": "Set de etichete HACCP",
+              "fr": "Kit d'étiquettes HACCP",
+              "en": "HACCP label kit"
+            }
+          },
+          "market": {
+            "type": "string",
+            "enum": ["ro", "fr", "com"]
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "nullable": true,
+            "type": "object",
+            "required": ["id", "name", "slug"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "cat_12"
+              },
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              }
+            }
+          },
+          "price": {
+            "type": "string",
+            "description": "Decimal market price.",
+            "example": "132.83"
+          },
+          "compare_at_price": {
+            "type": "string",
+            "nullable": true,
+            "description": "Decimal market comparison price, when configured."
+          },
+          "currency": {
+            "type": "string",
+            "example": "EUR"
+          },
+          "vat_percentage": {
+            "type": "string",
+            "nullable": true,
+            "example": "20.00"
+          },
+          "product_type": {
+            "type": "string",
+            "enum": ["standard", "service", "subscription"]
+          },
+          "is_service": {
+            "type": "boolean"
+          },
+          "is_composite": {
+            "type": "boolean"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/CatalogAvailability"
+          },
+          "logistics": {
+            "$ref": "#/components/schemas/CatalogLogistics"
+          },
+          "specs": {
+            "type": "array",
+            "description": "Flexible product specifications. The array contains the catalog's stored specification objects.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CatalogAvailability": {
+        "type": "object",
+        "required": ["in_stock", "stock_quantity"],
+        "properties": {
+          "in_stock": {
+            "type": "boolean"
+          },
+          "stock_quantity": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "CatalogLogistics": {
+        "type": "object",
+        "required": [
+          "weight",
+          "length",
+          "width",
+          "height",
+          "pieces_per_package",
+          "product_quantity"
+        ],
+        "properties": {
+          "weight": {
+            "type": "string",
+            "nullable": true,
+            "description": "Weight in kilograms."
+          },
+          "length": {
+            "type": "string",
+            "nullable": true,
+            "description": "Length in centimetres."
+          },
+          "width": {
+            "type": "string",
+            "nullable": true,
+            "description": "Width in centimetres."
+          },
+          "height": {
+            "type": "string",
+            "nullable": true,
+            "description": "Height in centimetres."
+          },
+          "pieces_per_package": {
+            "type": "integer",
+            "nullable": true
+          },
+          "product_quantity": {
+            "type": "string",
+            "nullable": true,
+            "description": "Net content or package quantity, for example 1 set or 500g."
+          }
+        }
+      },
+      "OrderListResponse": {
+        "type": "object",
+        "required": ["data", "pagination"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WmsOrder"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "OrderResponse": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WmsOrder"
+          }
+        }
+      },
+      "WmsOrder": {
+        "type": "object",
+        "required": [
+          "id",
+          "market",
+          "currency",
+          "status",
+          "fulfillment_status",
+          "confirmed_at",
+          "updated_at",
+          "totals",
+          "payment",
+          "customer",
+          "shipping_address",
+          "billing_address",
+          "notes",
+          "items",
+          "shipments",
+          "events"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ord_01HXYZ"
+          },
+          "market": {
+            "type": "string",
+            "enum": ["ro", "fr", "com"]
+          },
+          "currency": {
+            "type": "string",
+            "example": "EUR"
+          },
+          "status": {
+            "type": "string",
+            "example": "confirmed"
+          },
+          "fulfillment_status": {
+            "type": "string",
+            "enum": ["ready", "acknowledged", "picking", "packed", "shipped", "delivered", "cancelled", "returned", "on_hold"]
+          },
+          "confirmed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "totals": {
+            "$ref": "#/components/schemas/OrderTotals"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/Payment"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "shipping_address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "billing_address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItem"
+            }
+          },
+          "shipments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Shipment"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderEvent"
+            }
+          }
+        }
+      },
+      "OrderTotals": {
+        "type": "object",
+        "required": ["total", "shipping"],
+        "properties": {
+          "total": {
+            "type": "string",
+            "description": "Decimal money value.",
+            "example": "265.65"
+          },
+          "shipping": {
+            "type": "string",
+            "description": "Decimal money value.",
+            "example": "9.90"
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "required": ["method", "status"],
+        "properties": {
+          "method": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "required": ["email", "first_name", "last_name", "phone"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "first_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "last_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Address": {
+        "type": "object",
+        "description": "Market-specific shipping or billing address fields. The API preserves the stored address shape.",
+        "additionalProperties": true
+      },
+      "OrderItem": {
+        "type": "object",
+        "required": ["sku", "name", "quantity", "unit_price", "total_price", "weight", "configuration"],
+        "properties": {
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "unit_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "weight": {
+            "type": "string",
+            "nullable": true
+          },
+          "configuration": {
+            "nullable": true
+          }
+        }
+      },
+      "Shipment": {
+        "type": "object",
+        "required": ["parcel_id", "tracking_number", "carrier", "status", "updated_at"],
+        "properties": {
+          "parcel_id": {
+            "type": "string"
+          },
+          "tracking_number": {
+            "type": "string",
+            "nullable": true
+          },
+          "carrier": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OrderEvent": {
+        "type": "object",
+        "required": ["event_id", "type", "status", "occurred_at"],
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "required": ["next_cursor", "limit"],
+        "properties": {
+          "next_cursor": {
+            "type": "string",
+            "nullable": true,
+            "description": "Opaque cursor for the next page, or null when complete."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      },
+      "AcknowledgeRequest": {
+        "type": "object",
+        "description": "All properties are optional; wms_order_ref and metadata are recommended for warehouse reconciliation.",
+        "additionalProperties": true,
+        "properties": {
+          "wms_order_ref": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "AcknowledgeResponse": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["id", "fulfillment_status", "acknowledged_at", "metadata"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "fulfillment_status": {
+                "type": "string"
+              },
+              "acknowledged_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "metadata": {
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "EventRequest": {
+        "type": "object",
+        "required": ["event_id"],
+        "description": "Provide event_type or its status alias. occurred_at defaults to the current time when omitted.",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "event_type": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "wms_order_ref": {
+            "type": "string"
+          },
+          "shipments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShipmentUpdate"
+            }
+          }
+        },
+        "anyOf": [
+          {
+            "required": ["event_type"]
+          },
+          {
+            "required": ["status"]
+          }
+        ]
+      },
+      "EventType": {
+        "type": "string",
+        "enum": ["ack", "acknowledged", "picking", "packed", "shipped", "delivered", "cancelled", "canceled", "returned", "on_hold"]
+      },
+      "ShipmentUpdate": {
+        "type": "object",
+        "required": ["parcel_id"],
+        "properties": {
+          "parcel_id": {
+            "type": "string"
+          },
+          "tracking_number": {
+            "type": "string"
+          },
+          "carrier": {
+            "type": "string"
+          }
+        }
+      },
+      "EventResponse": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["event_id", "status"],
+            "properties": {
+              "event_id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            }
+          },
+          "duplicate": {
+            "type": "boolean",
+            "description": "Present and true when event_id was already recorded."
+          }
+        }
+      },
+      "InventoryRequest": {
+        "description": "Preferred form is an object with items. For compatibility the endpoint also accepts a raw array or an object with inventory, and accepts available/source_updated_at aliases.",
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["items"],
+            "properties": {
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1000,
+                "items": {
+                  "$ref": "#/components/schemas/InventoryItem"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["inventory"],
+            "properties": {
+              "inventory": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1000,
+                "items": {
+                  "$ref": "#/components/schemas/InventoryItem"
+                }
+              }
+            }
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/InventoryItem"
+            }
+          }
+        ]
+      },
+      "InventoryItem": {
+        "type": "object",
+        "required": ["sku", "quantity"],
+        "properties": {
+          "sku": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "available_quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "available": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Compatibility alias for available_quantity."
+          },
+          "source_updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Compatibility alias for updated_at."
+          }
+        },
+        "anyOf": [
+          {
+            "required": ["available_quantity"]
+          },
+          {
+            "required": ["available"]
+          }
+        ],
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "required": ["updated_at"]
+              },
+              {
+                "required": ["source_updated_at"]
+              }
+            ]
+          }
+        ]
+      },
+      "InventoryResponse": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["accepted_skus", "ignored_stale_skus", "unknown_skus"],
+            "properties": {
+              "accepted_skus": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "ignored_stale_skus": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "unknown_skus": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message", "request_id"],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "details": {
+                "description": "Optional validation or diagnostic details."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
