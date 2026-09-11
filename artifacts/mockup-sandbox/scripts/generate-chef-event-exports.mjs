@@ -349,9 +349,8 @@ const html = `<!doctype html>
       <div class="content">
         <header>
           <div class="brand">
-            <div class="brand-mark">♨</div>
             <div>
-              <div class="brand-name">xHACCP</div>
+              <div class="logo-panel"><img src="${logoDataUri}" alt="xHACCP"></div>
               <div class="brand-market">France</div>
             </div>
           </div>
@@ -362,13 +361,23 @@ const html = `<!doctype html>
             <p class="eyebrow">Pour les professionnels de la restauration</p>
             <h1>Votre cuisine.<br><span>Votre avantage.</span></h1>
             <p class="description">
+              <span class="event-label">au Chef Event</span>
               Inscrivez-vous à l'événement et recevez par email votre
               <strong>code personnel de réduction de 20&nbsp;%</strong>
-              sur tous les produits xHACCP France.
+              sur tous les produits xHACCP France. <span class="duration">pendant 1 an.</span>
             </p>
+            <div class="activation">
+              <div class="activation-icon">◷</div>
+              <div>
+                <div class="activation-title">Activez vite votre compte</div>
+                <div class="activation-heading">Important · activation par achat</div>
+                <div class="activation-copy">Effectuez une première commande payée dans les 30 jours.</div>
+                <div class="activation-note">Sans achat dans ce délai, le code devient invalide. Après activation, il reste valable 12 mois.</div>
+              </div>
+            </div>
             <div class="details">
               <div class="detail"><span class="detail-icon">✉</span>Code envoyé par email</div>
-              <div class="detail"><span class="detail-icon">◷</span>Valable pendant 12 mois</div>
+              <div class="detail"><span class="detail-icon">◷</span>Activation par achat sous 30 jours</div>
               <div class="detail"><span class="detail-icon">♢</span>Sans montant minimum</div>
             </div>
           </section>
@@ -382,10 +391,6 @@ const html = `<!doctype html>
             <div class="fallback-url">xhaccp.fr/chef-event</div>
           </aside>
         </main>
-        <footer>
-          <span>En vous inscrivant, vous acceptez le traitement de vos données et la réception de cette offre promotionnelle.</span>
-          <strong>Tous les produits · France</strong>
-        </footer>
       </div>
     </div>
   </body>

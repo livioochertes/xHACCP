@@ -60,17 +60,17 @@ export function ChefEventQrCard() {
           </div>
         </header>
 
-        <div className="chef-card-content my-auto grid grid-cols-[minmax(0,1.1fr)_minmax(290px,.7fr)] items-center gap-[clamp(32px,6vw,96px)] py-10">
+        <div className="chef-card-content my-auto grid grid-cols-[minmax(0,1.1fr)_minmax(290px,.7fr)] items-center gap-[clamp(32px,6vw,96px)] py-6">
           <section className="max-w-[760px]">
             <p className="mb-5 text-[clamp(11px,1.1vw,15px)] font-bold uppercase tracking-[.28em] text-cyan-300">
               Pour les professionnels de la restauration
             </p>
-            <h1 className="chef-card-title max-w-[780px] text-[clamp(3.2rem,6.5vw,6.7rem)] font-black leading-[.9] tracking-[-.065em] text-white">
+            <h1 className="chef-card-title max-w-[780px] text-[clamp(3rem,5.6vw,5.4rem)] font-black leading-[.9] tracking-[-.065em] text-white">
               Votre cuisine.
               <br />
               <span className="text-cyan-300">Votre avantage.</span>
             </h1>
-            <p className="mt-7 max-w-[590px] text-[clamp(15px,1.5vw,22px)] leading-[1.45] text-slate-300">
+            <p className="mt-5 max-w-[650px] text-[clamp(15px,1.3vw,20px)] leading-[1.4] text-slate-300">
               <span className="mb-1 block text-[clamp(13px,1.2vw,18px)] font-black uppercase tracking-[.04em] text-green-400">
                 au Chef Event
               </span>
@@ -79,7 +79,7 @@ export function ChefEventQrCard() {
               {" "}sur tous les produits xHACCP France. <span className="font-bold text-green-400">pendant 1 an.</span>
             </p>
 
-            <div className="mt-7 flex max-w-[700px] items-start gap-3 rounded-2xl border-2 border-cyan-300/60 bg-cyan-300/10 px-4 py-3.5 shadow-[0_0_34px_rgba(34,211,238,.12)]">
+            <div className="mt-5 flex max-w-[700px] items-start gap-3 rounded-2xl border-2 border-cyan-300/60 bg-cyan-300/10 px-4 py-3 shadow-[0_0_34px_rgba(34,211,238,.12)]">
               <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-300 text-[#071728]">
                 <Clock3 className="h-5 w-5" strokeWidth={2.2} />
               </span>
@@ -99,7 +99,7 @@ export function ChefEventQrCard() {
               </div>
             </div>
 
-            <div className="chef-card-details mt-9 grid max-w-[700px] grid-cols-3 gap-x-5 gap-y-4 border-t border-white/15 pt-5">
+            <div className="chef-card-details mt-6 grid max-w-[700px] grid-cols-3 gap-x-5 gap-y-4 border-t border-white/15 pt-4">
               <Detail icon={Mail}>Code envoyé par email</Detail>
               <Detail icon={Clock3}>Activation par achat sous 30 jours</Detail>
               <Detail icon={ShieldCheck}>Sans montant minimum</Detail>
