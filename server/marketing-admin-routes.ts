@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import type { MarketingSegmentCriteria } from "@shared/schema";
 import { storage } from "./storage";
 import { authenticateAdmin, canAccessMarket } from "./admin-routes";
 import { getSenderForMarket, sendEmail } from "./email-service";
@@ -14,6 +15,27 @@ function isSupportedMarket(value: unknown): value is "all" | "ro" | "fr" | "com"
 }
 
 export function registerMarketingAdminRoutes(app: Express): void {
+  app.get("/admin/api/marketing/event-voucher-contacts", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    try {
+      if (!canAccessMarket(req as any, "fr")) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const campaignSlug = String(req.query.campaign || "chef-event-fr");
+      if (campaignSlug !== "chef-event-fr") {
+        return res.status(400).json({ message: "Unsupported event voucher campaign" });
+      }
+      const contacts = await storage.getEventVoucherMarketingContacts(campaignSlug);
+      res.json({
+        campaign: campaignSlug,
+        count: contacts.length,
+        contacts,
+      });
+    } catch (error) {
+      console.error("Marketing event voucher contacts error:", error);
+      res.status(500).json({ message: "Failed to fetch event voucher contacts" });
+    }
+  });
+
   app.get("/admin/api/marketing/segments", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
     try {
       const market = String(req.query.market || "all");
@@ -37,10 +59,14 @@ export function registerMarketingAdminRoutes(app: Express): void {
       if (market === "all" ? !req.isSuperAdmin : !canAccessMarket(req as any, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
-      const normalizedCriteria = {
+      if (criteria.eventVoucherCampaign === "chef-event-fr" && market !== "fr") {
+        return res.status(400).json({ message: "Chef Event contacts belong to the France market" });
+      }
+      const normalizedCriteria: MarketingSegmentCriteria = {
         market,
         hasOrders: ["any", "yes", "no"].includes(criteria.hasOrders) ? criteria.hasOrders : "any",
         hasAbandonedCart: ["any", "yes", "no"].includes(criteria.hasAbandonedCart) ? criteria.hasAbandonedCart : "any",
+        eventVoucherCampaign: criteria.eventVoucherCampaign === "chef-event-fr" ? "chef-event-fr" : "any",
       };
       const segment = await storage.createMarketingSegment({
         name: String(name).trim(),

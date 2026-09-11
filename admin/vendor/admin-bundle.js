@@ -11079,6 +11079,15 @@
       title: "Marketing and remarketing",
       subtitle: "Configure marketplace reminders and send campaigns through SendGrid.",
       reload: "Reload",
+      eventContactsTitle: "Chef Event France contacts",
+      eventContactsDescription: "These contacts are stored in the campaign registration list. Search, export, or use them as an audience for email campaigns.",
+      eventContactsCount: "contacts",
+      eventContactsExport: "Export CSV",
+      eventContactsSearch: "Search by name, restaurant, email, phone, or code",
+      eventContactsVisible: "shown",
+      eventContactsActivated: "Activated",
+      eventContactsPending: "Pending",
+      eventContactsEmpty: "No contacts match this filter.",
       thresholdsTitle: "Abandoned-cart thresholds",
       thresholdsDescription: "Thresholds are measured in hours since the cart was last changed. Leave a field empty to disable that reminder. Values must be strictly increasing.",
       reminder: "Reminder {{number}}",
@@ -11090,6 +11099,9 @@
       segmentsDescription: "Only users who enabled both email notifications and promotions are included.",
       segmentName: "Segment name",
       segmentNamePlaceholder: "E.g. Customers without an order",
+      audienceSource: "Audience source",
+      allContacts: "Users with an account",
+      chefEventContacts: "Chef Event France",
       orders: "Orders",
       any: "Any",
       withOrders: "With orders",
@@ -11787,6 +11799,15 @@
       title: "Marketing \u0219i remarketing",
       subtitle: "Configureaz\u0103 reminderele pe marketplace \u0219i trimite campanii prin SendGrid.",
       reload: "Re\xEEncarc\u0103",
+      eventContactsTitle: "Contacte Chef Event France",
+      eventContactsDescription: "Aceste date sunt salvate \xEEn lista de \xEEnscrieri a campaniei. Le po\u021Bi c\u0103uta, exporta \u0219i folosi ca audien\u021B\u0103 pentru campanii email.",
+      eventContactsCount: "contacte",
+      eventContactsExport: "Export\u0103 CSV",
+      eventContactsSearch: "Caut\u0103 dup\u0103 nume, restaurant, email, telefon sau cod",
+      eventContactsVisible: "afi\u0219ate",
+      eventContactsActivated: "Activat",
+      eventContactsPending: "\xCEn a\u0219teptare",
+      eventContactsEmpty: "Nu exist\u0103 contacte pentru filtrul ales.",
       thresholdsTitle: "Praguri abandoned-cart",
       thresholdsDescription: "Pragurile sunt num\u0103rul de ore de la ultima modificare a co\u0219ului. Las\u0103 un c\xE2mp gol pentru a dezactiva reminderul respectiv. Valorile trebuie s\u0103 fie strict cresc\u0103toare.",
       reminder: "Reminder {{number}}",
@@ -11798,6 +11819,9 @@
       segmentsDescription: "Sunt inclu\u0219i numai utilizatorii care au activat at\xE2t notific\u0103rile email, c\xE2t \u0219i promo\u021Biile.",
       segmentName: "Nume segment",
       segmentNamePlaceholder: "Ex. Clien\u021Bi f\u0103r\u0103 comand\u0103",
+      audienceSource: "Surs\u0103 audien\u021B\u0103",
+      allContacts: "Utilizatori cu cont",
+      chefEventContacts: "Chef Event France",
       orders: "Comenzi",
       any: "Oricare",
       withOrders: "Cu comenzi",
@@ -12495,6 +12519,15 @@
       title: "Marketing et remarketing",
       subtitle: "Configurez les rappels par marketplace et envoyez des campagnes via SendGrid.",
       reload: "Actualiser",
+      eventContactsTitle: "Contacts Chef Event France",
+      eventContactsDescription: "Ces donn\xE9es sont enregistr\xE9es dans la liste d'inscriptions de la campagne. Vous pouvez les rechercher, les exporter et les utiliser comme audience pour des campagnes email.",
+      eventContactsCount: "contacts",
+      eventContactsExport: "Exporter CSV",
+      eventContactsSearch: "Rechercher par nom, restaurant, email, t\xE9l\xE9phone ou code",
+      eventContactsVisible: "affich\xE9s",
+      eventContactsActivated: "Activ\xE9",
+      eventContactsPending: "En attente",
+      eventContactsEmpty: "Aucun contact pour ce filtre.",
       thresholdsTitle: "Seuils de panier abandonn\xE9",
       thresholdsDescription: "Les seuils indiquent le nombre d'heures depuis la derni\xE8re modification du panier. Laissez un champ vide pour d\xE9sactiver le rappel correspondant. Les valeurs doivent \xEAtre strictement croissantes.",
       reminder: "Rappel {{number}}",
@@ -12506,6 +12539,9 @@
       segmentsDescription: "Seuls les utilisateurs ayant activ\xE9 les notifications email et les promotions sont inclus.",
       segmentName: "Nom du segment",
       segmentNamePlaceholder: "Ex. Clients sans commande",
+      audienceSource: "Source de l'audience",
+      allContacts: "Utilisateurs avec compte",
+      chefEventContacts: "Chef Event France",
       orders: "Commandes",
       any: "Tous",
       withOrders: "Avec commandes",
@@ -13126,10 +13162,14 @@
     const [marketingLoading, setMarketingLoading] = (0, import_react13.useState)(false);
     const [marketingSaving, setMarketingSaving] = (0, import_react13.useState)(false);
     const [marketingPreview, setMarketingPreview] = (0, import_react13.useState)(null);
+    const [eventVoucherContacts, setEventVoucherContacts] = (0, import_react13.useState)([]);
+    const [eventVoucherContactsLoading, setEventVoucherContactsLoading] = (0, import_react13.useState)(false);
+    const [eventVoucherContactSearch, setEventVoucherContactSearch] = (0, import_react13.useState)("");
     const [marketingSegmentForm, setMarketingSegmentForm] = (0, import_react13.useState)({
       name: "",
       hasOrders: "any",
-      hasAbandonedCart: "any"
+      hasAbandonedCart: "any",
+      eventVoucherCampaign: "any"
     });
     const [marketingCampaignForm, setMarketingCampaignForm] = (0, import_react13.useState)({
       name: "",
@@ -13973,19 +14013,29 @@
     };
     const fetchMarketing = async () => {
       setMarketingLoading(true);
+      const isFranceVisible = selectedMarketTab === "fr" || selectedMarketTab === "all";
+      setEventVoucherContactsLoading(isFranceVisible);
       try {
         const market = selectedMarketTab || "all";
-        const [segmentsRes, campaignsRes] = await Promise.all([
+        const [segmentsRes, campaignsRes, contactsRes] = await Promise.all([
           fetch(`/admin/api/marketing/segments?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } }),
-          fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } })
+          fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } }),
+          isFranceVisible ? fetch("/admin/api/marketing/event-voucher-contacts?campaign=chef-event-fr", { headers: { "Authorization": `Bearer ${token}` } }) : Promise.resolve(null)
         ]);
         if (segmentsRes.ok) setMarketingSegments(await segmentsRes.json());
         if (campaignsRes.ok) setMarketingCampaigns(await campaignsRes.json());
+        if (contactsRes?.ok) {
+          const contactsData = await contactsRes.json();
+          setEventVoucherContacts(contactsData.contacts || []);
+        } else if (!isFranceVisible) {
+          setEventVoucherContacts([]);
+        }
       } catch (err) {
         console.error("Error fetching marketing data:", err);
         alert(t2("marketing.loadFailed"));
       } finally {
         setMarketingLoading(false);
+        setEventVoucherContactsLoading(false);
       }
     };
     const saveReminderThresholds = async (market) => {
@@ -14012,7 +14062,7 @@
     };
     const createMarketingSegment = async () => {
       if (!marketingSegmentForm.name.trim()) return alert(t2("marketing.segmentNameRequired"));
-      const market = selectedMarketTab || "all";
+      const market = marketingSegmentForm.eventVoucherCampaign === "chef-event-fr" ? "fr" : selectedMarketTab || "all";
       try {
         const res = await fetch("/admin/api/marketing/segments", {
           method: "POST",
@@ -14023,13 +14073,14 @@
             criteria: {
               market,
               hasOrders: marketingSegmentForm.hasOrders,
-              hasAbandonedCart: marketingSegmentForm.hasAbandonedCart
+              hasAbandonedCart: marketingSegmentForm.hasAbandonedCart,
+              eventVoucherCampaign: marketingSegmentForm.eventVoucherCampaign
             }
           })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || t2("marketing.segmentCreateFailed"));
-        setMarketingSegmentForm({ name: "", hasOrders: "any", hasAbandonedCart: "any" });
+        setMarketingSegmentForm({ name: "", hasOrders: "any", hasAbandonedCart: "any", eventVoucherCampaign: "any" });
         fetchMarketing();
       } catch (err) {
         alert(`\u274C ${err.message}`);
@@ -14086,6 +14137,41 @@
         alert(`\u274C ${err.message}`);
       }
     };
+    const downloadEventVoucherContactsCsv = () => {
+      const csvCell = (value) => {
+        const text = String(value ?? "");
+        const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+        return `"${safeText.replace(/"/g, '""')}"`;
+      };
+      const rows = [
+        ["Prenume", "Nume", "Restaurant", "Email", "Telefon", "Cod voucher", "Status email", "Data \xEEnscrierii", "Termen activare", "Activat la", "Status voucher"],
+        ...filteredEventVoucherContacts.map((contact) => [
+          contact.firstName,
+          contact.lastName,
+          contact.restaurant,
+          contact.email,
+          contact.phone,
+          contact.voucherCode,
+          contact.emailStatus,
+          contact.createdAt ? new Date(contact.createdAt).toISOString() : "",
+          contact.activationDeadline ? new Date(contact.activationDeadline).toISOString() : "",
+          contact.activatedAt ? new Date(contact.activatedAt).toISOString() : "",
+          contact.activatedAt ? "activat" : "neactivat"
+        ])
+      ];
+      const csv = "\uFEFF" + rows.map((row) => row.map(csvCell).join(";")).join("\r\n");
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "chef-event-fr-contacte.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+    const filteredEventVoucherContacts = eventVoucherContacts.filter((contact) => {
+      const query = eventVoucherContactSearch.trim().toLowerCase();
+      if (!query) return true;
+      return [contact.firstName, contact.lastName, contact.restaurant, contact.email, contact.phone, contact.voucherCode].filter(Boolean).some((value) => String(value).toLowerCase().includes(query));
+    });
     const fetchProductMarkets = async () => {
       try {
         const res = await fetch("/admin/api/market-products", {
@@ -17855,6 +17941,76 @@ This action cannot be undone.`)) {
                 t2("marketing.reload")
               ] })
             ] }),
+            (selectedMarketTab === "fr" || selectedMarketTab === "all") && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { style: { background: "#f4fbff", border: "1px solid #b9e6f5", borderRadius: "8px", padding: "20px", marginBottom: "24px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap", marginBottom: "6px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: 0, color: "#075985" }, children: [
+                    "\u{1F3AB} ",
+                    t2("marketing.eventContactsTitle")
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "13px", color: "#475569", margin: "6px 0 0" }, children: t2("marketing.eventContactsDescription") })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { background: "#dff6ff", color: "#075985", borderRadius: "14px", padding: "5px 10px", fontSize: "12px", fontWeight: "600" }, children: [
+                    eventVoucherContacts.length,
+                    " ",
+                    t2("marketing.eventContactsCount")
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: downloadEventVoucherContactsCsv,
+                      disabled: filteredEventVoucherContacts.length === 0,
+                      style: { background: filteredEventVoucherContacts.length === 0 ? "#94a3b8" : "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "8px 11px", cursor: filteredEventVoucherContacts.length === 0 ? "not-allowed" : "pointer", fontSize: "12px" },
+                      children: [
+                        "\u{1F4E5} ",
+                        t2("marketing.eventContactsExport")
+                      ]
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", margin: "14px 0 12px", flexWrap: "wrap" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "input",
+                  {
+                    value: eventVoucherContactSearch,
+                    onChange: (e2) => setEventVoucherContactSearch(e2.target.value),
+                    placeholder: t2("marketing.eventContactsSearch"),
+                    style: { flex: "1 1 260px", padding: "8px 10px", border: "1px solid #bae6fd", borderRadius: "4px", minWidth: "220px" }
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#64748b", alignSelf: "center" }, children: eventVoucherContactsLoading ? t2("marketing.loading") : `${filteredEventVoucherContacts.length} ${t2("marketing.eventContactsVisible")}` })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto", maxHeight: "360px", overflowY: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "12px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { style: { position: "sticky", top: 0, background: "#e0f2fe", zIndex: 1 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: "Contact" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: "Restaurant" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: "Email" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: "Telefon" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: "Voucher" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: "Activare" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: "\xCEnscris la" })
+                ] }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tbody", { children: [
+                  filteredEventVoucherContacts.map((contact) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderTop: "1px solid #e0f2fe" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "8px", whiteSpace: "nowrap" }, children: [
+                      contact.firstName,
+                      " ",
+                      contact.lastName
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px" }, children: contact.restaurant }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px" }, children: contact.email }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px", whiteSpace: "nowrap" }, children: contact.phone }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("code", { children: contact.voucherCode || "\u2014" }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px", whiteSpace: "nowrap" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: contact.activatedAt ? "#15803d" : "#b45309", fontWeight: "600" }, children: contact.activatedAt ? t2("marketing.eventContactsActivated") : t2("marketing.eventContactsPending") }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px", whiteSpace: "nowrap" }, children: contact.createdAt ? new Date(contact.createdAt).toLocaleDateString() : "\u2014" })
+                  ] }, contact.id)),
+                  !eventVoucherContactsLoading && filteredEventVoucherContacts.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tr", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { colSpan: "7", style: { padding: "16px", textAlign: "center", color: "#64748b" }, children: t2("marketing.eventContactsEmpty") }) })
+                ] })
+              ] }) })
+            ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { style: { background: "#f0f7ff", border: "1px solid #b8d7ff", borderRadius: "8px", padding: "20px", marginBottom: "24px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: "0 0 6px", color: "#145da0" }, children: [
                 "\u23F1\uFE0F ",
@@ -17906,10 +18062,17 @@ This action cannot be undone.`)) {
                 t2("marketing.segmentsTitle")
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "13px", color: "#6c757d", margin: "0 0 16px" }, children: t2("marketing.segmentsDescription") }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(180px, 1.4fr) repeat(2, minmax(140px, 1fr)) auto", gap: "8px", alignItems: "end", marginBottom: "16px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(180px, 1.3fr) repeat(3, minmax(130px, 1fr)) auto", gap: "8px", alignItems: "end", marginBottom: "16px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "12px", color: "#495057" }, children: [
                   t2("marketing.segmentName"),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: marketingSegmentForm.name, onChange: (e2) => setMarketingSegmentForm({ ...marketingSegmentForm, name: e2.target.value }), placeholder: t2("marketing.segmentNamePlaceholder"), style: { display: "block", width: "100%", boxSizing: "border-box", marginTop: "4px", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" } })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "12px", color: "#495057" }, children: [
+                  t2("marketing.audienceSource"),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: marketingSegmentForm.eventVoucherCampaign, onChange: (e2) => setMarketingSegmentForm({ ...marketingSegmentForm, eventVoucherCampaign: e2.target.value }), style: { display: "block", width: "100%", marginTop: "4px", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "any", children: t2("marketing.allContacts") }),
+                    (selectedMarketTab === "fr" || selectedMarketTab === "all") && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "chef-event-fr", children: t2("marketing.chefEventContacts") })
+                  ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "12px", color: "#495057" }, children: [
                   t2("marketing.orders"),
@@ -17939,13 +18102,7 @@ This action cannot be undone.`)) {
                     ".",
                     segment.market,
                     " \xB7 ",
-                    segment.criteria?.hasOrders || t2("marketing.any"),
-                    " ",
-                    t2("marketing.orders").toLowerCase(),
-                    " \xB7 ",
-                    segment.criteria?.hasAbandonedCart || t2("marketing.any"),
-                    " ",
-                    t2("marketing.abandonedCart").toLowerCase()
+                    segment.criteria?.eventVoucherCampaign === "chef-event-fr" ? t2("marketing.chefEventContacts") : `${segment.criteria?.hasOrders || t2("marketing.any")} ${t2("marketing.orders").toLowerCase()} \xB7 ${segment.criteria?.hasAbandonedCart || t2("marketing.any")} ${t2("marketing.abandonedCart").toLowerCase()}`
                   ] })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "6px" }, children: [

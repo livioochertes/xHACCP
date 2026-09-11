@@ -6374,6 +6374,7 @@ export async function registerAdminRoutes(app: Express) {
         firstName: registration.firstName,
         code: registration.voucherCode,
         validUntil: registration.validUntil,
+        activationDeadline: registration.activationDeadline ?? undefined,
         discountValue: campaign.discountValue,
       });
       if (sent) {

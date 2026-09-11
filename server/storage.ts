@@ -114,6 +114,24 @@ export interface AbandonedCartCandidate {
   }>;
 }
 
+export interface MarketingRecipient {
+  id: number;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  source?: "account" | "event_voucher";
+}
+
+export interface EventVoucherMarketingContact extends EventVoucherRegistration {
+  campaignSlug: string;
+  campaignName: string;
+  voucherCode: string | null;
+  validUntil: Date | null;
+  activationDeadline: Date | null;
+  activatedAt: Date | null;
+  usedCount: number | null;
+}
+
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -228,7 +246,8 @@ export interface IStorage {
   getEventVoucherCampaign(slug: string, includeInactive?: boolean): Promise<EventVoucherCampaign | undefined>;
   ensureEventVoucherCampaign(campaign: InsertEventVoucherCampaign): Promise<EventVoucherCampaign>;
   updateEventVoucherCampaign(id: number, campaign: Partial<EventVoucherCampaign>): Promise<EventVoucherCampaign>;
-  getEventVoucherRegistrations(campaignId: number): Promise<Array<EventVoucherRegistration & { voucherCode: string | null; validUntil: Date | null }>>;
+  getEventVoucherRegistrations(campaignId: number): Promise<EventVoucherMarketingContact[]>;
+  getEventVoucherMarketingContacts(campaignSlug?: string): Promise<EventVoucherMarketingContact[]>;
   registerEventVoucher(data: {
     campaignId: number;
     firstName: string;
@@ -268,7 +287,7 @@ export interface IStorage {
   getMarketingCampaign(id: number): Promise<MarketingCampaign | undefined>;
   createMarketingCampaign(campaign: InsertMarketingCampaign): Promise<MarketingCampaign>;
   updateMarketingCampaign(id: number, campaign: Partial<InsertMarketingCampaign>): Promise<MarketingCampaign>;
-  getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<User[]>;
+  getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<MarketingRecipient[]>;
 
   // Product market operations
   getProductMarkets(productId: number): Promise<ProductMarket[]>;
@@ -1851,21 +1870,61 @@ export class DatabaseStorage implements IStorage {
 
   async getEventVoucherRegistrations(
     campaignId: number,
-  ): Promise<Array<EventVoucherRegistration & { voucherCode: string | null; validUntil: Date | null }>> {
+  ): Promise<EventVoucherMarketingContact[]> {
     const rows = await db.select({
       registration: eventVoucherRegistrations,
+      campaignSlug: eventVoucherCampaigns.slug,
+      campaignName: eventVoucherCampaigns.name,
       voucherCode: vouchers.code,
       validUntil: vouchers.validUntil,
+      activationDeadline: vouchers.activationDeadline,
+      activatedAt: vouchers.activatedAt,
+      usedCount: vouchers.usedCount,
     })
       .from(eventVoucherRegistrations)
+      .innerJoin(eventVoucherCampaigns, eq(eventVoucherRegistrations.campaignId, eventVoucherCampaigns.id))
       .leftJoin(vouchers, eq(eventVoucherRegistrations.voucherId, vouchers.id))
       .where(eq(eventVoucherRegistrations.campaignId, campaignId))
       .orderBy(desc(eventVoucherRegistrations.createdAt));
 
-    return rows.map(({ registration, voucherCode, validUntil }) => ({
+    return rows.map(({ registration, campaignSlug, campaignName, voucherCode, validUntil, activationDeadline, activatedAt, usedCount }) => ({
       ...registration,
+      campaignSlug,
+      campaignName,
       voucherCode: voucherCode ?? null,
       validUntil: validUntil ?? null,
+      activationDeadline: activationDeadline ?? null,
+      activatedAt: activatedAt ?? null,
+      usedCount: usedCount ?? null,
+    }));
+  }
+
+  async getEventVoucherMarketingContacts(campaignSlug?: string): Promise<EventVoucherMarketingContact[]> {
+    const rows = await db.select({
+      registration: eventVoucherRegistrations,
+      campaignSlug: eventVoucherCampaigns.slug,
+      campaignName: eventVoucherCampaigns.name,
+      voucherCode: vouchers.code,
+      validUntil: vouchers.validUntil,
+      activationDeadline: vouchers.activationDeadline,
+      activatedAt: vouchers.activatedAt,
+      usedCount: vouchers.usedCount,
+    })
+      .from(eventVoucherRegistrations)
+      .innerJoin(eventVoucherCampaigns, eq(eventVoucherRegistrations.campaignId, eventVoucherCampaigns.id))
+      .leftJoin(vouchers, eq(eventVoucherRegistrations.voucherId, vouchers.id))
+      .where(campaignSlug ? eq(eventVoucherCampaigns.slug, campaignSlug) : undefined)
+      .orderBy(desc(eventVoucherRegistrations.createdAt));
+
+    return rows.map(({ registration, campaignSlug: rowCampaignSlug, campaignName, voucherCode, validUntil, activationDeadline, activatedAt, usedCount }) => ({
+      ...registration,
+      campaignSlug: rowCampaignSlug,
+      campaignName,
+      voucherCode: voucherCode ?? null,
+      validUntil: validUntil ?? null,
+      activationDeadline: activationDeadline ?? null,
+      activatedAt: activatedAt ?? null,
+      usedCount: usedCount ?? null,
     }));
   }
 
@@ -2159,7 +2218,25 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<User[]> {
+  async getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<MarketingRecipient[]> {
+    if (criteria.eventVoucherCampaign && criteria.eventVoucherCampaign !== "any") {
+      if (criteria.market && criteria.market !== "all" && criteria.market !== "fr") {
+        return [];
+      }
+      const contacts = await this.getEventVoucherMarketingContacts(
+        criteria.eventVoucherCampaign === "chef-event-fr" ? "chef-event-fr" : undefined,
+      );
+      return contacts
+        .filter(contact => Boolean(contact.email && contact.consentAt))
+        .map(contact => ({
+          id: contact.id,
+          email: contact.email,
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          source: "event_voucher" as const,
+        }));
+    }
+
     const allUsers = await this.getAllUsers();
     const allOrders = await this.getOrders();
     const cartRows = await db.select({
@@ -2198,7 +2275,13 @@ export class DatabaseStorage implements IStorage {
       if (criteria.hasAbandonedCart === "yes" && (!targetMarket ? userCarts.size === 0 : !userCarts.has(targetMarket))) return false;
       if (criteria.hasAbandonedCart === "no" && (targetMarket ? userCarts.has(targetMarket) : userCarts.size > 0)) return false;
       return true;
-    });
+    }).map(user => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      source: "account" as const,
+    }));
   }
 
   // Product market operations

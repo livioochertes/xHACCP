@@ -171,6 +171,7 @@ export type MarketingSegmentCriteria = {
   market?: "all" | "ro" | "fr" | "com";
   hasOrders?: "any" | "yes" | "no";
   hasAbandonedCart?: "any" | "yes" | "no";
+  eventVoucherCampaign?: "any" | "chef-event-fr";
 };
 
 export const marketingSegments = pgTable("marketing_segments", {

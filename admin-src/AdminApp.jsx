@@ -495,8 +495,11 @@ import {
       const [marketingLoading, setMarketingLoading] = useState(false);
       const [marketingSaving, setMarketingSaving] = useState(false);
       const [marketingPreview, setMarketingPreview] = useState(null);
+      const [eventVoucherContacts, setEventVoucherContacts] = useState([]);
+      const [eventVoucherContactsLoading, setEventVoucherContactsLoading] = useState(false);
+      const [eventVoucherContactSearch, setEventVoucherContactSearch] = useState('');
       const [marketingSegmentForm, setMarketingSegmentForm] = useState({
-        name: '', hasOrders: 'any', hasAbandonedCart: 'any'
+        name: '', hasOrders: 'any', hasAbandonedCart: 'any', eventVoucherCampaign: 'any'
       });
       const [marketingCampaignForm, setMarketingCampaignForm] = useState({
         name: '', market: 'ro', segmentId: '', subject: '', htmlContent: '', textContent: ''
@@ -1443,19 +1446,31 @@ import {
 
       const fetchMarketing = async () => {
         setMarketingLoading(true);
+        const isFranceVisible = selectedMarketTab === 'fr' || selectedMarketTab === 'all';
+        setEventVoucherContactsLoading(isFranceVisible);
         try {
           const market = selectedMarketTab || 'all';
-          const [segmentsRes, campaignsRes] = await Promise.all([
+          const [segmentsRes, campaignsRes, contactsRes] = await Promise.all([
             fetch(`/admin/api/marketing/segments?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } })
+            fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            isFranceVisible
+              ? fetch('/admin/api/marketing/event-voucher-contacts?campaign=chef-event-fr', { headers: { 'Authorization': `Bearer ${token}` } })
+              : Promise.resolve(null)
           ]);
           if (segmentsRes.ok) setMarketingSegments(await segmentsRes.json());
           if (campaignsRes.ok) setMarketingCampaigns(await campaignsRes.json());
+          if (contactsRes?.ok) {
+            const contactsData = await contactsRes.json();
+            setEventVoucherContacts(contactsData.contacts || []);
+          } else if (!isFranceVisible) {
+            setEventVoucherContacts([]);
+          }
         } catch (err) {
           console.error('Error fetching marketing data:', err);
           alert(t('marketing.loadFailed'));
         } finally {
           setMarketingLoading(false);
+          setEventVoucherContactsLoading(false);
         }
       };
 
@@ -1484,7 +1499,9 @@ import {
 
       const createMarketingSegment = async () => {
          if (!marketingSegmentForm.name.trim()) return alert(t('marketing.segmentNameRequired'));
-        const market = selectedMarketTab || 'all';
+        const market = marketingSegmentForm.eventVoucherCampaign === 'chef-event-fr'
+          ? 'fr'
+          : (selectedMarketTab || 'all');
         try {
           const res = await fetch('/admin/api/marketing/segments', {
             method: 'POST',
@@ -1495,13 +1512,14 @@ import {
               criteria: {
                 market,
                 hasOrders: marketingSegmentForm.hasOrders,
-                hasAbandonedCart: marketingSegmentForm.hasAbandonedCart
+                hasAbandonedCart: marketingSegmentForm.hasAbandonedCart,
+                eventVoucherCampaign: marketingSegmentForm.eventVoucherCampaign
               }
             })
           });
           const data = await res.json();
            if (!res.ok) throw new Error(data.message || t('marketing.segmentCreateFailed'));
-          setMarketingSegmentForm({name: '', hasOrders: 'any', hasAbandonedCart: 'any'});
+          setMarketingSegmentForm({name: '', hasOrders: 'any', hasAbandonedCart: 'any', eventVoucherCampaign: 'any'});
           fetchMarketing();
         } catch (err) {
           alert(`❌ ${err.message}`);
@@ -1561,6 +1579,45 @@ import {
           alert(`❌ ${err.message}`);
         }
       };
+
+      const downloadEventVoucherContactsCsv = () => {
+        const csvCell = (value) => {
+          const text = String(value ?? '');
+          const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+          return `"${safeText.replace(/"/g, '""')}"`;
+        };
+        const rows = [
+          ['Prenume', 'Nume', 'Restaurant', 'Email', 'Telefon', 'Cod voucher', 'Status email', 'Data înscrierii', 'Termen activare', 'Activat la', 'Status voucher'],
+          ...filteredEventVoucherContacts.map(contact => [
+            contact.firstName,
+            contact.lastName,
+            contact.restaurant,
+            contact.email,
+            contact.phone,
+            contact.voucherCode,
+            contact.emailStatus,
+            contact.createdAt ? new Date(contact.createdAt).toISOString() : '',
+            contact.activationDeadline ? new Date(contact.activationDeadline).toISOString() : '',
+            contact.activatedAt ? new Date(contact.activatedAt).toISOString() : '',
+            contact.activatedAt ? 'activat' : 'neactivat'
+          ])
+        ];
+        const csv = '\uFEFF' + rows.map(row => row.map(csvCell).join(';')).join('\r\n');
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'chef-event-fr-contacte.csv';
+        link.click();
+        URL.revokeObjectURL(url);
+      };
+
+      const filteredEventVoucherContacts = eventVoucherContacts.filter(contact => {
+        const query = eventVoucherContactSearch.trim().toLowerCase();
+        if (!query) return true;
+        return [contact.firstName, contact.lastName, contact.restaurant, contact.email, contact.phone, contact.voucherCode]
+          .filter(Boolean)
+          .some(value => String(value).toLowerCase().includes(query));
+      });
 
       const fetchProductMarkets = async () => {
         try {
@@ -5305,6 +5362,76 @@ import {
                   <button onClick={() => { fetchMarkets(); fetchMarketing(); }} style={{background: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', padding: '9px 14px', cursor: 'pointer'}}>↻ {t('marketing.reload')}</button>
                 </div>
 
+                {(selectedMarketTab === 'fr' || selectedMarketTab === 'all') && (
+                  <section style={{background: '#f4fbff', border: '1px solid #b9e6f5', borderRadius: '8px', padding: '20px', marginBottom: '24px'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '6px'}}>
+                      <div>
+                        <h4 style={{margin: 0, color: '#075985'}}>🎫 {t('marketing.eventContactsTitle')}</h4>
+                        <p style={{fontSize: '13px', color: '#475569', margin: '6px 0 0'}}>{t('marketing.eventContactsDescription')}</p>
+                      </div>
+                      <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
+                        <span style={{background: '#dff6ff', color: '#075985', borderRadius: '14px', padding: '5px 10px', fontSize: '12px', fontWeight: '600'}}>
+                          {eventVoucherContacts.length} {t('marketing.eventContactsCount')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={downloadEventVoucherContactsCsv}
+                          disabled={filteredEventVoucherContacts.length === 0}
+                          style={{background: filteredEventVoucherContacts.length === 0 ? '#94a3b8' : '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '8px 11px', cursor: filteredEventVoucherContacts.length === 0 ? 'not-allowed' : 'pointer', fontSize: '12px'}}
+                        >
+                          📥 {t('marketing.eventContactsExport')}
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{display: 'flex', gap: '8px', margin: '14px 0 12px', flexWrap: 'wrap'}}>
+                      <input
+                        value={eventVoucherContactSearch}
+                        onChange={e => setEventVoucherContactSearch(e.target.value)}
+                        placeholder={t('marketing.eventContactsSearch')}
+                        style={{flex: '1 1 260px', padding: '8px 10px', border: '1px solid #bae6fd', borderRadius: '4px', minWidth: '220px'}}
+                      />
+                      <span style={{fontSize: '12px', color: '#64748b', alignSelf: 'center'}}>
+                        {eventVoucherContactsLoading ? t('marketing.loading') : `${filteredEventVoucherContacts.length} ${t('marketing.eventContactsVisible')}`}
+                      </span>
+                    </div>
+                    <div style={{overflowX: 'auto', maxHeight: '360px', overflowY: 'auto'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', background: 'white', fontSize: '12px'}}>
+                        <thead style={{position: 'sticky', top: 0, background: '#e0f2fe', zIndex: 1}}>
+                          <tr>
+                            <th style={{padding: '8px', textAlign: 'left'}}>Contact</th>
+                            <th style={{padding: '8px', textAlign: 'left'}}>Restaurant</th>
+                            <th style={{padding: '8px', textAlign: 'left'}}>Email</th>
+                            <th style={{padding: '8px', textAlign: 'left'}}>Telefon</th>
+                            <th style={{padding: '8px', textAlign: 'left'}}>Voucher</th>
+                            <th style={{padding: '8px', textAlign: 'left'}}>Activare</th>
+                            <th style={{padding: '8px', textAlign: 'left'}}>Înscris la</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredEventVoucherContacts.map(contact => (
+                            <tr key={contact.id} style={{borderTop: '1px solid #e0f2fe'}}>
+                              <td style={{padding: '8px', whiteSpace: 'nowrap'}}>{contact.firstName} {contact.lastName}</td>
+                              <td style={{padding: '8px'}}>{contact.restaurant}</td>
+                              <td style={{padding: '8px'}}>{contact.email}</td>
+                              <td style={{padding: '8px', whiteSpace: 'nowrap'}}>{contact.phone}</td>
+                              <td style={{padding: '8px'}}><code>{contact.voucherCode || '—'}</code></td>
+                              <td style={{padding: '8px', whiteSpace: 'nowrap'}}>
+                                <span style={{color: contact.activatedAt ? '#15803d' : '#b45309', fontWeight: '600'}}>
+                                  {contact.activatedAt ? t('marketing.eventContactsActivated') : t('marketing.eventContactsPending')}
+                                </span>
+                              </td>
+                              <td style={{padding: '8px', whiteSpace: 'nowrap'}}>{contact.createdAt ? new Date(contact.createdAt).toLocaleDateString() : '—'}</td>
+                            </tr>
+                          ))}
+                          {!eventVoucherContactsLoading && filteredEventVoucherContacts.length === 0 && (
+                            <tr><td colSpan="7" style={{padding: '16px', textAlign: 'center', color: '#64748b'}}>{t('marketing.eventContactsEmpty')}</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                )}
+
                 <section style={{background: '#f0f7ff', border: '1px solid #b8d7ff', borderRadius: '8px', padding: '20px', marginBottom: '24px'}}>
                   <h4 style={{margin: '0 0 6px', color: '#145da0'}}>⏱️ {t('marketing.thresholdsTitle')}</h4>
                   <p style={{fontSize: '13px', color: '#495057', margin: '0 0 16px'}}>
@@ -5346,8 +5473,9 @@ import {
                 <section style={{background: '#fffaf0', border: '1px solid #ffe0a3', borderRadius: '8px', padding: '20px', marginBottom: '24px'}}>
                   <h4 style={{margin: '0 0 6px', color: '#856404'}}>👥 {t('marketing.segmentsTitle')}</h4>
                   <p style={{fontSize: '13px', color: '#6c757d', margin: '0 0 16px'}}>{t('marketing.segmentsDescription')}</p>
-                  <div style={{display: 'grid', gridTemplateColumns: 'minmax(180px, 1.4fr) repeat(2, minmax(140px, 1fr)) auto', gap: '8px', alignItems: 'end', marginBottom: '16px'}}>
+                  <div style={{display: 'grid', gridTemplateColumns: 'minmax(180px, 1.3fr) repeat(3, minmax(130px, 1fr)) auto', gap: '8px', alignItems: 'end', marginBottom: '16px'}}>
                     <label style={{fontSize: '12px', color: '#495057'}}>{t('marketing.segmentName')}<input value={marketingSegmentForm.name} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, name: e.target.value})} placeholder={t('marketing.segmentNamePlaceholder')} style={{display: 'block', width: '100%', boxSizing: 'border-box', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} /></label>
+                    <label style={{fontSize: '12px', color: '#495057'}}>{t('marketing.audienceSource')}<select value={marketingSegmentForm.eventVoucherCampaign} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, eventVoucherCampaign: e.target.value})} style={{display: 'block', width: '100%', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="any">{t('marketing.allContacts')}</option>{(selectedMarketTab === 'fr' || selectedMarketTab === 'all') && <option value="chef-event-fr">{t('marketing.chefEventContacts')}</option>}</select></label>
                     <label style={{fontSize: '12px', color: '#495057'}}>{t('marketing.orders')}<select value={marketingSegmentForm.hasOrders} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, hasOrders: e.target.value})} style={{display: 'block', width: '100%', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="any">{t('marketing.any')}</option><option value="yes">{t('marketing.withOrders')}</option><option value="no">{t('marketing.withoutOrders')}</option></select></label>
                     <label style={{fontSize: '12px', color: '#495057'}}>{t('marketing.abandonedCart')}<select value={marketingSegmentForm.hasAbandonedCart} onChange={e => setMarketingSegmentForm({...marketingSegmentForm, hasAbandonedCart: e.target.value})} style={{display: 'block', width: '100%', marginTop: '4px', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}><option value="any">{t('marketing.any')}</option><option value="yes">{t('marketing.withCart')}</option><option value="no">{t('marketing.withoutCart')}</option></select></label>
                     <button onClick={createMarketingSegment} style={{background: '#198754', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 12px', cursor: 'pointer'}}>+ {t('marketing.create')}</button>
@@ -5356,7 +5484,7 @@ import {
                     <div style={{display: 'grid', gap: '8px'}}>
                       {marketingSegments.map(segment => (
                         <div key={segment.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', border: '1px solid #dee2e6', borderRadius: '5px', padding: '10px 12px', flexWrap: 'wrap'}}>
-                          <div><strong>{segment.name}</strong><span style={{marginLeft: '8px', fontSize: '11px', color: '#6c757d'}}>.{segment.market} · {segment.criteria?.hasOrders || t('marketing.any')} {t('marketing.orders').toLowerCase()} · {segment.criteria?.hasAbandonedCart || t('marketing.any')} {t('marketing.abandonedCart').toLowerCase()}</span></div>
+                           <div><strong>{segment.name}</strong><span style={{marginLeft: '8px', fontSize: '11px', color: '#6c757d'}}>.{segment.market} · {segment.criteria?.eventVoucherCampaign === 'chef-event-fr' ? t('marketing.chefEventContacts') : `${segment.criteria?.hasOrders || t('marketing.any')} ${t('marketing.orders').toLowerCase()} · ${segment.criteria?.hasAbandonedCart || t('marketing.any')} ${t('marketing.abandonedCart').toLowerCase()}`}</span></div>
                           <div style={{display: 'flex', gap: '6px'}}>
                             <button onClick={() => previewMarketingSegment(segment)} style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 9px', cursor: 'pointer', fontSize: '12px'}}>{t('marketing.previewRecipients')}</button>
                             <button onClick={async () => { if (!window.confirm(t('marketing.deleteConfirm'))) return; await fetch(`/admin/api/marketing/segments/${segment.id}`, {method: 'DELETE', headers: {'Authorization': `Bearer ${token}`}}); fetchMarketing(); }} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '6px 9px', cursor: 'pointer', fontSize: '12px'}}>{t('marketing.delete')}</button>
