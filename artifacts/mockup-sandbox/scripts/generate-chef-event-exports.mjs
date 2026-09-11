@@ -176,16 +176,6 @@ const html = `<!doctype html>
         line-height: 1.45;
       }
       .description strong { color: white; }
-      .event-label {
-        display: block;
-        margin-bottom: 2px;
-        color: #4ade80;
-        font-size: 20px;
-        font-weight: 900;
-        letter-spacing: .04em;
-        text-transform: uppercase;
-      }
-      .duration { color: #4ade80; font-weight: 800; }
       .activation {
         display: flex;
         align-items: flex-start;
@@ -211,14 +201,6 @@ const html = `<!doctype html>
         font-weight: 900;
       }
       .activation-title {
-        color: #4ade80;
-        font-size: 17px;
-        font-weight: 900;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-      }
-      .activation-heading {
-        margin-top: 3px;
         color: #a5f3fc;
         font-size: 15px;
         font-weight: 900;
@@ -361,16 +343,14 @@ const html = `<!doctype html>
             <p class="eyebrow">Pour les professionnels de la restauration</p>
             <h1>Votre cuisine.<br><span>Votre avantage.</span></h1>
             <p class="description">
-              <span class="event-label">au Chef Event</span>
-              Inscrivez-vous à l'événement et recevez par email votre
+              Inscrivez-vous au Chef Event et recevez par email votre
               <strong>code personnel de réduction de 20&nbsp;%</strong>
-              sur tous les produits xHACCP France. <span class="duration">pendant 1 an.</span>
+              sur tous les produits xHACCP France, pendant 1 an.
             </p>
             <div class="activation">
               <div class="activation-icon">◷</div>
               <div>
-                <div class="activation-title">Activez vite votre compte</div>
-                <div class="activation-heading">Important · activation par achat</div>
+                <div class="activation-title">Important · activez vite votre compte</div>
                 <div class="activation-copy">Effectuez une première commande payée dans les 30 jours.</div>
                 <div class="activation-note">Sans achat dans ce délai, le code devient invalide. Après activation, il reste valable 12 mois.</div>
               </div>

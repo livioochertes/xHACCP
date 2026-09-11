@@ -71,12 +71,9 @@ export function ChefEventQrCard() {
               <span className="text-cyan-300">Votre avantage.</span>
             </h1>
             <p className="mt-5 max-w-[650px] text-[clamp(15px,1.3vw,20px)] leading-[1.4] text-slate-300">
-              <span className="mb-1 block text-[clamp(13px,1.2vw,18px)] font-black uppercase tracking-[.04em] text-green-400">
-                au Chef Event
-              </span>
-              Inscrivez-vous à l&apos;événement et recevez par email votre
+              Inscrivez-vous au Chef Event et recevez par email votre
               <strong className="font-semibold text-white"> code personnel de réduction de 20&nbsp;%</strong>
-              {" "}sur tous les produits xHACCP France. <span className="font-bold text-green-400">pendant 1 an.</span>
+              {" "}sur tous les produits xHACCP France, pendant 1 an.
             </p>
 
             <div className="mt-5 flex max-w-[700px] items-start gap-3 rounded-2xl border-2 border-cyan-300/60 bg-cyan-300/10 px-4 py-3 shadow-[0_0_34px_rgba(34,211,238,.12)]">
@@ -84,11 +81,8 @@ export function ChefEventQrCard() {
                 <Clock3 className="h-5 w-5" strokeWidth={2.2} />
               </span>
               <div>
-                <p className="text-[clamp(13px,1.15vw,17px)] font-black uppercase tracking-[.08em] text-green-400">
-                  Activez vite votre compte
-                </p>
                 <p className="text-[clamp(12px,1.05vw,15px)] font-black uppercase tracking-[.12em] text-cyan-200">
-                  Important · activation par achat
+                  Important · activez vite votre compte
                 </p>
                 <p className="mt-1 text-[clamp(13px,1.15vw,17px)] font-semibold leading-[1.35] text-white">
                   Effectuez une première commande payée dans les 30 jours.
