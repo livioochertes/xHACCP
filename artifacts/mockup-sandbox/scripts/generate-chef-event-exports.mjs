@@ -18,6 +18,9 @@ if (!existsSync(chromiumPath)) {
 }
 
 const registrationUrl = "https://xhaccp.fr/chef-event";
+const logoDataUri = `data:image/png;base64,${readFileSync(
+  path.join(artifactDir, "public/images/xhaccp-logo.png"),
+).toString("base64")}`;
 const qrSvg = await QRCode.toString(registrationUrl, {
   type: "svg",
   errorCorrectionLevel: "H",
@@ -96,16 +99,23 @@ const html = `<!doctype html>
         justify-content: space-between;
       }
       .brand { display: flex; align-items: center; gap: 16px; }
-      .brand-mark {
-        display: grid;
-        width: 48px;
-        height: 48px;
-        place-items: center;
-        border: 1px solid rgba(103, 232, 249, .3);
-        border-radius: 14px;
-        background: rgba(103, 232, 249, .1);
-        color: #a5f3fc;
-        font-size: 24px;
+      .logo-panel {
+        display: flex;
+        width: 170px;
+        height: 58px;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 12px;
+        background: white;
+        padding: 8px 12px;
+        box-shadow: 0 0 30px rgba(34, 211, 238, .12);
+      }
+      .logo-panel img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
       }
       .brand-name {
         font-size: 26px;
@@ -166,6 +176,68 @@ const html = `<!doctype html>
         line-height: 1.45;
       }
       .description strong { color: white; }
+      .event-label {
+        display: block;
+        margin-bottom: 2px;
+        color: #4ade80;
+        font-size: 20px;
+        font-weight: 900;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+      }
+      .duration { color: #4ade80; font-weight: 800; }
+      .activation {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        max-width: 860px;
+        margin-top: 28px;
+        padding: 16px 18px;
+        border: 2px solid rgba(103, 232, 249, .65);
+        border-radius: 20px;
+        background: rgba(103, 232, 249, .1);
+        box-shadow: 0 0 34px rgba(34, 211, 238, .12);
+      }
+      .activation-icon {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 50%;
+        background: #67e8f9;
+        color: #071728;
+        font-size: 22px;
+        font-weight: 900;
+      }
+      .activation-title {
+        color: #4ade80;
+        font-size: 17px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      .activation-heading {
+        margin-top: 3px;
+        color: #a5f3fc;
+        font-size: 15px;
+        font-weight: 900;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+      }
+      .activation-copy {
+        margin-top: 5px;
+        color: white;
+        font-size: 17px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+      .activation-note {
+        margin-top: 4px;
+        color: #cbd5e1;
+        font-size: 14px;
+        line-height: 1.4;
+      }
       .details {
         display: grid;
         grid-template-columns: repeat(3, max-content);
