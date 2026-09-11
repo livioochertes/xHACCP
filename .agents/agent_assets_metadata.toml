@@ -21,3 +21,31 @@ mtime_ms = 1788979779051
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/1b56c299-8d5f-4683-a446-32ccc8cb41f8/0f53f792-dfd2-497d-a824-f43e65e6823e"
 storage_version_token = "1788979810579497"
 content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+[[outputs]]
+id = "sR_aPay2TY6AMdr3MDRCL"
+uri = "file://artifacts/mockup-sandbox/public/exports/chef-event-qr-card.png"
+type = "image"
+title = "Card Chef Event — PNG"
+description = "Exportul PNG al cardului promoțional Chef Event, format 1920×1080."
+logical_id = "44557ec3-cd6d-4c9b-b871-54afa9db4805"
+content_hash = "sha256:d5a138abb0639499002c7799f79ea6ad02318648462a0af1f3001768e6644908"
+size = 280383
+mtime_ms = 1789161411553
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/44557ec3-cd6d-4c9b-b871-54afa9db4805/34b32ab3-f2d0-4673-b966-4a82478f12c2"
+storage_version_token = "1789161532867801"
+content_type = "image/png"
+
+[[outputs]]
+id = "UliG9tkXUdRaEoFbfbUh_"
+uri = "file://artifacts/mockup-sandbox/public/exports/chef-event-qr-card.pdf"
+type = "pdf"
+title = "Card Chef Event — PDF"
+description = "Exportul PDF al cardului promoțional Chef Event, format 16:9."
+logical_id = "e2bd8b98-43f8-4bc1-ad2f-8aa3ca66e9b6"
+content_hash = "sha256:d0fde9792b3748ece520757bf6ae780eb8bafc439d9f2f8d3fcb8d5042597676"
+size = 528542
+mtime_ms = 1789161422954
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/e2bd8b98-43f8-4bc1-ad2f-8aa3ca66e9b6/8e42373d-6ff1-467a-a05c-351993dc1673"
+storage_version_token = "1789161533493863"
+content_type = "application/pdf"
