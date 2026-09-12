@@ -176,6 +176,11 @@ const html = `<!doctype html>
         line-height: 1.45;
       }
       .description strong { color: white; }
+      .event-label,
+      .duration {
+        color: #4ade80;
+        font-weight: 900;
+      }
       .activation {
         display: flex;
         align-items: flex-start;
@@ -201,6 +206,14 @@ const html = `<!doctype html>
         font-weight: 900;
       }
       .activation-title {
+        color: #4ade80;
+        font-size: 17px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      .activation-heading {
+        margin-top: 3px;
         color: #a5f3fc;
         font-size: 15px;
         font-weight: 900;
@@ -208,17 +221,11 @@ const html = `<!doctype html>
         text-transform: uppercase;
       }
       .activation-copy {
-        margin-top: 5px;
-        color: white;
-        font-size: 17px;
-        font-weight: 700;
+        margin-top: 6px;
+        color: #4ade80;
+        font-size: 15px;
+        font-weight: 900;
         line-height: 1.35;
-      }
-      .activation-note {
-        margin-top: 4px;
-        color: #cbd5e1;
-        font-size: 14px;
-        line-height: 1.4;
       }
       .details {
         display: grid;
@@ -343,16 +350,16 @@ const html = `<!doctype html>
             <p class="eyebrow">Pour les professionnels de la restauration</p>
             <h1>Votre cuisine.<br><span>Votre avantage.</span></h1>
             <p class="description">
-              Inscrivez-vous au Chef Event et recevez par email votre
+              Inscrivez-vous <span class="event-label">au CHEF EVENT</span> et recevez par email votre
               <strong>code personnel de réduction de 20&nbsp;%</strong>
-              sur tous les produits xHACCP France, pendant 1 an.
+              sur tous les produits xHACCP France, <span class="duration">pendant 1 an.</span>
             </p>
             <div class="activation">
               <div class="activation-icon">◷</div>
               <div>
-                <div class="activation-title">Important · activez vite votre compte</div>
-                <div class="activation-copy">Effectuez une première commande payée dans les 30 jours.</div>
-                <div class="activation-note">Sans achat dans ce délai, le code devient invalide. Après activation, il reste valable 12 mois.</div>
+                <div class="activation-title">Activez vite votre compte</div>
+                <div class="activation-heading">Important · activation par achat</div>
+                <div class="activation-copy">Une commande dans les trente (30) jours = votre promotion valable pour toutes vos commandes pendant 1 an</div>
               </div>
             </div>
             <div class="details">
