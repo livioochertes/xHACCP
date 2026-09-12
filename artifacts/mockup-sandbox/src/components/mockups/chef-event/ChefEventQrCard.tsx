@@ -85,7 +85,10 @@ export function ChefEventQrCard() {
                   IMPORTANT - ACTIVEZ VITE VOTRE COMPTE
                 </p>
                 <p className="mt-1 text-[clamp(13px,1.15vw,17px)] font-semibold leading-[1.35] text-white">
-                  Une commande dans les trentes jours = votre promotion valable pour toutes vos commandes pendant 1 an
+                  Toutes vos commandes à -20 % pendant un an
+                </p>
+                <p className="mt-1 text-[clamp(11px,1vw,14px)] leading-[1.4] text-slate-300">
+                  Condition de l’offre : la première commande doit être validée dans les 30 jours.
                 </p>
               </div>
             </div>

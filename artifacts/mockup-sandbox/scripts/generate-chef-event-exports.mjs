@@ -214,6 +214,12 @@ const html = `<!doctype html>
         font-weight: 700;
         line-height: 1.35;
       }
+      .activation-note {
+        margin-top: 4px;
+        color: #cbd5e1;
+        font-size: 14px;
+        line-height: 1.4;
+      }
       .details {
         display: grid;
         grid-template-columns: repeat(3, max-content);
@@ -345,7 +351,8 @@ const html = `<!doctype html>
               <div class="activation-icon">◷</div>
               <div>
                 <div class="activation-title">Important - activez vite votre compte</div>
-                <div class="activation-copy">Une commande dans les trentes jours = votre promotion valable pour toutes vos commandes pendant 1 an</div>
+                <div class="activation-copy">Toutes vos commandes à -20 % pendant un an</div>
+                <div class="activation-note">Condition de l’offre : la première commande doit être validée dans les 30 jours.</div>
               </div>
             </div>
             <div class="details">
