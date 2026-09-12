@@ -206,14 +206,6 @@ const html = `<!doctype html>
         font-weight: 900;
       }
       .activation-title {
-        color: #4ade80;
-        font-size: 17px;
-        font-weight: 900;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-      }
-      .activation-heading {
-        margin-top: 3px;
         color: #a5f3fc;
         font-size: 15px;
         font-weight: 900;
@@ -221,10 +213,10 @@ const html = `<!doctype html>
         text-transform: uppercase;
       }
       .activation-copy {
-        margin-top: 6px;
-        color: #4ade80;
-        font-size: 15px;
-        font-weight: 900;
+        margin-top: 5px;
+        color: white;
+        font-size: 17px;
+        font-weight: 700;
         line-height: 1.35;
       }
       .details {
@@ -357,9 +349,8 @@ const html = `<!doctype html>
             <div class="activation">
               <div class="activation-icon">◷</div>
               <div>
-                <div class="activation-title">Activez vite votre compte</div>
-                <div class="activation-heading">Important · activation par achat</div>
-                <div class="activation-copy">Une commande dans les trente (30) jours = votre promotion valable pour toutes vos commandes pendant 1 an</div>
+                <div class="activation-title">Important - activez vite votre compte</div>
+                <div class="activation-copy">Une commande dans les trentes jours = votre promotion valable pour toutes vos commandes pendant 1 an</div>
               </div>
             </div>
             <div class="details">

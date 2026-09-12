@@ -81,14 +81,11 @@ export function ChefEventQrCard() {
                 <Clock3 className="h-5 w-5" strokeWidth={2.2} />
               </span>
               <div>
-                <p className="text-[clamp(13px,1.15vw,17px)] font-black uppercase tracking-[.08em] text-green-400">
-                  ACTIVEZ VITE VOTRE COMPTE
-                </p>
                 <p className="text-[clamp(12px,1.05vw,15px)] font-black uppercase tracking-[.12em] text-cyan-200">
-                  IMPORTANT · ACTIVATION PAR ACHAT
+                  IMPORTANT - ACTIVEZ VITE VOTRE COMPTE
                 </p>
-                <p className="mt-1 text-[clamp(12px,1.05vw,15px)] font-black leading-[1.35] text-green-400">
-                  Une commande dans les trente (30) jours = votre promotion valable pour toutes vos commandes pendant 1 an
+                <p className="mt-1 text-[clamp(13px,1.15vw,17px)] font-semibold leading-[1.35] text-white">
+                  Une commande dans les trentes jours = votre promotion valable pour toutes vos commandes pendant 1 an
                 </p>
               </div>
             </div>
