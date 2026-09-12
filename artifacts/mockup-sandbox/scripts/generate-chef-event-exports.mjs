@@ -176,11 +176,6 @@ const html = `<!doctype html>
         line-height: 1.45;
       }
       .description strong { color: white; }
-      .event-label,
-      .duration {
-        color: #4ade80;
-        font-weight: 900;
-      }
       .activation {
         display: flex;
         align-items: flex-start;
@@ -342,9 +337,9 @@ const html = `<!doctype html>
             <p class="eyebrow">Pour les professionnels de la restauration</p>
             <h1>Votre cuisine.<br><span>Votre avantage.</span></h1>
             <p class="description">
-              Inscrivez-vous <span class="event-label">au CHEF EVENT</span> et recevez par email votre
+              Inscrivez-vous au Chef Event et recevez par email votre
               <strong>code personnel de réduction de 20&nbsp;%</strong>
-              sur tous les produits xHACCP France, <span class="duration">pendant 1 an.</span>
+              sur tous les produits xHACCP France, pendant 1 an.
             </p>
             <div class="activation">
               <div class="activation-icon">◷</div>
