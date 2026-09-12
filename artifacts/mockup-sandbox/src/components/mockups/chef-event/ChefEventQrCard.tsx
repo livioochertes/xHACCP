@@ -71,9 +71,9 @@ export function ChefEventQrCard() {
               <span className="text-cyan-300">Votre avantage.</span>
             </h1>
             <p className="mt-5 max-w-[650px] text-[clamp(15px,1.3vw,20px)] leading-[1.4] text-slate-300">
-              Inscrivez-vous au Chef Event et recevez par email votre
+              Inscrivez-vous <span className="font-black text-green-400">au CHEF EVENT</span> et recevez par email votre
               <strong className="font-semibold text-white"> code personnel de réduction de 20&nbsp;%</strong>
-              {" "}sur tous les produits xHACCP France, pendant 1 an.
+              {" "}sur tous les produits xHACCP France, <span className="font-black text-green-400">pendant 1 an.</span>
             </p>
 
             <div className="mt-5 flex max-w-[700px] items-start gap-3 rounded-2xl border-2 border-cyan-300/60 bg-cyan-300/10 px-4 py-3 shadow-[0_0_34px_rgba(34,211,238,.12)]">
@@ -81,14 +81,14 @@ export function ChefEventQrCard() {
                 <Clock3 className="h-5 w-5" strokeWidth={2.2} />
               </span>
               <div>
+                <p className="text-[clamp(13px,1.15vw,17px)] font-black uppercase tracking-[.08em] text-green-400">
+                  ACTIVEZ VITE VOTRE COMPTE
+                </p>
                 <p className="text-[clamp(12px,1.05vw,15px)] font-black uppercase tracking-[.12em] text-cyan-200">
-                  Important · activez vite votre compte
+                  IMPORTANT · ACTIVATION PAR ACHAT
                 </p>
-                <p className="mt-1 text-[clamp(13px,1.15vw,17px)] font-semibold leading-[1.35] text-white">
-                  Effectuez une première commande payée dans les 30 jours.
-                </p>
-                <p className="mt-1 text-[clamp(11px,1vw,14px)] leading-[1.4] text-slate-300">
-                  Sans achat dans ce délai, le code devient invalide. Après activation, il reste valable 12 mois.
+                <p className="mt-1 text-[clamp(12px,1.05vw,15px)] font-black leading-[1.35] text-green-400">
+                  Une commande dans les trente (30) jours = votre promotion valable pour toutes vos commandes pendant 1 an
                 </p>
               </div>
             </div>
