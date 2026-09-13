@@ -46,8 +46,8 @@ const html = `<!doctype html>
       }
       * { box-sizing: border-box; }
       html, body {
-        width: 1920px;
-        height: 1080px;
+        width: calc(1920px * var(--card-scale, 1));
+        height: calc(1080px * var(--card-scale, 1));
         margin: 0;
         overflow: hidden;
         background: #071728;
@@ -58,9 +58,12 @@ const html = `<!doctype html>
         print-color-adjust: exact;
       }
       .card-link {
+        position: relative;
         display: block;
-        width: 100%;
-        height: 100%;
+        width: 1920px;
+        height: 1080px;
+        transform: scale(var(--card-scale, 1));
+        transform-origin: top left;
         color: inherit;
         text-decoration: none;
       }
@@ -383,6 +386,16 @@ const html = `<!doctype html>
       </div>
       </div>
     </a>
+    <script>
+      (() => {
+        const fitCard = () => {
+          const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+          document.documentElement.style.setProperty("--card-scale", String(Math.min(scale, 1)));
+        };
+        window.addEventListener("resize", fitCard);
+        fitCard();
+      })();
+    </script>
   </body>
 </html>`;
 
