@@ -11,6 +11,7 @@ const artifactDir = path.resolve(scriptDir, "..");
 const outputDir = path.join(artifactDir, "public/exports");
 const pngPath = path.join(outputDir, "chef-event-qr-card.png");
 const pdfPath = path.join(outputDir, "chef-event-qr-card.pdf");
+const htmlExportPath = path.join(outputDir, "chef-event-qr-card.html");
 const chromiumPath = process.env.CHROMIUM_PATH || "/repl/tools/bin/chromium";
 
 if (!existsSync(chromiumPath)) {
@@ -55,6 +56,13 @@ const html = `<!doctype html>
         color: white;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+      }
+      .card-link {
+        display: block;
+        width: 100%;
+        height: 100%;
+        color: inherit;
+        text-decoration: none;
       }
       .card {
         position: relative;
@@ -327,7 +335,8 @@ const html = `<!doctype html>
     </style>
   </head>
   <body>
-    <div class="card">
+    <a class="card-link" href="${registrationUrl}" target="_blank" rel="noopener">
+      <div class="card">
       <div class="content">
         <header>
           <div class="brand">
@@ -372,12 +381,14 @@ const html = `<!doctype html>
           </aside>
         </main>
       </div>
-    </div>
+      </div>
+    </a>
   </body>
 </html>`;
 
 mkdirSync(outputDir, { recursive: true });
 writeFileSync(htmlPath, html);
+writeFileSync(htmlExportPath, html);
 
 const chromiumArgs = [
   "--headless=new",
@@ -409,3 +420,4 @@ try {
 
 console.log(`Wrote ${pngPath}`);
 console.log(`Wrote ${pdfPath}`);
+console.log(`Wrote ${htmlExportPath}`);

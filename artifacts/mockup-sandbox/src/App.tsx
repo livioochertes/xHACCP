@@ -129,6 +129,22 @@ function Gallery() {
           >
             Télécharger PDF · 16:9
           </a>
+          <a
+            className="rounded-lg border border-cyan-300 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-800 shadow-sm transition hover:bg-cyan-100"
+            href={`${basePath}/exports/chef-event-qr-card.html`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Ouvrir le card cliquable
+          </a>
+          <a
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700"
+            href={`https://wa.me/?text=${encodeURIComponent("Offre Chef Event : https://xhaccp.fr/chef-event")}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Partager sur WhatsApp
+          </a>
         </div>
       </div>
     </div>
