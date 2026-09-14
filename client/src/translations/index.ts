@@ -170,6 +170,9 @@ export interface TranslationKeys {
   'checkout.paymentFailedDesc': string;
   'checkout.orderSuccess': string;
   'checkout.orderSuccessDesc': string;
+  'checkout.paymentStatusUnavailable': string;
+  'checkout.paymentStatusUnavailableDesc': string;
+  'checkout.returnToCheckout': string;
   'checkout.payWhenDelivered': string;
   'checkout.usePaymentForm': string;
   'checkout.qty': string;
@@ -891,6 +894,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.paymentFailedDesc': 'The payment was cancelled or could not be completed. Your order was not marked as paid.',
     'checkout.orderSuccess': 'Order placed successfully!',
     'checkout.orderSuccessDesc': 'Thank you for your order. You will receive a confirmation email shortly.',
+    'checkout.paymentStatusUnavailable': 'Payment status not confirmed',
+    'checkout.paymentStatusUnavailableDesc': 'This page is only available after a confirmed payment. Please return to checkout to complete your order.',
+    'checkout.returnToCheckout': 'Return to checkout',
     'checkout.payWhenDelivered': 'Pay when delivered',
     'checkout.usePaymentForm': 'Use the payment form above to complete your order',
     'checkout.qty': 'Qty',
@@ -1589,6 +1595,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.paymentFailed': 'El pago no se completó',
     'checkout.orderSuccess': '¡Pedido realizado con éxito!',
     'checkout.orderSuccessDesc': 'Gracias por tu pedido. Recibirás un correo de confirmación en breve.',
+    'checkout.paymentStatusUnavailable': 'Estado del pago no confirmado',
+    'checkout.paymentStatusUnavailableDesc': 'Esta página solo está disponible después de un pago confirmado. Vuelve al checkout para completar tu pedido.',
+    'checkout.returnToCheckout': 'Volver al checkout',
     'checkout.payWhenDelivered': 'Pago a la entrega',
     'checkout.usePaymentForm': 'Utilice el formulario de pago para completar su pedido',
     'checkout.qty': 'Cant.',
@@ -2259,6 +2268,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.paymentFailedDesc': 'Le paiement a été annulé ou n’a pas pu être finalisé. Votre commande n’a pas été marquée comme payée.',
     'checkout.orderSuccess': 'Commande passée avec succès !',
     'checkout.orderSuccessDesc': 'Merci pour votre commande. Vous recevrez un e-mail de confirmation sous peu.',
+    'checkout.paymentStatusUnavailable': 'Statut du paiement non confirmé',
+    'checkout.paymentStatusUnavailableDesc': 'Cette page est accessible uniquement après un paiement confirmé. Retournez au checkout pour finaliser votre commande.',
+    'checkout.returnToCheckout': 'Retour au checkout',
     'checkout.payWhenDelivered': 'Paiement à la livraison',
     'checkout.usePaymentForm': 'Utilisez le formulaire de paiement ci-dessus pour finaliser votre commande',
     'checkout.qty': 'Qté',
@@ -2933,6 +2945,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.paymentFailed': 'Die Zahlung wurde nicht abgeschlossen',
     'checkout.orderSuccess': 'Bestellung erfolgreich aufgegeben!',
     'checkout.orderSuccessDesc': 'Vielen Dank für Ihre Bestellung. Sie erhalten in Kürze eine Bestätigungs-E-Mail.',
+    'checkout.paymentStatusUnavailable': 'Zahlungsstatus nicht bestätigt',
+    'checkout.paymentStatusUnavailableDesc': 'Diese Seite ist nur nach einer bestätigten Zahlung verfügbar. Kehren Sie zum Checkout zurück, um Ihre Bestellung abzuschließen.',
+    'checkout.returnToCheckout': 'Zum Checkout zurückkehren',
     'checkout.payWhenDelivered': 'Zahlung bei Lieferung',
     'checkout.usePaymentForm': 'Verwenden Sie das Zahlungsformular oben, um Ihre Bestellung abzuschließen',
     'checkout.qty': 'Menge',
@@ -3450,6 +3465,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.paymentFailed': 'Plata nu a fost procesată',
     'checkout.orderSuccess': 'Comandă plasată cu succes!',
     'checkout.orderSuccessDesc': 'Mulțumim pentru comanda ta. Vei primi un e-mail de confirmare în curând.',
+    'checkout.paymentStatusUnavailable': 'Statusul plății nu este confirmat',
+    'checkout.paymentStatusUnavailableDesc': 'Această pagină este disponibilă doar după confirmarea plății. Revino la checkout pentru a finaliza comanda.',
+    'checkout.returnToCheckout': 'Revino la checkout',
     'checkout.payWhenDelivered': 'Plata la livrare',
     'checkout.usePaymentForm': 'Folosește formularul de plată de mai sus pentru a finaliza comanda',
     'checkout.qty': 'Cant.',

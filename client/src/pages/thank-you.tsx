@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { CheckCircle, Copy, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Copy, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,33 +38,43 @@ export default function ThankYou() {
   const { toast } = useToast();
   const params = new URLSearchParams(window.location.search);
   const paymentResult = params.get("payment");
+  const paymentSuccessful = paymentResult === "success" || paymentResult === "cash";
   const paymentFailed = paymentResult === "failed" || paymentResult === "error";
+  const paymentStatusUnavailable = !paymentSuccessful && !paymentFailed;
   const orderIdFromUrl = Number(params.get("orderId")) || null;
   const [summary] = useState<OrderSummary | null>(() => {
+    if (!paymentSuccessful) return null;
     const stored = readOrderSummary();
     return stored
       ? { ...stored, orderId: orderIdFromUrl || stored.orderId }
       : null;
   });
-  const orderId = orderIdFromUrl || summary?.orderId || null;
+  const orderId = paymentSuccessful ? orderIdFromUrl || summary?.orderId || null : null;
 
   usePageSeo({
-    title: paymentFailed ? "Paiement non abouti | xHACCP" : "Merci pour votre commande | xHACCP",
-    description: paymentFailed
+    title: paymentStatusUnavailable
+      ? "Statut du paiement | xHACCP"
+      : paymentFailed
+        ? "Paiement non abouti | xHACCP"
+        : "Merci pour votre commande | xHACCP",
+    description: paymentStatusUnavailable
+      ? "Le statut de votre paiement n’a pas pu être confirmé."
+      : paymentFailed
       ? "Le paiement de votre commande xHACCP n'a pas abouti."
       : "Votre commande xHACCP a été enregistrée avec succès.",
   });
 
   useEffect(() => {
+    if (paymentStatusUnavailable) return;
     clearCart();
     window.scrollTo({ top: 0, behavior: "instant" });
     // This is intentionally mount-only: CartProvider recreates clearCart after
     // updates, so depending on its function identity would repeatedly clear.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [paymentStatusUnavailable]);
 
   useEffect(() => {
-    const isSuccess = paymentResult === "success" || paymentResult === "cash";
+    const isSuccess = paymentSuccessful;
     const isFailure = paymentResult === "failed" || paymentResult === "error";
     if (!isSuccess && !isFailure) return;
 
@@ -86,7 +96,7 @@ export default function ThankYou() {
     }
 
     trackEvent(isSuccess ? "purchase_completed" : "payment_failed", eventData);
-  }, [paymentResult, orderId, summary]);
+  }, [paymentResult, paymentSuccessful, orderId, summary]);
 
   return (
     <main className="min-h-[70vh] bg-slate-50 px-4 py-12">
@@ -95,16 +105,26 @@ export default function ThankYou() {
           <div className="flex justify-center">
             {paymentFailed ? (
               <XCircle className="h-16 w-16 text-red-500" />
+            ) : paymentStatusUnavailable ? (
+              <AlertCircle className="h-16 w-16 text-amber-500" />
             ) : (
               <CheckCircle className="h-16 w-16 text-green-500" />
             )}
           </div>
           <div>
             <h1 className="text-2xl font-semibold mb-1">
-              {paymentFailed ? t("checkout.paymentFailed") : t("checkout.orderSuccess")}
+              {paymentStatusUnavailable
+                ? t("checkout.paymentStatusUnavailable")
+                : paymentFailed
+                  ? t("checkout.paymentFailed")
+                  : t("checkout.orderSuccess")}
             </h1>
             <p className="text-muted-foreground text-sm">
-              {paymentFailed ? t("checkout.paymentFailedDesc") : t("checkout.orderSuccessDesc")}
+              {paymentStatusUnavailable
+                ? t("checkout.paymentStatusUnavailableDesc")
+                : paymentFailed
+                  ? t("checkout.paymentFailedDesc")
+                  : t("checkout.orderSuccessDesc")}
             </p>
             {orderId && (
               <div className="mt-3 inline-flex items-center gap-1.5">
@@ -163,9 +183,9 @@ export default function ThankYou() {
             </div>
           )}
 
-          <Link href="/products">
+          <Link href={paymentStatusUnavailable ? "/checkout" : "/products"}>
             <Button className="kitchen-pro-secondary w-full">
-              {t("checkout.backToShop")}
+              {paymentStatusUnavailable ? t("checkout.returnToCheckout") : t("checkout.backToShop")}
             </Button>
           </Link>
         </CardContent>
