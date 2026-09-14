@@ -321,6 +321,20 @@ import {
     function AdminDashboard({ token, admin, onLogout }) {
       const { t } = useTranslation();
       const getCategoryName = (category) => category?.localizedName || category?.name || 'N/A';
+      const marketCurrencies = { ro: 'RON', fr: 'EUR', com: 'EUR' };
+      const getMarketCurrency = (market) => marketCurrencies[market] || '';
+      const getProductCurrency = (product) => {
+        const currency = typeof product?.currency === 'string'
+          ? product.currency.trim().toUpperCase()
+          : product?.currency;
+        return currency || (selectedMarketTab !== 'all' ? getMarketCurrency(selectedMarketTab) : '—');
+      };
+      const formatAdminPrice = (price, currency) => {
+        if (price === null || price === undefined || price === '' || !Number.isFinite(Number(price))) {
+          return '—';
+        }
+        return `${Number(price).toFixed(2)} ${currency || '—'}`;
+      };
       // Helper function to extract URL from image (handles both objects and strings)
       const getImageUrlGlobal = (image) => {
         if (!image) return '';
@@ -4313,7 +4327,9 @@ import {
                             </td>
                             <td style={{padding: '12px'}}>#{product.id}</td>
                             <td style={{padding: '12px', fontWeight: '500'}}>{product.name}</td>
-                            <td style={{padding: '12px', color: '#28a745', fontWeight: 'bold'}}>${product.price}</td>
+                            <td style={{padding: '12px', color: '#28a745', fontWeight: 'bold'}}>
+                              {formatAdminPrice(product.price, getProductCurrency(product))}
+                            </td>
                             <td style={{padding: '12px'}}>{getCategoryName(product.category)}</td>
                             <td style={{padding: '12px'}}>
                               <span style={{
@@ -4336,14 +4352,14 @@ import {
                               </span>
                             </td>
                             <td style={{padding: '12px', color: '#6c757d', fontSize: '14px'}}>{product.vatPercentage || product.vatValue || 'N/A'}%</td>
-                            <td style={{padding: '12px', color: '#007bff', fontSize: '14px', fontWeight: '500'}}>{product.currency || 'EUR'}</td>
+                            <td style={{padding: '12px', color: '#007bff', fontSize: '14px', fontWeight: '500'}}>{getProductCurrency(product)}</td>
                             <td style={{padding: '12px', color: '#6c757d', fontSize: '14px', fontFamily: 'monospace'}}>{product.productCode || 'N/A'}</td>
                             {['ro', 'fr', 'com'].map(market => {
                               const pm = productMarketsMap[product.id]?.[market];
                               const isActive = pm ? pm.isActive : true;
                               const hasCustomPrice = pm && pm.price != null && pm.price !== '';
                               const effectivePrice = hasCustomPrice ? pm.price : product.price;
-                              const symbol = market === 'ro' ? 'lei' : '€';
+                              const currency = (pm?.currency || getMarketCurrency(market) || product.currency || '—').toString().toUpperCase();
                               return (
                                 <td key={market} style={{padding: '8px', textAlign: 'center', minWidth: '80px'}}>
                                   <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'}}>
@@ -4357,7 +4373,7 @@ import {
                                         letterSpacing: '0.3px'
                                       }}
                                     >
-                                      {parseFloat(effectivePrice || 0).toFixed(2)} {symbol}
+                                      {formatAdminPrice(effectivePrice, currency)}
                                       {hasCustomPrice && <span style={{marginLeft: '2px', fontSize: '10px', color: '#fd7e14'}}>✎</span>}
                                     </span>
                                     <button

@@ -12997,6 +12997,18 @@
   function AdminDashboard({ token, admin, onLogout }) {
     const { t: t2 } = useTranslation();
     const getCategoryName = (category) => category?.localizedName || category?.name || "N/A";
+    const marketCurrencies = { ro: "RON", fr: "EUR", com: "EUR" };
+    const getMarketCurrency = (market) => marketCurrencies[market] || "";
+    const getProductCurrency = (product) => {
+      const currency = typeof product?.currency === "string" ? product.currency.trim().toUpperCase() : product?.currency;
+      return currency || (selectedMarketTab !== "all" ? getMarketCurrency(selectedMarketTab) : "\u2014");
+    };
+    const formatAdminPrice = (price, currency) => {
+      if (price === null || price === void 0 || price === "" || !Number.isFinite(Number(price))) {
+        return "\u2014";
+      }
+      return `${Number(price).toFixed(2)} ${currency || "\u2014"}`;
+    };
     const getImageUrlGlobal = (image) => {
       if (!image) return "";
       if (typeof image === "string") {
@@ -16811,10 +16823,7 @@ This action cannot be undone.`)) {
                     product.id
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", fontWeight: "500" }, children: product.name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px", color: "#28a745", fontWeight: "bold" }, children: [
-                    "$",
-                    product.price
-                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", color: "#28a745", fontWeight: "bold" }, children: formatAdminPrice(product.price, getProductCurrency(product)) }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: getCategoryName(product.category) }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
                     padding: "4px 8px",
@@ -16832,14 +16841,14 @@ This action cannot be undone.`)) {
                     product.vatPercentage || product.vatValue || "N/A",
                     "%"
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", color: "#007bff", fontSize: "14px", fontWeight: "500" }, children: product.currency || "EUR" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", color: "#007bff", fontSize: "14px", fontWeight: "500" }, children: getProductCurrency(product) }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", color: "#6c757d", fontSize: "14px", fontFamily: "monospace" }, children: product.productCode || "N/A" }),
                   ["ro", "fr", "com"].map((market) => {
                     const pm = productMarketsMap[product.id]?.[market];
                     const isActive = pm ? pm.isActive : true;
                     const hasCustomPrice = pm && pm.price != null && pm.price !== "";
                     const effectivePrice = hasCustomPrice ? pm.price : product.price;
-                    const symbol = market === "ro" ? "lei" : "\u20AC";
+                    const currency = (pm?.currency || getMarketCurrency(market) || product.currency || "\u2014").toString().toUpperCase();
                     return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px", textAlign: "center", minWidth: "80px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }, children: [
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                         "span",
@@ -16853,9 +16862,7 @@ This action cannot be undone.`)) {
                             letterSpacing: "0.3px"
                           },
                           children: [
-                            parseFloat(effectivePrice || 0).toFixed(2),
-                            " ",
-                            symbol,
+                            formatAdminPrice(effectivePrice, currency),
                             hasCustomPrice && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "2px", fontSize: "10px", color: "#fd7e14" }, children: "\u270E" })
                           ]
                         }
