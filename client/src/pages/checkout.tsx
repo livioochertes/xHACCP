@@ -29,9 +29,16 @@ import type { TranslationKeys } from "@/translations";
 import Header from "@/components/header";
 
 import VivaPayment from "@/components/viva-payment";
-import { getCountyOptions, getCitiesForCounty, getCountryOptions, romanianCounties } from "@/utils/location-data";
+import {
+  frenchDepartments,
+  getCountyOptions,
+  getCitiesForCounty,
+  getCountryCode,
+  getCountryOptions,
+  romanianCounties,
+} from "@/utils/location-data";
 
-function createShippingAddressSchema(t: (key: string) => string) {
+function createShippingAddressSchema(t: (key: string) => string, isFrenchMarket: boolean) {
   return z.object({
     firstName: z.string().min(1, t('checkout.firstNameRequired')),
     lastName: z.string().min(1, t('checkout.lastNameRequired')),
@@ -39,14 +46,16 @@ function createShippingAddressSchema(t: (key: string) => string) {
     address: z.string().min(1, t('checkout.addressRequired')),
     city: z.string().min(1, t('checkout.cityRequired')),
     state: z.string().min(1, t('checkout.stateRequired')),
-    county: z.string().min(1, t('checkout.countyRequired')),
+    county: isFrenchMarket
+      ? z.string().default("")
+      : z.string().min(1, t('checkout.countyRequired')),
     zipCode: z.string().min(1, t('checkout.zipRequired')),
     country: z.string().min(1, t('checkout.countryRequired')),
     phone: z.string().min(1, t('checkout.phoneRequired')),
   });
 }
 
-function createBillingAddressSchemaFull(t: (key: string) => string) {
+function createBillingAddressSchemaFull(t: (key: string) => string, isFrenchMarket: boolean) {
   return z.object({
     firstName: z.string().min(1, t('checkout.firstNameRequired')),
     lastName: z.string().min(1, t('checkout.lastNameRequired')),
@@ -54,10 +63,13 @@ function createBillingAddressSchemaFull(t: (key: string) => string) {
     address: z.string().min(1, t('checkout.addressRequired')),
     city: z.string().min(1, t('checkout.cityRequired')),
     state: z.string().min(1, t('checkout.stateRequired')),
-    county: z.string().min(1, t('checkout.countyRequired')),
+    county: isFrenchMarket
+      ? z.string().default("")
+      : z.string().min(1, t('checkout.countyRequired')),
     zipCode: z.string().min(1, t('checkout.zipRequired')),
     country: z.string().min(1, t('checkout.countryRequired')),
-    phone: z.string().min(1, t('checkout.phoneRequired')),
+    // MyFlyingBox requires the recipient phone, not a duplicate billing phone.
+    phone: z.string().default(""),
     clientType: z.enum(["individual", "company"]).default("individual"),
     identityDocument: z.string().default(""),
     companyName: z.string().default(""),
@@ -84,13 +96,13 @@ const billingAddressSchemaRelaxed = z.object({
   registrationNumber: z.string().default(""),
 });
 
-function createCheckoutSchema(t: (key: keyof TranslationKeys) => string) {
+function createCheckoutSchema(t: (key: keyof TranslationKeys) => string, isFrenchMarket: boolean) {
   const translate = (key: string) => t(key as keyof TranslationKeys);
-  const billingFull = createBillingAddressSchemaFull(translate);
+  const billingFull = createBillingAddressSchemaFull(translate, isFrenchMarket);
   return z.object({
     email: z.string().email(t('checkout.invalidEmail')),
     phone: z.string().default(""),
-    shippingAddress: createShippingAddressSchema(translate),
+    shippingAddress: createShippingAddressSchema(translate, isFrenchMarket),
     billingAddress: billingAddressSchemaRelaxed,
     paymentMethod: z.enum(["viva", "cash"]),
     sameAsBilling: z.boolean().default(false),
@@ -109,6 +121,22 @@ function createCheckoutSchema(t: (key: keyof TranslationKeys) => string) {
             ...issue,
             path: ["billingAddress", ...issue.path],
           });
+        });
+      }
+    }
+    if (data.billingAddress.clientType === "company") {
+      if (!data.billingAddress.companyName.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t('checkout.companyRequired'),
+          path: ["billingAddress", "companyName"],
+        });
+      }
+      if (!data.billingAddress.vatNumber.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t('checkout.vatRequired'),
+          path: ["billingAddress", "vatNumber"],
         });
       }
     }
@@ -135,8 +163,8 @@ type CheckoutFormData = z.infer<ReturnType<typeof createCheckoutSchema>>;
 
 export default function Checkout() {
   const { t } = useTranslation();
-  const checkoutSchema = useMemo(() => createCheckoutSchema(t), [t]);
   const isFrenchMarket = getMarketFromHostname() === "fr";
+  const checkoutSchema = useMemo(() => createCheckoutSchema(t, isFrenchMarket), [t, isFrenchMarket]);
   const { user, isAuthenticated, login } = useAuth();
   const [step, setStep] = useState(isAuthenticated ? 2 : 1);
   const checkoutTopRef = useRef<HTMLDivElement>(null);
@@ -221,7 +249,9 @@ export default function Checkout() {
           state: user.deliveryState || user.companyState || "",
           county: user.deliveryCounty || user.companyCounty || "",
           zipCode: user.deliveryZip || user.companyZip || "",
-          country: user.deliveryCountry || user.companyCountry || "Romania",
+          country: isFrenchMarket
+            ? getCountryCode(user.deliveryCountry || user.companyCountry || "FR")
+            : user.deliveryCountry || user.companyCountry || "Romania",
           phone: user.billingPhone || "",
         },
         billingAddress: {
@@ -233,7 +263,9 @@ export default function Checkout() {
           state: user.companyState || "",
           county: user.companyCounty || "",
           zipCode: user.companyZip || "",
-          country: user.companyCountry || "Romania",
+          country: isFrenchMarket
+            ? getCountryCode(user.companyCountry || "FR")
+            : user.companyCountry || "Romania",
           phone: user.billingPhone || "",
           clientType: user.companyName ? "company" : "individual",
           identityDocument: "",
@@ -265,7 +297,7 @@ export default function Checkout() {
         state: "",
         county: "",
         zipCode: "",
-        country: "Romania",
+        country: isFrenchMarket ? "FR" : "Romania",
         phone: "",
       },
       billingAddress: {
@@ -277,7 +309,7 @@ export default function Checkout() {
         state: "",
         county: "",
         zipCode: "",
-        country: "Romania",
+        country: isFrenchMarket ? "FR" : "Romania",
         phone: "",
         clientType: "individual",
         identityDocument: "",
@@ -569,7 +601,7 @@ export default function Checkout() {
         "shippingAddress.address",
         "shippingAddress.city",
         "shippingAddress.state",
-        "shippingAddress.county", // Always required for shipping
+        ...(isFrenchMarket ? [] : ["shippingAddress.county"]),
         "shippingAddress.zipCode",
         "shippingAddress.country",
         "shippingAddress.phone"
@@ -582,7 +614,7 @@ export default function Checkout() {
           "billingAddress.address", 
           "billingAddress.city",
           "billingAddress.state",
-          "billingAddress.county",
+          ...(isFrenchMarket ? [] : ["billingAddress.county"]),
           "billingAddress.zipCode",
           "billingAddress.country",
           "billingAddress.phone"
@@ -1114,7 +1146,7 @@ export default function Checkout() {
                             name="shippingAddress.firstName"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{t('checkout.firstName')}</FormLabel>
+                                <FormLabel>{t('checkout.firstName')} *</FormLabel>
                                 <FormControl>
                                   <Input {...field} />
                                 </FormControl>
@@ -1127,7 +1159,7 @@ export default function Checkout() {
                             name="shippingAddress.lastName"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{t('checkout.lastName')}</FormLabel>
+                                <FormLabel>{t('checkout.lastName')} *</FormLabel>
                                 <FormControl>
                                   <Input {...field} />
                                 </FormControl>
@@ -1154,7 +1186,7 @@ export default function Checkout() {
                           name="shippingAddress.address"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>{t('checkout.address')}</FormLabel>
+                              <FormLabel>{t('checkout.address')} *</FormLabel>
                               <FormControl>
                                 <Input {...field} />
                               </FormControl>
@@ -1168,7 +1200,7 @@ export default function Checkout() {
                             name="shippingAddress.city"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{t('checkout.city')}</FormLabel>
+                                <FormLabel>{t('checkout.city')} *</FormLabel>
                                 <FormControl>
                                   <Input {...field} />
                                 </FormControl>
@@ -1181,9 +1213,24 @@ export default function Checkout() {
                             name="shippingAddress.state"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{t('checkout.state')}</FormLabel>
+                                <FormLabel>{t('checkout.state')} *</FormLabel>
                                 <FormControl>
-                                  <Input {...field} />
+                                  {isFrenchMarket ? (
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder={t('checkout.countyPlaceholder')} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {frenchDepartments.map((department) => (
+                                          <SelectItem key={department.code} value={department.code}>
+                                            {department.code} — {department.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <Input {...field} />
+                                  )}
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1191,25 +1238,27 @@ export default function Checkout() {
                           />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="shippingAddress.county"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t('checkout.county')} *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder={t('checkout.countyPlaceholder')} {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          {!isFrenchMarket && (
+                            <FormField
+                              control={form.control}
+                              name="shippingAddress.county"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t('checkout.county')} *</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder={t('checkout.countyPlaceholder')} {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
                           <FormField
                             control={form.control}
                             name="shippingAddress.zipCode"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>{t('checkout.zipCode')}</FormLabel>
+                                <FormLabel>{t('checkout.zipCode')} *</FormLabel>
                                 <FormControl>
                                   <Input {...field} />
                                 </FormControl>
@@ -1231,7 +1280,7 @@ export default function Checkout() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {getCountryOptions().map((country) => (
+                                  {getCountryOptions(isFrenchMarket).map((country) => (
                                     <SelectItem key={country.code} value={country.value}>
                                       {country.label}
                                     </SelectItem>
@@ -1247,7 +1296,7 @@ export default function Checkout() {
                           name="shippingAddress.phone"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>{t('checkout.phoneNumber')}</FormLabel>
+                                <FormLabel>{t('checkout.phoneNumber')} *</FormLabel>
                               <FormControl>
                                 <Input {...field} />
                               </FormControl>
@@ -1291,7 +1340,7 @@ export default function Checkout() {
                                 name="billingAddress.firstName"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>{t('checkout.firstName')}</FormLabel>
+                                <FormLabel>{t('checkout.firstName')} *</FormLabel>
                                     <FormControl>
                                       <Input {...field} />
                                     </FormControl>
@@ -1304,7 +1353,7 @@ export default function Checkout() {
                                 name="billingAddress.lastName"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>{t('checkout.lastName')}</FormLabel>
+                                <FormLabel>{t('checkout.lastName')} *</FormLabel>
                                     <FormControl>
                                       <Input {...field} />
                                     </FormControl>
@@ -1318,7 +1367,7 @@ export default function Checkout() {
                               name="billingAddress.address"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>{t('checkout.address')}</FormLabel>
+                                  <FormLabel>{t('checkout.address')} *</FormLabel>
                                   <FormControl>
                                     <Input {...field} />
                                   </FormControl>
@@ -1332,7 +1381,7 @@ export default function Checkout() {
                                 name="billingAddress.city"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>{t('checkout.city')}</FormLabel>
+                                    <FormLabel>{t('checkout.city')} *</FormLabel>
                                     <FormControl>
                                       <Input {...field} />
                                     </FormControl>
@@ -1345,9 +1394,24 @@ export default function Checkout() {
                                 name="billingAddress.state"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>{t('checkout.state')}</FormLabel>
+                                    <FormLabel>{t('checkout.state')} *</FormLabel>
                                     <FormControl>
+                                    {isFrenchMarket ? (
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder={t('checkout.countyPlaceholder')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {frenchDepartments.map((department) => (
+                                            <SelectItem key={department.code} value={department.code}>
+                                              {department.code} — {department.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
                                       <Input {...field} />
+                                    )}
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -1355,25 +1419,27 @@ export default function Checkout() {
                               />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name="billingAddress.county"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>{t('checkout.county')} *</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder={t('checkout.countyPlaceholder')} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                              {!isFrenchMarket && (
+                                <FormField
+                                  control={form.control}
+                                  name="billingAddress.county"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>{t('checkout.county')} *</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder={t('checkout.countyPlaceholder')} {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              )}
                               <FormField
                                 control={form.control}
                                 name="billingAddress.zipCode"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>{t('checkout.zipCode')}</FormLabel>
+                                    <FormLabel>{t('checkout.zipCode')} *</FormLabel>
                                     <FormControl>
                                       <Input {...field} />
                                     </FormControl>
@@ -1395,7 +1461,7 @@ export default function Checkout() {
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      {getCountryOptions().map((country) => (
+                                      {getCountryOptions(isFrenchMarket).map((country) => (
                                         <SelectItem key={country.code} value={country.value}>
                                           {country.label}
                                         </SelectItem>
