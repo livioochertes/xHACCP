@@ -226,7 +226,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       } else {
         setLocalCart([]);
-         localStorage.removeItem(guestCartStorageKey);
+        localStorage.removeItem(guestCartStorageKey);
+        if (market === "ro") {
+          localStorage.removeItem("guestCart");
+        }
       }
     },
   });

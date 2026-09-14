@@ -66,13 +66,13 @@ export default function ThankYou() {
   });
 
   useEffect(() => {
-    if (paymentStatusUnavailable) return;
+    if (!paymentSuccessful) return;
     clearCart();
     window.scrollTo({ top: 0, behavior: "instant" });
     // This is intentionally mount-only: CartProvider recreates clearCart after
     // updates, so depending on its function identity would repeatedly clear.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentStatusUnavailable]);
+  }, [paymentSuccessful]);
 
   useEffect(() => {
     const eventName = getPaymentEventName(paymentResult);

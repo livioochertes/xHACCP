@@ -98,7 +98,7 @@ async function waitForHttpServer() {
   throw new Error(`The app is not reachable at ${baseUrl}: ${lastError?.message}`);
 }
 
-async function waitForPageState(client) {
+async function waitForPageState(client, isReady = (state) => Boolean(state?.title)) {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < 10_000) {
@@ -109,18 +109,21 @@ async function waitForPageState(client) {
         return {
           title: document.querySelector("h1")?.textContent?.trim() || "",
           cartLinkText: cartLink?.textContent?.trim() || "",
+          cartBadgeText: cartLink?.querySelector("button > span.absolute")?.textContent?.trim() || null,
           cartStorage: localStorage.getItem("guestCart:ro"),
+          legacyCartStorage: localStorage.getItem("guestCart"),
+          summaryText: document.querySelector("h2")?.textContent?.trim() || "",
           analytics: window.__thankYouAnalytics || [],
         };
       })()`,
     });
     const state = result?.result?.value;
 
-    if (state?.title) return state;
+    if (isReady(state)) return state;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  throw new Error("The thank-you page did not render a heading.");
+  throw new Error("The thank-you page did not reach the expected state.");
 }
 
 async function stopBrowser(browser, profileDirectory) {
@@ -143,9 +146,7 @@ async function stopBrowser(browser, profileDirectory) {
   }
 }
 
-test("direct /merci access keeps an existing cart and does not track a purchase", async (t) => {
-  await waitForHttpServer();
-
+async function openThankYouPage(t, paymentResult) {
   const profileDirectory = await mkdtemp(join(tmpdir(), "xhaccp-thank-you-"));
   const browser = spawn(chromiumPath, [
     "--headless=new",
@@ -176,19 +177,44 @@ test("direct /merci access keeps an existing cart and does not track a purchase"
 
   await client.send("Page.enable");
   await client.send("Runtime.enable");
+  const orderSummary = {
+    orderId: 184,
+    buyerName: "Browser Test",
+    subtotal: 50,
+    discountAmount: 0,
+    voucherCode: null,
+    shipping: 0,
+    total: 50,
+    currencySymbol: "lei",
+  };
   await client.send("Page.addScriptToEvaluateOnNewDocument", {
     source: `(() => {
       localStorage.setItem("xhaccp-language", "en");
-      localStorage.setItem("guestCart:ro", ${JSON.stringify(JSON.stringify(seededCart))});
-      window.__thankYouAnalytics = [];
+      if (!sessionStorage.getItem("__thankYouBrowserSeeded")) {
+        localStorage.setItem("guestCart:ro", ${JSON.stringify(JSON.stringify(seededCart))});
+        localStorage.setItem("guestCart", ${JSON.stringify(JSON.stringify(seededCart))});
+        sessionStorage.setItem("__thankYouBrowserSeeded", "1");
+      }
+      localStorage.setItem("xhaccp_pending_order_summary", ${JSON.stringify(JSON.stringify(orderSummary))});
+      window.__thankYouAnalytics = JSON.parse(sessionStorage.getItem("__thankYouAnalytics") || "[]");
       window.umami = {
         track(name, data) {
           window.__thankYouAnalytics.push({ name, data });
+          sessionStorage.setItem("__thankYouAnalytics", JSON.stringify(window.__thankYouAnalytics));
         },
       };
     })();`,
   });
-  await client.send("Page.navigate", { url: `${baseUrl}/merci` });
+  const query = paymentResult ? `?payment=${paymentResult}` : "";
+  await client.send("Page.navigate", { url: `${baseUrl}/merci${query}` });
+
+  return client;
+}
+
+test("direct /merci access keeps an existing cart and does not track a purchase", async (t) => {
+  await waitForHttpServer();
+
+  const client = await openThankYouPage(t, null);
 
   const state = await waitForPageState(client);
   assert.equal(state.title, "Payment status not confirmed");
@@ -198,5 +224,85 @@ test("direct /merci access keeps an existing cart and does not track a purchase"
   assert.equal(
     state.analytics.some((event) => event.name === "purchase_completed"),
     false,
+  );
+});
+
+test("successful payment clears the cart and tracks one purchase across reloads", async (t) => {
+  await waitForHttpServer();
+
+  const client = await openThankYouPage(t, "success");
+  const state = await waitForPageState(
+    client,
+    (current) =>
+      current?.title &&
+      current.summaryText &&
+      current.cartStorage === null &&
+      current.legacyCartStorage === null &&
+      current.cartBadgeText === null &&
+      current.analytics.filter((event) => event.name === "purchase_completed").length === 1,
+  );
+
+  assert.equal(state.title, "Order placed successfully!");
+  assert.match(state.summaryText, /Order summary/i);
+  assert.equal(state.cartStorage, null);
+  assert.equal(state.legacyCartStorage, null);
+  assert.equal(state.cartBadgeText, null);
+  assert.deepEqual(
+    state.analytics.filter((event) => event.name === "purchase_completed"),
+    [{
+      name: "purchase_completed",
+      data: {
+        payment_method: "viva",
+        market: "ro",
+        value: 50,
+        currency: "lei",
+      },
+    }],
+  );
+
+  await client.send("Page.reload", { ignoreCache: true });
+  const reloadedState = await waitForPageState(
+    client,
+    (current) =>
+      current?.title &&
+      current.cartStorage === null &&
+      current.legacyCartStorage === null &&
+      current.cartBadgeText === null &&
+      current.analytics.filter((event) => event.name === "purchase_completed").length === 1,
+  );
+  assert.equal(
+    reloadedState.analytics.filter((event) => event.name === "purchase_completed").length,
+    1,
+  );
+});
+
+test("cash payment clears the cart and tracks cash as the payment method", async (t) => {
+  await waitForHttpServer();
+
+  const client = await openThankYouPage(t, "cash");
+  const state = await waitForPageState(
+    client,
+    (current) =>
+      current?.title &&
+      current.cartStorage === null &&
+      current.legacyCartStorage === null &&
+      current.cartBadgeText === null &&
+      current.analytics.filter((event) => event.name === "purchase_completed").length === 1,
+  );
+
+  assert.equal(state.cartStorage, null);
+  assert.equal(state.legacyCartStorage, null);
+  assert.equal(state.cartBadgeText, null);
+  assert.deepEqual(
+    state.analytics.filter((event) => event.name === "purchase_completed"),
+    [{
+      name: "purchase_completed",
+      data: {
+        payment_method: "cash",
+        market: "ro",
+        value: 50,
+        currency: "lei",
+      },
+    }],
   );
 });
