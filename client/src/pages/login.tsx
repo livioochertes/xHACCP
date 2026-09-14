@@ -65,12 +65,18 @@ export default function Login() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registerEmail, setRegisterEmail] = useState("");
 
+  const getReturnPath = () => {
+    const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+    return returnTo && returnTo.startsWith("/") ? returnTo : "/";
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const error = params.get('error');
 
     if (token) {
+      const returnPath = getReturnPath();
       (async () => {
         try {
           const response = await fetch('/api/auth/me', {
@@ -80,7 +86,7 @@ export default function Login() {
             const user = await response.json();
             await login(token, user);
             toast({ title: t('auth.welcomeBack'), description: t('auth.loginSuccess') });
-            navigate("/");
+            navigate(returnPath);
           }
         } catch (err) {
           console.error('OAuth login failed:', err);
@@ -148,7 +154,7 @@ export default function Login() {
         title: t('auth.welcomeBack'),
         description: t('auth.loginSuccess'),
       });
-      navigate("/");
+      navigate(getReturnPath());
     },
     onError: (error) => {
       toast({
@@ -174,7 +180,7 @@ export default function Login() {
         title: t('auth.accountCreated'),
         description: t('auth.accountCreatedDesc'),
       });
-      navigate("/");
+      navigate(getReturnPath());
     },
     onError: (error) => {
       toast({

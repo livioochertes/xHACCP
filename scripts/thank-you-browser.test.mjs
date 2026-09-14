@@ -267,7 +267,7 @@ async function openThankYouPage(t, paymentResult, { authToken = null, seedGuestC
     source: `(() => {
       localStorage.setItem("xhaccp-language", "en");
       const authToken = ${JSON.stringify(authToken)};
-      if (authToken) {
+      if (authToken && !localStorage.getItem("token")) {
         localStorage.setItem("token", authToken);
       }
       if (${seedGuestCart ? "true" : "false"} && !sessionStorage.getItem("__thankYouBrowserSeeded")) {
@@ -369,6 +369,39 @@ test("failed payment keeps an authenticated server cart and retries checkout", a
     (current) => current?.path === "/checkout" && Boolean(current?.title),
   );
   assert.equal(checkoutState.path, "/checkout");
+});
+
+test("expired authentication offers recovery and restores the server cart after sign-in", async (t) => {
+  await waitForHttpServer();
+
+  const authenticatedCart = await createAuthenticatedCart();
+  t.after(() => clearAuthenticatedCart(authenticatedCart.token));
+
+  const client = await openThankYouPage(t, "failed", {
+    authToken: "expired-browser-token",
+    seedGuestCart: false,
+  });
+  const expiredState = await waitForPageState(
+    client,
+    (current) =>
+      current?.actionHref === "/login?returnTo=/checkout" &&
+      current?.actionText === "Sign In",
+  );
+
+  assert.equal(expiredState.cartStorage, null);
+  assert.equal(expiredState.legacyCartStorage, null);
+
+  await client.send("Runtime.evaluate", {
+    expression: `localStorage.setItem("token", ${JSON.stringify(authenticatedCart.token)})`,
+  });
+  await client.send("Page.reload", { ignoreCache: true });
+
+  const recoveredState = await waitForPageState(
+    client,
+    (current) => current?.cartBadgeText === "2",
+  );
+  assert.equal(recoveredState.cartStorage, null);
+  assert.equal(recoveredState.legacyCartStorage, null);
 });
 
 test("successful payment clears the cart and tracks one purchase across reloads", async (t) => {

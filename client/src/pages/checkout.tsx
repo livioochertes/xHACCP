@@ -170,7 +170,7 @@ export default function Checkout() {
   const checkoutTopRef = useRef<HTMLDivElement>(null);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [, navigate] = useLocation();
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, isSessionExpired } = useCart();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const getUnitPrice = (item: typeof cart[number]) => item.compositeConfiguration
@@ -820,6 +820,25 @@ export default function Checkout() {
               <Link href="/">
                 <Button className="kitchen-pro-secondary w-full">
                   {t('checkout.backToShop')}
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSessionExpired) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="container mx-auto px-4 py-8">
+          <Card className="mx-auto max-w-lg text-center py-16">
+            <CardContent>
+              <h2 className="text-2xl font-semibold mb-2">{t('messages.sessionExpired')}</h2>
+              <Link href="/login?returnTo=/checkout">
+                <Button size="lg" className="kitchen-pro-secondary">
+                  {t('auth.signIn')}
                 </Button>
               </Link>
             </CardContent>

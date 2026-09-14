@@ -34,7 +34,7 @@ function readOrderSummary(): OrderSummary | null {
 
 export default function ThankYou() {
   const { t } = useTranslation();
-  const { clearCart } = useCart();
+  const { clearCart, isSessionExpired } = useCart();
   const { toast } = useToast();
   const params = new URLSearchParams(window.location.search);
   const paymentResult = params.get("payment");
@@ -51,6 +51,7 @@ export default function ThankYou() {
       : null;
   });
   const orderId = paymentSuccessful ? orderIdFromUrl || summary?.orderId || null : null;
+  const recoveryRequired = !paymentSuccessful && isSessionExpired;
 
   usePageSeo({
     title: paymentStatusUnavailable
@@ -183,9 +184,27 @@ export default function ThankYou() {
             </div>
           )}
 
-          <Link href={paymentSuccessful ? "/products" : "/checkout"}>
+          {recoveryRequired && (
+            <div
+              role="alert"
+              className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-left"
+            >
+              <p className="text-sm text-amber-900">{t("messages.sessionExpired")}</p>
+              <Link href="/login?returnTo=/checkout">
+                <Button className="mt-3 w-full" variant="outline">
+                  {t("auth.signIn")}
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          <Link href={paymentSuccessful ? "/products" : recoveryRequired ? "/login?returnTo=/checkout" : "/checkout"}>
             <Button className="kitchen-pro-secondary w-full">
-              {paymentSuccessful ? t("checkout.backToShop") : t("checkout.returnToCheckout")}
+              {paymentSuccessful
+                ? t("checkout.backToShop")
+                : recoveryRequired
+                  ? t("auth.signIn")
+                  : t("checkout.returnToCheckout")}
             </Button>
           </Link>
         </CardContent>

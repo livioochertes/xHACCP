@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
+import { useAuth } from "@/hooks/useAuth";
 import type { CartItemWithProduct, CompositeConfiguration } from "@shared/schema";
 
 interface CartContextType {
@@ -11,6 +12,7 @@ interface CartContextType {
   removeFromCart: (itemId: number) => void;
   clearCart: () => void;
   isLoading: boolean;
+  isSessionExpired: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -19,15 +21,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const market = getMarketFromHostname();
   const guestCartStorageKey = `guestCart:${market}`;
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, isLoading: authLoading, sessionExpired, expireSession } = useAuth();
   const [localCart, setLocalCart] = useState<CartItemWithProduct[]>([]);
+  const [lastAuthenticatedCart, setLastAuthenticatedCart] = useState<CartItemWithProduct[]>(
+    () => queryClient.getQueryData<CartItemWithProduct[]>(["/api/cart"]) ?? [],
+  );
 
-  // Check if user is authenticated
+  // Load the guest cart once. An expired authenticated session uses the
+  // server-cart snapshot below instead of falling back to this empty cart.
   useEffect(() => {
     const token = localStorage.getItem("token");
-    setIsAuthenticated(!!token);
-    
-    // Load cart from localStorage for guest users
     if (!token) {
       const savedCart = localStorage.getItem(guestCartStorageKey) ??
         (market === "ro" ? localStorage.getItem("guestCart") : null);
@@ -51,15 +54,43 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Load authenticated user's cart from API
-  const { data: apiCart, isLoading: apiLoading } = useQuery<CartItemWithProduct[]>({
+  const {
+    data: apiCart,
+    isLoading: apiLoading,
+    error: apiCartError,
+  } = useQuery<CartItemWithProduct[]>({
     queryKey: ["/api/cart"],
     enabled: isAuthenticated,
     staleTime: 0,
   });
 
-  // Use API cart for authenticated users, localStorage cart for guests
-  const cart: CartItemWithProduct[] = isAuthenticated ? (apiCart ?? []) : localCart;
-  const isLoading = isAuthenticated ? apiLoading : false;
+  useEffect(() => {
+    if (apiCart !== undefined) {
+      setLastAuthenticatedCart(apiCart);
+    }
+  }, [apiCart]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !apiCartError) return;
+
+    // queryClient's errors include the HTTP status (for example "401: Invalid
+    // token" or "403: Invalid token"). Only an authentication failure should
+    // preserve the cart and require sign-in; other API failures remain visible
+    // as query errors.
+    if (apiCartError instanceof Error && /^40[13](?:\s|:)/.test(apiCartError.message)) {
+      expireSession();
+    }
+  }, [apiCartError, isAuthenticated, expireSession]);
+
+  // Keep the last server response available after a 401. This prevents the
+  // failed-payment recovery page from presenting an empty cart or converting
+  // the signed-in cart into a guest cart.
+  const cart: CartItemWithProduct[] = isAuthenticated
+    ? (apiCart ?? lastAuthenticatedCart)
+    : sessionExpired
+      ? lastAuthenticatedCart
+      : localCart;
+  const isLoading = authLoading || (isAuthenticated && apiLoading);
 
   const addToCartMutation = useMutation<
     { product: any; quantity: number } | Response,
@@ -264,6 +295,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         clearCart,
         isLoading,
+         isSessionExpired: sessionExpired,
       }}
     >
       {children}

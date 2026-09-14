@@ -40,6 +40,7 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  sessionExpired: boolean;
 }
 
 import { createContext, useContext } from 'react';
@@ -64,6 +65,7 @@ export function useAuth() {
       user: null,
       isLoading: true,
       isAuthenticated: false,
+      sessionExpired: false,
     };
   });
 
@@ -90,7 +92,7 @@ export function useAuth() {
     const initAuth = async () => {
       const token = localStorage.getItem('token');
       if (!token) {
-        const newState = { user: null, isLoading: false, isAuthenticated: false };
+        const newState = { user: null, isLoading: false, isAuthenticated: false, sessionExpired: false };
         updateGlobalAuthState(newState);
         return;
       }
@@ -98,12 +100,14 @@ export function useAuth() {
       try {
         const response = await apiRequest('GET', '/api/auth/me');
         const user = await response.json();
-        const newState = { user, isLoading: false, isAuthenticated: true };
+        const newState = { user, isLoading: false, isAuthenticated: true, sessionExpired: false };
         updateGlobalAuthState(newState);
       } catch (error) {
-        // Auth check failed, remove token and set unauthenticated
+        // An invalid token must not be treated like an intentional logout. The
+        // cart provider uses this flag to keep the last server-cart snapshot
+        // visible while the customer signs in again.
         localStorage.removeItem('token');
-        const newState = { user: null, isLoading: false, isAuthenticated: false };
+        const newState = { user: null, isLoading: false, isAuthenticated: false, sessionExpired: true };
         updateGlobalAuthState(newState);
       }
     };
@@ -114,14 +118,14 @@ export function useAuth() {
   const login = async (token: string, user: User) => {
     localStorage.setItem('token', token);
     // Initial login with basic user data
-    let newState = { user, isLoading: false, isAuthenticated: true };
+    let newState = { user, isLoading: false, isAuthenticated: true, sessionExpired: false };
     updateGlobalAuthState(newState);
     
     // Immediately fetch complete user data to get company details
     try {
       const response = await apiRequest('GET', '/api/auth/me');
       const completeUser = await response.json();
-      newState = { user: completeUser, isLoading: false, isAuthenticated: true };
+      newState = { user: completeUser, isLoading: false, isAuthenticated: true, sessionExpired: false };
       updateGlobalAuthState(newState);
     } catch (error) {
       console.error('Failed to fetch complete user data after login:', error);
@@ -131,7 +135,13 @@ export function useAuth() {
 
   const logout = () => {
     localStorage.removeItem('token');
-    const newState = { user: null, isLoading: false, isAuthenticated: false };
+    const newState = { user: null, isLoading: false, isAuthenticated: false, sessionExpired: false };
+    updateGlobalAuthState(newState);
+  };
+
+  const expireSession = () => {
+    localStorage.removeItem('token');
+    const newState = { user: null, isLoading: false, isAuthenticated: false, sessionExpired: true };
     updateGlobalAuthState(newState);
   };
 
@@ -144,6 +154,7 @@ export function useAuth() {
     ...authState,
     login,
     logout,
+    expireSession,
     updateUser,
   };
 }
