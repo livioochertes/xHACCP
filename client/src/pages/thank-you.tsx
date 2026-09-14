@@ -183,9 +183,9 @@ export default function ThankYou() {
             </div>
           )}
 
-          <Link href={paymentStatusUnavailable ? "/checkout" : "/products"}>
+          <Link href={paymentSuccessful ? "/products" : "/checkout"}>
             <Button className="kitchen-pro-secondary w-full">
-              {paymentStatusUnavailable ? t("checkout.returnToCheckout") : t("checkout.backToShop")}
+              {paymentSuccessful ? t("checkout.backToShop") : t("checkout.returnToCheckout")}
             </Button>
           </Link>
         </CardContent>

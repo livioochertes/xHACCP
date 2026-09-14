@@ -109,10 +109,12 @@ async function waitForPageState(client, isReady = (state) => Boolean(state?.titl
         return {
           title: document.querySelector("h1")?.textContent?.trim() || "",
           cartLinkText: cartLink?.textContent?.trim() || "",
-          cartBadgeText: cartLink?.querySelector("button > span.absolute")?.textContent?.trim() || null,
+          cartBadgeText: cartLink?.querySelector(".absolute")?.textContent?.trim() || null,
           cartStorage: localStorage.getItem("guestCart:ro"),
           legacyCartStorage: localStorage.getItem("guestCart"),
           summaryText: document.querySelector("h2")?.textContent?.trim() || "",
+          actionHref: document.querySelector("main a")?.getAttribute("href") || null,
+          actionText: document.querySelector("main a")?.textContent?.trim() || "",
           analytics: window.__thankYouAnalytics || [],
         };
       })()`,
@@ -224,6 +226,30 @@ test("direct /merci access keeps an existing cart and does not track a purchase"
   assert.equal(
     state.analytics.some((event) => event.name === "purchase_completed"),
     false,
+  );
+});
+
+test("failed payment keeps the cart available and offers checkout retry", async (t) => {
+  await waitForHttpServer();
+
+  const client = await openThankYouPage(t, "failed");
+  const state = await waitForPageState(client);
+
+  assert.equal(state.title, "Payment didn't go through");
+  assert.equal(state.actionHref, "/checkout");
+  assert.match(state.actionText, /Return to checkout/i);
+  assert.match(state.cartLinkText, /Cart/);
+  assert.match(state.cartLinkText, /2/);
+  assert.deepEqual(JSON.parse(state.cartStorage), seededCart);
+  assert.deepEqual(JSON.parse(state.legacyCartStorage), seededCart);
+  assert.equal(state.cartBadgeText, "2");
+  assert.equal(
+    state.analytics.some((event) => event.name === "purchase_completed"),
+    false,
+  );
+  assert.equal(
+    state.analytics.filter((event) => event.name === "payment_failed").length,
+    1,
   );
 });
 
