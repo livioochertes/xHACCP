@@ -98,6 +98,56 @@ async function waitForHttpServer() {
   throw new Error(`The app is not reachable at ${baseUrl}: ${lastError?.message}`);
 }
 
+async function createAuthenticatedCart() {
+  const email = `thank-you-browser-${Date.now()}-${process.pid}@example.test`;
+  const password = "BrowserTestPassword123!";
+  const registerResponse = await fetch(`${baseUrl}/api/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Market": "ro",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+      firstName: "Browser",
+      lastName: "Test",
+    }),
+  });
+  if (!registerResponse.ok) {
+    throw new Error(`Could not create browser test user: HTTP ${registerResponse.status} ${await registerResponse.text()}`);
+  }
+
+  const { token } = await registerResponse.json();
+  const productsResponse = await fetch(`${baseUrl}/api/products?limit=20`, {
+    headers: { "X-Market": "ro" },
+  });
+  if (!productsResponse.ok) {
+    throw new Error(`Could not load a product for the authenticated cart: HTTP ${productsResponse.status}`);
+  }
+
+  const products = await productsResponse.json();
+  const product = products.find((candidate) => candidate?.id && candidate?.status === "active") || products.find((candidate) => candidate?.id);
+  if (!product) {
+    throw new Error("Could not find an available product for the authenticated cart");
+  }
+
+  const addCartResponse = await fetch(`${baseUrl}/api/cart`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-Market": "ro",
+    },
+    body: JSON.stringify({ productId: product.id, quantity: 2 }),
+  });
+  if (!addCartResponse.ok) {
+    throw new Error(`Could not seed the authenticated cart: HTTP ${addCartResponse.status} ${await addCartResponse.text()}`);
+  }
+
+  return { token, productId: product.id };
+}
+
 async function waitForPageState(client, isReady = (state) => Boolean(state?.title)) {
   const startedAt = Date.now();
 
@@ -107,6 +157,7 @@ async function waitForPageState(client, isReady = (state) => Boolean(state?.titl
       expression: `(() => {
         const cartLink = document.querySelector('header a[href="/cart"]');
         return {
+          path: window.location.pathname,
           title: document.querySelector("h1")?.textContent?.trim() || "",
           cartLinkText: cartLink?.textContent?.trim() || "",
           cartBadgeText: cartLink?.querySelector(".absolute")?.textContent?.trim() || null,
@@ -126,6 +177,29 @@ async function waitForPageState(client, isReady = (state) => Boolean(state?.titl
   }
 
   throw new Error("The thank-you page did not reach the expected state.");
+}
+
+async function getAuthenticatedCart(token) {
+  const response = await fetch(`${baseUrl}/api/cart`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Market": "ro",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Could not read the authenticated cart: HTTP ${response.status} ${await response.text()}`);
+  }
+  return response.json();
+}
+
+async function clearAuthenticatedCart(token) {
+  await fetch(`${baseUrl}/api/cart`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Market": "ro",
+    },
+  });
 }
 
 async function stopBrowser(browser, profileDirectory) {
@@ -148,7 +222,7 @@ async function stopBrowser(browser, profileDirectory) {
   }
 }
 
-async function openThankYouPage(t, paymentResult) {
+async function openThankYouPage(t, paymentResult, { authToken = null, seedGuestCart = true } = {}) {
   const profileDirectory = await mkdtemp(join(tmpdir(), "xhaccp-thank-you-"));
   const browser = spawn(chromiumPath, [
     "--headless=new",
@@ -192,7 +266,11 @@ async function openThankYouPage(t, paymentResult) {
   await client.send("Page.addScriptToEvaluateOnNewDocument", {
     source: `(() => {
       localStorage.setItem("xhaccp-language", "en");
-      if (!sessionStorage.getItem("__thankYouBrowserSeeded")) {
+      const authToken = ${JSON.stringify(authToken)};
+      if (authToken) {
+        localStorage.setItem("token", authToken);
+      }
+      if (${seedGuestCart ? "true" : "false"} && !sessionStorage.getItem("__thankYouBrowserSeeded")) {
         localStorage.setItem("guestCart:ro", ${JSON.stringify(JSON.stringify(seededCart))});
         localStorage.setItem("guestCart", ${JSON.stringify(JSON.stringify(seededCart))});
         sessionStorage.setItem("__thankYouBrowserSeeded", "1");
@@ -251,6 +329,46 @@ test("failed payment keeps the cart available and offers checkout retry", async 
     state.analytics.filter((event) => event.name === "payment_failed").length,
     1,
   );
+});
+
+test("failed payment keeps an authenticated server cart and retries checkout", async (t) => {
+  await waitForHttpServer();
+
+  const authenticatedCart = await createAuthenticatedCart();
+  t.after(() => clearAuthenticatedCart(authenticatedCart.token));
+
+  const client = await openThankYouPage(t, "failed", {
+    authToken: authenticatedCart.token,
+    seedGuestCart: false,
+  });
+  const state = await waitForPageState(client);
+
+  assert.equal(state.title, "Payment didn't go through");
+  assert.equal(state.actionHref, "/checkout");
+  assert.match(state.actionText, /Return to checkout/i);
+  assert.equal(state.cartStorage, null);
+  assert.equal(state.legacyCartStorage, null);
+  assert.match(state.cartLinkText, /Cart/);
+  assert.match(state.cartLinkText, /2/);
+  assert.equal(state.cartBadgeText, "2");
+  assert.equal(
+    state.analytics.some((event) => event.name === "purchase_completed"),
+    false,
+  );
+
+  const serverCart = await getAuthenticatedCart(authenticatedCart.token);
+  assert.equal(serverCart.length, 1);
+  assert.equal(serverCart[0].productId, authenticatedCart.productId);
+  assert.equal(serverCart[0].quantity, 2);
+
+  await client.send("Runtime.evaluate", {
+    expression: `document.querySelector('main a[href="/checkout"]')?.click()`,
+  });
+  const checkoutState = await waitForPageState(
+    client,
+    (current) => current?.path === "/checkout" && Boolean(current?.title),
+  );
+  assert.equal(checkoutState.path, "/checkout");
 });
 
 test("successful payment clears the cart and tracks one purchase across reloads", async (t) => {
