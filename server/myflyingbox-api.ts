@@ -1,6 +1,6 @@
 export interface MyFlyingBoxConfig {
   baseUrl: string;
-  username: string;
+  apiIdentifier: string;
   password: string;
   productCode?: string;
 }
@@ -129,7 +129,7 @@ export class MyFlyingBoxAPI {
         signal: controller.signal,
         headers: {
           Accept: "application/json",
-          Authorization: `Basic ${Buffer.from(`${this.config.username}:${this.config.password}`).toString("base64")}`,
+          Authorization: `Basic ${Buffer.from(`${this.config.apiIdentifier}:${this.config.password}`).toString("base64")}`,
           ...(options.body ? { "Content-Type": "application/json" } : {}),
           ...(options.headers as Record<string, string> | undefined),
         },
@@ -178,7 +178,7 @@ export class MyFlyingBoxAPI {
         signal: controller.signal,
         headers: {
           Accept: "application/pdf",
-          Authorization: `Basic ${Buffer.from(`${this.config.username}:${this.config.password}`).toString("base64")}`,
+          Authorization: `Basic ${Buffer.from(`${this.config.apiIdentifier}:${this.config.password}`).toString("base64")}`,
         },
       });
       if (!response.ok) {
@@ -229,16 +229,16 @@ let myFlyingBoxInstance: MyFlyingBoxAPI | null = null;
 export function createMyFlyingBoxAPI(): MyFlyingBoxAPI | null {
   if (myFlyingBoxInstance) return myFlyingBoxInstance;
 
-  const username = process.env.MYFLYINGBOX_USERNAME;
+  const apiIdentifier = process.env.MYFLYINGBOX_API_IDENTIFIER;
   const password = process.env.MYFLYINGBOX_PASSWORD;
-  if (!username || !password) {
-    console.warn("MyFlyingBox credentials are not configured");
+  if (!apiIdentifier || !password) {
+    console.warn("MyFlyingBox API identifier and password are not configured");
     return null;
   }
 
   myFlyingBoxInstance = new MyFlyingBoxAPI({
     baseUrl: process.env.MYFLYINGBOX_BASE_URL || DEFAULT_BASE_URL,
-    username,
+    apiIdentifier,
     password,
     productCode: process.env.MYFLYINGBOX_PRODUCT_CODE || undefined,
   });
