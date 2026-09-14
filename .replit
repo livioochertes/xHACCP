@@ -54,3 +54,4 @@ timeoutMs = 20000
 
 [userenv.shared]
 SENDGRID_FROM_EMAIL_FR = "info@xhaccp.fr"
+MYFLYINGBOX_SHIPPER_STATE_CODE = "B"
