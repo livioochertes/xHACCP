@@ -3962,7 +3962,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   // ============ VIVA PAYMENTS INTEGRATION ============
 
   // Helper: Get Viva OAuth2 access token
-  async function getVivaAccessToken(market: VivaMarket): Promise<string> {
+  async function getVivaAccessToken(market: VivaMarket, requestId?: string): Promise<string> {
     const credentials = getVivaCredentials(market);
     const clientId = credentials.clientId?.trim();
     const clientSecret = credentials.clientSecret?.trim();
@@ -3983,8 +3983,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Viva OAuth error:", response.status, errorText);
+      const errorText = (await response.text()).replace(/\s+/g, " ").slice(0, 300);
+      console.error(`[Viva ${requestId || "unknown"}] OAuth error:`, response.status, errorText);
       throw new Error(`Viva authentication failed: ${response.status}`);
     }
 
@@ -3994,6 +3994,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
   // Create Viva payment order and return checkout URL
   app.post("/api/payments/viva/create-order", async (req, res) => {
+    const requestId = crypto.randomUUID().slice(0, 12);
+    const vivaMarket = getMarketFromRequest(req);
+
     try {
       const { currency, cartItems, voucherCode, orderData } = req.body;
 
@@ -4002,7 +4005,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }
 
       let subtotal = 0;
-      const vivaMarket = getMarketFromRequest(req);
+      console.log(`[Viva ${requestId}] create-order started: market=${vivaMarket}, items=${cartItems.length}, currency=${currency || "missing"}`);
       const serverCurrency = marketSettingsMap.get(vivaMarket)?.currency ?? getVivaCurrency(vivaMarket);
       if (currency && String(currency).toUpperCase() !== serverCurrency) {
         return res.status(400).json({ message: "Checkout currency does not match the current marketplace" });
@@ -4110,7 +4113,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }
 
       // Validate Viva credentials before creating the local pending order.
-      const accessToken = await getVivaAccessToken(vivaMarket);
+      const accessToken = await getVivaAccessToken(vivaMarket, requestId);
 
       // Use server-validated items (with volume discounts applied) for order storage
       const orderItems = validatedVivaItems;
@@ -4205,7 +4208,17 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         };
       }
 
-      console.log("Viva order payload:", JSON.stringify(vivaOrderPayload));
+      // Never log the full payload: it contains the market source code and
+      // customer contact data. The summary is enough to troubleshoot routing.
+      console.log(`[Viva ${requestId}] order payload prepared:`, JSON.stringify({
+        market: vivaMarket,
+        amountCents: finalAmountCents,
+        currencyCode: vivaOrderPayload.currencyCode,
+        sourceCodeConfigured: Boolean(vivaOrderPayload.sourceCode),
+        hasCustomer: Boolean(vivaOrderPayload.customer),
+        allowRecurring: hasSubscription,
+        dbOrderId,
+      }));
 
       // Create payment order via Viva API
       const vivaResponse = await fetch("https://api.vivapayments.com/checkout/v2/orders", {
@@ -4218,9 +4231,15 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       });
 
       if (!vivaResponse.ok) {
-        const errorText = await vivaResponse.text();
-        console.error("Viva create order error:", vivaResponse.status, errorText);
-        throw new Error(`Viva API error: ${vivaResponse.status} - ${errorText}`);
+        const errorText = (await vivaResponse.text()).replace(/\s+/g, " ").slice(0, 500);
+        console.error(`[Viva ${requestId}] create order error:`, vivaResponse.status, errorText);
+        return res.status(502).json({
+          message: vivaMarket === "fr"
+            ? "Le service de paiement n’a pas pu préparer la commande. Réessayez dans quelques instants."
+            : "The payment service could not prepare the order. Please try again shortly.",
+          code: "VIVA_CREATE_ORDER_FAILED",
+          requestId,
+        });
       }
 
       const vivaOrder = await vivaResponse.json() as any;
@@ -4238,14 +4257,31 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         currency: serverCurrency,
       });
     } catch (error) {
-      console.error("Error creating Viva payment order:", error);
+      console.error(`[Viva ${requestId}] Error creating payment order:`, error);
       const errorMessage = error instanceof Error ? error.message : "";
       if (errorMessage.includes("Viva authentication failed: 403")) {
         return res.status(502).json({
           message: "Viva FR a respins autentificarea Production. Verifică Smart Checkout Client ID și Client Secret pentru contul FR.",
+          code: "VIVA_AUTH_FAILED",
+          requestId,
         });
       }
-      res.status(500).json({ message: "Failed to create payment order" });
+      if (/timeout|timed out|connect/i.test(errorMessage)) {
+        return res.status(503).json({
+          message: vivaMarket === "fr"
+            ? "Le service est temporairement indisponible. Réessayez dans quelques instants."
+            : "The payment service is temporarily unavailable. Please try again shortly.",
+          code: "VIVA_TEMPORARILY_UNAVAILABLE",
+          requestId,
+        });
+      }
+      res.status(500).json({
+        message: vivaMarket === "fr"
+          ? "Impossible de préparer le paiement. Réessayez dans quelques instants."
+          : "Failed to prepare the payment. Please try again shortly.",
+        code: "VIVA_CREATE_ORDER_ERROR",
+        requestId,
+      });
     }
   });
 

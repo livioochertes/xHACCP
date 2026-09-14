@@ -2,8 +2,28 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const text = (await res.text()).trim();
+    let message = "";
+
+    if (text) {
+      try {
+        const parsed = JSON.parse(text);
+        if (typeof parsed?.message === "string") {
+          message = parsed.message;
+        } else if (typeof parsed?.error === "string") {
+          message = parsed.error;
+        }
+      } catch {
+        // Some gateways return an HTML error page instead of JSON. Do not
+        // surface that page inside the checkout toast.
+      }
+    }
+
+    if (!message && text && !/^<!doctype html|^<html[\s>]/i.test(text)) {
+      message = text.slice(0, 300);
+    }
+
+    throw new Error(`${res.status}: ${message || res.statusText || "Request failed"}`);
   }
 }
 
