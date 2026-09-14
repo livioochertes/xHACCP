@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { usePageSeo } from "@/lib/use-page-seo";
 import { getMarketFromHostname } from "@/lib/queryClient";
-import { trackEvent } from "@/lib/analytics";
+import { getPaymentEventName, getPaymentStatus, trackEvent } from "@/lib/analytics";
 
 interface OrderSummary {
   orderId: number | null;
@@ -38,9 +38,10 @@ export default function ThankYou() {
   const { toast } = useToast();
   const params = new URLSearchParams(window.location.search);
   const paymentResult = params.get("payment");
-  const paymentSuccessful = paymentResult === "success" || paymentResult === "cash";
-  const paymentFailed = paymentResult === "failed" || paymentResult === "error";
-  const paymentStatusUnavailable = !paymentSuccessful && !paymentFailed;
+  const paymentStatus = getPaymentStatus(paymentResult);
+  const paymentSuccessful = paymentStatus === "success";
+  const paymentFailed = paymentStatus === "failed";
+  const paymentStatusUnavailable = paymentStatus === "unavailable";
   const orderIdFromUrl = Number(params.get("orderId")) || null;
   const [summary] = useState<OrderSummary | null>(() => {
     if (!paymentSuccessful) return null;
@@ -74,11 +75,10 @@ export default function ThankYou() {
   }, [paymentStatusUnavailable]);
 
   useEffect(() => {
-    const isSuccess = paymentSuccessful;
-    const isFailure = paymentResult === "failed" || paymentResult === "error";
-    if (!isSuccess && !isFailure) return;
+    const eventName = getPaymentEventName(paymentResult);
+    if (!eventName) return;
 
-    const storageKey = `xhaccp_analytics_${isSuccess ? "purchase" : "payment_failure"}_${orderId || "unknown"}`;
+    const storageKey = `xhaccp_analytics_${paymentSuccessful ? "purchase" : "payment_failure"}_${orderId || "unknown"}`;
     try {
       if (sessionStorage.getItem(storageKey)) return;
       sessionStorage.setItem(storageKey, "1");
@@ -95,7 +95,7 @@ export default function ThankYou() {
       eventData.currency = summary.currencySymbol;
     }
 
-    trackEvent(isSuccess ? "purchase_completed" : "payment_failed", eventData);
+    trackEvent(eventName, eventData);
   }, [paymentResult, paymentSuccessful, orderId, summary]);
 
   return (
