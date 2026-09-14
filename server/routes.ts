@@ -3269,6 +3269,23 @@ Sitemap: https://${domain}/sitemap.xml
         return res.status(404).json({ message: "Order not found" });
       }
 
+      if ((order.market as string) === "fr") {
+        const myFlyingBoxResult = await generateAWBForOrder(orderId);
+        if (!myFlyingBoxResult) {
+          return res.status(500).json({
+            message: "MyFlyingBox AWB could not be generated. Check the MFB credentials and shipper address configuration.",
+          });
+        }
+        return res.json({
+          success: true,
+          awbNumber: myFlyingBoxResult.awbNumber,
+          awbCost: myFlyingBoxResult.cost,
+          currency: myFlyingBoxResult.currency,
+          order: await storage.getOrder(orderId),
+          trackingUrl: `/api/orders/${orderId}/track-awb`,
+        });
+      }
+
       const { createSamedayAPI } = await import('./sameday-api');
       const samedayAPI = createSamedayAPI();
       
@@ -3465,6 +3482,18 @@ Sitemap: https://${domain}/sitemap.xml
         return res.status(404).json({ message: "Order or AWB not found" });
       }
 
+      if (order.awbCourier === "myflyingbox") {
+        const { createMyFlyingBoxAPI } = await import("./myflyingbox-api");
+        const myFlyingBoxAPI = createMyFlyingBoxAPI();
+        if (!myFlyingBoxAPI) {
+          return res.status(500).json({ message: "MyFlyingBox API not configured" });
+        }
+        const pdfBuffer = await myFlyingBoxAPI.getLabels(order.awbNumber);
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `attachment; filename="AWB_${order.awbNumber}.pdf"`);
+        return res.send(pdfBuffer);
+      }
+
       const { createSamedayAPI } = await import('./sameday-api');
       const samedayAPI = createSamedayAPI();
       
@@ -3501,6 +3530,20 @@ Sitemap: https://${domain}/sitemap.xml
 
       if (!order.awbNumber) {
         return res.status(404).json({ message: "AWB not found for this order" });
+      }
+
+      if (order.awbCourier === "myflyingbox") {
+        const { createMyFlyingBoxAPI } = await import("./myflyingbox-api");
+        const myFlyingBoxAPI = createMyFlyingBoxAPI();
+        if (!myFlyingBoxAPI) {
+          return res.status(500).json({ message: "MyFlyingBox API not configured" });
+        }
+        const trackingInfo = await myFlyingBoxAPI.getTracking(order.awbNumber);
+        return res.json({
+          awbNumber: order.awbNumber,
+          trackingUrl: `/api/orders/${order.id}/track-awb`,
+          trackingInfo,
+        });
       }
 
       const { createSamedayAPI } = await import('./sameday-api');
@@ -4287,6 +4330,183 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
   const awbGenerationInProgress = new Set<number>();
 
+  const normalizeMyFlyingBoxCountry = (value: unknown, fallback = ""): string => {
+    const raw = String(value || fallback).trim();
+    if (!raw) return "";
+    const aliases: Record<string, string> = {
+      romania: "RO",
+      france: "FR",
+      "france métropolitaine": "FR",
+      germany: "DE",
+      deutschland: "DE",
+      italy: "IT",
+      spain: "ES",
+      belgium: "BE",
+      netherlands: "NL",
+      portugal: "PT",
+      austria: "AT",
+      bulgaria: "BG",
+    };
+    return aliases[raw.toLowerCase()] || raw.toUpperCase();
+  };
+
+  const normalizeMyFlyingBoxPhone = (value: unknown, country: string): string => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const compact = raw.replace(/[^\d+]/g, "");
+    if (compact.startsWith("+")) return `+${compact.slice(1).replace(/\+/g, "")}`;
+    if (country === "FR" && compact.startsWith("0")) return `+33${compact.slice(1)}`;
+    if (country === "RO" && compact.startsWith("0")) return `+40${compact.slice(1)}`;
+    return compact;
+  };
+
+  async function generateMyFlyingBoxAWBForOrder(order: any): Promise<{ awbNumber: string; cost: number; currency: string } | null> {
+    const { createMyFlyingBoxAPI } = await import("./myflyingbox-api");
+    const myFlyingBoxAPI = createMyFlyingBoxAPI();
+    if (!myFlyingBoxAPI) {
+      console.error(`AWB: MyFlyingBox is not configured for French order ${order.id}`);
+      return null;
+    }
+
+    const shippingAddress = (order.shippingAddress || {}) as Record<string, any>;
+    const billingAddress = (order.billingAddress || {}) as Record<string, any>;
+    const companySettings = await storage.getCompanySettingsByMarket("ro") as any;
+    const roContact = companySettings?.marketContacts?.ro || {};
+    const shipperCountry = normalizeMyFlyingBoxCountry(roContact.country || companySettings?.country, "RO");
+    const shipperState = process.env.MYFLYINGBOX_SHIPPER_STATE_CODE
+      || roContact.state
+      || companySettings?.state
+      || companySettings?.county
+      || "";
+    const shipper = {
+      name: roContact.name || companySettings?.contactPerson || companySettings?.name || "",
+      company: companySettings?.name || roContact.name || "",
+      street: roContact.address || companySettings?.address || "",
+      city: roContact.city || companySettings?.city || "",
+      state: shipperState,
+      postal_code: roContact.zipCode || companySettings?.zipCode || "",
+      phone: normalizeMyFlyingBoxPhone(roContact.phone || companySettings?.phone, shipperCountry),
+      email: roContact.email || companySettings?.logisticsEmail || companySettings?.email || "",
+      country: shipperCountry,
+    };
+
+    const recipientCountry = normalizeMyFlyingBoxCountry(shippingAddress.country, "FR");
+    const recipientCompany = String(
+      shippingAddress.company || billingAddress.companyName || "",
+    ).trim();
+    const recipientName = `${shippingAddress.firstName || ""} ${shippingAddress.lastName || ""}`.trim()
+      || recipientCompany;
+    const recipientState = String(shippingAddress.state || "").trim();
+    const recipientPostalCode = String(shippingAddress.zipCode || "").trim();
+    const recipientCity = String(shippingAddress.city || "").trim();
+    const recipientPhone = normalizeMyFlyingBoxPhone(shippingAddress.phone || billingAddress.phone, recipientCountry);
+    const recipientEmail = String(
+      shippingAddress.email || billingAddress.email || "",
+    ).trim();
+
+    if (!shipper.name || !shipper.street || !shipper.city || !shipper.postal_code || !shipper.state || !shipper.phone || !shipper.email) {
+      throw new Error("MyFlyingBox shipper address is incomplete; configure the warehouse address and département code");
+    }
+    if (!recipientName || !recipientState || !recipientPostalCode || !recipientCity || !recipientPhone || !recipientEmail) {
+      throw new Error("MyFlyingBox recipient address is incomplete");
+    }
+
+    const parcels: Array<{ type: "package"; length: number; width: number; height: number; weight: number }> = [];
+    let parcelCounter = 1;
+    for (const item of order.items || []) {
+      const product = item.productId != null ? await storage.getProduct(item.productId) : undefined;
+      if (!product) continue;
+
+      const quantity = Number(item.quantity) || 1;
+      const piecesPerPackage = Number(product.piecesPerPackage) || 1;
+      const packagesNeeded = Math.ceil(quantity / piecesPerPackage);
+      const weight = Math.max(0.1, Number(product.weight) || 1);
+      const length = Math.max(1, Math.round(Number(product.length) || 10));
+      const width = Math.max(1, Math.round(Number(product.width) || 10));
+      const height = Math.max(1, Math.round(Number(product.height) || 10));
+
+      for (let packageNumber = 1; packageNumber <= packagesNeeded; packageNumber++) {
+        const remainingQuantity = quantity - ((packageNumber - 1) * piecesPerPackage);
+        const itemsInPackage = Math.min(remainingQuantity, piecesPerPackage);
+        parcels.push({
+          type: "package",
+          length,
+          width,
+          height,
+          weight: Math.max(0.1, Number((weight * (itemsInPackage / piecesPerPackage)).toFixed(3))),
+        });
+        parcelCounter++;
+      }
+    }
+
+    if (parcels.length === 0) {
+      parcels.push({ type: "package", length: 10, width: 10, height: 10, weight: 1 });
+    }
+
+    const quote = await myFlyingBoxAPI.createQuote({
+      parcel_type: "package",
+      shipper: {
+        country: shipper.country,
+        postal_code: String(shipper.postal_code),
+        city: shipper.city,
+      },
+      recipient: {
+        is_a_company: Boolean(recipientCompany),
+        country: recipientCountry,
+        postal_code: recipientPostalCode,
+        city: recipientCity,
+      },
+      parcels,
+    });
+    const offer = myFlyingBoxAPI.selectOffer(quote.offers || []);
+
+    const mfbOrder = await myFlyingBoxAPI.createOrder({
+      offer_id: offer.id,
+      ecommerce_order_platform: "xhaccp",
+      ecommerce_order_identifier: String(order.id),
+      ecommerce_order_reference: `ORDER_${order.id}`,
+      shipper,
+      recipient: {
+        name: recipientName,
+        ...(recipientCompany ? { company: recipientCompany } : {}),
+        street: String(shippingAddress.address || "").trim(),
+        city: recipientCity,
+        state: recipientState,
+        postal_code: recipientPostalCode,
+        phone: recipientPhone,
+        email: recipientEmail,
+        country: recipientCountry,
+        is_a_company: Boolean(recipientCompany),
+      },
+      parcels: parcels.map((_, index) => ({
+        shipper_reference: `ORDER_${order.id}_P${index + 1}`,
+        recipient_reference: `ORDER_${order.id}_P${index + 1}`,
+        currency: "EUR",
+        description: "Food safety and hygiene products",
+        country_of_origin: shipper.country,
+      })),
+    });
+
+    const awbNumber = mfbOrder.uuid || mfbOrder.id;
+    if (!awbNumber) {
+      throw new Error("MyFlyingBox order response did not include an order identifier");
+    }
+
+    const cost = offer.total_price?.amount ?? offer.price?.amount ?? 0;
+    const currency = offer.total_price?.currency || offer.price?.currency || "EUR";
+    await storage.updateOrder(order.id, {
+      status: "shipped",
+      awbNumber,
+      awbCourier: "myflyingbox",
+      awbCost: String(cost),
+      awbCurrency: currency,
+      awbCreatedAt: new Date(),
+    });
+
+    console.log(`MyFlyingBox order created for order ${order.id}: courier=myflyingbox, parcels=${parcels.length}, currency=${currency}`);
+    return { awbNumber, cost, currency };
+  }
+
   async function generateAWBForOrder(orderId: number): Promise<{ awbNumber: string; cost: number; currency: string } | null> {
     if (awbGenerationInProgress.has(orderId)) {
       console.log(`AWB: Generation already in progress for order ${orderId}, skipping`);
@@ -4304,6 +4524,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (order.awbNumber) {
         console.log(`AWB: Order ${orderId} already has AWB ${order.awbNumber}, skipping`);
         return { awbNumber: order.awbNumber, cost: parseFloat(order.awbCost || '0'), currency: order.awbCurrency || 'RON' };
+      }
+
+      if ((order.market as string) === "fr") {
+        return await generateMyFlyingBoxAWBForOrder(order);
       }
 
       const { createSamedayAPI } = await import('./sameday-api');
@@ -4537,9 +4761,19 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                   if (latestOrder) {
                     const orderMarket = (latestOrder.market as string) || 'ro';
 
-                    // AWB only for .ro (Sameday courier); .fr has no courier AWB
                     let awbPdfBuffer: Buffer | undefined;
-                    if (orderMarket !== 'fr' && awbNumber) {
+                    if (orderMarket === 'fr' && awbNumber) {
+                      try {
+                        const { createMyFlyingBoxAPI } = await import("./myflyingbox-api");
+                        const myFlyingBoxAPI = createMyFlyingBoxAPI();
+                        if (myFlyingBoxAPI) {
+                          awbPdfBuffer = await myFlyingBoxAPI.getLabels(awbNumber);
+                          console.log(`📄 MyFlyingBox labels retrieved for Viva order #${orderId}`);
+                        }
+                      } catch (pdfError) {
+                        console.error(`❌ MyFlyingBox labels retrieval failed for Viva order #${orderId}:`, pdfError);
+                      }
+                    } else if (orderMarket !== 'fr' && awbNumber) {
                       try {
                         const { createSamedayAPI } = await import('./sameday-api');
                         const samedayAPI = createSamedayAPI();
@@ -4738,9 +4972,18 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                   if (latestOrder) {
                     const orderMarket = (latestOrder.market as string) || 'ro';
 
-                    // AWB only for .ro (Sameday courier); .fr has no courier AWB
                     let awbPdfBuffer: Buffer | undefined;
-                    if (orderMarket !== 'fr' && awbNumber) {
+                    if (orderMarket === 'fr' && awbNumber) {
+                      try {
+                        const { createMyFlyingBoxAPI } = await import("./myflyingbox-api");
+                        const myFlyingBoxAPI = createMyFlyingBoxAPI();
+                        if (myFlyingBoxAPI) {
+                          awbPdfBuffer = await myFlyingBoxAPI.getLabels(awbNumber);
+                        }
+                      } catch (pdfError) {
+                        console.error(`❌ MyFlyingBox labels retrieval failed for webhook order #${orderId}:`, pdfError);
+                      }
+                    } else if (orderMarket !== 'fr' && awbNumber) {
                       try {
                         const { createSamedayAPI } = await import('./sameday-api');
                         const samedayAPI = createSamedayAPI();
