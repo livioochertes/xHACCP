@@ -161,6 +161,14 @@ function createCheckoutSchema(t: (key: keyof TranslationKeys) => string, isFrenc
 
 type CheckoutFormData = z.infer<ReturnType<typeof createCheckoutSchema>>;
 
+type OrderSummaryItem = {
+  productId: number;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+};
+
 export default function Checkout() {
   const { t } = useTranslation();
   const isFrenchMarket = getMarketFromHostname() === "fr";
@@ -196,6 +204,7 @@ export default function Checkout() {
   const [confirmedOrder, setConfirmedOrder] = useState<{
     orderId: number | null;
     buyerName: string;
+    items: OrderSummaryItem[];
     subtotal: number;
     discountAmount: number;
     voucherCode: string | null;
@@ -207,13 +216,14 @@ export default function Checkout() {
   // Ref to always hold the latest order summary (used by mutation onSuccess & Viva localStorage)
   const currentOrderSummaryRef = useRef<{
     buyerName: string;
+    items: OrderSummaryItem[];
     subtotal: number;
     discountAmount: number;
     voucherCode: string | null;
     shipping: number;
     total: number;
     currencySymbol: string;
-  }>({ buyerName: '', subtotal: 0, discountAmount: 0, voucherCode: null, shipping: 0, total: 0, currencySymbol: '' });
+  }>({ buyerName: '', items: [], subtotal: 0, discountAmount: 0, voucherCode: null, shipping: 0, total: 0, currencySymbol: '' });
   const checkoutStartedRef = useRef(false);
 
   // Fetch shipping settings (includes VAT percentage)
@@ -466,11 +476,22 @@ export default function Checkout() {
 
   // Keep ref current so onSuccess / Viva-redirect path can read the latest summary
   useEffect(() => {
+    const items: OrderSummaryItem[] = cart.map(item => {
+      const unitPrice = getUnitPrice(item);
+      return {
+        productId: item.product.id,
+        name: item.product.name,
+        quantity: item.quantity,
+        unitPrice,
+        totalPrice: unitPrice * item.quantity,
+      };
+    });
     const summary = {
       buyerName: [form.getValues("shippingAddress.firstName"), form.getValues("shippingAddress.lastName")]
         .map(value => value?.trim())
         .filter(Boolean)
         .join(" "),
+      items,
       subtotal,
       discountAmount: voucherDiscount,
       voucherCode: appliedVoucher?.code ?? null,
@@ -484,7 +505,7 @@ export default function Checkout() {
     if (step === 3) {
       localStorage.setItem('xhaccp_pending_order_summary', JSON.stringify(summary));
     }
-  }, [subtotal, voucherDiscount, appliedVoucher, shipping, finalTotal, currencySymbol, step]);
+  }, [cart, subtotal, voucherDiscount, appliedVoucher, shipping, finalTotal, currencySymbol, step]);
 
   useEffect(() => {
     if (step !== 3 || checkoutStartedRef.current) return;

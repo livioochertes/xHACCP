@@ -15,12 +15,21 @@ import { getPaymentEventName, getPaymentStatus, trackEvent } from "@/lib/analyti
 interface OrderSummary {
   orderId: number | null;
   buyerName?: string;
+  items?: OrderSummaryItem[];
   subtotal: number;
   discountAmount: number;
   voucherCode: string | null;
   shipping: number;
   total: number;
   currencySymbol: string;
+}
+
+interface OrderSummaryItem {
+  productId: number;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
 }
 
 function readOrderSummary(): OrderSummary | null {
@@ -154,6 +163,29 @@ export default function ThankYou() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{t("checkout.buyerName")}:</span>
                   <span className="font-medium">{summary.buyerName}</span>
+                </div>
+              )}
+              {summary.items && summary.items.length > 0 && (
+                <div className="border-t pt-3 mt-3">
+                  <h3 className="font-semibold text-sm mb-3">{t("checkout.purchasedProducts")}</h3>
+                  <div className="space-y-3">
+                    {summary.items.map((item, index) => (
+                      <div
+                        key={`${item.productId}-${index}`}
+                        className="flex items-start justify-between gap-4 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {item.quantity} × {Number(item.unitPrice).toFixed(2)} {summary.currencySymbol}
+                          </p>
+                        </div>
+                        <span className="font-medium whitespace-nowrap">
+                          {Number(item.totalPrice).toFixed(2)} {summary.currencySymbol}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               <div className="flex justify-between text-sm">
