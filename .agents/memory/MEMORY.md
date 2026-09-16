@@ -27,3 +27,4 @@
 - [Event voucher activation window](event-voucher-activation-window.md) — a first paid purchase within 30 days preserves the original 12-month validity.
 - [MyFlyingBox address contract](myflyingbox-address-contract.md) — French checkout uses ISO country codes and one official-code département field; Romanian county remains market-specific.
 - [PayPal capture recovery](paypal-capture-recovery.md) — direct PayPal payments need verified webhook reconciliation because a capture can succeed while the browser callback is lost.
+- [Shared auth loading state](shared-auth-loading-state.md) — late subscribers must sync with global auth state or parent UI can remain in an endless loading state.

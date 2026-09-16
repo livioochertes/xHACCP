@@ -72,6 +72,13 @@ export function useAuth() {
   // Register this setter with global setters
   useEffect(() => {
     globalSetters.add(setAuthState);
+    // A child component (for example Header) can initialize the shared auth
+    // state before a parent component (CartProvider) registers its setter.
+    // Synchronize late subscribers so they cannot remain stuck in the initial
+    // loading state forever.
+    if (globalAuthState) {
+      setAuthState(globalAuthState);
+    }
     return () => {
       globalSetters.delete(setAuthState);
     };
