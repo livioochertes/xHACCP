@@ -893,7 +893,7 @@ import {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await response.json();
-          if (!response.ok) throw new Error(data.message || 'Failed to load WMS origin address');
+          if (!response.ok) throw new Error(data.message || t('wms.loadOriginFailed'));
           setWmsOriginAddress(data.originAddress || {
             market: 'fr',
             companyName: '',
@@ -915,7 +915,7 @@ import {
       const saveWmsOriginAddress = async () => {
         const requiredFields = ['companyName', 'address', 'city', 'state', 'zipCode', 'country', 'phone', 'email'];
         if (requiredFields.some(field => !String(wmsOriginAddress[field] || '').trim())) {
-          return alert('Completează toate câmpurile obligatorii ale adresei logistice.');
+          return alert(t('wms.originRequiredError'));
         }
         setWmsOriginSaving(true);
         try {
@@ -925,9 +925,9 @@ import {
             body: JSON.stringify({ ...wmsOriginAddress, market: 'fr' })
           });
           const data = await response.json();
-          if (!response.ok) throw new Error(data.message || 'Failed to save WMS origin address');
+          if (!response.ok) throw new Error(data.message || t('wms.saveOriginFailed'));
           setWmsOriginAddress(data.originAddress);
-          alert('Adresa de origine pentru MyFlyingBox (.fr) a fost salvată.');
+          alert(t('wms.originSaved'));
         } catch (error) {
           alert(error.message);
         } finally {
@@ -942,7 +942,7 @@ import {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await response.json();
-          if (!response.ok) throw new Error(data.message || 'Failed to load WMS');
+          if (!response.ok) throw new Error(data.message || t('wms.loadFailed'));
           setWmsOverview(data);
           const auditResponse = await fetch('/admin/api/wms/audit?limit=20', {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -963,7 +963,7 @@ import {
           body: JSON.stringify(wmsPartnerForm)
         });
         const data = await response.json();
-        if (!response.ok) return alert(data.message || 'Failed to create partner');
+        if (!response.ok) return alert(data.message || t('wms.createPartnerFailed'));
         setWmsPartnerForm({ name: '', code: '' });
         fetchWmsOverview();
       };
@@ -980,7 +980,7 @@ import {
               headers: { 'Authorization': `Bearer ${token}` }
             });
         const data = await response.json();
-        if (!response.ok) return alert(data.message || 'Failed to update routing');
+        if (!response.ok) return alert(data.message || t('wms.updateRoutingFailed'));
         fetchWmsOverview();
       };
 
@@ -989,45 +989,45 @@ import {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        if (!response.ok) return alert(data.message || 'Failed to load keys');
+        if (!response.ok) return alert(data.message || t('wms.loadKeysFailed'));
         setWmsSelectedPartner(partner);
         setWmsKeys(data.keys || []);
         setWmsKeyForm({ partnerId: String(partner.id), environment: 'production' });
       };
 
       const createWmsKey = async () => {
-        if (!wmsKeyForm.partnerId) return alert('Select a partner first');
+        if (!wmsKeyForm.partnerId) return alert(t('wms.selectPartnerError'));
         const response = await fetch(`/admin/api/wms/partners/${wmsKeyForm.partnerId}/keys`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ environment: wmsKeyForm.environment })
         });
         const data = await response.json();
-        if (!response.ok) return alert(data.message || 'Failed to create key');
+        if (!response.ok) return alert(data.message || t('wms.createKeyFailed'));
         setWmsPlaintextKey(data.plaintext);
         loadWmsKeys(wmsSelectedPartner || { id: Number(wmsKeyForm.partnerId) });
       };
 
       const revokeWmsKey = async (keyId) => {
-        if (!window.confirm('Revoci această cheie WMS? Partenerul nu o va mai putea folosi.')) return;
+        if (!window.confirm(t('wms.revokeConfirm'))) return;
         const response = await fetch(`/admin/api/wms/keys/${keyId}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        if (!response.ok) return alert(data.message || 'Failed to revoke key');
+        if (!response.ok) return alert(data.message || t('wms.revokeFailed'));
         if (wmsSelectedPartner) loadWmsKeys(wmsSelectedPartner);
         fetchWmsOverview();
       };
 
       const loadWmsOrderTimeline = async () => {
         const orderId = Number(wmsOrderId);
-        if (!Number.isInteger(orderId) || orderId < 1) return alert('Introdu un ID de comandă valid');
+        if (!Number.isInteger(orderId) || orderId < 1) return alert(t('wms.validOrderId'));
         const response = await fetch(`/admin/api/orders/${orderId}/wms`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        if (!response.ok) return alert(data.message || 'Timeline indisponibil');
+        if (!response.ok) return alert(data.message || t('wms.timelineUnavailable'));
         setWmsOrderTimeline(data);
       };
 
