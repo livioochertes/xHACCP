@@ -16053,6 +16053,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                       "button",
                       {
+                        type: "button",
                         onClick: fetchWmsSamedayPickupPoints,
                         disabled: wmsSamedayPickupPointsLoading,
                         className: "btn",

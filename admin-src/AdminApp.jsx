@@ -3379,6 +3379,7 @@ import {
                               </select>
                             </label>
                             <button
+                              type="button"
                               onClick={fetchWmsSamedayPickupPoints}
                               disabled={wmsSamedayPickupPointsLoading}
                               className="btn"

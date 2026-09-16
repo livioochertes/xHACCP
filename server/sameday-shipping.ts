@@ -57,12 +57,27 @@ export function serializeSamedayPickupPoints(
   pickupPoints: SamedayPickupPoint[],
   configuredId?: number | null,
 ) {
+  const displayValue = (value: unknown): string => {
+    if (typeof value === "string" || typeof value === "number") {
+      return String(value);
+    }
+    if (value && typeof value === "object") {
+      const location = value as { name?: unknown; label?: unknown; title?: unknown; id?: unknown };
+      for (const candidate of [location.name, location.label, location.title, location.id]) {
+        if (typeof candidate === "string" || typeof candidate === "number") {
+          return String(candidate);
+        }
+      }
+    }
+    return "";
+  };
+
   return pickupPoints.map(point => ({
     id: point.id,
-    name: point.name,
-    county: point.county,
-    city: point.city,
-    address: point.address,
+    name: displayValue(point.name) || `Sameday #${point.id}`,
+    county: displayValue(point.county),
+    city: displayValue(point.city),
+    address: displayValue(point.address),
     contactPersons: point.contactPersons || [],
     configured: point.id === configuredId,
   }));
