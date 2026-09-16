@@ -374,7 +374,6 @@ import {
       const [wmsKeyForm, setWmsKeyForm] = useState({ partnerId: '', environment: 'production' });
       const [wmsKeys, setWmsKeys] = useState([]);
       const [wmsSelectedPartner, setWmsSelectedPartner] = useState(null);
-      const [wmsSelectedMarket, setWmsSelectedMarket] = useState('fr');
       const [wmsPlaintextKey, setWmsPlaintextKey] = useState('');
       const [wmsAudit, setWmsAudit] = useState([]);
       const [wmsOrderId, setWmsOrderId] = useState('');
@@ -3115,14 +3114,11 @@ import {
             const visibleMarkets = adminIsSuperAdmin ? ['ro', 'fr', 'com'] : (admin?.adminMarkets || []);
             const partnerForMarket = (market) => wmsOverview.routing.find(route => route.market === market);
             const routingDecisionForMarket = (market) => wmsOverview.routingDecisions?.find(route => route.market === market);
-            const selectedRoutingMarket = visibleMarkets.includes(wmsSelectedMarket) ? wmsSelectedMarket : (visibleMarkets[0] || 'ro');
-            const selectedRoute = partnerForMarket(selectedRoutingMarket);
-            const selectedRoutingDecision = routingDecisionForMarket(selectedRoutingMarket);
             return (
               <div style={{background:'white',padding:'30px',borderRadius:'8px',boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'22px'}}>
                   <div>
-                    <h3 style={{color:'#333',margin:'0 0 6px'}}>{t('wms.title')}</h3>
+                    <h3 style={{color:'#333',margin:'0 0 6px'}}>🚚 {t('wms.title')}</h3>
                     <p style={{color:'#6c757d',margin:0}}>{t('wms.description')}</p>
                   </div>
                   <button className="btn" onClick={fetchWmsOverview} style={{width:'auto',padding:'8px 16px',background:'#0d6efd'}}>
@@ -3130,204 +3126,13 @@ import {
                   </button>
                 </div>
 
-                <section style={{border:'1px solid #dee2e6',borderRadius:'10px',padding:'20px',marginBottom:'22px'}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'16px',marginBottom:'18px'}}>
-                    <div>
-                      <h4 style={{margin:'0 0 5px',color:'#333'}}>{t('wms.partnersTitle')}</h4>
-                      <p style={{margin:0,color:'#6c757d',fontSize:'13px'}}>{t('wms.providerSelectHint')}</p>
-                    </div>
-                    <span style={{fontSize:'12px',fontWeight:600,color:'#198754',whiteSpace:'nowrap'}}>
-                      {wmsOverview.partners.length} · {t('wms.partnersTitle')}
-                    </span>
-                  </div>
-
-                  <div style={{display:'grid',gridTemplateColumns:'minmax(220px,0.8fr) minmax(360px,1.8fr)',gap:'16px',alignItems:'stretch'}}>
-                    <div style={{display:'grid',alignContent:'start',gap:'8px'}}>
-                      {wmsOverview.partners.map(partner => {
-                        const isSelected = wmsSelectedPartner?.id === partner.id;
-                        return (
-                          <button
-                            key={partner.id}
-                            type="button"
-                            onClick={() => loadWmsKeys(partner)}
-                            style={{
-                              display:'grid',
-                              gap:'5px',
-                              width:'100%',
-                              border:`1px solid ${isSelected ? '#6ea8fe' : '#dee2e6'}`,
-                              borderRadius:'8px',
-                              background:isSelected ? '#f0f7ff' : 'white',
-                              padding:'12px',
-                              textAlign:'left',
-                              color:'#333',
-                              cursor:'pointer'
-                            }}
-                          >
-                            <strong>{partner.name}</strong>
-                            <span style={{fontSize:'12px',color:'#6c757d'}}>{partner.code} · {partner.markets?.join(', ') || '—'}</span>
-                            <span style={{fontSize:'11px',fontWeight:600,color:partner.isActive ? '#198754' : '#dc3545'}}>
-                              {partner.isActive ? t('wms.active') : t('wms.inactive')}
-                            </span>
-                          </button>
-                        );
-                      })}
-                      {!wmsOverview.partners.length && <p style={{color:'#6c757d',fontSize:'13px'}}>{t('wms.noPartners')}</p>}
-                    </div>
-
-                    <div style={{border:'1px solid #e4eaf2',borderRadius:'8px',background:'#fbfdff',padding:'16px',minHeight:'220px'}}>
-                      {wmsSelectedPartner ? (
-                        <>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'14px',marginBottom:'16px'}}>
-                            <div>
-                              <h4 style={{margin:'0 0 5px',color:'#333'}}>{wmsSelectedPartner.name}</h4>
-                              <div style={{fontSize:'12px',color:'#6c757d'}}>{t('wms.providerCode')}: <strong>{wmsSelectedPartner.code}</strong></div>
-                            </div>
-                            <span style={{fontSize:'12px',fontWeight:600,color:wmsSelectedPartner.isActive ? '#198754' : '#dc3545'}}>
-                              {wmsSelectedPartner.isActive ? t('wms.active') : t('wms.inactive')}
-                            </span>
-                          </div>
-                          <div style={{fontSize:'13px',color:'#495057',marginBottom:'16px'}}>
-                            <strong>{t('wms.markets')}:</strong> {wmsSelectedPartner.markets?.join(', ') || '—'}
-                          </div>
-                          <div style={{borderTop:'1px solid #e9ecef',paddingTop:'14px'}}>
-                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px',marginBottom:'10px'}}>
-                              <strong style={{fontSize:'13px',color:'#333'}}>{t('wms.keyTitle')}</strong>
-                              <span style={{fontSize:'12px',color:'#6c757d'}}>{wmsSelectedPartner.keyCount || 0}</span>
-                            </div>
-                            {wmsKeys.map(key => (
-                              <div key={key.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'9px 0',borderTop:'1px solid #edf1f6',fontSize:'12px'}}>
-                                <span><code>{key.keyPrefix}…</code> · {key.environment} · {key.isRevoked ? t('wms.revoked') : t('wms.active')}</span>
-                                {!key.isRevoked && <button onClick={()=>revokeWmsKey(key.id)} className="btn" style={{width:'auto',padding:'5px 9px',background:'#dc3545'}}>{t('wms.revoke')}</button>}
-                              </div>
-                            ))}
-                            {!wmsKeys.length && <p style={{color:'#6c757d',fontSize:'12px',margin:'8px 0 0'}}>{t('wms.noKeys')}</p>}
-                          </div>
-                        </>
-                      ) : (
-                        <div style={{display:'grid',placeItems:'center',minHeight:'185px',textAlign:'center',color:'#6c757d',fontSize:'13px'}}>
-                          {t('wms.providerSelectHint')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div style={{borderTop:'1px solid #e9ecef',marginTop:'18px',paddingTop:'18px'}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px',marginBottom:'10px'}}>
-                      <div>
-                        <h4 style={{margin:'0 0 4px',color:'#333'}}>{t('wms.newKey')}</h4>
-                        <p style={{margin:0,color:'#6c757d',fontSize:'12px'}}>{t('wms.selectPartner')}</p>
-                      </div>
-                    </div>
-                    <div style={{display:'grid',gridTemplateColumns:'minmax(180px,1fr) minmax(150px,0.7fr) auto',gap:'8px',alignItems:'center'}}>
-                      <select value={wmsKeyForm.partnerId} onChange={e=>setWmsKeyForm({...wmsKeyForm,partnerId:e.target.value})} style={{width:'100%',padding:'10px',border:'1px solid #ced4da',borderRadius:'5px',background:'white'}}>
-                        <option value="">{t('wms.selectPartner')}</option>
-                        {wmsOverview.partners.map(partner => <option key={partner.id} value={partner.id}>{partner.name} ({partner.code})</option>)}
-                      </select>
-                      <select value={wmsKeyForm.environment} onChange={e=>setWmsKeyForm({...wmsKeyForm,environment:e.target.value})} style={{width:'100%',padding:'10px',border:'1px solid #ced4da',borderRadius:'5px',background:'white'}}>
-                        <option value="production">{t('wms.production')}</option>
-                        <option value="sandbox">{t('wms.sandbox')}</option>
-                      </select>
-                      <button onClick={createWmsKey} className="btn" style={{width:'auto',padding:'8px 14px',background:'#6f42c1'}}>🔑 {t('wms.generateKey')}</button>
-                    </div>
-                  </div>
-
-                  <div style={{borderTop:'1px solid #e9ecef',marginTop:'18px',paddingTop:'18px'}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px',marginBottom:'10px'}}>
-                      <div>
-                        <h4 style={{margin:'0 0 4px',color:'#333'}}>{t('wms.addPartner')}</h4>
-                        <p style={{margin:0,color:'#6c757d',fontSize:'12px'}}>{t('wms.partnerNamePlaceholder')} · {t('wms.partnerCodePlaceholder')}</p>
-                      </div>
-                    </div>
-                    <div style={{display:'grid',gridTemplateColumns:'minmax(180px,1fr) minmax(150px,0.7fr) auto',gap:'8px',alignItems:'center'}}>
-                      <input value={wmsPartnerForm.name} onChange={e=>setWmsPartnerForm({...wmsPartnerForm,name:e.target.value})} placeholder={t('wms.partnerNamePlaceholder')} style={{width:'100%',padding:'10px',boxSizing:'border-box',border:'1px solid #ced4da',borderRadius:'5px'}} />
-                      <input value={wmsPartnerForm.code} onChange={e=>setWmsPartnerForm({...wmsPartnerForm,code:e.target.value})} placeholder={t('wms.partnerCodePlaceholder')} style={{width:'100%',padding:'10px',boxSizing:'border-box',border:'1px solid #ced4da',borderRadius:'5px'}} />
-                      <button onClick={createWmsPartner} className="btn" style={{width:'auto',padding:'8px 14px',background:'#198754'}}>+ {t('wms.createPartner')}</button>
-                    </div>
-                  </div>
-                </section>
-
-                {wmsPlaintextKey && (
-                  <div style={{background:'#fff3cd',border:'1px solid #ffecb5',padding:'14px',borderRadius:'7px',marginBottom:'22px'}}>
-                    <strong>{t('wms.keyShownOnce')}</strong>
-                    <div style={{display:'flex',gap:'8px',marginTop:'8px'}}>
-                      <input readOnly value={wmsPlaintextKey} style={{flex:1,padding:'9px',fontFamily:'monospace',border:'1px solid #ced4da',borderRadius:'4px'}} />
-                      <button onClick={()=>navigator.clipboard?.writeText(wmsPlaintextKey)} className="btn" style={{width:'auto',padding:'8px 12px'}}>{t('wms.copy')}</button>
-                      <button onClick={()=>setWmsPlaintextKey('')} className="btn btn-secondary" style={{width:'auto',padding:'8px 12px'}}>{t('common.close')}</button>
-                    </div>
-                  </div>
-                )}
-
-                <section style={{border:'1px solid #dee2e6',borderRadius:'10px',padding:'20px',marginBottom:'22px'}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'16px',marginBottom:'16px'}}>
-                    <div>
-                      <h4 style={{color:'#333',margin:'0 0 5px'}}>{t('wms.routingTitle')}</h4>
-                      <p style={{margin:0,color:'#6c757d',fontSize:'13px'}}>{t('wms.routingMarketHint')}</p>
-                    </div>
-                    <span style={{background:wmsOverview.routingReady ? '#d1e7dd' : '#fff3cd',border:`1px solid ${wmsOverview.routingReady ? '#a3cfbb' : '#ffecb5'}`,padding:'6px 9px',borderRadius:'999px',fontSize:'11px',fontWeight:600,color:wmsOverview.routingReady ? '#146c43' : '#997404'}}>
-                      {wmsOverview.routingReady ? t('wms.routingReady') : t('wms.routingNeedsDecision')}
-                    </span>
-                  </div>
-
-                  <div style={{display:'grid',gridTemplateColumns:'150px minmax(0,1fr)',gap:'16px'}}>
-                    <div style={{display:'grid',alignContent:'start',gap:'8px'}}>
-                      {visibleMarkets.map(market => {
-                        const decision = routingDecisionForMarket(market);
-                        const isSelected = market === selectedRoutingMarket;
-                        return (
-                          <button
-                            key={market}
-                            type="button"
-                            onClick={() => setWmsSelectedMarket(market)}
-                            style={{
-                              display:'flex',
-                              justifyContent:'space-between',
-                              alignItems:'center',
-                              gap:'8px',
-                              border:`1px solid ${isSelected ? '#6ea8fe' : '#dee2e6'}`,
-                              borderRadius:'7px',
-                              background:isSelected ? '#f0f7ff' : 'white',
-                              padding:'10px',
-                              color:'#333',
-                              cursor:'pointer',
-                              textAlign:'left'
-                            }}
-                          >
-                            <strong>{market.toUpperCase()}</strong>
-                            <span style={{fontSize:'11px',fontWeight:600,color:decision?.decision === 'active' ? '#198754' : decision?.decision === 'inactive' ? '#6c757d' : '#dc3545'}}>
-                              {decision?.decision === 'active' ? t('wms.active') : decision?.decision === 'inactive' ? t('wms.inactive') : t('wms.unconfigured')}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div style={{border:'1px solid #e4eaf2',borderRadius:'8px',background:'#fbfdff',padding:'16px'}}>
-                      <h4 style={{margin:'0 0 4px',color:'#333'}}>{selectedRoutingMarket.toUpperCase()} · {t('wms.routingTitle')}</h4>
-                      <p style={{margin:'0 0 15px',color:'#6c757d',fontSize:'13px'}}>{t('wms.routingMarketHint')}</p>
-                      <div style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) auto',gap:'14px',alignItems:'end'}}>
-                        <label style={{fontSize:'12px',fontWeight:600,color:'#495057'}}>
-                          {t('wms.partner')}
-                          <select value={selectedRoute?.partnerId || ''} onChange={e=>routeWmsMarket(selectedRoutingMarket,e.target.value)} style={{display:'block',width:'100%',padding:'9px',marginTop:'5px',border:'1px solid #ced4da',borderRadius:'5px',background:'white'}}>
-                            <option value="">{t('wms.noRouting')}</option>
-                            {wmsOverview.partners.filter(partner=>partner.isActive || partner.id === selectedRoute?.partnerId).map(partner=><option key={partner.id} value={partner.id}>{partner.name}{!partner.isActive ? ` (${t('wms.inactive')})` : ''}</option>)}
-                          </select>
-                        </label>
-                        {selectedRoute?.partnerId && <label style={{display:'flex',alignItems:'center',gap:'7px',minHeight:'38px',fontSize:'13px',color:'#495057'}}>
-                          <input type="checkbox" checked={selectedRoute.isActive} onChange={e=>routeWmsMarket(selectedRoutingMarket,selectedRoute.partnerId,e.target.checked)} />
-                          {t('wms.activeRouting')}
-                        </label>}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
                 {(selectedMarketTab === 'fr' || selectedMarketTab === 'all') && (
-                  <section style={{border:'1px solid #b8daff',background:'#f0f7ff',borderRadius:'8px',padding:'18px',marginBottom:'22px'}}>
+                  <div style={{border:'1px solid #b8daff',background:'#f0f7ff',borderRadius:'8px',padding:'18px',marginBottom:'24px'}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'16px',marginBottom:'14px'}}>
                       <div>
                         <h4 style={{margin:'0 0 6px',color:'#145da0'}}>{t('wms.originTitle')}</h4>
                         <p style={{margin:0,color:'#495057',fontSize:'13px'}}>
-                          {t('wms.originSeparateDescription')}
+                          {t('wms.originDescription')}
                         </p>
                       </div>
                       <span style={{fontSize:'12px',fontWeight:600,color:wmsOriginAddress.id ? '#198754' : '#dc3545',whiteSpace:'nowrap'}}>
@@ -3368,7 +3173,96 @@ import {
                         </div>
                       </>
                     )}
-                  </section>
+                  </div>
+                )}
+
+                <div style={{display:'grid',gridTemplateColumns:'minmax(280px,1fr) minmax(280px,1fr)',gap:'20px',marginBottom:'24px'}}>
+                  <div style={{border:'1px solid #dee2e6',borderRadius:'8px',padding:'18px'}}>
+                    <h4 style={{margin:'0 0 14px',color:'#333'}}>{t('wms.addPartner')}</h4>
+                    <input value={wmsPartnerForm.name} onChange={e=>setWmsPartnerForm({...wmsPartnerForm,name:e.target.value})} placeholder={t('wms.partnerNamePlaceholder')} style={{width:'100%',padding:'10px',marginBottom:'8px',boxSizing:'border-box',border:'1px solid #ced4da',borderRadius:'5px'}} />
+                    <input value={wmsPartnerForm.code} onChange={e=>setWmsPartnerForm({...wmsPartnerForm,code:e.target.value})} placeholder={t('wms.partnerCodePlaceholder')} style={{width:'100%',padding:'10px',marginBottom:'10px',boxSizing:'border-box',border:'1px solid #ced4da',borderRadius:'5px'}} />
+                    <button onClick={createWmsPartner} className="btn" style={{width:'auto',padding:'8px 14px',background:'#198754'}}>+ {t('wms.createPartner')}</button>
+                  </div>
+                  <div style={{border:'1px solid #dee2e6',borderRadius:'8px',padding:'18px'}}>
+                    <h4 style={{margin:'0 0 14px',color:'#333'}}>{t('wms.newKey')}</h4>
+                    <select value={wmsKeyForm.partnerId} onChange={e=>setWmsKeyForm({...wmsKeyForm,partnerId:e.target.value})} style={{width:'100%',padding:'10px',marginBottom:'8px',border:'1px solid #ced4da',borderRadius:'5px'}}>
+                      <option value="">{t('wms.selectPartner')}</option>
+                      {wmsOverview.partners.map(partner => <option key={partner.id} value={partner.id}>{partner.name} ({partner.code})</option>)}
+                    </select>
+                    <select value={wmsKeyForm.environment} onChange={e=>setWmsKeyForm({...wmsKeyForm,environment:e.target.value})} style={{width:'100%',padding:'10px',marginBottom:'10px',border:'1px solid #ced4da',borderRadius:'5px'}}>
+                      <option value="production">{t('wms.production')}</option>
+                      <option value="sandbox">{t('wms.sandbox')}</option>
+                    </select>
+                    <button onClick={createWmsKey} className="btn" style={{width:'auto',padding:'8px 14px',background:'#6f42c1'}}>🔑 {t('wms.generateKey')}</button>
+                  </div>
+                </div>
+
+                {wmsPlaintextKey && (
+                  <div style={{background:'#fff3cd',border:'1px solid #ffecb5',padding:'14px',borderRadius:'7px',marginBottom:'22px'}}>
+                    <strong>{t('wms.keyShownOnce')}</strong>
+                    <div style={{display:'flex',gap:'8px',marginTop:'8px'}}>
+                      <input readOnly value={wmsPlaintextKey} style={{flex:1,padding:'9px',fontFamily:'monospace',border:'1px solid #ced4da',borderRadius:'4px'}} />
+                      <button onClick={()=>navigator.clipboard?.writeText(wmsPlaintextKey)} className="btn" style={{width:'auto',padding:'8px 12px'}}>{t('wms.copy')}</button>
+                      <button onClick={()=>setWmsPlaintextKey('')} className="btn btn-secondary" style={{width:'auto',padding:'8px 12px'}}>{t('common.close')}</button>
+                    </div>
+                  </div>
+                )}
+
+                <h4 style={{color:'#333',margin:'0 0 12px'}}>{t('wms.routingTitle')}</h4>
+                <div style={{background:wmsOverview.routingReady ? '#d1e7dd' : '#fff3cd',border:`1px solid ${wmsOverview.routingReady ? '#a3cfbb' : '#ffecb5'}`,padding:'10px 12px',borderRadius:'6px',marginBottom:'12px',fontSize:'13px'}}>
+                  {wmsOverview.routingReady
+                    ? t('wms.routingReady')
+                    : t('wms.routingNeedsDecision')}
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:'12px',marginBottom:'24px'}}>
+                  {visibleMarkets.map(market => {
+                    const route = partnerForMarket(market);
+                    const decision = routingDecisionForMarket(market);
+                    return <div key={market} style={{border:'1px solid #dee2e6',borderRadius:'7px',padding:'13px'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+                        <strong>{market.toUpperCase()}</strong>
+                        <span style={{fontSize:'12px',color:decision?.decision === 'active' ? '#198754' : decision?.decision === 'inactive' ? '#6c757d' : '#dc3545'}}>
+                          {decision?.decision === 'active' ? t('wms.active') : decision?.decision === 'inactive' ? t('wms.inactive') : t('wms.unconfigured')}
+                        </span>
+                      </div>
+                      <select value={route?.partnerId || ''} onChange={e=>routeWmsMarket(market,e.target.value)} style={{width:'100%',padding:'8px',border:'1px solid #ced4da',borderRadius:'4px'}}>
+                         <option value="">{t('wms.noRouting')}</option>
+                         {wmsOverview.partners.filter(partner=>partner.isActive || partner.id === route?.partnerId).map(partner=><option key={partner.id} value={partner.id}>{partner.name}{!partner.isActive ? ` (${t('wms.inactive')})` : ''}</option>)}
+                      </select>
+                      {route?.partnerId && <label style={{display:'flex',alignItems:'center',gap:'7px',marginTop:'9px',fontSize:'13px',color:'#495057'}}>
+                        <input type="checkbox" checked={route.isActive} onChange={e=>routeWmsMarket(market,route.partnerId,e.target.checked)} />
+                         {t('wms.activeRouting')}
+                      </label>}
+                    </div>;
+                  })}
+                </div>
+
+                <h4 style={{color:'#333',margin:'0 0 12px'}}>{t('wms.partnersTitle')}</h4>
+                <div style={{overflowX:'auto'}}>
+                  <table style={{width:'100%',borderCollapse:'collapse'}}>
+                    <thead><tr style={{background:'#f8f9fa'}}><th style={{textAlign:'left',padding:'10px'}}>{t('wms.name')}</th><th style={{textAlign:'left',padding:'10px'}}>{t('wms.code')}</th><th style={{textAlign:'left',padding:'10px'}}>{t('wms.markets')}</th><th style={{textAlign:'left',padding:'10px'}}>{t('wms.keys')}</th><th style={{padding:'10px'}}>{t('wms.actions')}</th></tr></thead>
+                    <tbody>
+                      {wmsOverview.partners.map(partner => <tr key={partner.id} style={{borderTop:'1px solid #eee'}}>
+                         <td style={{padding:'10px'}}>{partner.name} {!partner.isActive && <span style={{color:'#dc3545'}}>({t('wms.inactive')})</span>}</td>
+                        <td style={{padding:'10px',fontFamily:'monospace'}}>{partner.code}</td>
+                        <td style={{padding:'10px'}}>{partner.markets?.join(', ') || '—'}</td>
+                        <td style={{padding:'10px'}}>{partner.keyCount || 0}</td>
+                         <td style={{padding:'10px',textAlign:'right'}}><button onClick={()=>loadWmsKeys(partner)} className="btn" style={{width:'auto',padding:'6px 10px',background:'#6c757d'}}>{t('wms.viewKeys')}</button></td>
+                      </tr>)}
+                    </tbody>
+                  </table>
+                   {!wmsOverview.partners.length && <p style={{color:'#6c757d'}}>{t('wms.noPartners')}</p>}
+                </div>
+
+                {wmsSelectedPartner && (
+                  <div style={{marginTop:'22px',borderTop:'1px solid #dee2e6',paddingTop:'18px'}}>
+                     <h4 style={{color:'#333',margin:'0 0 12px'}}>{t('wms.keyTitle')}: {wmsSelectedPartner.name}</h4>
+                    {wmsKeys.map(key => <div key={key.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #eee'}}>
+                       <span><code>{key.keyPrefix}…</code> · {key.environment} · {key.isRevoked ? t('wms.revoked') : t('wms.active')}</span>
+                       {!key.isRevoked && <button onClick={()=>revokeWmsKey(key.id)} className="btn" style={{width:'auto',padding:'5px 10px',background:'#dc3545'}}>{t('wms.revoke')}</button>}
+                    </div>)}
+                     {!wmsKeys.length && <p style={{color:'#6c757d'}}>{t('wms.noKeys')}</p>}
+                  </div>
                 )}
 
                 <div style={{display:'grid',gridTemplateColumns:'minmax(280px,1fr) minmax(280px,1fr)',gap:'20px',marginTop:'24px'}}>
