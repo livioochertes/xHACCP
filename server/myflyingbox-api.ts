@@ -109,6 +109,19 @@ function parseErrorBody(body: string): string {
   return body.slice(0, 300);
 }
 
+function unwrapApiData<T>(response: T | { data?: T }): T {
+  if (
+    response &&
+    typeof response === "object" &&
+    "data" in response &&
+    response.data &&
+    typeof response.data === "object"
+  ) {
+    return response.data as T;
+  }
+  return response as T;
+}
+
 export class MyFlyingBoxAPI {
   private readonly config: MyFlyingBoxConfig;
 
@@ -156,17 +169,19 @@ export class MyFlyingBoxAPI {
   }
 
   async createQuote(input: MyFlyingBoxQuoteInput): Promise<MyFlyingBoxQuoteResponse> {
-    return this.request<MyFlyingBoxQuoteResponse>("/quotes", {
+    const response = await this.request<MyFlyingBoxQuoteResponse | { data?: MyFlyingBoxQuoteResponse }>("/quotes", {
       method: "POST",
       body: JSON.stringify({ quote: input }),
     });
+    return unwrapApiData(response);
   }
 
   async createOrder(input: MyFlyingBoxOrderInput): Promise<MyFlyingBoxOrderResponse> {
-    return this.request<MyFlyingBoxOrderResponse>("/orders", {
+    const response = await this.request<MyFlyingBoxOrderResponse | { data?: MyFlyingBoxOrderResponse }>("/orders", {
       method: "POST",
       body: JSON.stringify({ order: input }),
     });
+    return unwrapApiData(response);
   }
 
   async getLabels(orderUuid: string): Promise<Buffer> {
