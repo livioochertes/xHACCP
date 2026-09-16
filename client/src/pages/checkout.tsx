@@ -20,7 +20,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { getVolumePrice } from "@/lib/volume-price";
-import { SiPaypal } from "react-icons/si";
+import paypalOfficialLogo from "@/assets/paypal-official-logo.png";
 
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -1751,9 +1751,11 @@ export default function Checkout() {
                                         <RadioGroupItem value="paypal" id="paypal" />
                                         <Label htmlFor="paypal" className="flex-1 cursor-pointer">
                                            <div className="flex items-center gap-3">
-                                             <span className="inline-flex h-10 w-16 items-center justify-center rounded-md bg-[#003087] shadow-sm" aria-hidden="true">
-                                               <SiPaypal className="h-7 w-7 text-white" />
-                                             </span>
+                                             <img
+                                               src={paypalOfficialLogo}
+                                               alt="PayPal"
+                                               className="h-10 w-auto max-w-[160px] object-contain object-left"
+                                             />
                                              <span className="min-w-0">
                                                <span className="flex items-center gap-2">
                                                  <span className="font-semibold text-[#003087]">PayPal</span>

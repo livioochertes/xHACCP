@@ -6,7 +6,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { Loader2 } from "lucide-react";
-import { SiPaypal } from "react-icons/si";
+import paypalOfficialLogo from "@/assets/paypal-official-logo.png";
 
 export default function PayPalPayment({ amount, cartItems, voucherCode, orderData, disabled }: {
   amount: number; cartItems: any[]; voucherCode?: string | null; orderData: any; disabled?: boolean;
@@ -35,11 +35,11 @@ export default function PayPalPayment({ amount, cartItems, voucherCode, orderDat
     }
   };
   return <Card className="w-full border-[#d7e0eb]">
-     <CardHeader><CardTitle className="flex items-center gap-3"><span className="inline-flex h-10 w-16 items-center justify-center rounded-md bg-[#003087] shadow-sm" aria-hidden="true"><SiPaypal className="h-7 w-7 text-white" /></span><span className="text-[#003087]">PayPal</span></CardTitle></CardHeader>
+     <CardHeader><CardTitle className="flex items-center gap-3"><img src={paypalOfficialLogo} alt="PayPal" className="h-10 w-auto max-w-[165px] object-contain object-left" /><span className="text-[#003087]">PayPal</span></CardTitle></CardHeader>
     <CardContent className="space-y-4">
       <p className="text-sm text-muted-foreground">{t("checkout.paypalDirectNotice")}</p>
       <Button type="button" onClick={pay} disabled={loading || disabled} className="w-full bg-[#ffc439] text-[#111] hover:bg-[#f2b900]">
-        {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("checkout.redirectingToPayment")}</> : <><SiPaypal className="mr-2 h-4 w-4" />{t("checkout.payWithPaypal")} {amount.toFixed(2)} EUR</>}
+         {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("checkout.redirectingToPayment")}</> : <><img src={paypalOfficialLogo} alt="" className="mr-2 h-5 w-auto" />{t("checkout.payWithPaypal")} {amount.toFixed(2)} EUR</>}
       </Button>
     </CardContent>
   </Card>;
