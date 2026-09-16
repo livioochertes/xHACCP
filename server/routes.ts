@@ -46,7 +46,7 @@ import {
   type CompositeComponentSource,
 } from "./composite-products";
 import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
-import { createPayPalOrder, getPayPalOrder, capturePayPalOrder, paypalApprovalUrl, paypalCreateRequestId, paypalCaptureRequestId, completedPayPalCapture, isPayPalOrderBindingValid, verifyPayPalWebhook, paypalWebhookOrderId } from "./paypal";
+import { createPayPalOrder, getPayPalOrder, capturePayPalOrder, paypalApprovalUrl, paypalCreateRequestId, reconcilePayPalPayment, handlePayPalWebhook } from "./paypal";
 
 const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
 const EVENT_VOUCHER_CAMPAIGN_DEFAULTS = {
@@ -4756,63 +4756,26 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     }
   });
 
-  const finalizePayPalPayment = async (providerOrderId: string, requestId: string): Promise<number | null> => {
-    const local = await storage.getOrderByPaymentProviderOrderId(providerOrderId);
-    if (!local) return null;
-    const paypalOrder = await getPayPalOrder(providerOrderId, requestId);
-    if (!isPayPalOrderBindingValid(paypalOrder, local)) return null;
-    let capture = completedPayPalCapture(paypalOrder);
-    if (!capture) {
-      const captured = await capturePayPalOrder(providerOrderId, paypalCaptureRequestId(providerOrderId));
-      capture = completedPayPalCapture(captured);
-    }
-    if (!capture) return null;
-    await storage.updateOrder(local.id, { paymentTransactionId: capture.id });
-    const paid = await storage.markOrderPaid(local.id);
-    if (paid) {
-      try {
-        if (!invoiceService) invoiceService = await createInvoiceService();
-        const invoice = await invoiceService.generateInvoiceAfterPayment(local.id, {
-          status: "succeeded", paymentMethod: "paypal", paymentId: capture.id,
-          amount: Number(local.totalAmount),
-        });
-        const { sendInvoiceEmailFr } = await import("./email-service.js");
-        const latest = await storage.getOrder(local.id);
-        const email = (latest?.shippingAddress as any)?.email || (latest?.billingAddress as any)?.email;
-        const invoicePdf = invoice?.id ? await invoiceService.getInvoicePdf(invoice.id).catch(() => null) : null;
-        if (latest && email) await sendInvoiceEmailFr(email, latest, invoicePdf, invoice.invoiceNumber);
-      } catch (error) {
-        console.error(`[PayPal ${requestId}] post-payment invoice/email failed:`, error instanceof Error ? error.message : "unknown error");
-      }
-    }
-    return local.id;
+  const paypalReconciliationDependencies = {
+    storage,
+    getPayPalOrder,
+    capturePayPalOrder,
+    getInvoiceService: async () => {
+      if (!invoiceService) invoiceService = await createInvoiceService();
+      return invoiceService;
+    },
+    sendInvoiceEmailFr: async (...args: Parameters<typeof import("./email-service.js").sendInvoiceEmailFr>) => {
+      const { sendInvoiceEmailFr } = await import("./email-service.js");
+      await sendInvoiceEmailFr(...args);
+    },
   };
 
   app.post("/api/payments/paypal/webhook", async (req, res) => {
     const requestId = crypto.randomUUID().slice(0, 12);
-    const event = req.body;
-    if (!event || typeof event !== "object" || typeof event.event_type !== "string") {
-      return res.status(400).json({ message: "Malformed PayPal webhook" });
-    }
-    try {
-      const verified = await verifyPayPalWebhook({ headers: req.headers, event, requestId });
-      if (!verified) return res.status(401).json({ message: "PayPal webhook verification failed" });
-    } catch (error) {
-      console.error(`[PayPal ${requestId}] webhook verification error:`, error instanceof Error ? error.message : "unknown error");
-      return res.status(503).json({ message: "PayPal webhook verification unavailable" });
-    }
-    if (event.event_type !== "CHECKOUT.ORDER.APPROVED" && event.event_type !== "PAYMENT.CAPTURE.COMPLETED") {
-      return res.sendStatus(200);
-    }
-    const providerOrderId = paypalWebhookOrderId(event);
-    if (!providerOrderId) return res.status(400).json({ message: "PayPal webhook has no order ID" });
-    try {
-      await finalizePayPalPayment(providerOrderId, requestId);
-      return res.sendStatus(200);
-    } catch (error) {
-      console.error(`[PayPal ${requestId}] webhook finalization failed:`, error instanceof Error ? error.message : "unknown error");
-      return res.status(503).json({ message: "PayPal payment reconciliation unavailable" });
-    }
+    await handlePayPalWebhook(req, res, {
+      ...paypalReconciliationDependencies,
+      verifyWebhook: undefined,
+    }, requestId);
   });
 
   app.get("/api/payments/paypal/callback", async (req, res) => {
@@ -4822,7 +4785,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (req.query.cancel) return failed();
       const token = typeof req.query.token === "string" ? req.query.token : "";
       if (!token) return failed();
-      const orderId = await finalizePayPalPayment(token, requestId);
+      const orderId = await reconcilePayPalPayment(token, requestId, paypalReconciliationDependencies);
       return orderId ? res.redirect(`/merci?payment=paypal&orderId=${orderId}`) : failed();
     } catch (error) {
       console.error(`[PayPal ${requestId}] callback failed:`, error instanceof Error ? error.message : "unknown error");

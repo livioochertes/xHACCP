@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 const PAYPAL_API = "https://api-m.paypal.com";
 
 export type PayPalLink = { href: string; rel: string; method?: string };
@@ -13,6 +15,57 @@ export type PayPalOrder = {
   links?: PayPalLink[];
 };
 export type PayPalWebhookEvent = { event_type?: string; resource?: any; supplementary_data?: any };
+export type PayPalLocalOrder = {
+  id: number;
+  paymentProviderOrderId?: string | null;
+  paymentMethod: string | null;
+  market: string | null;
+  currency: string | null;
+  totalAmount: string | number;
+  shippingAddress?: unknown;
+  billingAddress?: unknown;
+};
+
+export type PayPalReconciliationStorage = {
+  getOrderByPaymentProviderOrderId(providerOrderId: string): Promise<PayPalLocalOrder | undefined>;
+  updateOrder(id: number, order: { paymentTransactionId: string }): Promise<unknown>;
+  markOrderPaid(id: number): Promise<PayPalLocalOrder | null>;
+  getOrder(id: number): Promise<PayPalLocalOrder | undefined>;
+};
+
+export type PayPalInvoiceService = {
+  generateInvoiceAfterPayment(orderId: number, payment: {
+    status: "succeeded";
+    paymentMethod: "paypal";
+    paymentId: string;
+    amount: number;
+  }): Promise<{ id?: number; invoiceNumber?: string }>;
+  getInvoicePdf(invoiceId: number): Promise<Buffer>;
+};
+
+export type PayPalReconciliationDependencies = {
+  storage: PayPalReconciliationStorage;
+  getPayPalOrder?: typeof getPayPalOrder;
+  capturePayPalOrder?: typeof capturePayPalOrder;
+  getInvoiceService: () => Promise<PayPalInvoiceService>;
+  sendInvoiceEmailFr: (
+    customerEmail: string,
+    order: any,
+    invoicePdf: Buffer | null,
+    invoiceNumber?: string,
+  ) => Promise<void>;
+};
+
+type PayPalWebhookRequest = {
+  body: unknown;
+  headers: Record<string, string | string[] | undefined>;
+};
+
+type PayPalWebhookResponse = {
+  status(code: number): PayPalWebhookResponse;
+  json(body: unknown): PayPalWebhookResponse;
+  sendStatus(code: number): PayPalWebhookResponse;
+};
 
 export function paypalWebhookHeaders(headers: Record<string, string | string[] | undefined>) {
   const get = (name: string) => {
@@ -38,6 +91,96 @@ export function paypalWebhookOrderId(event: PayPalWebhookEvent): string | undefi
     return typeof id === "string" ? id : undefined;
   }
   return undefined;
+}
+
+export async function reconcilePayPalPayment(
+  providerOrderId: string,
+  requestId: string,
+  dependencies: PayPalReconciliationDependencies,
+): Promise<number | null> {
+  const local = await dependencies.storage.getOrderByPaymentProviderOrderId(providerOrderId);
+  if (!local) return null;
+  const getOrder = dependencies.getPayPalOrder || getPayPalOrder;
+  const captureOrder = dependencies.capturePayPalOrder || capturePayPalOrder;
+  const paypalOrder = await getOrder(providerOrderId, requestId);
+  if (!isPayPalOrderBindingValid(paypalOrder, local)) return null;
+  let capture = completedPayPalCapture(paypalOrder);
+  if (!capture) {
+    const captured = await captureOrder(providerOrderId, paypalCaptureRequestId(providerOrderId));
+    capture = completedPayPalCapture(captured);
+  }
+  if (!capture?.id) return null;
+  const captureId = capture.id;
+  await dependencies.storage.updateOrder(local.id, { paymentTransactionId: captureId });
+  const paid = await dependencies.storage.markOrderPaid(local.id);
+  if (paid) {
+    try {
+      const invoiceService = await dependencies.getInvoiceService();
+      const invoice = await invoiceService.generateInvoiceAfterPayment(local.id, {
+        status: "succeeded",
+        paymentMethod: "paypal",
+        paymentId: captureId,
+        amount: Number(local.totalAmount),
+      });
+      const latest = await dependencies.storage.getOrder(local.id);
+      const email = (latest?.shippingAddress as any)?.email ||
+        (latest?.billingAddress as any)?.email;
+      const invoicePdf = invoice?.id
+        ? await invoiceService.getInvoicePdf(invoice.id).catch(() => null)
+        : null;
+      if (latest && email) {
+        await dependencies.sendInvoiceEmailFr(email, latest, invoicePdf, invoice.invoiceNumber);
+      }
+    } catch (error) {
+      console.error(`[PayPal ${requestId}] post-payment invoice/email failed:`, error instanceof Error ? error.message : "unknown error");
+    }
+  }
+  return local.id;
+}
+
+export async function handlePayPalWebhook(
+  req: PayPalWebhookRequest,
+  res: PayPalWebhookResponse,
+  dependencies: PayPalReconciliationDependencies & {
+    verifyWebhook?: typeof verifyPayPalWebhook;
+  },
+  requestId = crypto.randomUUID().slice(0, 12),
+): Promise<void> {
+  const event = req.body;
+  if (!event || typeof event !== "object" || typeof (event as PayPalWebhookEvent).event_type !== "string") {
+    res.status(400).json({ message: "Malformed PayPal webhook" });
+    return;
+  }
+  try {
+    const verifyWebhook = dependencies.verifyWebhook || verifyPayPalWebhook;
+    const verified = await verifyWebhook({ headers: req.headers, event: event as PayPalWebhookEvent, requestId });
+    if (!verified) {
+      res.status(401).json({ message: "PayPal webhook verification failed" });
+      return;
+    }
+  } catch (error) {
+    console.error(`[PayPal ${requestId}] webhook verification error:`, error instanceof Error ? error.message : "unknown error");
+    res.status(503).json({ message: "PayPal webhook verification unavailable" });
+    return;
+  }
+  const webhookEvent = event as PayPalWebhookEvent;
+  if (webhookEvent.event_type !== "CHECKOUT.ORDER.APPROVED" &&
+      webhookEvent.event_type !== "PAYMENT.CAPTURE.COMPLETED") {
+    res.sendStatus(200);
+    return;
+  }
+  const providerOrderId = paypalWebhookOrderId(webhookEvent);
+  if (!providerOrderId) {
+    res.status(400).json({ message: "PayPal webhook has no order ID" });
+    return;
+  }
+  try {
+    await reconcilePayPalPayment(providerOrderId, requestId, dependencies);
+    res.sendStatus(200);
+  } catch (error) {
+    console.error(`[PayPal ${requestId}] webhook finalization failed:`, error instanceof Error ? error.message : "unknown error");
+    res.status(503).json({ message: "PayPal payment reconciliation unavailable" });
+  }
 }
 
 export function isAllowedPayPalApprovalUrl(value: unknown): value is string {
