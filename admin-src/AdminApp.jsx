@@ -955,7 +955,7 @@ import {
             (!String(wmsOriginAddress.samedayPickupPointId || '').trim() ||
              !Number.isInteger(Number(wmsOriginAddress.samedayPickupPointId)) ||
              Number(wmsOriginAddress.samedayPickupPointId) <= 0))) {
-          return alert(t('wms.originRequiredError'));
+          return alert(t('wms.originRequiredError', { market: `.${wmsFocusedMarket}` }));
         }
         setWmsOriginSaving(true);
         try {
@@ -3328,7 +3328,7 @@ import {
                       <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'12px'}}>
                         {[
                           ['companyName', t('wms.companyName')],
-                          ['address', t('wms.address')],
+                          ['address', wmsFocusedMarket === 'ro' ? t('wms.pickupAddress') : t('wms.address')],
                           ['city', t('wms.city')],
                           ['state', t('wms.state')],
                           ['zipCode', t('wms.zipCode')],
@@ -3349,13 +3349,25 @@ import {
                       </div>
                       {wmsFocusedMarket === 'ro' && (
                         <div style={{marginTop:'14px',padding:'12px',border:'1px solid #b8daff',borderRadius:'6px',background:'#fff'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'12px'}}>
-                            <label style={{flex:1,fontSize:'12px',fontWeight:600,color:'#495057'}}>
-                              {t('wms.samedayPickupPoint')} *
-                              <select
+                          <div style={{display:'grid',gridTemplateColumns:'minmax(180px,.45fr) minmax(260px,1fr) auto',alignItems:'end',gap:'12px'}}>
+                            <label style={{fontSize:'12px',fontWeight:600,color:'#495057'}}>
+                              {t('wms.samedayPickupPointId')} *
+                              <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                inputMode="numeric"
                                 value={activeOriginAddress.samedayPickupPointId || ''}
                                 onChange={e=>setWmsOriginAddresses(previous=>({...previous,[wmsFocusedMarket]:{...previous[wmsFocusedMarket],samedayPickupPointId:e.target.value}}))}
                                 required
+                                style={{display:'block',width:'100%',boxSizing:'border-box',padding:'9px',marginTop:'4px',border:'1px solid #ced4da',borderRadius:'5px',background:'white'}}
+                              />
+                            </label>
+                            <label style={{fontSize:'12px',fontWeight:600,color:'#495057'}}>
+                              {t('wms.samedayPickupPoint')}
+                              <select
+                                value={activeOriginAddress.samedayPickupPointId || ''}
+                                onChange={e=>setWmsOriginAddresses(previous=>({...previous,[wmsFocusedMarket]:{...previous[wmsFocusedMarket],samedayPickupPointId:e.target.value}}))}
                                 style={{display:'block',width:'100%',boxSizing:'border-box',padding:'9px',marginTop:'4px',border:'1px solid #ced4da',borderRadius:'5px',background:'white'}}
                               >
                                 <option value="">{t('wms.selectPickupPoint')}</option>
@@ -3383,7 +3395,7 @@ import {
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px',marginTop:'14px'}}>
                         <span style={{fontSize:'12px',color:'#6c757d'}}>{t('wms.stateHint')}</span>
                         <button onClick={saveWmsOriginAddress} disabled={wmsOriginSaving} className="btn" style={{width:'auto',padding:'8px 16px',background:'#198754'}}>
-                          {wmsOriginSaving ? t('wms.savingOrigin') : t('wms.saveOrigin')}
+                          {wmsOriginSaving ? t('wms.savingOrigin') : t('wms.saveOrigin', { market: `.${wmsFocusedMarket}` })}
                         </button>
                       </div>
                     </>

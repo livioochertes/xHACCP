@@ -738,7 +738,7 @@ export async function registerAdminRoutes(app: Express) {
     const requestedPickupPointId = market === "ro"
       ? Number(req.body?.samedayPickupPointId)
       : undefined;
-    const fields = {
+    const baseFields = {
       companyName: String(req.body?.companyName || "").trim(),
       address: String(req.body?.address || "").trim(),
       city: String(req.body?.city || "").trim(),
@@ -747,8 +747,10 @@ export async function registerAdminRoutes(app: Express) {
       country: String(req.body?.country || "").trim().toUpperCase(),
       phone: String(req.body?.phone || "").trim(),
       email: String(req.body?.email || "").trim(),
-      samedayPickupPointId: requestedPickupPointId,
     };
+    const fields = market === "ro"
+      ? { ...baseFields, samedayPickupPointId: requestedPickupPointId }
+      : baseFields;
     if (Object.values(fields).some(value => !value)) {
       return res.status(400).json({ message: "Toate câmpurile adresei logistice sunt obligatorii" });
     }
