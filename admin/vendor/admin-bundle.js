@@ -11075,6 +11075,82 @@
       uploadFailed: "The image could not be uploaded.",
       error: "\u274C {{message}}"
     },
+    wms: {
+      title: "WMS partners",
+      description: "Manage marketplace routing, API keys, and logistics integration status.",
+      reload: "Reload",
+      loading: "Loading...",
+      originTitle: "MyFlyingBox logistics origin \xB7 .fr",
+      originDescription: "All MyFlyingBox parcels and requests for the French marketplace will originate from this address. Every field is required.",
+      configured: "Configured",
+      required: "Required",
+      originLoading: "Loading logistics address...",
+      companyName: "Logistics company name",
+      address: "Address / street",
+      city: "City",
+      state: "County / department / region",
+      zipCode: "Postal code",
+      country: "Country (ISO code, e.g. RO)",
+      phone: "International phone",
+      email: "Logistics email",
+      stateHint: 'Use the official department or region code in the "County" field.',
+      savingOrigin: "Saving...",
+      saveOrigin: "Save .fr origin",
+      addPartner: "Add partner",
+      partnerNamePlaceholder: "Logistics company name",
+      partnerCodePlaceholder: "partner-code",
+      createPartner: "Create partner",
+      newKey: "New key",
+      selectPartner: "Select partner",
+      production: "Production",
+      sandbox: "Sandbox",
+      generateKey: "Generate key",
+      keyShownOnce: "The key is shown only once:",
+      copy: "Copy",
+      routingTitle: "Marketplace routing",
+      routingReady: "All three marketplaces have an explicit routing decision.",
+      routingNeedsDecision: "Before production, save an active or inactive decision for every marketplace.",
+      active: "Active",
+      inactive: "Inactive",
+      unconfigured: "Not configured",
+      noRouting: "No routing",
+      activeRouting: "Routing active",
+      partnersTitle: "Active partners",
+      name: "Name",
+      code: "Code",
+      markets: "Markets",
+      keys: "Keys",
+      actions: "Actions",
+      viewKeys: "View keys",
+      noPartners: "No WMS partners yet.",
+      keyTitle: "Keys",
+      revoked: "Revoked",
+      revoke: "Revoke",
+      noKeys: "No keys for this partner.",
+      timelineTitle: "Order timeline",
+      orderIdPlaceholder: "Internal admin order ID",
+      load: "Load",
+      fulfillment: "Fulfillment",
+      partner: "Partner",
+      shipments: "Shipments",
+      events: "Events",
+      latestRequests: "Latest WMS requests",
+      noRequests: "No WMS requests recorded.",
+      loadOriginFailed: "Failed to load WMS origin address.",
+      saveOriginFailed: "Failed to save WMS origin address.",
+      originRequiredError: "Complete all required logistics address fields.",
+      originSaved: "The MyFlyingBox origin address for .fr was saved.",
+      loadFailed: "Failed to load WMS.",
+      createPartnerFailed: "Failed to create partner.",
+      updateRoutingFailed: "Failed to update routing.",
+      loadKeysFailed: "Failed to load keys.",
+      selectPartnerError: "Select a partner first.",
+      createKeyFailed: "Failed to create key.",
+      revokeConfirm: "Revoke this WMS key? The partner will no longer be able to use it.",
+      revokeFailed: "Failed to revoke key.",
+      validOrderId: "Enter a valid order ID.",
+      timelineUnavailable: "Timeline unavailable."
+    },
     marketing: {
       title: "Marketing and remarketing",
       subtitle: "Configure marketplace reminders and send campaigns through SendGrid.",
@@ -11795,6 +11871,82 @@
       uploadFailed: "Imaginea nu a putut fi \xEEnc\u0103rcat\u0103.",
       error: "\u274C {{message}}"
     },
+    wms: {
+      title: "Parteneri WMS",
+      description: "Gestioneaz\u0103 rutarea marketplace-urilor, cheile API \u0219i starea integr\u0103rii logistice.",
+      reload: "Re\xEEncarc\u0103",
+      loading: "Se \xEEncarc\u0103...",
+      originTitle: "Origine logistic\u0103 MyFlyingBox \xB7 .fr",
+      originDescription: "Toate coletele \u0219i solicit\u0103rile MyFlyingBox pentru marketplace-ul francez vor pleca de la aceast\u0103 adres\u0103. Toate c\xE2mpurile sunt obligatorii.",
+      configured: "Configurat\u0103",
+      required: "Necesar\u0103",
+      originLoading: "Se \xEEncarc\u0103 adresa logistic\u0103...",
+      companyName: "Nume firm\u0103 logistic\u0103",
+      address: "Adres\u0103 / strad\u0103",
+      city: "Localitate",
+      state: "Jude\u021B / departament / regiune",
+      zipCode: "Cod po\u0219tal",
+      country: "\u021Aar\u0103 (cod ISO, ex. RO)",
+      phone: "Telefon interna\u021Bional",
+      email: "Email logistic\u0103",
+      stateHint: "Folose\u0219te codul oficial al departamentului/regiunii \xEEn c\xE2mpul \u201EJude\u021B\u201D.",
+      savingOrigin: "Se salveaz\u0103...",
+      saveOrigin: "Salveaz\u0103 originea .fr",
+      addPartner: "Adaug\u0103 partener",
+      partnerNamePlaceholder: "Nume firm\u0103 logistic\u0103",
+      partnerCodePlaceholder: "cod-partener",
+      createPartner: "Creeaz\u0103 partener",
+      newKey: "Cheie nou\u0103",
+      selectPartner: "Selecteaz\u0103 partenerul",
+      production: "Produc\u021Bie",
+      sandbox: "Sandbox",
+      generateKey: "Genereaz\u0103 cheie",
+      keyShownOnce: "Cheia este afi\u0219at\u0103 o singur\u0103 dat\u0103:",
+      copy: "Copiaz\u0103",
+      routingTitle: "Rutare marketplace",
+      routingReady: "Toate cele trei marketplace-uri au o decizie explicit\u0103 de rutare.",
+      routingNeedsDecision: "\xCEnainte de produc\u021Bie, salveaz\u0103 o decizie activ\u0103 sau inactiv\u0103 pentru fiecare marketplace.",
+      active: "Activ\u0103",
+      inactive: "Inactiv\u0103",
+      unconfigured: "Neconfigurat\u0103",
+      noRouting: "F\u0103r\u0103 rutare",
+      activeRouting: "Rutare activ\u0103",
+      partnersTitle: "Parteneri activi",
+      name: "Nume",
+      code: "Cod",
+      markets: "Pie\u021Be",
+      keys: "Chei",
+      actions: "Ac\u021Biuni",
+      viewKeys: "Vezi cheile",
+      noPartners: "Nu exist\u0103 \xEEnc\u0103 parteneri WMS.",
+      keyTitle: "Chei",
+      revoked: "Revocat\u0103",
+      revoke: "Revoc\u0103",
+      noKeys: "Nu exist\u0103 chei pentru acest partener.",
+      timelineTitle: "Timeline comand\u0103",
+      orderIdPlaceholder: "ID comand\u0103 intern admin",
+      load: "\xCEncarc\u0103",
+      fulfillment: "Fulfillment",
+      partner: "Partener",
+      shipments: "Expedieri",
+      events: "Evenimente",
+      latestRequests: "Ultimele requesturi WMS",
+      noRequests: "Nu exist\u0103 requesturi WMS \xEEnregistrate.",
+      loadOriginFailed: "Nu s-a putut \xEEnc\u0103rca adresa de origine WMS.",
+      saveOriginFailed: "Nu s-a putut salva adresa de origine WMS.",
+      originRequiredError: "Completeaz\u0103 toate c\xE2mpurile obligatorii ale adresei logistice.",
+      originSaved: "Adresa de origine pentru MyFlyingBox (.fr) a fost salvat\u0103.",
+      loadFailed: "Nu s-a putut \xEEnc\u0103rca WMS.",
+      createPartnerFailed: "Partenerul nu a putut fi creat.",
+      updateRoutingFailed: "Rutarea nu a putut fi actualizat\u0103.",
+      loadKeysFailed: "Cheile nu au putut fi \xEEnc\u0103rcate.",
+      selectPartnerError: "Selecteaz\u0103 mai \xEEnt\xE2i un partener.",
+      createKeyFailed: "Cheia nu a putut fi creat\u0103.",
+      revokeConfirm: "Revoci aceast\u0103 cheie WMS? Partenerul nu o va mai putea folosi.",
+      revokeFailed: "Cheia nu a putut fi revocat\u0103.",
+      validOrderId: "Introdu un ID de comand\u0103 valid.",
+      timelineUnavailable: "Timeline indisponibil."
+    },
     marketing: {
       title: "Marketing \u0219i remarketing",
       subtitle: "Configureaz\u0103 reminderele pe marketplace \u0219i trimite campanii prin SendGrid.",
@@ -12514,6 +12666,82 @@
       imageFileRequired: "S\xE9lectionnez un fichier image.",
       uploadFailed: "L'image n'a pas pu \xEAtre t\xE9l\xE9vers\xE9e.",
       error: "\u274C {{message}}"
+    },
+    wms: {
+      title: "Partenaires WMS",
+      description: "G\xE9rez le routage des marketplaces, les cl\xE9s API et l'\xE9tat de l'int\xE9gration logistique.",
+      reload: "Actualiser",
+      loading: "Chargement...",
+      originTitle: "Origine logistique MyFlyingBox \xB7 .fr",
+      originDescription: "Tous les colis et toutes les demandes MyFlyingBox pour la marketplace fran\xE7aise partiront de cette adresse. Tous les champs sont obligatoires.",
+      configured: "Configur\xE9e",
+      required: "Requise",
+      originLoading: "Chargement de l'adresse logistique...",
+      companyName: "Nom de l'entreprise logistique",
+      address: "Adresse / rue",
+      city: "Ville",
+      state: "D\xE9partement / r\xE9gion",
+      zipCode: "Code postal",
+      country: "Pays (code ISO, ex. RO)",
+      phone: "T\xE9l\xE9phone international",
+      email: "Email logistique",
+      stateHint: "Utilisez le code officiel du d\xE9partement ou de la r\xE9gion dans le champ \xAB D\xE9partement \xBB.",
+      savingOrigin: "Enregistrement...",
+      saveOrigin: "Enregistrer l'origine .fr",
+      addPartner: "Ajouter un partenaire",
+      partnerNamePlaceholder: "Nom de l'entreprise logistique",
+      partnerCodePlaceholder: "code-partenaire",
+      createPartner: "Cr\xE9er le partenaire",
+      newKey: "Nouvelle cl\xE9",
+      selectPartner: "S\xE9lectionner un partenaire",
+      production: "Production",
+      sandbox: "Sandbox",
+      generateKey: "G\xE9n\xE9rer la cl\xE9",
+      keyShownOnce: "La cl\xE9 est affich\xE9e une seule fois :",
+      copy: "Copier",
+      routingTitle: "Routage des marketplaces",
+      routingReady: "Les trois marketplaces disposent d'une d\xE9cision de routage explicite.",
+      routingNeedsDecision: "Avant la mise en production, enregistrez une d\xE9cision active ou inactive pour chaque marketplace.",
+      active: "Active",
+      inactive: "Inactive",
+      unconfigured: "Non configur\xE9e",
+      noRouting: "Aucun routage",
+      activeRouting: "Routage actif",
+      partnersTitle: "Partenaires actifs",
+      name: "Nom",
+      code: "Code",
+      markets: "March\xE9s",
+      keys: "Cl\xE9s",
+      actions: "Actions",
+      viewKeys: "Voir les cl\xE9s",
+      noPartners: "Aucun partenaire WMS pour le moment.",
+      keyTitle: "Cl\xE9s",
+      revoked: "R\xE9voqu\xE9e",
+      revoke: "R\xE9voquer",
+      noKeys: "Aucune cl\xE9 pour ce partenaire.",
+      timelineTitle: "Chronologie de la commande",
+      orderIdPlaceholder: "ID interne de la commande",
+      load: "Charger",
+      fulfillment: "Fulfillment",
+      partner: "Partenaire",
+      shipments: "Exp\xE9ditions",
+      events: "\xC9v\xE9nements",
+      latestRequests: "Derni\xE8res requ\xEAtes WMS",
+      noRequests: "Aucune requ\xEAte WMS enregistr\xE9e.",
+      loadOriginFailed: "Impossible de charger l'adresse d'origine WMS.",
+      saveOriginFailed: "Impossible d'enregistrer l'adresse d'origine WMS.",
+      originRequiredError: "Renseignez tous les champs obligatoires de l'adresse logistique.",
+      originSaved: "L'adresse d'origine MyFlyingBox pour .fr a \xE9t\xE9 enregistr\xE9e.",
+      loadFailed: "Impossible de charger le WMS.",
+      createPartnerFailed: "Impossible de cr\xE9er le partenaire.",
+      updateRoutingFailed: "Impossible de mettre \xE0 jour le routage.",
+      loadKeysFailed: "Impossible de charger les cl\xE9s.",
+      selectPartnerError: "S\xE9lectionnez d'abord un partenaire.",
+      createKeyFailed: "Impossible de cr\xE9er la cl\xE9.",
+      revokeConfirm: "R\xE9voquer cette cl\xE9 WMS ? Le partenaire ne pourra plus l'utiliser.",
+      revokeFailed: "Impossible de r\xE9voquer la cl\xE9.",
+      validOrderId: "Saisissez un ID de commande valide.",
+      timelineUnavailable: "Chronologie indisponible."
     },
     marketing: {
       title: "Marketing et remarketing",
@@ -13498,7 +13726,7 @@
           headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "Failed to load WMS origin address");
+        if (!response.ok) throw new Error(data.message || t2("wms.loadOriginFailed"));
         setWmsOriginAddress(data.originAddress || {
           market: "fr",
           companyName: "",
@@ -13519,7 +13747,7 @@
     const saveWmsOriginAddress = async () => {
       const requiredFields = ["companyName", "address", "city", "state", "zipCode", "country", "phone", "email"];
       if (requiredFields.some((field) => !String(wmsOriginAddress[field] || "").trim())) {
-        return alert("Completeaz\u0103 toate c\xE2mpurile obligatorii ale adresei logistice.");
+        return alert(t2("wms.originRequiredError"));
       }
       setWmsOriginSaving(true);
       try {
@@ -13529,9 +13757,9 @@
           body: JSON.stringify({ ...wmsOriginAddress, market: "fr" })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "Failed to save WMS origin address");
+        if (!response.ok) throw new Error(data.message || t2("wms.saveOriginFailed"));
         setWmsOriginAddress(data.originAddress);
-        alert("Adresa de origine pentru MyFlyingBox (.fr) a fost salvat\u0103.");
+        alert(t2("wms.originSaved"));
       } catch (error2) {
         alert(error2.message);
       } finally {
@@ -13545,7 +13773,7 @@
           headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "Failed to load WMS");
+        if (!response.ok) throw new Error(data.message || t2("wms.loadFailed"));
         setWmsOverview(data);
         const auditResponse = await fetch("/admin/api/wms/audit?limit=20", {
           headers: { "Authorization": `Bearer ${token}` }
@@ -13565,7 +13793,7 @@
         body: JSON.stringify(wmsPartnerForm)
       });
       const data = await response.json();
-      if (!response.ok) return alert(data.message || "Failed to create partner");
+      if (!response.ok) return alert(data.message || t2("wms.createPartnerFailed"));
       setWmsPartnerForm({ name: "", code: "" });
       fetchWmsOverview();
     };
@@ -13579,7 +13807,7 @@
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
-      if (!response.ok) return alert(data.message || "Failed to update routing");
+      if (!response.ok) return alert(data.message || t2("wms.updateRoutingFailed"));
       fetchWmsOverview();
     };
     const loadWmsKeys = async (partner) => {
@@ -13587,42 +13815,42 @@
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
-      if (!response.ok) return alert(data.message || "Failed to load keys");
+      if (!response.ok) return alert(data.message || t2("wms.loadKeysFailed"));
       setWmsSelectedPartner(partner);
       setWmsKeys(data.keys || []);
       setWmsKeyForm({ partnerId: String(partner.id), environment: "production" });
     };
     const createWmsKey = async () => {
-      if (!wmsKeyForm.partnerId) return alert("Select a partner first");
+      if (!wmsKeyForm.partnerId) return alert(t2("wms.selectPartnerError"));
       const response = await fetch(`/admin/api/wms/partners/${wmsKeyForm.partnerId}/keys`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ environment: wmsKeyForm.environment })
       });
       const data = await response.json();
-      if (!response.ok) return alert(data.message || "Failed to create key");
+      if (!response.ok) return alert(data.message || t2("wms.createKeyFailed"));
       setWmsPlaintextKey(data.plaintext);
       loadWmsKeys(wmsSelectedPartner || { id: Number(wmsKeyForm.partnerId) });
     };
     const revokeWmsKey = async (keyId) => {
-      if (!window.confirm("Revoci aceast\u0103 cheie WMS? Partenerul nu o va mai putea folosi.")) return;
+      if (!window.confirm(t2("wms.revokeConfirm"))) return;
       const response = await fetch(`/admin/api/wms/keys/${keyId}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
-      if (!response.ok) return alert(data.message || "Failed to revoke key");
+      if (!response.ok) return alert(data.message || t2("wms.revokeFailed"));
       if (wmsSelectedPartner) loadWmsKeys(wmsSelectedPartner);
       fetchWmsOverview();
     };
     const loadWmsOrderTimeline = async () => {
       const orderId = Number(wmsOrderId);
-      if (!Number.isInteger(orderId) || orderId < 1) return alert("Introdu un ID de comand\u0103 valid");
+      if (!Number.isInteger(orderId) || orderId < 1) return alert(t2("wms.validOrderId"));
       const response = await fetch(`/admin/api/orders/${orderId}/wms`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await response.json();
-      if (!response.ok) return alert(data.message || "Timeline indisponibil");
+      if (!response.ok) return alert(data.message || t2("wms.timelineUnavailable"));
       setWmsOrderTimeline(data);
     };
     const fetchProducts = async (marketOverride) => {
@@ -15496,29 +15724,32 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0 0 6px" }, children: "\u{1F69A} WMS partners" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", margin: 0 }, children: "Rutare marketplace, chei API \u0219i starea integr\u0103rii logistice." })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0 0 6px" }, children: [
+                  "\u{1F69A} ",
+                  t2("wms.title")
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", margin: 0 }, children: t2("wms.description") })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { className: "btn", onClick: fetchWmsOverview, style: { width: "auto", padding: "8px 16px", background: "#0d6efd" }, children: wmsLoading ? "Se \xEEncarc\u0103..." : "\u21BB Re\xEEncarc\u0103" })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { className: "btn", onClick: fetchWmsOverview, style: { width: "auto", padding: "8px 16px", background: "#0d6efd" }, children: wmsLoading ? t2("wms.loading") : `\u21BB ${t2("wms.reload")}` })
             ] }),
             (selectedMarketTab === "fr" || selectedMarketTab === "all") && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #b8daff", background: "#f0f7ff", borderRadius: "8px", padding: "18px", marginBottom: "24px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "14px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 6px", color: "#145da0" }, children: "Origine logistic\u0103 MyFlyingBox \xB7 .fr" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#495057", fontSize: "13px" }, children: "Toate coletele \u0219i solicit\u0103rile MyFlyingBox pentru marketplace-ul francez vor pleca de la aceast\u0103 adres\u0103. Toate c\xE2mpurile sunt obligatorii." })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 6px", color: "#145da0" }, children: t2("wms.originTitle") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#495057", fontSize: "13px" }, children: t2("wms.originDescription") })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: 600, color: wmsOriginAddress.id ? "#198754" : "#dc3545", whiteSpace: "nowrap" }, children: wmsOriginAddress.id ? "Configurat\u0103" : "Necesar\u0103" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: 600, color: wmsOriginAddress.id ? "#198754" : "#dc3545", whiteSpace: "nowrap" }, children: wmsOriginAddress.id ? t2("wms.configured") : t2("wms.required") })
               ] }),
-              wmsOriginLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: "Se \xEEncarc\u0103 adresa logistic\u0103..." }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+              wmsOriginLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: t2("wms.originLoading") }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "12px" }, children: [
-                  ["companyName", "Nume firm\u0103 logistic\u0103"],
-                  ["address", "Adres\u0103 / strad\u0103"],
-                  ["city", "Localitate"],
-                  ["state", "Jude\u021B / departament / regiune"],
-                  ["zipCode", "Cod po\u0219tal"],
-                  ["country", "\u021Aar\u0103 (cod ISO, ex. RO)"],
-                  ["phone", "Telefon interna\u021Bional"],
-                  ["email", "Email logistic\u0103"]
+                  ["companyName", t2("wms.companyName")],
+                  ["address", t2("wms.address")],
+                  ["city", t2("wms.city")],
+                  ["state", t2("wms.state")],
+                  ["zipCode", t2("wms.zipCode")],
+                  ["country", t2("wms.country")],
+                  ["phone", t2("wms.phone")],
+                  ["email", t2("wms.email")]
                 ].map(([field, label]) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "12px", fontWeight: 600, color: "#495057" }, children: [
                   label,
                   " *",
@@ -15533,22 +15764,25 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                   )
                 ] }, field)) }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginTop: "14px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: "Folose\u0219te codul oficial al departamentului/regiunii \xEEn c\xE2mpul \u201EJude\u021B\u201D." }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: saveWmsOriginAddress, disabled: wmsOriginSaving, className: "btn", style: { width: "auto", padding: "8px 16px", background: "#198754" }, children: wmsOriginSaving ? "Se salveaz\u0103..." : "Salveaz\u0103 originea .fr" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: t2("wms.stateHint") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: saveWmsOriginAddress, disabled: wmsOriginSaving, className: "btn", style: { width: "auto", padding: "8px 16px", background: "#198754" }, children: wmsOriginSaving ? t2("wms.savingOrigin") : t2("wms.saveOrigin") })
                 ] })
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(280px,1fr) minmax(280px,1fr)", gap: "20px", marginBottom: "24px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 14px", color: "#333" }, children: "Adaug\u0103 partener" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsPartnerForm.name, onChange: (e2) => setWmsPartnerForm({ ...wmsPartnerForm, name: e2.target.value }), placeholder: "Nume firm\u0103 logistic\u0103", style: { width: "100%", padding: "10px", marginBottom: "8px", boxSizing: "border-box", border: "1px solid #ced4da", borderRadius: "5px" } }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsPartnerForm.code, onChange: (e2) => setWmsPartnerForm({ ...wmsPartnerForm, code: e2.target.value }), placeholder: "cod-partener", style: { width: "100%", padding: "10px", marginBottom: "10px", boxSizing: "border-box", border: "1px solid #ced4da", borderRadius: "5px" } }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: createWmsPartner, className: "btn", style: { width: "auto", padding: "8px 14px", background: "#198754" }, children: "+ Creeaz\u0103 partener" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 14px", color: "#333" }, children: t2("wms.addPartner") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsPartnerForm.name, onChange: (e2) => setWmsPartnerForm({ ...wmsPartnerForm, name: e2.target.value }), placeholder: t2("wms.partnerNamePlaceholder"), style: { width: "100%", padding: "10px", marginBottom: "8px", boxSizing: "border-box", border: "1px solid #ced4da", borderRadius: "5px" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsPartnerForm.code, onChange: (e2) => setWmsPartnerForm({ ...wmsPartnerForm, code: e2.target.value }), placeholder: t2("wms.partnerCodePlaceholder"), style: { width: "100%", padding: "10px", marginBottom: "10px", boxSizing: "border-box", border: "1px solid #ced4da", borderRadius: "5px" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { onClick: createWmsPartner, className: "btn", style: { width: "auto", padding: "8px 14px", background: "#198754" }, children: [
+                  "+ ",
+                  t2("wms.createPartner")
+                ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 14px", color: "#333" }, children: "Cheie nou\u0103" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 14px", color: "#333" }, children: t2("wms.newKey") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: wmsKeyForm.partnerId, onChange: (e2) => setWmsKeyForm({ ...wmsKeyForm, partnerId: e2.target.value }), style: { width: "100%", padding: "10px", marginBottom: "8px", border: "1px solid #ced4da", borderRadius: "5px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "Selecteaz\u0103 partenerul" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("wms.selectPartner") }),
                   wmsOverview.partners.map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: partner.id, children: [
                     partner.name,
                     " (",
@@ -15557,70 +15791,78 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                   ] }, partner.id))
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: wmsKeyForm.environment, onChange: (e2) => setWmsKeyForm({ ...wmsKeyForm, environment: e2.target.value }), style: { width: "100%", padding: "10px", marginBottom: "10px", border: "1px solid #ced4da", borderRadius: "5px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "production", children: "Production" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "sandbox", children: "Sandbox" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "production", children: t2("wms.production") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "sandbox", children: t2("wms.sandbox") })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: createWmsKey, className: "btn", style: { width: "auto", padding: "8px 14px", background: "#6f42c1" }, children: "\u{1F511} Genereaz\u0103 cheie" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { onClick: createWmsKey, className: "btn", style: { width: "auto", padding: "8px 14px", background: "#6f42c1" }, children: [
+                  "\u{1F511} ",
+                  t2("wms.generateKey")
+                ] })
               ] })
             ] }),
             wmsPlaintextKey && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#fff3cd", border: "1px solid #ffecb5", padding: "14px", borderRadius: "7px", marginBottom: "22px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Cheia este afi\u0219at\u0103 o singur\u0103 dat\u0103:" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: t2("wms.keyShownOnce") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", marginTop: "8px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { readOnly: true, value: wmsPlaintextKey, style: { flex: 1, padding: "9px", fontFamily: "monospace", border: "1px solid #ced4da", borderRadius: "4px" } }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => navigator.clipboard?.writeText(wmsPlaintextKey), className: "btn", style: { width: "auto", padding: "8px 12px" }, children: "Copiaz\u0103" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setWmsPlaintextKey(""), className: "btn btn-secondary", style: { width: "auto", padding: "8px 12px" }, children: "\xCEnchide" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => navigator.clipboard?.writeText(wmsPlaintextKey), className: "btn", style: { width: "auto", padding: "8px 12px" }, children: t2("wms.copy") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setWmsPlaintextKey(""), className: "btn btn-secondary", style: { width: "auto", padding: "8px 12px" }, children: t2("common.close") })
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: "Rutare marketplace" }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { background: wmsOverview.routingReady ? "#d1e7dd" : "#fff3cd", border: `1px solid ${wmsOverview.routingReady ? "#a3cfbb" : "#ffecb5"}`, padding: "10px 12px", borderRadius: "6px", marginBottom: "12px", fontSize: "13px" }, children: wmsOverview.routingReady ? "Toate cele trei marketplace-uri au o decizie explicit\u0103 de rutare." : "\xCEnainte de produc\u021Bie, salveaz\u0103 o decizie activ\u0103 sau inactiv\u0103 pentru fiecare marketplace." }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: t2("wms.routingTitle") }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { background: wmsOverview.routingReady ? "#d1e7dd" : "#fff3cd", border: `1px solid ${wmsOverview.routingReady ? "#a3cfbb" : "#ffecb5"}`, padding: "10px 12px", borderRadius: "6px", marginBottom: "12px", fontSize: "13px" }, children: wmsOverview.routingReady ? t2("wms.routingReady") : t2("wms.routingNeedsDecision") }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px", marginBottom: "24px" }, children: visibleMarkets.map((market) => {
               const route = partnerForMarket(market);
               const decision = routingDecisionForMarket(market);
               return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "7px", padding: "13px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: market.toUpperCase() }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: decision?.decision === "active" ? "#198754" : decision?.decision === "inactive" ? "#6c757d" : "#dc3545" }, children: decision?.decision === "active" ? "activ\u0103" : decision?.decision === "inactive" ? "inactiv\u0103" : "neconfigurat\u0103" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: decision?.decision === "active" ? "#198754" : decision?.decision === "inactive" ? "#6c757d" : "#dc3545" }, children: decision?.decision === "active" ? t2("wms.active") : decision?.decision === "inactive" ? t2("wms.inactive") : t2("wms.unconfigured") })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: route?.partnerId || "", onChange: (e2) => routeWmsMarket(market, e2.target.value), style: { width: "100%", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: "F\u0103r\u0103 rutare" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("wms.noRouting") }),
                   wmsOverview.partners.filter((partner) => partner.isActive || partner.id === route?.partnerId).map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: partner.id, children: [
                     partner.name,
-                    !partner.isActive ? " (inactiv)" : ""
+                    !partner.isActive ? ` (${t2("wms.inactive")})` : ""
                   ] }, partner.id))
                 ] }),
                 route?.partnerId && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "7px", marginTop: "9px", fontSize: "13px", color: "#495057" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "checkbox", checked: route.isActive, onChange: (e2) => routeWmsMarket(market, route.partnerId, e2.target.checked) }),
-                  "Rutare activ\u0103"
+                  t2("wms.activeRouting")
                 ] })
               ] }, market);
             }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: "Parteneri activi" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: t2("wms.partnersTitle") }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { overflowX: "auto" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { background: "#f8f9fa" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: "Nume" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: "Cod" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: "Pie\u021Be" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: "Chei" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px" }, children: "Ac\u021Biuni" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: t2("wms.name") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: t2("wms.code") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: t2("wms.markets") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: t2("wms.keys") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px" }, children: t2("wms.actions") })
                 ] }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: wmsOverview.partners.map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderTop: "1px solid #eee" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "10px" }, children: [
                     partner.name,
                     " ",
-                    !partner.isActive && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#dc3545" }, children: "(inactiv)" })
+                    !partner.isActive && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#dc3545" }, children: [
+                      "(",
+                      t2("wms.inactive"),
+                      ")"
+                    ] })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px", fontFamily: "monospace" }, children: partner.code }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px" }, children: partner.markets?.join(", ") || "\u2014" }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px" }, children: partner.keyCount || 0 }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px", textAlign: "right" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => loadWmsKeys(partner), className: "btn", style: { width: "auto", padding: "6px 10px", background: "#6c757d" }, children: "Vezi cheile" }) })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px", textAlign: "right" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => loadWmsKeys(partner), className: "btn", style: { width: "auto", padding: "6px 10px", background: "#6c757d" }, children: t2("wms.viewKeys") }) })
                 ] }, partner.id)) })
               ] }),
-              !wmsOverview.partners.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: "Nu exist\u0103 \xEEnc\u0103 parteneri WMS." })
+              !wmsOverview.partners.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: t2("wms.noPartners") })
             ] }),
             wmsSelectedPartner && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "22px", borderTop: "1px solid #dee2e6", paddingTop: "18px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: [
-                "Chei: ",
+                t2("wms.keyTitle"),
+                ": ",
                 wmsSelectedPartner.name
               ] }),
               wmsKeys.map((key) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #eee" }, children: [
@@ -15632,31 +15874,37 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                   " \xB7 ",
                   key.environment,
                   " \xB7 ",
-                  key.isRevoked ? "revocat\u0103" : "activ\u0103"
+                  key.isRevoked ? t2("wms.revoked") : t2("wms.active")
                 ] }),
-                !key.isRevoked && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => revokeWmsKey(key.id), className: "btn", style: { width: "auto", padding: "5px 10px", background: "#dc3545" }, children: "Revoc\u0103" })
+                !key.isRevoked && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => revokeWmsKey(key.id), className: "btn", style: { width: "auto", padding: "5px 10px", background: "#dc3545" }, children: t2("wms.revoke") })
               ] }, key.id)),
-              !wmsKeys.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: "Nu exist\u0103 chei pentru acest partener." })
+              !wmsKeys.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: t2("wms.noKeys") })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(280px,1fr) minmax(280px,1fr)", gap: "20px", marginTop: "24px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 12px", color: "#333" }, children: "Timeline comand\u0103" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 12px", color: "#333" }, children: t2("wms.timelineTitle") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsOrderId, onChange: (e2) => setWmsOrderId(e2.target.value), placeholder: "ID comand\u0103 intern admin", style: { flex: 1, padding: "9px", border: "1px solid #ced4da", borderRadius: "5px" } }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: loadWmsOrderTimeline, className: "btn", style: { width: "auto", padding: "7px 12px", background: "#0d6efd" }, children: "\xCEncarc\u0103" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsOrderId, onChange: (e2) => setWmsOrderId(e2.target.value), placeholder: t2("wms.orderIdPlaceholder"), style: { flex: 1, padding: "9px", border: "1px solid #ced4da", borderRadius: "5px" } }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: loadWmsOrderTimeline, className: "btn", style: { width: "auto", padding: "7px 12px", background: "#0d6efd" }, children: t2("wms.load") })
                 ] }),
                 wmsOrderTimeline && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "12px", fontSize: "13px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Fulfillment:" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
+                      t2("wms.fulfillment"),
+                      ":"
+                    ] }),
                     " ",
                     wmsOrderTimeline.fulfillmentStatus || "\u2014",
                     " \xB7 ",
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Partener:" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { children: [
+                      t2("wms.partner"),
+                      ":"
+                    ] }),
                     " ",
                     wmsOrderTimeline.partnerId || "\u2014"
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "8px" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Expedieri" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: t2("wms.shipments") }),
                     " (",
                     wmsOrderTimeline.shipments?.length || 0,
                     ")"
@@ -15669,7 +15917,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                     shipment.status
                   ] }, shipment.id)),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "8px" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: "Evenimente" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: t2("wms.events") }),
                     " (",
                     wmsOrderTimeline.events?.length || 0,
                     ")"
@@ -15682,7 +15930,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                 ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 12px", color: "#333" }, children: "Ultimele requesturi WMS" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 12px", color: "#333" }, children: t2("wms.latestRequests") }),
                 wmsAudit.slice(0, 8).map((entry) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "6px 0", borderBottom: "1px solid #f1f3f5", fontSize: "12px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: entry.statusCode }),
                   " \xB7 ",
@@ -15696,7 +15944,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                     entry.createdAt ? new Date(entry.createdAt).toLocaleString() : ""
                   ] })
                 ] }, entry.id)),
-                !wmsAudit.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontSize: "13px" }, children: "Nu exist\u0103 requesturi WMS \xEEnregistrate." })
+                !wmsAudit.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontSize: "13px" }, children: t2("wms.noRequests") })
               ] })
             ] })
           ] });
