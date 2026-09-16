@@ -145,6 +145,45 @@ app.use((req, res, next) => {
   startCartReminderScheduler();
   startSubscriptionScheduler();
 
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    res.status(status).json({ message });
+    throw err;
+  });
+
+  // Complete the HTTP setup before running database warm-up work. Autoscale
+  // needs the process to answer its readiness probe even when the first
+  // database connection or cache load is slow.
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
+
+  // ALWAYS serve the app on the port specified in the environment variable PORT
+  // Other ports are firewalled. Default to 5000 if not specified.
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = parseInt(process.env.PORT || '5000', 10);
+
+  // Ultra-performance server settings
+  server.keepAliveTimeout = 5000;
+  server.headersTimeout = 125000; // Must be > timeout
+  server.timeout = 120000;        // 2 min — allows Claude AI generation (~40-60s)
+  server.maxHeadersCount = 1000;
+
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+    backlog: 511, // Increase connection backlog to handle readiness and early traffic.
+  }, () => {
+    log(`serving on port ${port}`);
+    startDbKeepAlive();
+  });
+
   // ── Startup recovery: stale manual_processing orders ─────────────────────
   // If the process was killed while a manual background job was running, the
   // order may be stuck in 'manual_processing' with no further progress.
@@ -178,43 +217,4 @@ app.use((req, res, next) => {
     console.error('Data loading failed:', error);
     log('Data loading failed, continuing without it');
   }
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  
-  // Ultra-performance server settings
-  server.keepAliveTimeout = 5000;
-  server.headersTimeout = 125000; // Must be > timeout
-  server.timeout = 120000;        // 2 min — allows Claude AI generation (~40-60s)
-  server.maxHeadersCount = 1000;
-  
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-    backlog: 511, // Increase connection backlog for better performance
-  }, () => {
-    log(`serving on port ${port}`);
-    startDbKeepAlive();
-  });
 })();

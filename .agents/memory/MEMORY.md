@@ -29,3 +29,4 @@
 - [PayPal capture recovery](paypal-capture-recovery.md) — direct PayPal payments need verified webhook reconciliation because a capture can succeed while the browser callback is lost.
 - [Shared auth loading state](shared-auth-loading-state.md) — late subscribers must sync with global auth state or parent UI can remain in an endless loading state.
 - [WMS origin ownership](wms-origin-ownership.md) — logistics origins are market-scoped WMS data, not commercial company settings or environment fallbacks.
+- [Autoscale startup readiness](deployment-readiness.md) — bind the HTTP port before slow database warm-up so publishing health checks can pass.
