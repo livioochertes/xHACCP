@@ -35,7 +35,7 @@ export default function PayPalPayment({ amount, cartItems, voucherCode, orderDat
     }
   };
   return <Card className="w-full border-[#d7e0eb]">
-    <CardHeader><CardTitle className="flex items-center gap-2"><SiPaypal className="h-5 w-5 text-[#003087]" />PayPal</CardTitle></CardHeader>
+     <CardHeader><CardTitle className="flex items-center gap-3"><span className="inline-flex h-10 w-16 items-center justify-center rounded-md bg-[#003087] shadow-sm" aria-hidden="true"><SiPaypal className="h-7 w-7 text-white" /></span><span className="text-[#003087]">PayPal</span></CardTitle></CardHeader>
     <CardContent className="space-y-4">
       <p className="text-sm text-muted-foreground">{t("checkout.paypalDirectNotice")}</p>
       <Button type="button" onClick={pay} disabled={loading || disabled} className="w-full bg-[#ffc439] text-[#111] hover:bg-[#f2b900]">

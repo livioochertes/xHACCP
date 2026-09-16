@@ -20,6 +20,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { getVolumePrice } from "@/lib/volume-price";
+import { SiPaypal } from "react-icons/si";
 
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -1749,8 +1750,18 @@ export default function Checkout() {
                                       <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'paypal' ? 'border-[#0070ba] bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
                                         <RadioGroupItem value="paypal" id="paypal" />
                                         <Label htmlFor="paypal" className="flex-1 cursor-pointer">
-                                          <div className="flex items-center gap-2"><span className="font-medium">PayPal</span><Badge variant="outline" className="text-xs">{t('checkout.paypalDirect')}</Badge></div>
-                                          <div className="text-xs text-muted-foreground mt-1">{t('checkout.paypalDirectNotice')}</div>
+                                           <div className="flex items-center gap-3">
+                                             <span className="inline-flex h-10 w-16 items-center justify-center rounded-md bg-[#003087] shadow-sm" aria-hidden="true">
+                                               <SiPaypal className="h-7 w-7 text-white" />
+                                             </span>
+                                             <span className="min-w-0">
+                                               <span className="flex items-center gap-2">
+                                                 <span className="font-semibold text-[#003087]">PayPal</span>
+                                                 <Badge variant="outline" className="text-xs">{t('checkout.paypalDirect')}</Badge>
+                                               </span>
+                                               <span className="block text-xs text-muted-foreground mt-1">{t('checkout.paypalDirectNotice')}</span>
+                                             </span>
+                                           </div>
                                         </Label>
                                       </div>
                                     )}
