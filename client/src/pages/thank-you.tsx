@@ -97,7 +97,7 @@ export default function ThankYou() {
     }
 
     const eventData: Record<string, string | number | boolean> = {
-      payment_method: paymentResult === "cash" ? "cash" : "viva",
+      payment_method: paymentResult === "cash" ? "cash" : paymentResult === "paypal" ? "paypal" : "viva",
       market: getMarketFromHostname(),
     };
     if (summary) {

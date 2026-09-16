@@ -1,0 +1,179 @@
+const PAYPAL_API = "https://api-m.paypal.com";
+
+export type PayPalLink = { href: string; rel: string; method?: string };
+export type PayPalOrder = {
+  id: string;
+  status?: string;
+  purchase_units?: Array<{
+    custom_id?: string;
+    invoice_id?: string;
+    amount?: { currency_code?: string; value?: string };
+    payments?: { captures?: Array<{ id?: string; status?: string }> };
+  }>;
+  links?: PayPalLink[];
+};
+export type PayPalWebhookEvent = { event_type?: string; resource?: any; supplementary_data?: any };
+
+export function paypalWebhookHeaders(headers: Record<string, string | string[] | undefined>) {
+  const get = (name: string) => {
+    const value = headers[name] ?? headers[name.toLowerCase()];
+    return Array.isArray(value) ? value[0] : value;
+  };
+  return {
+    auth_algo: get("paypal-auth-algo"),
+    cert_url: get("paypal-cert-url"),
+    transmission_id: get("paypal-transmission-id"),
+    transmission_sig: get("paypal-transmission-sig"),
+    transmission_time: get("paypal-transmission-time"),
+  };
+}
+
+export function paypalWebhookOrderId(event: PayPalWebhookEvent): string | undefined {
+  if (event.event_type === "CHECKOUT.ORDER.APPROVED") {
+    return typeof event.resource?.id === "string" ? event.resource.id : undefined;
+  }
+  if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+    const id = event.resource?.supplementary_data?.related_ids?.order_id ??
+      event.supplementary_data?.related_ids?.order_id;
+    return typeof id === "string" ? id : undefined;
+  }
+  return undefined;
+}
+
+export function isAllowedPayPalApprovalUrl(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" &&
+      (url.hostname === "paypal.com" || url.hostname.endsWith(".paypal.com") ||
+       url.hostname === "paypalobjects.com" || url.hostname.endsWith(".paypalobjects.com"));
+  } catch { return false; }
+}
+
+export function paypalCreateRequestId(publicOrderRef: string, orderId: number): string {
+  return `xhaccp-create-${publicOrderRef || orderId}`;
+}
+
+export function paypalCaptureRequestId(providerOrderId: string): string {
+  return `xhaccp-capture-${providerOrderId}`;
+}
+
+export function completedPayPalCapture(order: PayPalOrder) {
+  const capture = order.purchase_units?.flatMap(unit => unit.payments?.captures || [])
+    .find(item => item.status === "COMPLETED");
+  return order.status === "COMPLETED" && capture?.id ? capture : undefined;
+}
+
+export function isPayPalOrderBindingValid(order: PayPalOrder, local: {
+  id: number; paymentProviderOrderId?: string | null; paymentMethod: string | null;
+  market: string | null; currency: string | null; totalAmount: string | number;
+}) {
+  const unit = order.purchase_units?.[0];
+  return !!unit && local.paymentMethod === "paypal" && local.market === "fr" &&
+    local.currency === "EUR" && local.paymentProviderOrderId === order.id &&
+    unit.custom_id === String(local.id) && unit.invoice_id === `xhaccp-${local.id}` &&
+    unit.amount?.currency_code === "EUR" &&
+    Number.isFinite(Number(unit.amount.value)) &&
+    Number(unit.amount.value).toFixed(2) === Number(local.totalAmount).toFixed(2);
+}
+
+function credentials() {
+  const clientId = process.env.PAYPAL_CLIENT_ID?.trim();
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) throw new Error("PayPal payment configuration is incomplete");
+  return { clientId, clientSecret };
+}
+
+async function accessToken(): Promise<string> {
+  const { clientId, clientSecret } = credentials();
+  const response = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
+    },
+    body: "grant_type=client_credentials",
+  });
+  if (!response.ok) throw new Error("PayPal authentication failed");
+  const body = await response.json() as { access_token?: string };
+  if (!body.access_token) throw new Error("PayPal authentication returned no access token");
+  return body.access_token;
+}
+
+async function paypalRequest<T>(path: string, init: RequestInit, requestId: string): Promise<T> {
+  const token = await accessToken();
+  const response = await fetch(`${PAYPAL_API}${path}`, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "PayPal-Request-Id": requestId,
+      ...(init.headers || {}),
+    },
+  });
+  if (!response.ok) {
+    // Do not return PayPal response bodies: they may contain sensitive request metadata.
+    throw new Error(`PayPal request failed (${response.status})`);
+  }
+  return await response.json() as T;
+}
+
+export async function verifyPayPalWebhook(input: {
+  headers: Record<string, string | string[] | undefined>;
+  event: PayPalWebhookEvent;
+  requestId: string;
+}): Promise<boolean> {
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID?.trim();
+  if (!webhookId) throw new Error("PayPal webhook configuration is incomplete");
+  const headers = paypalWebhookHeaders(input.headers);
+  if (Object.values(headers).some(value => !value)) return false;
+  const result = await paypalRequest<{ verification_status?: string }>("/v1/notifications/verify-webhook-signature", {
+    method: "POST",
+    body: JSON.stringify({ auth_algo: headers.auth_algo, cert_url: headers.cert_url,
+      transmission_id: headers.transmission_id, transmission_sig: headers.transmission_sig,
+      transmission_time: headers.transmission_time, webhook_id: webhookId, webhook_event: input.event }),
+  }, input.requestId);
+  return result.verification_status === "SUCCESS";
+}
+
+export async function createPayPalOrder(input: {
+  amount: string;
+  returnUrl: string;
+  cancelUrl: string;
+  orderId: number;
+  requestId: string;
+}): Promise<PayPalOrder> {
+  return paypalRequest<PayPalOrder>("/v2/checkout/orders", {
+    method: "POST",
+    body: JSON.stringify({
+      intent: "CAPTURE",
+      purchase_units: [{
+        reference_id: `xhaccp-${input.orderId}`,
+        custom_id: String(input.orderId),
+        invoice_id: `xhaccp-${input.orderId}`,
+        amount: { currency_code: "EUR", value: input.amount },
+      }],
+      application_context: {
+        brand_name: "xHACCP",
+        user_action: "PAY_NOW",
+        return_url: input.returnUrl,
+        cancel_url: input.cancelUrl,
+      },
+    }),
+  }, input.requestId);
+}
+
+export function paypalApprovalUrl(order: PayPalOrder): string | undefined {
+  const value = order.links?.find(link => link.rel === "approve")?.href;
+  return isAllowedPayPalApprovalUrl(value) ? value : undefined;
+}
+
+export async function getPayPalOrder(orderId: string, requestId: string): Promise<PayPalOrder> {
+  return paypalRequest<PayPalOrder>(`/v2/checkout/orders/${encodeURIComponent(orderId)}`, { method: "GET" }, requestId);
+}
+
+export async function capturePayPalOrder(orderId: string, requestId: string): Promise<PayPalOrder> {
+  return paypalRequest<PayPalOrder>(`/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, { method: "POST", body: "{}" }, requestId);
+}

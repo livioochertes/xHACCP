@@ -7,7 +7,6 @@ import { apiRequest } from '@/lib/queryClient';
 import { getMarketFromHostname } from '@/lib/queryClient';
 import { trackEvent } from '@/lib/analytics';
 import { CreditCard, Loader2, ExternalLink } from 'lucide-react';
-import { SiPaypal } from 'react-icons/si';
 
 interface CartItem {
   productId: number;
@@ -95,19 +94,7 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
         <div className="space-y-4">
           <div className="flex items-center gap-3 flex-wrap">
             <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-9" />
-            {isFrenchMarket && (
-              <div className="inline-flex items-center gap-1.5 rounded-md border border-[#d7e0eb] bg-white px-2.5 py-1.5 text-[#003087]">
-                <SiPaypal className="h-6 w-6" aria-hidden="true" />
-                <span className="text-sm font-semibold">PayPal</span>
-              </div>
-            )}
           </div>
-          {isFrenchMarket && (
-            <div className="rounded-lg border border-[#d7e0eb] bg-[#f5f8fc] p-4 text-sm text-slate-700">
-              <p className="font-medium">{t('checkout.paypalAvailable')}</p>
-              <p className="mt-1 text-slate-600">{t('checkout.paypalAvailableDesc')}</p>
-            </div>
-          )}
           <div className="p-4 border rounded-lg bg-gray-50 text-sm text-gray-600">
             <p className="flex items-center gap-2">
               <ExternalLink className="w-4 h-4 flex-shrink-0" />

@@ -46,6 +46,7 @@ import {
   type CompositeComponentSource,
 } from "./composite-products";
 import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
+import { createPayPalOrder, getPayPalOrder, capturePayPalOrder, paypalApprovalUrl, paypalCreateRequestId, paypalCaptureRequestId, completedPayPalCapture, isPayPalOrderBindingValid, verifyPayPalWebhook, paypalWebhookOrderId } from "./paypal";
 
 const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
 const EVENT_VOUCHER_CAMPAIGN_DEFAULTS = {
@@ -63,6 +64,14 @@ const eventVoucherRegistrationLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Trop de tentatives. Veuillez réessayer plus tard." },
+});
+const paypalCreateOrderLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `paypal:${getMarketFromRequest(req)}:${req.ip}`,
+  handler: (_req, res) => res.status(429).json({ message: "Too many PayPal payment attempts. Please try again later." }),
 });
 
 async function getPublicEventVoucherCampaign() {
@@ -4672,6 +4681,154 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       awbGenerationInProgress.delete(orderId);
     }
   }
+
+  // Direct PayPal checkout for ordinary French-market orders.
+  app.post("/api/payments/paypal/create-order", paypalCreateOrderLimiter, optionalAuth, async (req: AuthRequest, res) => {
+    const requestId = crypto.randomUUID().slice(0, 12);
+    try {
+      if (getMarketFromRequest(req) !== "fr") return res.status(400).json({ message: "PayPal is only available on the French marketplace" });
+      const { cartItems, voucherCode, orderData } = req.body;
+      if (!Array.isArray(cartItems) || cartItems.length === 0) return res.status(400).json({ message: "Cart items are required" });
+      if (!orderData || typeof orderData !== "object") return res.status(400).json({ message: "Order data is required" });
+      const shipping = orderData.shippingAddress;
+      const billing = orderData.billingAddress;
+      const email = shipping?.email || billing?.email;
+      const required = [shipping?.firstName, shipping?.lastName, shipping?.address, shipping?.city, shipping?.state, shipping?.zipCode, shipping?.country, shipping?.phone, billing?.firstName, billing?.lastName, billing?.address, billing?.city, billing?.state, billing?.zipCode, billing?.country];
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email)) || required.some(value => typeof value !== "string" || !value.trim())) {
+        return res.status(400).json({ message: "Complete shipping, billing and email details are required" });
+      }
+      if ((marketSettingsMap.get("fr")?.currency || "EUR").toUpperCase() !== "EUR") return res.status(503).json({ message: "French marketplace currency is not configured for EUR" });
+      const validatedItems = await Promise.all(cartItems.map((item: any) => validateOrderItemForMarket(item, "fr")));
+      if (validatedItems.some((item: any) => item.productType === "subscription")) {
+        return res.status(400).json({ message: "Subscriptions require Viva recurring payment" });
+      }
+      const subtotal = validatedItems.reduce((sum: number, item: any) => sum + Number(item.totalPrice), 0);
+      const setting = marketSettingsMap.get("fr");
+      const company = await storage.getCompanySettingsByMarket("fr");
+      const freeThreshold = setting?.freeShippingThreshold ? Number(setting.freeShippingThreshold) : Number(company?.freeShippingThreshold || 200);
+      const shippingCost = subtotal > freeThreshold ? 0 : Number(setting?.standardShippingCost ?? company?.standardShippingCost ?? 12);
+      let discountAmount = 0;
+      let voucher: any = null;
+      if (voucherCode) {
+        voucher = await storage.getVoucherByCode(voucherCode, "fr");
+        if (voucher && voucher.isActive && !getVoucherValidityError(voucher, new Date()) &&
+          (!voucher.maxUses || (voucher.usedCount || 0) < voucher.maxUses) &&
+          (!voucher.minOrderAmount || subtotal >= Number(voucher.minOrderAmount))) {
+          discountAmount = voucher.discountType === "percentage"
+            ? subtotal * Number(voucher.discountValue) / 100
+            : Number(voucher.discountValue);
+        } else voucher = null;
+      }
+      const total = Math.max(0, subtotal - discountAmount) + shippingCost;
+      if (!Number.isFinite(total) || total < 0.01) return res.status(400).json({ message: "Order total is invalid" });
+      const notes = `${orderData.notes || ""}${voucher ? `${orderData.notes ? "\n" : ""}Voucher: ${voucher.code} (-${discountAmount.toFixed(2)})` : ""}`;
+      const localOrder = await storage.createOrder({
+        userId: req.userId || null, market: "fr", currency: "EUR", status: "pending",
+        totalAmount: total.toFixed(2), shippingCost: shippingCost.toFixed(2),
+        voucherCode: voucher?.code, discountAmount: discountAmount ? discountAmount.toFixed(2) : undefined,
+        shippingAddress: { ...(orderData.shippingAddress || {}), email }, billingAddress: orderData.billingAddress || {},
+        paymentMethod: "paypal", paymentStatus: "pending", notes: notes || undefined,
+      }, validatedItems);
+      const baseUrl = "https://www.xhaccp.fr";
+      let paypalOrder;
+      try {
+        paypalOrder = await createPayPalOrder({
+          amount: total.toFixed(2), orderId: localOrder.id,
+          returnUrl: `${baseUrl}/api/payments/paypal/callback`,
+          cancelUrl: `${baseUrl}/api/payments/paypal/callback?cancel=1`,
+          requestId: paypalCreateRequestId(localOrder.publicOrderRef || "", localOrder.id),
+        });
+      } catch (error) {
+        console.error(`[PayPal ${requestId}] order creation failed:`, error instanceof Error ? error.message : "unknown error");
+        return res.status(502).json({ message: "PayPal payment could not be started" });
+      }
+      const bound = await storage.bindPaymentProviderOrder(localOrder.id, paypalOrder.id);
+      if (!bound) {
+        const existing = await storage.getOrderByPaymentProviderOrderId(paypalOrder.id);
+        if (!existing || existing.id !== localOrder.id) return res.status(409).json({ message: "PayPal order is already linked" });
+      }
+      const approvalUrl = paypalApprovalUrl(paypalOrder);
+      if (!approvalUrl) return res.status(502).json({ message: "PayPal returned no approval URL" });
+      return res.json({ approvalUrl, paypalOrderId: paypalOrder.id, dbOrderId: localOrder.id });
+    } catch (error) {
+      console.error(`[PayPal ${requestId}] create-order failed:`, error instanceof Error ? error.message : "unknown error");
+      return res.status(500).json({ message: "Unable to start PayPal payment" });
+    }
+  });
+
+  const finalizePayPalPayment = async (providerOrderId: string, requestId: string): Promise<number | null> => {
+    const local = await storage.getOrderByPaymentProviderOrderId(providerOrderId);
+    if (!local) return null;
+    const paypalOrder = await getPayPalOrder(providerOrderId, requestId);
+    if (!isPayPalOrderBindingValid(paypalOrder, local)) return null;
+    let capture = completedPayPalCapture(paypalOrder);
+    if (!capture) {
+      const captured = await capturePayPalOrder(providerOrderId, paypalCaptureRequestId(providerOrderId));
+      capture = completedPayPalCapture(captured);
+    }
+    if (!capture) return null;
+    await storage.updateOrder(local.id, { paymentTransactionId: capture.id });
+    const paid = await storage.markOrderPaid(local.id);
+    if (paid) {
+      try {
+        if (!invoiceService) invoiceService = await createInvoiceService();
+        const invoice = await invoiceService.generateInvoiceAfterPayment(local.id, {
+          status: "succeeded", paymentMethod: "paypal", paymentId: capture.id,
+          amount: Number(local.totalAmount),
+        });
+        const { sendInvoiceEmailFr } = await import("./email-service.js");
+        const latest = await storage.getOrder(local.id);
+        const email = (latest?.shippingAddress as any)?.email || (latest?.billingAddress as any)?.email;
+        const invoicePdf = invoice?.id ? await invoiceService.getInvoicePdf(invoice.id).catch(() => null) : null;
+        if (latest && email) await sendInvoiceEmailFr(email, latest, invoicePdf, invoice.invoiceNumber);
+      } catch (error) {
+        console.error(`[PayPal ${requestId}] post-payment invoice/email failed:`, error instanceof Error ? error.message : "unknown error");
+      }
+    }
+    return local.id;
+  };
+
+  app.post("/api/payments/paypal/webhook", async (req, res) => {
+    const requestId = crypto.randomUUID().slice(0, 12);
+    const event = req.body;
+    if (!event || typeof event !== "object" || typeof event.event_type !== "string") {
+      return res.status(400).json({ message: "Malformed PayPal webhook" });
+    }
+    try {
+      const verified = await verifyPayPalWebhook({ headers: req.headers, event, requestId });
+      if (!verified) return res.status(401).json({ message: "PayPal webhook verification failed" });
+    } catch (error) {
+      console.error(`[PayPal ${requestId}] webhook verification error:`, error instanceof Error ? error.message : "unknown error");
+      return res.status(503).json({ message: "PayPal webhook verification unavailable" });
+    }
+    if (event.event_type !== "CHECKOUT.ORDER.APPROVED" && event.event_type !== "PAYMENT.CAPTURE.COMPLETED") {
+      return res.sendStatus(200);
+    }
+    const providerOrderId = paypalWebhookOrderId(event);
+    if (!providerOrderId) return res.status(400).json({ message: "PayPal webhook has no order ID" });
+    try {
+      await finalizePayPalPayment(providerOrderId, requestId);
+      return res.sendStatus(200);
+    } catch (error) {
+      console.error(`[PayPal ${requestId}] webhook finalization failed:`, error instanceof Error ? error.message : "unknown error");
+      return res.status(503).json({ message: "PayPal payment reconciliation unavailable" });
+    }
+  });
+
+  app.get("/api/payments/paypal/callback", async (req, res) => {
+    const requestId = crypto.randomUUID().slice(0, 12);
+    const failed = () => res.redirect("/merci?payment=failed");
+    try {
+      if (req.query.cancel) return failed();
+      const token = typeof req.query.token === "string" ? req.query.token : "";
+      if (!token) return failed();
+      const orderId = await finalizePayPalPayment(token, requestId);
+      return orderId ? res.redirect(`/merci?payment=paypal&orderId=${orderId}`) : failed();
+    } catch (error) {
+      console.error(`[PayPal ${requestId}] callback failed:`, error instanceof Error ? error.message : "unknown error");
+      return failed();
+    }
+  });
 
   // Viva payment success/failure callback
   app.get("/api/payments/viva/callback", async (req, res) => {

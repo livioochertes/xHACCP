@@ -229,6 +229,11 @@ export interface TranslationKeys {
   'checkout.vivaRedirectNotice': string;
   'checkout.redirectingToPayment': string;
   'checkout.pay': string;
+  'checkout.paypalDirect': string;
+  'checkout.paypalDirectNotice': string;
+  'checkout.payWithPaypal': string;
+  'checkout.paypalStartFailed': string;
+  'checkout.paypalUnavailable': string;
   'checkout.recurringConsent': string;
   'checkout.subscriptionAccountRequired': string;
   'checkout.subscriptionOnly': string;
@@ -957,6 +962,11 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.subscriptionOnly': 'Subscriptions must be purchased separately from other products.',
     'checkout.redirectingToPayment': 'Redirecting to payment...',
     'checkout.pay': 'Pay',
+    'checkout.paypalDirect': 'Direct payment',
+    'checkout.paypalDirectNotice': 'You will be redirected to PayPal to complete this payment securely.',
+    'checkout.payWithPaypal': 'Pay with PayPal',
+    'checkout.paypalStartFailed': 'Unable to start PayPal payment.',
+    'checkout.paypalUnavailable': 'PayPal is only available for ordinary French orders.',
     
     // Account
     'account.title': 'My Account',
@@ -2333,6 +2343,11 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.subscriptionOnly': 'Les abonnements doivent être achetés séparément des autres produits.',
     'checkout.redirectingToPayment': 'Redirection vers le paiement...',
     'checkout.pay': 'Payer',
+    'checkout.paypalDirect': 'Paiement direct',
+    'checkout.paypalDirectNotice': 'Vous serez redirigé vers PayPal pour finaliser ce paiement en toute sécurité.',
+    'checkout.payWithPaypal': 'Payer avec PayPal',
+    'checkout.paypalStartFailed': 'Impossible de démarrer le paiement PayPal.',
+    'checkout.paypalUnavailable': 'PayPal est disponible uniquement pour les commandes françaises ordinaires.',
     
     // Account
     'account.title': 'Mon Compte',

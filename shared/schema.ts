@@ -284,6 +284,8 @@ export const orders = pgTable("orders", {
   shippingAddress: jsonb("shipping_address").notNull(),
   billingAddress: jsonb("billing_address").notNull(),
   paymentMethod: varchar("payment_method", { length: 50 }).notNull(),
+  paymentProviderOrderId: varchar("payment_provider_order_id", { length: 120 }),
+  paymentTransactionId: varchar("payment_transaction_id", { length: 120 }),
   paymentStatus: varchar("payment_status", { length: 50 }).notNull().default("pending"),
   notes: text("notes"),
   // AWB (Air Waybill) fields for shipping
@@ -301,7 +303,10 @@ export const orders = pgTable("orders", {
   source: varchar("source", { length: 50 }).default("website"), // 'website' | 'manual_admin'
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  paymentProviderOrderIdUnique: uniqueIndex("orders_payment_provider_order_id_unique").on(table.paymentProviderOrderId),
+  paymentTransactionIdUnique: uniqueIndex("orders_payment_transaction_id_unique").on(table.paymentTransactionId),
+}));
 
 // Order items table
 export const orderItems = pgTable("order_items", {

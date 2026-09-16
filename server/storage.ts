@@ -180,6 +180,8 @@ export interface IStorage {
   getOrder(id: number): Promise<OrderWithItems | undefined>;
   createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order>;
   updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order>;
+  getOrderByPaymentProviderOrderId(providerOrderId: string): Promise<Order | undefined>;
+  bindPaymentProviderOrder(id: number, providerOrderId: string): Promise<Order | undefined>;
   markOrderPaid(id: number): Promise<Order | null>;
   updateOrderStatus(id: number, status: string): Promise<Order>;
   acceptOrder(id: number): Promise<Order | null>;
@@ -955,6 +957,19 @@ export class DatabaseStorage implements IStorage {
     return updatedOrder;
   }
 
+  async getOrderByPaymentProviderOrderId(providerOrderId: string): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders).where(eq(orders.paymentProviderOrderId, providerOrderId)).limit(1);
+    return order;
+  }
+
+  async bindPaymentProviderOrder(id: number, providerOrderId: string): Promise<Order | undefined> {
+    const [order] = await db.update(orders)
+      .set({ paymentProviderOrderId: providerOrderId, updatedAt: new Date() })
+      .where(and(eq(orders.id, id), isNull(orders.paymentProviderOrderId)))
+      .returning();
+    return order;
+  }
+
   async markOrderPaid(id: number): Promise<Order | null> {
     // Callback and webhook can arrive at the same time. Claim the transition
     // atomically so only one of them performs invoice/email side effects.
@@ -986,7 +1001,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(and(eq(orders.id, id), ne(orders.paymentStatus, "paid")))
         .returning();
-      if (updatedOrder && current.paymentMethod === "viva" && current.voucherCode) {
+      if (updatedOrder && (current.paymentMethod === "viva" || current.paymentMethod === "paypal") && current.voucherCode) {
         await tx.update(vouchers)
           .set({
             usedCount: sql`COALESCE(${vouchers.usedCount}, 0) + 1`,

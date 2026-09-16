@@ -29,6 +29,7 @@ import type { TranslationKeys } from "@/translations";
 import Header from "@/components/header";
 
 import VivaPayment from "@/components/viva-payment";
+import PayPalPayment from "@/components/paypal-payment";
 import {
   frenchDepartments,
   getCountyOptions,
@@ -104,7 +105,7 @@ function createCheckoutSchema(t: (key: keyof TranslationKeys) => string, isFrenc
     phone: z.string().default(""),
     shippingAddress: createShippingAddressSchema(translate, isFrenchMarket),
     billingAddress: billingAddressSchemaRelaxed,
-    paymentMethod: z.enum(["viva", "cash"]),
+    paymentMethod: z.enum(["viva", "paypal", "cash"]),
     sameAsBilling: z.boolean().default(false),
     notes: z.string().optional(),
     recurringConsent: z.boolean().default(false),
@@ -139,6 +140,9 @@ function createCheckoutSchema(t: (key: keyof TranslationKeys) => string, isFrenc
           path: ["billingAddress", "vatNumber"],
         });
       }
+    }
+    if (data.paymentMethod === "paypal" && !isFrenchMarket) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: t("checkout.paypalUnavailable"), path: ["paymentMethod"] });
     }
     if (data.createAccount) {
       if (!data.accountPassword || data.accountPassword.length < 6) {
@@ -1741,6 +1745,15 @@ export default function Checkout() {
                                       </div>
                                     </Label>
                                   </div>
+                                    {isFrenchMarket && !hasSubscription && (
+                                      <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'paypal' ? 'border-[#0070ba] bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
+                                        <RadioGroupItem value="paypal" id="paypal" />
+                                        <Label htmlFor="paypal" className="flex-1 cursor-pointer">
+                                          <div className="flex items-center gap-2"><span className="font-medium">PayPal</span><Badge variant="outline" className="text-xs">{t('checkout.paypalDirect')}</Badge></div>
+                                          <div className="text-xs text-muted-foreground mt-1">{t('checkout.paypalDirectNotice')}</div>
+                                        </Label>
+                                      </div>
+                                    )}
                                    {!isFrenchMarket && (
                                      <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'cash' ? 'border-green-500 bg-green-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
                                        <RadioGroupItem value="cash" id="cash" />
@@ -1831,6 +1844,28 @@ export default function Checkout() {
                         }}
                       />
                     )}
+                    {form.watch("paymentMethod") === "paypal" && isFrenchMarket && !hasSubscription && (
+                      <PayPalPayment
+                        amount={finalTotal}
+                        cartItems={cart.map(item => ({ productId: item.product.id, quantity: item.quantity, price: getUnitPrice(item).toFixed(2), compositeConfiguration: item.compositeConfiguration }))}
+                        voucherCode={appliedVoucher?.code}
+                        orderData={(() => {
+                          const values = form.getValues();
+                          const shippingAddr = { ...values.shippingAddress, email: values.email, phone: values.shippingAddress.phone || values.phone };
+                          const billingAddr = sameAsBilling
+                            ? {
+                                ...shippingAddr,
+                                clientType: values.billingAddress.clientType,
+                                identityDocument: values.billingAddress.identityDocument,
+                                companyName: values.billingAddress.companyName,
+                                vatNumber: values.billingAddress.vatNumber,
+                                registrationNumber: values.billingAddress.registrationNumber,
+                              }
+                            : { ...values.billingAddress, email: values.email };
+                          return { shippingAddress: shippingAddr, billingAddress: billingAddr, notes: values.notes };
+                        })()}
+                      />
+                    )}
 
                     {/* Cash on Delivery Information */}
                      {!isFrenchMarket && form.watch("paymentMethod") === "cash" && (
@@ -1917,6 +1952,8 @@ export default function Checkout() {
                         <div className="text-sm text-gray-600">
                           {t('checkout.usePaymentForm')}
                         </div>
+                      ) : form.watch("paymentMethod") === "paypal" ? (
+                        <div className="text-sm text-gray-600">{t('checkout.usePaymentForm')}</div>
                       ) : !isFrenchMarket && form.watch("paymentMethod") === "cash" ? (
                         <Button
                           type="submit"

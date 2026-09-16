@@ -3,7 +3,7 @@ type AnalyticsData = Record<string, string | number | boolean>;
 export type PaymentStatus = "success" | "failed" | "unavailable";
 
 export function getPaymentStatus(paymentResult: string | null): PaymentStatus {
-  if (paymentResult === "success" || paymentResult === "cash") {
+  if (paymentResult === "success" || paymentResult === "cash" || paymentResult === "paypal") {
     return "success";
   }
 
