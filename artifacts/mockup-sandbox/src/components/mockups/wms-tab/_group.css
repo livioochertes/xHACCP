@@ -123,6 +123,64 @@
   gap: 8px;
 }
 
+.wms-preview .provider-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.wms-preview .provider-role-card {
+  min-width: 0;
+  border: 1px solid #dfe7f1;
+  border-radius: 12px;
+  background: #fbfdff;
+  padding: 15px;
+}
+
+.wms-preview .role-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.wms-preview .role-heading h3 {
+  margin: 2px 0 4px;
+  color: #172b4d;
+  font-size: 15px;
+}
+
+.wms-preview .role-heading p {
+  max-width: 390px;
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.wms-preview .role-eyebrow {
+  color: #1769e0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.wms-preview .provider-role-content {
+  display: grid;
+  grid-template-columns: minmax(150px, .9fr) minmax(190px, 1.1fr);
+  gap: 12px;
+}
+
+.wms-preview .provider-inspector {
+  min-width: 0;
+  border: 1px solid #e4eaf2;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 12px;
+}
+
 .wms-preview .provider-row {
   display: grid;
   gap: 5px;
@@ -160,6 +218,11 @@
   color: #16734f;
   font-size: 11px;
   font-weight: 700;
+}
+
+.wms-preview .provider-status.inactive {
+  background: #fff4d6;
+  color: #9a6700;
 }
 
 .wms-preview .detail-top {
@@ -246,7 +309,7 @@
 
 .wms-preview .routing-fields {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.45fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(150px, .5fr);
   align-items: end;
   gap: 14px;
 }
@@ -310,36 +373,25 @@
 }
 
 @media (max-width: 980px) {
-  .wms-preview .provider-layout,
+  .wms-preview .provider-role-grid,
+  .wms-preview .provider-role-content,
   .wms-preview .origin-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .wms-preview .provider-layout {
-    grid-template-areas:
-      "list add"
-      "detail detail";
+  .wms-preview .provider-role-grid {
+    grid-template-columns: 1fr;
   }
-
-  .wms-preview .provider-layout > :nth-child(1) { grid-area: list; }
-  .wms-preview .provider-layout > :nth-child(2) { grid-area: detail; }
-  .wms-preview .provider-layout > :nth-child(3) { grid-area: add; }
 }
 
 @media (max-width: 680px) {
-  .wms-preview .provider-layout,
+  .wms-preview .provider-role-grid,
+  .wms-preview .provider-role-content,
   .wms-preview .routing-panel,
   .wms-preview .lower-grid,
   .wms-preview .origin-grid,
   .wms-preview .routing-fields {
     grid-template-columns: 1fr;
-  }
-
-  .wms-preview .provider-layout {
-    grid-template-areas:
-      "list"
-      "detail"
-      "add";
   }
 
   .wms-preview .origin-grid .wide {
