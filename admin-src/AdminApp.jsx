@@ -380,12 +380,14 @@ import {
       const [wmsOrderTimeline, setWmsOrderTimeline] = useState(null);
       const [wmsFocusedMarket, setWmsFocusedMarket] = useState('ro');
       const [wmsOriginAddresses, setWmsOriginAddresses] = useState({
-        ro: { market: 'ro', companyName: '', address: '', city: '', state: '', zipCode: '', country: 'RO', phone: '', email: '' },
-        fr: { market: 'fr', companyName: '', address: '', city: '', state: '', zipCode: '', country: 'FR', phone: '', email: '' },
-        com: { market: 'com', companyName: '', address: '', city: '', state: '', zipCode: '', country: 'RO', phone: '', email: '' }
+        ro: { market: 'ro', samedayPickupPointId: '', companyName: '', address: '', city: '', state: '', zipCode: '', country: 'RO', phone: '', email: '' },
+        fr: { market: 'fr', samedayPickupPointId: '', companyName: '', address: '', city: '', state: '', zipCode: '', country: 'FR', phone: '', email: '' },
+        com: { market: 'com', samedayPickupPointId: '', companyName: '', address: '', city: '', state: '', zipCode: '', country: 'RO', phone: '', email: '' }
       });
       const [wmsOriginLoading, setWmsOriginLoading] = useState(false);
       const [wmsOriginSaving, setWmsOriginSaving] = useState(false);
+      const [wmsSamedayPickupPoints, setWmsSamedayPickupPoints] = useState([]);
+      const [wmsSamedayPickupPointsLoading, setWmsSamedayPickupPointsLoading] = useState(false);
       const [users, setUsers] = useState([]);
       const [products, setProducts] = useState([]);
       const [categories, setCategories] = useState([]);
@@ -913,7 +915,8 @@ import {
                 zipCode: '',
                 country: market === 'fr' ? 'FR' : 'RO',
                 phone: '',
-                email: ''
+                email: '',
+                samedayPickupPointId: ''
               }
             };
           }));
@@ -928,10 +931,30 @@ import {
         }
       };
 
+      const fetchWmsSamedayPickupPoints = async () => {
+        setWmsSamedayPickupPointsLoading(true);
+        try {
+          const response = await fetch('/admin/api/wms/sameday-pickup-points?market=ro', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || t('wms.loadPickupPointsFailed'));
+          setWmsSamedayPickupPoints(data.pickupPoints || []);
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          setWmsSamedayPickupPointsLoading(false);
+        }
+      };
+
       const saveWmsOriginAddress = async () => {
         const wmsOriginAddress = wmsOriginAddresses[wmsFocusedMarket];
         const requiredFields = ['companyName', 'address', 'city', 'state', 'zipCode', 'country', 'phone', 'email'];
-        if (requiredFields.some(field => !String(wmsOriginAddress[field] || '').trim())) {
+        if (requiredFields.some(field => !String(wmsOriginAddress[field] || '').trim()) ||
+          (wmsFocusedMarket === 'ro' &&
+            (!String(wmsOriginAddress.samedayPickupPointId || '').trim() ||
+             !Number.isInteger(Number(wmsOriginAddress.samedayPickupPointId)) ||
+             Number(wmsOriginAddress.samedayPickupPointId) <= 0))) {
           return alert(t('wms.originRequiredError'));
         }
         setWmsOriginSaving(true);
@@ -3324,6 +3347,39 @@ import {
                           </label>
                         ))}
                       </div>
+                      {wmsFocusedMarket === 'ro' && (
+                        <div style={{marginTop:'14px',padding:'12px',border:'1px solid #b8daff',borderRadius:'6px',background:'#fff'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'12px'}}>
+                            <label style={{flex:1,fontSize:'12px',fontWeight:600,color:'#495057'}}>
+                              {t('wms.samedayPickupPoint')} *
+                              <select
+                                value={activeOriginAddress.samedayPickupPointId || ''}
+                                onChange={e=>setWmsOriginAddresses(previous=>({...previous,[wmsFocusedMarket]:{...previous[wmsFocusedMarket],samedayPickupPointId:e.target.value}}))}
+                                required
+                                style={{display:'block',width:'100%',boxSizing:'border-box',padding:'9px',marginTop:'4px',border:'1px solid #ced4da',borderRadius:'5px',background:'white'}}
+                              >
+                                <option value="">{t('wms.selectPickupPoint')}</option>
+                                {wmsSamedayPickupPoints.map(point => (
+                                  <option key={point.id} value={point.id}>
+                                    {point.id} · {point.name} · {point.city} · {point.address}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <button
+                              onClick={fetchWmsSamedayPickupPoints}
+                              disabled={wmsSamedayPickupPointsLoading}
+                              className="btn"
+                              style={{width:'auto',padding:'8px 12px',background:'#0d6efd'}}
+                            >
+                              {wmsSamedayPickupPointsLoading ? t('wms.loading') : t('wms.loadPickupPoints')}
+                            </button>
+                          </div>
+                          <p style={{margin:'8px 0 0',fontSize:'12px',color:'#6c757d'}}>
+                            {t('wms.samedayPickupPointHint')}
+                          </p>
+                        </div>
+                      )}
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px',marginTop:'14px'}}>
                         <span style={{fontSize:'12px',color:'#6c757d'}}>{t('wms.stateHint')}</span>
                         <button onClick={saveWmsOriginAddress} disabled={wmsOriginSaving} className="btn" style={{width:'auto',padding:'8px 16px',background:'#198754'}}>

@@ -11102,6 +11102,11 @@
       country: "Country (ISO code, e.g. RO)",
       phone: "International phone",
       email: "Logistics email",
+      samedayPickupPoint: "Sameday pickup point",
+      selectPickupPoint: "Select the configured Sameday pickup point",
+      loadPickupPoints: "Load pickup points",
+      loadPickupPointsFailed: "Failed to load Sameday pickup points.",
+      samedayPickupPointHint: "Choose the exact pickup point from the live Sameday account. AWB requests will use this ID and will not fall back to another point.",
       stateHint: 'Use the official department or region code in the "County" field.',
       savingOrigin: "Saving...",
       saveOrigin: "Save .fr origin",
@@ -11147,7 +11152,7 @@
       noRequests: "No WMS requests recorded.",
       loadOriginFailed: "Failed to load WMS origin address.",
       saveOriginFailed: "Failed to save WMS origin address.",
-      originRequiredError: "Complete all required logistics address fields.",
+      originRequiredError: "Complete all required logistics address fields, including the Sameday pickup point for .ro.",
       originSaved: "The logistics origin address for {{market}} was saved.",
       loadFailed: "Failed to load WMS.",
       createPartnerFailed: "Failed to create partner.",
@@ -11907,6 +11912,11 @@
       country: "\u021Aar\u0103 (cod ISO, ex. RO)",
       phone: "Telefon interna\u021Bional",
       email: "Email logistic\u0103",
+      samedayPickupPoint: "Punct de ridicare Sameday",
+      selectPickupPoint: "Selecteaz\u0103 punctul Sameday configurat",
+      loadPickupPoints: "\xCEncarc\u0103 punctele de ridicare",
+      loadPickupPointsFailed: "Punctele de ridicare Sameday nu au putut fi \xEEnc\u0103rcate.",
+      samedayPickupPointHint: "Alege punctul exact din contul Sameday live. Cererile AWB vor folosi acest ID \u0219i nu vor face fallback la alt punct.",
       stateHint: "Folose\u0219te codul oficial al departamentului/regiunii \xEEn c\xE2mpul \u201EJude\u021B\u201D.",
       savingOrigin: "Se salveaz\u0103...",
       saveOrigin: "Salveaz\u0103 originea .fr",
@@ -11952,7 +11962,7 @@
       noRequests: "Nu exist\u0103 requesturi WMS \xEEnregistrate.",
       loadOriginFailed: "Nu s-a putut \xEEnc\u0103rca adresa de origine WMS.",
       saveOriginFailed: "Nu s-a putut salva adresa de origine WMS.",
-      originRequiredError: "Completeaz\u0103 toate c\xE2mpurile obligatorii ale adresei logistice.",
+      originRequiredError: "Completeaz\u0103 toate c\xE2mpurile obligatorii ale adresei logistice, inclusiv punctul Sameday pentru .ro.",
       originSaved: "Adresa de origine logistic\u0103 pentru {{market}} a fost salvat\u0103.",
       loadFailed: "Nu s-a putut \xEEnc\u0103rca WMS.",
       createPartnerFailed: "Partenerul nu a putut fi creat.",
@@ -12712,6 +12722,11 @@
       country: "Pays (code ISO, ex. RO)",
       phone: "T\xE9l\xE9phone international",
       email: "Email logistique",
+      samedayPickupPoint: "Point de retrait Sameday",
+      selectPickupPoint: "S\xE9lectionner le point Sameday configur\xE9",
+      loadPickupPoints: "Charger les points de retrait",
+      loadPickupPointsFailed: "Impossible de charger les points de retrait Sameday.",
+      samedayPickupPointHint: "Choisissez le point exact dans le compte Sameday actif. Les demandes AWB utiliseront cet identifiant sans fallback vers un autre point.",
       stateHint: "Utilisez le code officiel du d\xE9partement ou de la r\xE9gion dans le champ \xAB D\xE9partement \xBB.",
       savingOrigin: "Enregistrement...",
       saveOrigin: "Enregistrer l'origine .fr",
@@ -12757,7 +12772,7 @@
       noRequests: "Aucune requ\xEAte WMS enregistr\xE9e.",
       loadOriginFailed: "Impossible de charger l'adresse d'origine WMS.",
       saveOriginFailed: "Impossible d'enregistrer l'adresse d'origine WMS.",
-      originRequiredError: "Renseignez tous les champs obligatoires de l'adresse logistique.",
+      originRequiredError: "Renseignez tous les champs obligatoires de l'adresse logistique, y compris le point Sameday pour .ro.",
       originSaved: "L'adresse d'origine logistique pour {{market}} a \xE9t\xE9 enregistr\xE9e.",
       loadFailed: "Impossible de charger le WMS.",
       createPartnerFailed: "Impossible de cr\xE9er le partenaire.",
@@ -13307,12 +13322,14 @@
     const [wmsOrderTimeline, setWmsOrderTimeline] = (0, import_react13.useState)(null);
     const [wmsFocusedMarket, setWmsFocusedMarket] = (0, import_react13.useState)("ro");
     const [wmsOriginAddresses, setWmsOriginAddresses] = (0, import_react13.useState)({
-      ro: { market: "ro", companyName: "", address: "", city: "", state: "", zipCode: "", country: "RO", phone: "", email: "" },
-      fr: { market: "fr", companyName: "", address: "", city: "", state: "", zipCode: "", country: "FR", phone: "", email: "" },
-      com: { market: "com", companyName: "", address: "", city: "", state: "", zipCode: "", country: "RO", phone: "", email: "" }
+      ro: { market: "ro", samedayPickupPointId: "", companyName: "", address: "", city: "", state: "", zipCode: "", country: "RO", phone: "", email: "" },
+      fr: { market: "fr", samedayPickupPointId: "", companyName: "", address: "", city: "", state: "", zipCode: "", country: "FR", phone: "", email: "" },
+      com: { market: "com", samedayPickupPointId: "", companyName: "", address: "", city: "", state: "", zipCode: "", country: "RO", phone: "", email: "" }
     });
     const [wmsOriginLoading, setWmsOriginLoading] = (0, import_react13.useState)(false);
     const [wmsOriginSaving, setWmsOriginSaving] = (0, import_react13.useState)(false);
+    const [wmsSamedayPickupPoints, setWmsSamedayPickupPoints] = (0, import_react13.useState)([]);
+    const [wmsSamedayPickupPointsLoading, setWmsSamedayPickupPointsLoading] = (0, import_react13.useState)(false);
     const [users, setUsers] = (0, import_react13.useState)([]);
     const [products, setProducts] = (0, import_react13.useState)([]);
     const [categories, setCategories] = (0, import_react13.useState)([]);
@@ -13772,7 +13789,8 @@
               zipCode: "",
               country: market === "fr" ? "FR" : "RO",
               phone: "",
-              email: ""
+              email: "",
+              samedayPickupPointId: ""
             }
           };
         }));
@@ -13786,10 +13804,25 @@
         setWmsOriginLoading(false);
       }
     };
+    const fetchWmsSamedayPickupPoints = async () => {
+      setWmsSamedayPickupPointsLoading(true);
+      try {
+        const response = await fetch("/admin/api/wms/sameday-pickup-points?market=ro", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || t2("wms.loadPickupPointsFailed"));
+        setWmsSamedayPickupPoints(data.pickupPoints || []);
+      } catch (error2) {
+        alert(error2.message);
+      } finally {
+        setWmsSamedayPickupPointsLoading(false);
+      }
+    };
     const saveWmsOriginAddress = async () => {
       const wmsOriginAddress = wmsOriginAddresses[wmsFocusedMarket];
       const requiredFields = ["companyName", "address", "city", "state", "zipCode", "country", "phone", "email"];
-      if (requiredFields.some((field) => !String(wmsOriginAddress[field] || "").trim())) {
+      if (requiredFields.some((field) => !String(wmsOriginAddress[field] || "").trim()) || wmsFocusedMarket === "ro" && (!String(wmsOriginAddress.samedayPickupPointId || "").trim() || !Number.isInteger(Number(wmsOriginAddress.samedayPickupPointId)) || Number(wmsOriginAddress.samedayPickupPointId) <= 0)) {
         return alert(t2("wms.originRequiredError"));
       }
       setWmsOriginSaving(true);
@@ -15969,6 +16002,46 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                     }
                   )
                 ] }, field)) }),
+                wmsFocusedMarket === "ro" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "14px", padding: "12px", border: "1px solid #b8daff", borderRadius: "6px", background: "#fff" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "12px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { flex: 1, fontSize: "12px", fontWeight: 600, color: "#495057" }, children: [
+                      t2("wms.samedayPickupPoint"),
+                      " *",
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                        "select",
+                        {
+                          value: activeOriginAddress.samedayPickupPointId || "",
+                          onChange: (e2) => setWmsOriginAddresses((previous) => ({ ...previous, [wmsFocusedMarket]: { ...previous[wmsFocusedMarket], samedayPickupPointId: e2.target.value } })),
+                          required: true,
+                          style: { display: "block", width: "100%", boxSizing: "border-box", padding: "9px", marginTop: "4px", border: "1px solid #ced4da", borderRadius: "5px", background: "white" },
+                          children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("wms.selectPickupPoint") }),
+                            wmsSamedayPickupPoints.map((point) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: point.id, children: [
+                              point.id,
+                              " \xB7 ",
+                              point.name,
+                              " \xB7 ",
+                              point.city,
+                              " \xB7 ",
+                              point.address
+                            ] }, point.id))
+                          ]
+                        }
+                      )
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        onClick: fetchWmsSamedayPickupPoints,
+                        disabled: wmsSamedayPickupPointsLoading,
+                        className: "btn",
+                        style: { width: "auto", padding: "8px 12px", background: "#0d6efd" },
+                        children: wmsSamedayPickupPointsLoading ? t2("wms.loading") : t2("wms.loadPickupPoints")
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "8px 0 0", fontSize: "12px", color: "#6c757d" }, children: t2("wms.samedayPickupPointHint") })
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginTop: "14px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: t2("wms.stateHint") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: saveWmsOriginAddress, disabled: wmsOriginSaving, className: "btn", style: { width: "auto", padding: "8px 16px", background: "#198754" }, children: wmsOriginSaving ? t2("wms.savingOrigin") : t2("wms.saveOrigin") })

@@ -341,6 +341,10 @@ export const marketFulfillment = pgTable("market_fulfillment", {
 export const wmsOriginAddresses = pgTable("wms_origin_addresses", {
   id: serial("id").primaryKey(),
   market: varchar("market", { length: 10 }).notNull().unique(),
+  // Provider-owned pickup point used by the Romanian Sameday account.
+  // It is intentionally stored with the market-scoped logistics origin,
+  // rather than using a global or hardcoded courier setting.
+  samedayPickupPointId: integer("sameday_pickup_point_id"),
   companyName: varchar("company_name", { length: 255 }).notNull(),
   address: text("address").notNull(),
   city: varchar("city", { length: 100 }).notNull(),
@@ -668,7 +672,9 @@ export const homepageHeroSettings = pgTable("homepage_hero_settings", {
 export const shippingSettings = pgTable("shipping_settings", {
   id: serial("id").primaryKey(),
   companyName: varchar("company_name", { length: 100 }).notNull().default("Sameday Courier"),
-  pickupPointCode: varchar("pickup_point_code", { length: 50 }).notNull().default("447249"),
+  // Kept for compatibility with the legacy shipping-settings screen.
+  // Romanian AWB creation uses wms_origin_addresses.samedayPickupPointId.
+  pickupPointCode: varchar("pickup_point_code", { length: 50 }).notNull().default(""),
   username: varchar("username", { length: 100 }).notNull(),
   password: varchar("password", { length: 255 }).notNull(),
   apiBaseUrl: varchar("api_base_url", { length: 255 }).default("https://api.sameday.ro"),

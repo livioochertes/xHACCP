@@ -101,7 +101,7 @@ export default function ShippingSettings({ token }: ShippingSettingsProps) {
     resolver: zodResolver(parcelCompanySettingsSchema),
     defaultValues: {
       companyName: parcelSettings?.companyName || 'Sameday Courier',
-      pickupPointCode: parcelSettings?.pickupPointCode || '447249',
+      pickupPointCode: parcelSettings?.pickupPointCode || '',
       username: parcelSettings?.username || '',
       password: parcelSettings?.password || '',
       apiBaseUrl: parcelSettings?.apiBaseUrl || 'https://api.sameday.ro',
@@ -123,7 +123,7 @@ export default function ShippingSettings({ token }: ShippingSettingsProps) {
   if (parcelSettings && !parcelForm.formState.isDirty) {
     parcelForm.reset({
       companyName: parcelSettings.companyName || 'Sameday Courier',
-      pickupPointCode: parcelSettings.pickupPointCode || '447249',
+      pickupPointCode: parcelSettings.pickupPointCode || '',
       username: parcelSettings.username || '',
       password: parcelSettings.password || '',
       apiBaseUrl: parcelSettings.apiBaseUrl || 'https://api.sameday.ro',
@@ -340,7 +340,7 @@ export default function ShippingSettings({ token }: ShippingSettingsProps) {
                     <FormItem>
                       <FormLabel>Pick Up Point Code</FormLabel>
                       <FormControl>
-                        <Input placeholder="447249" {...field} />
+                        <Input placeholder="Configured in WMS → .ro" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

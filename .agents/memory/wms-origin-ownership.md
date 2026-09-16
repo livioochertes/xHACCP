@@ -13,4 +13,4 @@ For Sameday `.ro`, resolve the pickup point and contact context from the configu
 
 **Why:** The WMS origin is now the shared operational source for carrier integrations, while company settings remain commercial and invoice-facing data.
 
-**How to apply:** Match the configured address/contact against the carrier's available pickup points when possible, retain a controlled legacy pickup-point fallback only when no match exists, and still block AWB creation when the Romanian origin is absent.
+**How to apply:** Require an explicit provider pickup-point ID in the Romanian WMS origin, validate it against the live carrier list, and block AWB creation when it is missing or unavailable; never fall back to another point.

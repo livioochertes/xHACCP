@@ -47,6 +47,7 @@ import {
 } from "./composite-products";
 import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
 import { createPayPalOrder, getPayPalOrder, capturePayPalOrder, paypalApprovalUrl, paypalCreateRequestId, reconcilePayPalPayment, handlePayPalWebhook } from "./paypal";
+import { getRomanianSamedayShippingContext } from "./sameday-shipping";
 
 const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
 const EVENT_VOUCHER_CAMPAIGN_DEFAULTS = {
@@ -3058,14 +3059,14 @@ Sitemap: https://${domain}/sitemap.xml
                 const currentOrder = await storage.getOrder(orderId);
                 if (currentOrder && !currentOrder.awbNumber) {
                   console.log(`📦 Generating AWB for order #${orderId}...`);
-                  const [pickupPoints, services] = await Promise.all([
-                    samedayAPI.getPickupPoints(),
+                  const [shippingContext, services] = await Promise.all([
+                    getRomanianSamedayShippingContext(samedayAPI),
                     samedayAPI.getServices()
                   ]);
-                  console.log(`📦 Pickup points: ${pickupPoints.length}, Services: ${services.length}`);
+                  console.log(`📦 Using configured pickup point ${shippingContext.pickupPoint.id}; Services: ${services.length}`);
 
-                  if (pickupPoints.length > 0 && services.length > 0) {
-                    const selectedPickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
+                  if (services.length > 0) {
+                    const selectedPickupPoint = shippingContext.pickupPoint;
                     const parcels: any[] = [];
                     let parcelCounter = 1;
 
@@ -3086,7 +3087,7 @@ Sitemap: https://${domain}/sitemap.xml
                     }
 
                     const totalAmount = parseFloat(String(currentOrder.totalAmount));
-                    const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
+                    const defaultContact = shippingContext.contactPerson;
                     const awbData: any = {
                       pickupPoint: selectedPickupPoint.id,
                       contactPerson: defaultContact?.id,
@@ -3303,14 +3304,10 @@ Sitemap: https://${domain}/sitemap.xml
       }
 
       // Get pickup points and services
-      const [pickupPoints, services] = await Promise.all([
-        samedayAPI.getPickupPoints(),
+      const [shippingContext, services] = await Promise.all([
+        getRomanianSamedayShippingContext(samedayAPI),
         samedayAPI.getServices()
       ]);
-
-      if (pickupPoints.length === 0) {
-        return res.status(500).json({ message: "No pickup points configured for Sameday" });
-      }
 
       if (services.length === 0) {
         return res.status(500).json({ message: "No services configured for Sameday" });
@@ -3320,13 +3317,15 @@ Sitemap: https://${domain}/sitemap.xml
       const billingAddr1 = order.billingAddress as any;
       const isB2B1 = !!(billingAddr1?.companyName);
 
-      console.log('📦 Available pickup points:', pickupPoints.length);
-      console.log('📦 First 3 pickup points:', pickupPoints.slice(0, 3).map(p => ({ id: p.id, name: p.name, county: p.county })));
+      console.log('📦 Using configured pickup point:', {
+        id: shippingContext.pickupPoint.id,
+        name: shippingContext.pickupPoint.name,
+        address: shippingContext.pickupPoint.address,
+      });
       console.log('🚚 Available services:', services.length);
       console.log('🚚 First 3 services:', services.slice(0, 3).map(s => ({ id: s.id, name: s.name })));
       
-      // Use specified pickup point code 447249
-      const selectedPickupPoint = pickupPoints.find(p => p.id === 447249) || pickupPoints[0];
+      const selectedPickupPoint = shippingContext.pickupPoint;
       const selectedService = services.find(s => s.name.toLowerCase().includes('standard')) || services[0];
       
       console.log('📦 Selected pickup point:', { id: selectedPickupPoint.id, name: selectedPickupPoint.name });
@@ -3426,7 +3425,8 @@ Sitemap: https://${domain}/sitemap.xml
       const adminTotalAmount = parseFloat(order.totalAmount.toString());
 
       const awbData = {
-        pickupPoint: 447249,
+        pickupPoint: selectedPickupPoint.id,
+        ...(shippingContext.contactPerson?.id ? { contactPerson: shippingContext.contactPerson.id } : {}),
         service: 7,
         packageType: 0,
         packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
@@ -4546,51 +4546,20 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         return null;
       }
 
-      const [roOriginAddress] = await db.select().from(wmsOriginAddresses)
-        .where(eq(wmsOriginAddresses.market, "ro"))
-        .limit(1);
-      if (!roOriginAddress) {
-        throw new Error("Sameday origin address is not configured for the Romanian logistics integration");
-      }
-
-      const [pickupPoints, services] = await Promise.all([
-        samedayAPI.getPickupPoints(),
+      const [shippingContext, services] = await Promise.all([
+        getRomanianSamedayShippingContext(samedayAPI),
         samedayAPI.getServices()
       ]);
 
-      if (pickupPoints.length === 0 || services.length === 0) {
-        console.error('AWB: No pickup points or services available');
+      if (services.length === 0) {
+        console.error('AWB: No Sameday services available');
         return null;
       }
 
       const shippingAddr = order.shippingAddress as any;
       const billingAddr2 = order.billingAddress as any;
       const isB2B2 = !!(billingAddr2?.companyName);
-      const normalizedOriginAddress = String(roOriginAddress.address || '').trim().toLowerCase();
-      const normalizedOriginCity = String(roOriginAddress.city || '').trim().toLowerCase();
-      const configuredPickupPoint = pickupPoints.find(point => {
-        const pointAddress = String(point.address || '').trim().toLowerCase();
-        const pointCity = String(point.city || '').trim().toLowerCase();
-        return Boolean(
-          normalizedOriginAddress &&
-          pointAddress &&
-          (pointAddress.includes(normalizedOriginAddress) || normalizedOriginAddress.includes(pointAddress)) &&
-          normalizedOriginCity &&
-          pointCity &&
-          (pointCity.includes(normalizedOriginCity) || normalizedOriginCity.includes(pointCity))
-        );
-      });
-      const selectedPickupPoint = configuredPickupPoint || pickupPoints.find(p => p.id === 447249) || pickupPoints[0];
-      const normalizedOriginEmail = String(roOriginAddress.email || '').trim().toLowerCase();
-      const normalizedOriginPhone = String(roOriginAddress.phone || '').replace(/\D/g, '');
-      const configuredContactPerson = selectedPickupPoint.contactPersons?.find(contact => {
-        const contactEmail = String(contact.email || '').trim().toLowerCase();
-        const contactPhone = String(contact.phone || '').replace(/\D/g, '');
-        return (
-          (normalizedOriginEmail && contactEmail === normalizedOriginEmail) ||
-          (normalizedOriginPhone && contactPhone && contactPhone.endsWith(normalizedOriginPhone.slice(-8)))
-        );
-      }) || selectedPickupPoint.contactPersons?.find(contact => contact.default);
+      const selectedPickupPoint = shippingContext.pickupPoint;
 
       const parcels: any[] = [];
       let parcelCounter = 1;
@@ -4651,7 +4620,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       const awbData = {
         pickupPoint: selectedPickupPoint.id,
-        ...(configuredContactPerson?.id ? { contactPerson: configuredContactPerson.id } : {}),
+        ...(shippingContext.contactPerson?.id ? { contactPerson: shippingContext.contactPerson.id } : {}),
         service: 7,
         packageType: 0,
         packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),

@@ -35,6 +35,11 @@ import {
   WMS_MARKETS,
   WMS_SCOPES,
 } from "./wms-service";
+import { createSamedayAPI } from "./sameday-api";
+import {
+  getRomanianSamedayShippingContext,
+  serializeSamedayPickupPoints,
+} from "./sameday-shipping";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -698,12 +703,41 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  app.get("/admin/api/wms/sameday-pickup-points", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const market = String(req.query.market || "ro").trim().toLowerCase();
+    if (market !== "ro" || !canAccessMarket(req, market)) {
+      return res.status(403).json({ message: "Access denied for this market" });
+    }
+    try {
+      const samedayAPI = createSamedayAPI();
+      if (!samedayAPI) {
+        return res.status(503).json({ message: "Sameday API is not configured" });
+      }
+      const [pickupPoints, origins] = await Promise.all([
+        samedayAPI.getPickupPoints(),
+        db.select({ samedayPickupPointId: wmsOriginAddresses.samedayPickupPointId })
+          .from(wmsOriginAddresses)
+          .where(eq(wmsOriginAddresses.market, "ro"))
+          .limit(1),
+      ]);
+      res.json({
+        pickupPoints: serializeSamedayPickupPoints(pickupPoints, origins[0]?.samedayPickupPointId),
+      });
+    } catch (error) {
+      console.error("[Admin WMS] Sameday pickup point load failed", error);
+      res.status(502).json({ message: "Failed to load Sameday pickup points" });
+    }
+  });
+
   app.put("/admin/api/wms/origin-address", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     const market = String(req.query.market || req.body?.market || "fr").trim().toLowerCase();
     if (!WMS_MARKETS.includes(market as any) || !canAccessMarket(req, market)) {
       return res.status(403).json({ message: "Access denied for this market" });
     }
 
+    const requestedPickupPointId = market === "ro"
+      ? Number(req.body?.samedayPickupPointId)
+      : undefined;
     const fields = {
       companyName: String(req.body?.companyName || "").trim(),
       address: String(req.body?.address || "").trim(),
@@ -713,6 +747,7 @@ export async function registerAdminRoutes(app: Express) {
       country: String(req.body?.country || "").trim().toUpperCase(),
       phone: String(req.body?.phone || "").trim(),
       email: String(req.body?.email || "").trim(),
+      samedayPickupPointId: requestedPickupPointId,
     };
     if (Object.values(fields).some(value => !value)) {
       return res.status(400).json({ message: "Toate câmpurile adresei logistice sunt obligatorii" });
@@ -722,6 +757,13 @@ export async function registerAdminRoutes(app: Express) {
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) {
       return res.status(400).json({ message: "Adresa de email logistică nu este validă" });
+    }
+    if (market === "ro") {
+      if (typeof requestedPickupPointId !== "number" ||
+          !Number.isInteger(requestedPickupPointId) ||
+          requestedPickupPointId <= 0) {
+        return res.status(400).json({ message: "ID-ul punctului Sameday este obligatoriu și trebuie să fie un număr pozitiv" });
+      }
     }
 
     try {
@@ -1843,19 +1885,19 @@ export async function registerAdminRoutes(app: Express) {
                   const currentOrder = await storage.getOrder(orderId);
                   if (currentOrder && !currentOrder.awbNumber) {
                     console.log(`📦 [Background] Fetching pickup points and services...`);
-                    const [pickupPoints, services] = await Promise.all([
-                      samedayAPI.getPickupPoints(),
+                    const [shippingContext, services] = await Promise.all([
+                      getRomanianSamedayShippingContext(samedayAPI),
                       samedayAPI.getServices()
                     ]);
-                    console.log(`📦 [Background] Pickup points: ${pickupPoints.length}, Services: ${services.length}`);
+                    console.log(`📦 [Background] Using configured pickup point ${shippingContext.pickupPoint.id}; Services: ${services.length}`);
 
-                    if (pickupPoints.length > 0 && services.length > 0) {
-                      const selectedPickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
+                    if (services.length > 0) {
+                      const selectedPickupPoint = shippingContext.pickupPoint;
                       const parcels = await buildCombinedParcels(currentOrder.items || [], storage);
                       console.log(`📦 [Background] Combined parcels: ${parcels.length} parcel(s) for ${(currentOrder.items || []).length} item(s)`);
 
                       const totalAmount = parseFloat(String(currentOrder.totalAmount));
-                      const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
+                      const defaultContact = shippingContext.contactPerson;
                       const preferredService = services.find((s: any) => {
                         const name = s.name?.toLowerCase() || '';
                         if (name.includes('retur') || name.includes('return')) return false;
@@ -2283,12 +2325,12 @@ export async function registerAdminRoutes(app: Express) {
               if (samedayAPI) {
                 const currentOrder = await storage.getOrder(orderId);
                 if (currentOrder && !currentOrder.awbNumber) {
-                  const [pickupPoints, services] = await Promise.all([
-                    samedayAPI.getPickupPoints(),
+                  const [shippingContext, services] = await Promise.all([
+                    getRomanianSamedayShippingContext(samedayAPI),
                     samedayAPI.getServices(),
                   ]);
-                  if (pickupPoints.length > 0 && services.length > 0) {
-                    const selectedPickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
+                  if (services.length > 0) {
+                    const selectedPickupPoint = shippingContext.pickupPoint;
                     const parcels = await buildCombinedParcels(currentOrder.items || [], storage);
                     const preferredService = services.find((s: any) => {
                       const name = s.name?.toLowerCase() || '';
@@ -2296,7 +2338,7 @@ export async function registerAdminRoutes(app: Express) {
                       return name.includes('standard') || name.includes('next day');
                     });
                     const standardService = preferredService || services[0];
-                    const defaultContact = selectedPickupPoint.contactPersons?.find((c: any) => c.default) || selectedPickupPoint.contactPersons?.[0];
+                    const defaultContact = shippingContext.contactPerson;
                     const isB2B = !!(billingAddr?.companyName);
                     const awbData: any = {
                       pickupPoint: selectedPickupPoint.id,
@@ -4855,20 +4897,16 @@ export async function registerAdminRoutes(app: Express) {
       const awbGenerationPromise = async () => {
         // Get real pickup points and services from Sameday API
         console.log('📍 Fetching pickup points and services from Sameday API...');
-        const [pickupPoints, services] = await Promise.all([
-          samedayAPI.getPickupPoints(),
+        const [shippingContext, services] = await Promise.all([
+          getRomanianSamedayShippingContext(samedayAPI),
           samedayAPI.getServices()
         ]);
-
-        if (pickupPoints.length === 0) {
-          throw new Error("No pickup points configured in Sameday account");
-        }
 
         if (services.length === 0) {
           throw new Error("No services configured in Sameday account");
         }
 
-        const pickupPoint = pickupPoints.find((p: any) => p.id === 447249) || pickupPoints[0];
+        const pickupPoint = shippingContext.pickupPoint;
         const preferredManualService = services.find((s: any) => {
           const name = s.name?.toLowerCase() || '';
           if (name.includes('retur') || name.includes('return')) return false;
@@ -4946,7 +4984,7 @@ export async function registerAdminRoutes(app: Express) {
         const manualTotalAmount = parseFloat(String(order.totalAmount));
         const awbRequest = {
           pickupPoint: pickupPoint.id,
-          contactPerson: pickupPoint.contactPersons?.[0]?.id || null,
+          contactPerson: shippingContext.contactPerson?.id || null,
           service: service.id,
           packageType: 0,
           packageWeight: 1,
@@ -6349,7 +6387,7 @@ export async function registerAdminRoutes(app: Express) {
       const settings = await storage.getShippingSettings();
       res.json(settings || {
         companyName: 'Sameday Courier',
-        pickupPointCode: '447249',
+        pickupPointCode: '',
         username: '',
         password: '',
         apiBaseUrl: 'https://api.sameday.ro',
