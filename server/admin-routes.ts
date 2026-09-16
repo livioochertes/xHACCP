@@ -3,7 +3,7 @@ import { storage } from "./storage";
 import { db, pool } from "./db";
 import {
   companySettings, suppliers, productMarkets, invoices, products as productsTable, productTranslations,
-  fulfillmentPartners, marketFulfillment, wmsApiKeys, wmsAuditLogs, wmsShipments, wmsOrderEvents, orders,
+  fulfillmentPartners, marketFulfillment, wmsOriginAddresses, wmsApiKeys, wmsAuditLogs, wmsShipments, wmsOrderEvents, orders,
 } from "@shared/schema";
 import { desc, eq, and, inArray, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -679,6 +679,63 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("[Admin WMS] overview failed", error);
       res.status(500).json({ message: "Failed to load WMS overview" });
+    }
+  });
+
+  app.get("/admin/api/wms/origin-address", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const market = String(req.query.market || "fr").trim().toLowerCase();
+    if (!WMS_MARKETS.includes(market as any) || !canAccessMarket(req, market)) {
+      return res.status(403).json({ message: "Access denied for this market" });
+    }
+    try {
+      const [originAddress] = await db.select().from(wmsOriginAddresses)
+        .where(eq(wmsOriginAddresses.market, market))
+        .limit(1);
+      res.json({ originAddress: originAddress || null });
+    } catch (error) {
+      console.error("[Admin WMS] origin address load failed", error);
+      res.status(500).json({ message: "Failed to load WMS origin address" });
+    }
+  });
+
+  app.put("/admin/api/wms/origin-address", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const market = String(req.query.market || req.body?.market || "fr").trim().toLowerCase();
+    if (!WMS_MARKETS.includes(market as any) || !canAccessMarket(req, market)) {
+      return res.status(403).json({ message: "Access denied for this market" });
+    }
+
+    const fields = {
+      companyName: String(req.body?.companyName || "").trim(),
+      address: String(req.body?.address || "").trim(),
+      city: String(req.body?.city || "").trim(),
+      state: String(req.body?.state || "").trim(),
+      zipCode: String(req.body?.zipCode || "").trim(),
+      country: String(req.body?.country || "").trim().toUpperCase(),
+      phone: String(req.body?.phone || "").trim(),
+      email: String(req.body?.email || "").trim(),
+    };
+    if (Object.values(fields).some(value => !value)) {
+      return res.status(400).json({ message: "Toate câmpurile adresei logistice sunt obligatorii" });
+    }
+    if (!/^[A-Z]{2}$/.test(fields.country)) {
+      return res.status(400).json({ message: "Țara trebuie introdusă ca un cod ISO din două litere" });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) {
+      return res.status(400).json({ message: "Adresa de email logistică nu este validă" });
+    }
+
+    try {
+      const [originAddress] = await db.insert(wmsOriginAddresses)
+        .values({ market, ...fields })
+        .onConflictDoUpdate({
+          target: wmsOriginAddresses.market,
+          set: { ...fields, updatedAt: new Date() },
+        })
+        .returning();
+      res.json({ originAddress });
+    } catch (error) {
+      console.error("[Admin WMS] origin address save failed", error);
+      res.status(500).json({ message: "Failed to save WMS origin address" });
     }
   });
 

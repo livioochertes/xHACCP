@@ -7,7 +7,7 @@ import {
   optionalAuth,
   type AuthRequest,
 } from "./authentication";
-import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users, invoiceItems, orders, invoices, type CompositeConfiguration, type InsertCartItem } from "@shared/schema";
+import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users, invoiceItems, invoices, orders, wmsOriginAddresses, type CompositeConfiguration, type InsertCartItem } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcrypt";
@@ -4379,23 +4379,23 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
     const shippingAddress = (order.shippingAddress || {}) as Record<string, any>;
     const billingAddress = (order.billingAddress || {}) as Record<string, any>;
-    const companySettings = await storage.getCompanySettingsByMarket("ro") as any;
-    const roContact = companySettings?.marketContacts?.ro || {};
-    const shipperCountry = normalizeMyFlyingBoxCountry(roContact.country || companySettings?.country, "RO");
-    const shipperState = process.env.MYFLYINGBOX_SHIPPER_STATE_CODE
-      || roContact.state
-      || companySettings?.state
-      || companySettings?.county
-      || "";
+    const [originAddress] = await db.select().from(wmsOriginAddresses)
+      .where(eq(wmsOriginAddresses.market, "fr"))
+      .limit(1);
+    if (!originAddress) {
+      throw new Error("MyFlyingBox origin address is not configured for the French logistics company");
+    }
+
+    const shipperCountry = normalizeMyFlyingBoxCountry(originAddress.country);
     const shipper = {
-      name: roContact.name || companySettings?.contactPerson || companySettings?.name || "",
-      company: companySettings?.name || roContact.name || "",
-      street: roContact.address || companySettings?.address || "",
-      city: roContact.city || companySettings?.city || "",
-      state: shipperState,
-      postal_code: roContact.zipCode || companySettings?.zipCode || "",
-      phone: normalizeMyFlyingBoxPhone(roContact.phone || companySettings?.phone, shipperCountry),
-      email: roContact.email || companySettings?.logisticsEmail || companySettings?.email || "",
+      name: originAddress.companyName,
+      company: originAddress.companyName,
+      street: originAddress.address,
+      city: originAddress.city,
+      state: originAddress.state,
+      postal_code: originAddress.zipCode,
+      phone: normalizeMyFlyingBoxPhone(originAddress.phone, shipperCountry),
+      email: originAddress.email,
       country: shipperCountry,
     };
 

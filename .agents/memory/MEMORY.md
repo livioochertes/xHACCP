@@ -28,3 +28,4 @@
 - [MyFlyingBox address contract](myflyingbox-address-contract.md) — French checkout uses ISO country codes and one official-code département field; Romanian county remains market-specific.
 - [PayPal capture recovery](paypal-capture-recovery.md) — direct PayPal payments need verified webhook reconciliation because a capture can succeed while the browser callback is lost.
 - [Shared auth loading state](shared-auth-loading-state.md) — late subscribers must sync with global auth state or parent UI can remain in an endless loading state.
+- [WMS origin ownership](wms-origin-ownership.md) — logistics origins are market-scoped WMS data, not commercial company settings or environment fallbacks.

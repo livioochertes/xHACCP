@@ -378,6 +378,19 @@ import {
       const [wmsAudit, setWmsAudit] = useState([]);
       const [wmsOrderId, setWmsOrderId] = useState('');
       const [wmsOrderTimeline, setWmsOrderTimeline] = useState(null);
+      const [wmsOriginAddress, setWmsOriginAddress] = useState({
+        market: 'fr',
+        companyName: '',
+        address: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        country: 'RO',
+        phone: '',
+        email: ''
+      });
+      const [wmsOriginLoading, setWmsOriginLoading] = useState(false);
+      const [wmsOriginSaving, setWmsOriginSaving] = useState(false);
       const [users, setUsers] = useState([]);
       const [products, setProducts] = useState([]);
       const [categories, setCategories] = useState([]);
@@ -704,6 +717,7 @@ import {
         }
         else if (activeView === 'company-settings') { fetchCompanySettings(); fetchMarkets(); fetchInvoiceCounters(); }
         else if (activeView === 'marketing') { fetchMarkets(); fetchMarketing(); }
+        else if (activeView === 'wms') { fetchWmsOverview(); }
       }, [selectedMarketTab, i18n.language]);
 
       // Category labels are consumed by the category list, product editor and
@@ -871,6 +885,56 @@ import {
         }
       };
 
+      const fetchWmsOriginAddress = async () => {
+        if (selectedMarketTab !== 'fr' && selectedMarketTab !== 'all') return;
+        setWmsOriginLoading(true);
+        try {
+          const response = await fetch('/admin/api/wms/origin-address?market=fr', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Failed to load WMS origin address');
+          setWmsOriginAddress(data.originAddress || {
+            market: 'fr',
+            companyName: '',
+            address: '',
+            city: '',
+            state: '',
+            zipCode: '',
+            country: 'RO',
+            phone: '',
+            email: ''
+          });
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          setWmsOriginLoading(false);
+        }
+      };
+
+      const saveWmsOriginAddress = async () => {
+        const requiredFields = ['companyName', 'address', 'city', 'state', 'zipCode', 'country', 'phone', 'email'];
+        if (requiredFields.some(field => !String(wmsOriginAddress[field] || '').trim())) {
+          return alert('Completează toate câmpurile obligatorii ale adresei logistice.');
+        }
+        setWmsOriginSaving(true);
+        try {
+          const response = await fetch('/admin/api/wms/origin-address?market=fr', {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...wmsOriginAddress, market: 'fr' })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Failed to save WMS origin address');
+          setWmsOriginAddress(data.originAddress);
+          alert('Adresa de origine pentru MyFlyingBox (.fr) a fost salvată.');
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          setWmsOriginSaving(false);
+        }
+      };
+
       const fetchWmsOverview = async () => {
         setWmsLoading(true);
         try {
@@ -884,6 +948,7 @@ import {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (auditResponse.ok) setWmsAudit(await auditResponse.json());
+          await fetchWmsOriginAddress();
         } catch (error) {
           alert(error.message);
         } finally {
@@ -3060,6 +3125,57 @@ import {
                     {wmsLoading ? 'Se încarcă...' : '↻ Reîncarcă'}
                   </button>
                 </div>
+
+                {(selectedMarketTab === 'fr' || selectedMarketTab === 'all') && (
+                  <div style={{border:'1px solid #b8daff',background:'#f0f7ff',borderRadius:'8px',padding:'18px',marginBottom:'24px'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'16px',marginBottom:'14px'}}>
+                      <div>
+                        <h4 style={{margin:'0 0 6px',color:'#145da0'}}>Origine logistică MyFlyingBox · .fr</h4>
+                        <p style={{margin:0,color:'#495057',fontSize:'13px'}}>
+                          Toate coletele și solicitările MyFlyingBox pentru marketplace-ul francez vor pleca de la această adresă.
+                          Toate câmpurile sunt obligatorii.
+                        </p>
+                      </div>
+                      <span style={{fontSize:'12px',fontWeight:600,color:wmsOriginAddress.id ? '#198754' : '#dc3545',whiteSpace:'nowrap'}}>
+                        {wmsOriginAddress.id ? 'Configurată' : 'Necesară'}
+                      </span>
+                    </div>
+                    {wmsOriginLoading ? (
+                      <p style={{color:'#6c757d'}}>Se încarcă adresa logistică...</p>
+                    ) : (
+                      <>
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:'12px'}}>
+                          {[
+                            ['companyName', 'Nume firmă logistică'],
+                            ['address', 'Adresă / stradă'],
+                            ['city', 'Localitate'],
+                            ['state', 'Județ / departament / regiune'],
+                            ['zipCode', 'Cod poștal'],
+                            ['country', 'Țară (cod ISO, ex. RO)'],
+                            ['phone', 'Telefon internațional'],
+                            ['email', 'Email logistică']
+                          ].map(([field, label]) => (
+                            <label key={field} style={{fontSize:'12px',fontWeight:600,color:'#495057'}}>
+                              {label} *
+                              <input
+                                value={wmsOriginAddress[field] || ''}
+                                onChange={e => setWmsOriginAddress({...wmsOriginAddress, [field]: e.target.value})}
+                                required
+                                style={{display:'block',width:'100%',boxSizing:'border-box',padding:'9px',marginTop:'4px',border:'1px solid #ced4da',borderRadius:'5px',background:'white'}}
+                              />
+                            </label>
+                          ))}
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px',marginTop:'14px'}}>
+                          <span style={{fontSize:'12px',color:'#6c757d'}}>Folosește codul oficial al departamentului/regiunii în câmpul „Județ”.</span>
+                          <button onClick={saveWmsOriginAddress} disabled={wmsOriginSaving} className="btn" style={{width:'auto',padding:'8px 16px',background:'#198754'}}>
+                            {wmsOriginSaving ? 'Se salvează...' : 'Salvează originea .fr'}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 <div style={{display:'grid',gridTemplateColumns:'minmax(280px,1fr) minmax(280px,1fr)',gap:'20px',marginBottom:'24px'}}>
                   <div style={{border:'1px solid #dee2e6',borderRadius:'8px',padding:'18px'}}>

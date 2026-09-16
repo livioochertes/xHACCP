@@ -338,6 +338,21 @@ export const marketFulfillment = pgTable("market_fulfillment", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const wmsOriginAddresses = pgTable("wms_origin_addresses", {
+  id: serial("id").primaryKey(),
+  market: varchar("market", { length: 10 }).notNull().unique(),
+  companyName: varchar("company_name", { length: 255 }).notNull(),
+  address: text("address").notNull(),
+  city: varchar("city", { length: 100 }).notNull(),
+  state: varchar("state", { length: 100 }).notNull(),
+  zipCode: varchar("zip_code", { length: 20 }).notNull(),
+  country: varchar("country", { length: 2 }).notNull(),
+  phone: varchar("phone", { length: 50 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const wmsApiKeys = pgTable("wms_api_keys", {
   id: serial("id").primaryKey(),
   partnerId: integer("partner_id").references(() => fulfillmentPartners.id, { onDelete: "cascade" }).notNull(),

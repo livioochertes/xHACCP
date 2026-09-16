@@ -13050,6 +13050,19 @@
     const [wmsAudit, setWmsAudit] = (0, import_react13.useState)([]);
     const [wmsOrderId, setWmsOrderId] = (0, import_react13.useState)("");
     const [wmsOrderTimeline, setWmsOrderTimeline] = (0, import_react13.useState)(null);
+    const [wmsOriginAddress, setWmsOriginAddress] = (0, import_react13.useState)({
+      market: "fr",
+      companyName: "",
+      address: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      country: "RO",
+      phone: "",
+      email: ""
+    });
+    const [wmsOriginLoading, setWmsOriginLoading] = (0, import_react13.useState)(false);
+    const [wmsOriginSaving, setWmsOriginSaving] = (0, import_react13.useState)(false);
     const [users, setUsers] = (0, import_react13.useState)([]);
     const [products, setProducts] = (0, import_react13.useState)([]);
     const [categories, setCategories] = (0, import_react13.useState)([]);
@@ -13349,6 +13362,8 @@
       } else if (activeView === "marketing") {
         fetchMarkets();
         fetchMarketing();
+      } else if (activeView === "wms") {
+        fetchWmsOverview();
       }
     }, [selectedMarketTab, i18n_default.language]);
     (0, import_react13.useEffect)(() => {
@@ -13475,6 +13490,54 @@
         console.error("Network error fetching orders:", err);
       }
     };
+    const fetchWmsOriginAddress = async () => {
+      if (selectedMarketTab !== "fr" && selectedMarketTab !== "all") return;
+      setWmsOriginLoading(true);
+      try {
+        const response = await fetch("/admin/api/wms/origin-address?market=fr", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Failed to load WMS origin address");
+        setWmsOriginAddress(data.originAddress || {
+          market: "fr",
+          companyName: "",
+          address: "",
+          city: "",
+          state: "",
+          zipCode: "",
+          country: "RO",
+          phone: "",
+          email: ""
+        });
+      } catch (error2) {
+        alert(error2.message);
+      } finally {
+        setWmsOriginLoading(false);
+      }
+    };
+    const saveWmsOriginAddress = async () => {
+      const requiredFields = ["companyName", "address", "city", "state", "zipCode", "country", "phone", "email"];
+      if (requiredFields.some((field) => !String(wmsOriginAddress[field] || "").trim())) {
+        return alert("Completeaz\u0103 toate c\xE2mpurile obligatorii ale adresei logistice.");
+      }
+      setWmsOriginSaving(true);
+      try {
+        const response = await fetch("/admin/api/wms/origin-address?market=fr", {
+          method: "PUT",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ ...wmsOriginAddress, market: "fr" })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Failed to save WMS origin address");
+        setWmsOriginAddress(data.originAddress);
+        alert("Adresa de origine pentru MyFlyingBox (.fr) a fost salvat\u0103.");
+      } catch (error2) {
+        alert(error2.message);
+      } finally {
+        setWmsOriginSaving(false);
+      }
+    };
     const fetchWmsOverview = async () => {
       setWmsLoading(true);
       try {
@@ -13488,6 +13551,7 @@
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (auditResponse.ok) setWmsAudit(await auditResponse.json());
+        await fetchWmsOriginAddress();
       } catch (error2) {
         alert(error2.message);
       } finally {
@@ -15436,6 +15500,43 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", margin: 0 }, children: "Rutare marketplace, chei API \u0219i starea integr\u0103rii logistice." })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { className: "btn", onClick: fetchWmsOverview, style: { width: "auto", padding: "8px 16px", background: "#0d6efd" }, children: wmsLoading ? "Se \xEEncarc\u0103..." : "\u21BB Re\xEEncarc\u0103" })
+            ] }),
+            (selectedMarketTab === "fr" || selectedMarketTab === "all") && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #b8daff", background: "#f0f7ff", borderRadius: "8px", padding: "18px", marginBottom: "24px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "14px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 6px", color: "#145da0" }, children: "Origine logistic\u0103 MyFlyingBox \xB7 .fr" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#495057", fontSize: "13px" }, children: "Toate coletele \u0219i solicit\u0103rile MyFlyingBox pentru marketplace-ul francez vor pleca de la aceast\u0103 adres\u0103. Toate c\xE2mpurile sunt obligatorii." })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: 600, color: wmsOriginAddress.id ? "#198754" : "#dc3545", whiteSpace: "nowrap" }, children: wmsOriginAddress.id ? "Configurat\u0103" : "Necesar\u0103" })
+              ] }),
+              wmsOriginLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: "Se \xEEncarc\u0103 adresa logistic\u0103..." }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "12px" }, children: [
+                  ["companyName", "Nume firm\u0103 logistic\u0103"],
+                  ["address", "Adres\u0103 / strad\u0103"],
+                  ["city", "Localitate"],
+                  ["state", "Jude\u021B / departament / regiune"],
+                  ["zipCode", "Cod po\u0219tal"],
+                  ["country", "\u021Aar\u0103 (cod ISO, ex. RO)"],
+                  ["phone", "Telefon interna\u021Bional"],
+                  ["email", "Email logistic\u0103"]
+                ].map(([field, label]) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { fontSize: "12px", fontWeight: 600, color: "#495057" }, children: [
+                  label,
+                  " *",
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      value: wmsOriginAddress[field] || "",
+                      onChange: (e2) => setWmsOriginAddress({ ...wmsOriginAddress, [field]: e2.target.value }),
+                      required: true,
+                      style: { display: "block", width: "100%", boxSizing: "border-box", padding: "9px", marginTop: "4px", border: "1px solid #ced4da", borderRadius: "5px", background: "white" }
+                    }
+                  )
+                ] }, field)) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginTop: "14px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: "Folose\u0219te codul oficial al departamentului/regiunii \xEEn c\xE2mpul \u201EJude\u021B\u201D." }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: saveWmsOriginAddress, disabled: wmsOriginSaving, className: "btn", style: { width: "auto", padding: "8px 16px", background: "#198754" }, children: wmsOriginSaving ? "Se salveaz\u0103..." : "Salveaz\u0103 originea .fr" })
+                ] })
+              ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(280px,1fr) minmax(280px,1fr)", gap: "20px", marginBottom: "24px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
