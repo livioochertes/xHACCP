@@ -206,7 +206,7 @@ export function WmsRestructure() {
               <p>Alege separat serviciul logistic și curierul folosit pentru comenzile marketplace-ului selectat.</p>
             </div>
             <span className={`status-pill ${routeConfigured ? "success" : "warning"}`}>
-              {routeConfigured ? "3 marketplace-uri urmărite" : "Necesită configurare"}
+              {routeConfigured ? "Rutare activă" : "Necesită configurare"}
             </span>
           </div>
           <div className="routing-panel">
