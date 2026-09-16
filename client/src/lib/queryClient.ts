@@ -1,5 +1,24 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: init.signal ?? controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()).trim();
@@ -56,7 +75,7 @@ export async function apiRequest(
   }
   headers["X-Market"] = getMarketFromHostname();
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
@@ -107,7 +126,7 @@ export const getQueryFn: <T>(options: {
       headers["Authorization"] = `Bearer ${token}`;
     }
     
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       credentials: "include",
       cache: "no-cache",
       headers
