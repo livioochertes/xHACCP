@@ -8,3 +8,9 @@ The shipping origin for an outbound WMS/carrier request must be stored as market
 **Why:** Commercial company settings and environment variables can represent a different legal entity or operational location; using them as an implicit warehouse origin can send parcels from the wrong place.
 
 **How to apply:** Keep the origin editable in the WMS area, authorize reads and writes by market, validate every carrier-required field server-side, and fail before quoting or creating a shipment when the origin is missing or incomplete.
+
+For Sameday `.ro`, resolve the pickup point and contact context from the configured Romanian WMS origin before creating an AWB; do not silently fall back to company settings as the sender identity.
+
+**Why:** The WMS origin is now the shared operational source for carrier integrations, while company settings remain commercial and invoice-facing data.
+
+**How to apply:** Match the configured address/contact against the carrier's available pickup points when possible, retain a controlled legacy pickup-point fallback only when no match exists, and still block AWB creation when the Romanian origin is absent.

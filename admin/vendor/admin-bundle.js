@@ -11078,10 +11078,19 @@
     wms: {
       title: "WMS partners",
       description: "Manage marketplace routing, API keys, and logistics integration status.",
+      marketSelection: "WMS marketplace",
+      marketSelectionHint: "Choose a marketplace to view and edit only its logistics configuration.",
+      activeMarket: "Active marketplace",
+      partnerListDescription: "Select a logistics provider to open its keys and information.",
+      providersCount: "providers",
+      noMarketPartners: "No logistics providers are routed to this marketplace yet.",
+      partnerDetails: "Provider details",
+      selectPartnerPrompt: "Select a provider from the list to view its information.",
+      routingForMarketDescription: "These routing settings apply only to orders from {{market}}.",
       reload: "Reload",
       loading: "Loading...",
-      originTitle: "MyFlyingBox logistics origin \xB7 .fr",
-      originDescription: "All MyFlyingBox parcels and requests for the French marketplace will originate from this address. Every field is required.",
+      originTitle: "Logistics origin \xB7 {{market}}",
+      originDescription: "This is the address used for outbound deliveries and carrier integrations on {{market}}. Every field is required.",
       configured: "Configured",
       required: "Required",
       originLoading: "Loading logistics address...",
@@ -11139,7 +11148,7 @@
       loadOriginFailed: "Failed to load WMS origin address.",
       saveOriginFailed: "Failed to save WMS origin address.",
       originRequiredError: "Complete all required logistics address fields.",
-      originSaved: "The MyFlyingBox origin address for .fr was saved.",
+      originSaved: "The logistics origin address for {{market}} was saved.",
       loadFailed: "Failed to load WMS.",
       createPartnerFailed: "Failed to create partner.",
       updateRoutingFailed: "Failed to update routing.",
@@ -11874,10 +11883,19 @@
     wms: {
       title: "Parteneri WMS",
       description: "Gestioneaz\u0103 rutarea marketplace-urilor, cheile API \u0219i starea integr\u0103rii logistice.",
+      marketSelection: "Marketplace WMS",
+      marketSelectionHint: "Selecteaz\u0103 un marketplace pentru a vedea \u0219i edita doar configura\u021Bia logistic\u0103 aferent\u0103.",
+      activeMarket: "Marketplace activ",
+      partnerListDescription: "Selecteaz\u0103 un furnizor logistic pentru a deschide cheile \u0219i informa\u021Biile aferente.",
+      providersCount: "furnizori",
+      noMarketPartners: "Nu exist\u0103 \xEEnc\u0103 furnizori logistici ruta\u021Bi c\u0103tre acest marketplace.",
+      partnerDetails: "Detalii furnizor",
+      selectPartnerPrompt: "Selecteaz\u0103 un furnizor din list\u0103 pentru a vedea informa\u021Biile aferente.",
+      routingForMarketDescription: "Aceste set\u0103ri de rutare se aplic\u0103 doar comenzilor din {{market}}.",
       reload: "Re\xEEncarc\u0103",
       loading: "Se \xEEncarc\u0103...",
-      originTitle: "Origine logistic\u0103 MyFlyingBox \xB7 .fr",
-      originDescription: "Toate coletele \u0219i solicit\u0103rile MyFlyingBox pentru marketplace-ul francez vor pleca de la aceast\u0103 adres\u0103. Toate c\xE2mpurile sunt obligatorii.",
+      originTitle: "Origine logistic\u0103 \xB7 {{market}}",
+      originDescription: "Aceasta este adresa folosit\u0103 pentru livr\u0103rile \u0219i integr\u0103rile de transport pentru {{market}}. Toate c\xE2mpurile sunt obligatorii.",
       configured: "Configurat\u0103",
       required: "Necesar\u0103",
       originLoading: "Se \xEEncarc\u0103 adresa logistic\u0103...",
@@ -11935,7 +11953,7 @@
       loadOriginFailed: "Nu s-a putut \xEEnc\u0103rca adresa de origine WMS.",
       saveOriginFailed: "Nu s-a putut salva adresa de origine WMS.",
       originRequiredError: "Completeaz\u0103 toate c\xE2mpurile obligatorii ale adresei logistice.",
-      originSaved: "Adresa de origine pentru MyFlyingBox (.fr) a fost salvat\u0103.",
+      originSaved: "Adresa de origine logistic\u0103 pentru {{market}} a fost salvat\u0103.",
       loadFailed: "Nu s-a putut \xEEnc\u0103rca WMS.",
       createPartnerFailed: "Partenerul nu a putut fi creat.",
       updateRoutingFailed: "Rutarea nu a putut fi actualizat\u0103.",
@@ -12670,10 +12688,19 @@
     wms: {
       title: "Partenaires WMS",
       description: "G\xE9rez le routage des marketplaces, les cl\xE9s API et l'\xE9tat de l'int\xE9gration logistique.",
+      marketSelection: "Marketplace WMS",
+      marketSelectionHint: "S\xE9lectionnez une marketplace pour afficher et modifier uniquement sa configuration logistique.",
+      activeMarket: "Marketplace active",
+      partnerListDescription: "S\xE9lectionnez un prestataire logistique pour ouvrir ses cl\xE9s et ses informations.",
+      providersCount: "prestataires",
+      noMarketPartners: "Aucun prestataire logistique n'est encore rout\xE9 vers cette marketplace.",
+      partnerDetails: "D\xE9tails du prestataire",
+      selectPartnerPrompt: "S\xE9lectionnez un prestataire dans la liste pour afficher ses informations.",
+      routingForMarketDescription: "Ces param\xE8tres de routage s'appliquent uniquement aux commandes de {{market}}.",
       reload: "Actualiser",
       loading: "Chargement...",
-      originTitle: "Origine logistique MyFlyingBox \xB7 .fr",
-      originDescription: "Tous les colis et toutes les demandes MyFlyingBox pour la marketplace fran\xE7aise partiront de cette adresse. Tous les champs sont obligatoires.",
+      originTitle: "Origine logistique \xB7 {{market}}",
+      originDescription: "Cette adresse est utilis\xE9e pour les exp\xE9ditions et les int\xE9grations de transport de {{market}}. Tous les champs sont obligatoires.",
       configured: "Configur\xE9e",
       required: "Requise",
       originLoading: "Chargement de l'adresse logistique...",
@@ -12731,7 +12758,7 @@
       loadOriginFailed: "Impossible de charger l'adresse d'origine WMS.",
       saveOriginFailed: "Impossible d'enregistrer l'adresse d'origine WMS.",
       originRequiredError: "Renseignez tous les champs obligatoires de l'adresse logistique.",
-      originSaved: "L'adresse d'origine MyFlyingBox pour .fr a \xE9t\xE9 enregistr\xE9e.",
+      originSaved: "L'adresse d'origine logistique pour {{market}} a \xE9t\xE9 enregistr\xE9e.",
       loadFailed: "Impossible de charger le WMS.",
       createPartnerFailed: "Impossible de cr\xE9er le partenaire.",
       updateRoutingFailed: "Impossible de mettre \xE0 jour le routage.",
@@ -13278,16 +13305,11 @@
     const [wmsAudit, setWmsAudit] = (0, import_react13.useState)([]);
     const [wmsOrderId, setWmsOrderId] = (0, import_react13.useState)("");
     const [wmsOrderTimeline, setWmsOrderTimeline] = (0, import_react13.useState)(null);
-    const [wmsOriginAddress, setWmsOriginAddress] = (0, import_react13.useState)({
-      market: "fr",
-      companyName: "",
-      address: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      country: "RO",
-      phone: "",
-      email: ""
+    const [wmsFocusedMarket, setWmsFocusedMarket] = (0, import_react13.useState)("ro");
+    const [wmsOriginAddresses, setWmsOriginAddresses] = (0, import_react13.useState)({
+      ro: { market: "ro", companyName: "", address: "", city: "", state: "", zipCode: "", country: "RO", phone: "", email: "" },
+      fr: { market: "fr", companyName: "", address: "", city: "", state: "", zipCode: "", country: "FR", phone: "", email: "" },
+      com: { market: "com", companyName: "", address: "", city: "", state: "", zipCode: "", country: "RO", phone: "", email: "" }
     });
     const [wmsOriginLoading, setWmsOriginLoading] = (0, import_react13.useState)(false);
     const [wmsOriginSaving, setWmsOriginSaving] = (0, import_react13.useState)(false);
@@ -13595,6 +13617,16 @@
       }
     }, [selectedMarketTab, i18n_default.language]);
     (0, import_react13.useEffect)(() => {
+      if (selectedMarketTab !== "all") {
+        setWmsFocusedMarket(selectedMarketTab);
+        return;
+      }
+      const allowedMarkets = adminIsSuperAdmin ? ["ro", "fr", "com"] : admin?.adminMarkets || [];
+      if (!allowedMarkets.includes(wmsFocusedMarket)) {
+        setWmsFocusedMarket(allowedMarkets[0] || "ro");
+      }
+    }, [selectedMarketTab, admin]);
+    (0, import_react13.useEffect)(() => {
       refreshCategorySelectors();
     }, [selectedMarketTab]);
     (0, import_react13.useEffect)(() => {
@@ -13718,26 +13750,36 @@
         console.error("Network error fetching orders:", err);
       }
     };
-    const fetchWmsOriginAddress = async () => {
-      if (selectedMarketTab !== "fr" && selectedMarketTab !== "all") return;
+    const fetchWmsOriginAddresses = async (markets) => {
+      const requestedMarkets = [...new Set(markets.filter((market) => ["ro", "fr", "com"].includes(market)))];
+      if (!requestedMarkets.length) return;
       setWmsOriginLoading(true);
       try {
-        const response = await fetch("/admin/api/wms/origin-address?market=fr", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || t2("wms.loadOriginFailed"));
-        setWmsOriginAddress(data.originAddress || {
-          market: "fr",
-          companyName: "",
-          address: "",
-          city: "",
-          state: "",
-          zipCode: "",
-          country: "RO",
-          phone: "",
-          email: ""
-        });
+        const results = await Promise.all(requestedMarkets.map(async (market) => {
+          const response = await fetch(`/admin/api/wms/origin-address?market=${market}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || t2("wms.loadOriginFailed"));
+          return {
+            market,
+            originAddress: data.originAddress || {
+              market,
+              companyName: "",
+              address: "",
+              city: "",
+              state: "",
+              zipCode: "",
+              country: market === "fr" ? "FR" : "RO",
+              phone: "",
+              email: ""
+            }
+          };
+        }));
+        setWmsOriginAddresses((previous) => results.reduce((next, result) => ({
+          ...next,
+          [result.market]: result.originAddress
+        }), { ...previous }));
       } catch (error2) {
         alert(error2.message);
       } finally {
@@ -13745,21 +13787,22 @@
       }
     };
     const saveWmsOriginAddress = async () => {
+      const wmsOriginAddress = wmsOriginAddresses[wmsFocusedMarket];
       const requiredFields = ["companyName", "address", "city", "state", "zipCode", "country", "phone", "email"];
       if (requiredFields.some((field) => !String(wmsOriginAddress[field] || "").trim())) {
         return alert(t2("wms.originRequiredError"));
       }
       setWmsOriginSaving(true);
       try {
-        const response = await fetch("/admin/api/wms/origin-address?market=fr", {
+        const response = await fetch(`/admin/api/wms/origin-address?market=${wmsFocusedMarket}`, {
           method: "PUT",
           headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ ...wmsOriginAddress, market: "fr" })
+          body: JSON.stringify({ ...wmsOriginAddress, market: wmsFocusedMarket })
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || t2("wms.saveOriginFailed"));
-        setWmsOriginAddress(data.originAddress);
-        alert(t2("wms.originSaved"));
+        setWmsOriginAddresses((previous) => ({ ...previous, [wmsFocusedMarket]: data.originAddress }));
+        alert(t2("wms.originSaved", { market: `.${wmsFocusedMarket}` }));
       } catch (error2) {
         alert(error2.message);
       } finally {
@@ -13779,7 +13822,8 @@
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (auditResponse.ok) setWmsAudit(await auditResponse.json());
-        await fetchWmsOriginAddress();
+        const visibleMarkets = adminIsSuperAdmin ? ["ro", "fr", "com"] : admin?.adminMarkets || [];
+        await fetchWmsOriginAddresses(selectedMarketTab === "all" ? visibleMarkets : [selectedMarketTab]);
       } catch (error2) {
         alert(error2.message);
       } finally {
@@ -15719,26 +15763,188 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
       switch (activeView) {
         case "wms": {
           const visibleMarkets = adminIsSuperAdmin ? ["ro", "fr", "com"] : admin?.adminMarkets || [];
-          const partnerForMarket = (market) => wmsOverview.routing.find((route) => route.market === market);
-          const routingDecisionForMarket = (market) => wmsOverview.routingDecisions?.find((route) => route.market === market);
+          const activeWmsRoute = wmsOverview.routing.find((route) => route.market === wmsFocusedMarket);
+          const activeWmsDecision = wmsOverview.routingDecisions?.find((route) => route.market === wmsFocusedMarket);
+          const activeOriginAddress = wmsOriginAddresses[wmsFocusedMarket] || wmsOriginAddresses.ro;
+          const marketPartners = wmsOverview.partners.filter((partner) => partner.markets?.includes(wmsFocusedMarket));
+          const isSelectedPartnerInMarket = marketPartners.some((partner) => partner.id === wmsSelectedPartner?.id);
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "18px", marginBottom: "18px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0 0 6px" }, children: [
-                  "\u{1F69A} ",
-                  t2("wms.title")
-                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#172b4d", margin: "0 0 6px" }, children: t2("wms.title") }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", margin: 0 }, children: t2("wms.description") })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { className: "btn", onClick: fetchWmsOverview, style: { width: "auto", padding: "8px 16px", background: "#0d6efd" }, children: wmsLoading ? t2("wms.loading") : `\u21BB ${t2("wms.reload")}` })
             ] }),
-            (selectedMarketTab === "fr" || selectedMarketTab === "all") && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #b8daff", background: "#f0f7ff", borderRadius: "8px", padding: "18px", marginBottom: "24px" }, children: [
+            selectedMarketTab === "all" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #d8e5f5", background: "#f7fbff", borderRadius: "8px", padding: "14px 16px", marginBottom: "20px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", fontWeight: 700, color: "#526581", marginBottom: "8px" }, children: t2("wms.marketSelection") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", flexWrap: "wrap", gap: "8px" }, children: visibleMarkets.map((market) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                "button",
+                {
+                  onClick: () => setWmsFocusedMarket(market),
+                  style: {
+                    border: "1px solid",
+                    borderColor: wmsFocusedMarket === market ? "#0d6efd" : "#ced9e8",
+                    background: wmsFocusedMarket === market ? "#e8f2ff" : "white",
+                    color: wmsFocusedMarket === market ? "#0a58ca" : "#495057",
+                    borderRadius: "6px",
+                    padding: "7px 13px",
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  },
+                  children: [
+                    ".",
+                    market
+                  ]
+                },
+                market
+              )) }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "9px 0 0", fontSize: "12px", color: "#6c757d" }, children: t2("wms.marketSelectionHint") })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginBottom: "12px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: 700, color: "#6c757d" }, children: t2("wms.activeMarket") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: "3px 0 0", color: "#172b4d" }, children: [
+                  ".",
+                  wmsFocusedMarket
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: 600, color: activeWmsDecision?.decision === "active" ? "#198754" : activeWmsDecision?.decision === "inactive" ? "#6c757d" : "#dc3545" }, children: activeWmsDecision?.decision === "active" ? t2("wms.active") : activeWmsDecision?.decision === "inactive" ? t2("wms.inactive") : t2("wms.unconfigured") })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px", marginBottom: "20px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "16px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 5px", color: "#333" }, children: t2("wms.partnersTitle") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#6c757d", fontSize: "13px" }, children: t2("wms.partnerListDescription") })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: [
+                  marketPartners.length,
+                  " ",
+                  t2("wms.providersCount")
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(230px,.8fr) minmax(300px,1.5fr) minmax(220px,.8fr)", gap: "16px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", alignContent: "start", gap: "8px" }, children: [
+                  marketPartners.map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "button",
+                    {
+                      onClick: () => loadWmsKeys(partner),
+                      style: {
+                        border: "1px solid",
+                        borderColor: wmsSelectedPartner?.id === partner.id ? "#6197ee" : "#e0e6ef",
+                        background: wmsSelectedPartner?.id === partner.id ? "#f1f7ff" : "white",
+                        borderRadius: "7px",
+                        padding: "12px",
+                        textAlign: "left",
+                        cursor: "pointer"
+                      },
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { display: "block", color: "#172b4d" }, children: partner.name }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { display: "block", fontSize: "12px", color: "#6c757d", marginTop: "4px" }, children: partner.code }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { display: "inline-block", fontSize: "11px", fontWeight: 600, color: partner.isActive ? "#198754" : "#dc3545", marginTop: "7px" }, children: partner.isActive ? t2("wms.active") : t2("wms.inactive") })
+                      ]
+                    },
+                    partner.id
+                  )),
+                  !marketPartners.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontSize: "13px", margin: 0 }, children: t2("wms.noMarketPartners") })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { border: "1px solid #e6ebf2", borderRadius: "7px", background: "#fbfdff", padding: "15px" }, children: isSelectedPartnerInMarket ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", marginBottom: "14px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: "0 0 4px", color: "#172b4d" }, children: [
+                        t2("wms.partnerDetails"),
+                        ": ",
+                        wmsSelectedPartner.name
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: [
+                        wmsSelectedPartner.code,
+                        " \xB7 ",
+                        t2("wms.markets"),
+                        ": ",
+                        wmsSelectedPartner.markets?.join(", ") || "\u2014"
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: 600, color: wmsSelectedPartner.isActive ? "#198754" : "#dc3545" }, children: wmsSelectedPartner.isActive ? t2("wms.active") : t2("wms.inactive") })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { fontSize: "13px", color: "#333" }, children: t2("wms.keyTitle") }),
+                  wmsKeys.map((key) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", padding: "10px 0", borderBottom: "1px solid #edf1f6", fontSize: "12px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("code", { children: [
+                        key.keyPrefix,
+                        "\u2026"
+                      ] }),
+                      " \xB7 ",
+                      key.environment,
+                      " \xB7 ",
+                      key.isRevoked ? t2("wms.revoked") : t2("wms.active")
+                    ] }),
+                    !key.isRevoked && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => revokeWmsKey(key.id), className: "btn", style: { width: "auto", padding: "5px 10px", background: "#dc3545" }, children: t2("wms.revoke") })
+                  ] }, key.id)),
+                  !wmsKeys.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontSize: "13px" }, children: t2("wms.noKeys") })
+                ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", fontSize: "13px", margin: 0 }, children: t2("wms.selectPartnerPrompt") }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #e6ebf2", borderRadius: "7px", padding: "15px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 12px", color: "#333" }, children: t2("wms.newKey") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: wmsKeyForm.partnerId, onChange: (e2) => setWmsKeyForm({ ...wmsKeyForm, partnerId: e2.target.value }), style: { width: "100%", padding: "9px", marginBottom: "8px", border: "1px solid #ced4da", borderRadius: "5px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("wms.selectPartner") }),
+                    marketPartners.map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: partner.id, children: [
+                      partner.name,
+                      " (",
+                      partner.code,
+                      ")"
+                    ] }, partner.id))
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: wmsKeyForm.environment, onChange: (e2) => setWmsKeyForm({ ...wmsKeyForm, environment: e2.target.value }), style: { width: "100%", padding: "9px", marginBottom: "10px", border: "1px solid #ced4da", borderRadius: "5px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "production", children: t2("wms.production") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "sandbox", children: t2("wms.sandbox") })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { onClick: createWmsKey, className: "btn", style: { width: "100%", padding: "8px 12px", background: "#6f42c1" }, children: [
+                    "\u{1F511} ",
+                    t2("wms.generateKey")
+                  ] })
+                ] })
+              ] })
+            ] }),
+            wmsPlaintextKey && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#fff3cd", border: "1px solid #ffecb5", padding: "14px", borderRadius: "7px", marginBottom: "20px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: t2("wms.keyShownOnce") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", marginTop: "8px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { readOnly: true, value: wmsPlaintextKey, style: { flex: 1, padding: "9px", fontFamily: "monospace", border: "1px solid #ced4da", borderRadius: "4px" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => navigator.clipboard?.writeText(wmsPlaintextKey), className: "btn", style: { width: "auto", padding: "8px 12px" }, children: t2("wms.copy") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setWmsPlaintextKey(""), className: "btn btn-secondary", style: { width: "auto", padding: "8px 12px" }, children: t2("common.close") })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px", marginBottom: "20px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "14px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 6px", color: "#145da0" }, children: t2("wms.originTitle") }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#495057", fontSize: "13px" }, children: t2("wms.originDescription") })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { margin: "0 0 5px", color: "#333" }, children: [
+                    t2("wms.routingTitle"),
+                    " \xB7 .",
+                    wmsFocusedMarket
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#6c757d", fontSize: "13px" }, children: t2("wms.routingForMarketDescription", { market: `.${wmsFocusedMarket}` }) })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: 600, color: wmsOriginAddress.id ? "#198754" : "#dc3545", whiteSpace: "nowrap" }, children: wmsOriginAddress.id ? t2("wms.configured") : t2("wms.required") })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: 600, color: activeWmsDecision?.decision === "active" ? "#198754" : activeWmsDecision?.decision === "inactive" ? "#6c757d" : "#dc3545" }, children: activeWmsDecision?.decision === "active" ? t2("wms.active") : activeWmsDecision?.decision === "inactive" ? t2("wms.inactive") : t2("wms.unconfigured") })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(260px,1fr) minmax(220px,.6fr)", gap: "14px", alignItems: "end" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: activeWmsRoute?.partnerId || "", onChange: (e2) => routeWmsMarket(wmsFocusedMarket, e2.target.value), style: { width: "100%", padding: "9px", border: "1px solid #ced4da", borderRadius: "5px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("wms.noRouting") }),
+                  wmsOverview.partners.filter((partner) => partner.isActive || partner.id === activeWmsRoute?.partnerId).map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: partner.id, children: [
+                    partner.name,
+                    !partner.isActive ? ` (${t2("wms.inactive")})` : ""
+                  ] }, partner.id))
+                ] }),
+                activeWmsRoute?.partnerId && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "7px", minHeight: "38px", fontSize: "13px", color: "#495057" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "checkbox", checked: activeWmsRoute.isActive, onChange: (e2) => routeWmsMarket(wmsFocusedMarket, activeWmsRoute.partnerId, e2.target.checked) }),
+                  t2("wms.activeRouting")
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #b8daff", background: "#f0f7ff", borderRadius: "8px", padding: "18px", marginBottom: "20px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "14px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 6px", color: "#145da0" }, children: t2("wms.originTitle", { market: `.${wmsFocusedMarket}` }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: 0, color: "#495057", fontSize: "13px" }, children: t2("wms.originDescription", { market: `.${wmsFocusedMarket}` }) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", fontWeight: 600, color: activeOriginAddress.id ? "#198754" : "#dc3545", whiteSpace: "nowrap" }, children: activeOriginAddress.id ? t2("wms.configured") : t2("wms.required") })
               ] }),
               wmsOriginLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: t2("wms.originLoading") }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "12px" }, children: [
@@ -15756,8 +15962,8 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "input",
                     {
-                      value: wmsOriginAddress[field] || "",
-                      onChange: (e2) => setWmsOriginAddress({ ...wmsOriginAddress, [field]: e2.target.value }),
+                      value: activeOriginAddress[field] || "",
+                      onChange: (e2) => setWmsOriginAddresses((previous) => ({ ...previous, [wmsFocusedMarket]: { ...previous[wmsFocusedMarket], [field]: e2.target.value } })),
                       required: true,
                       style: { display: "block", width: "100%", boxSizing: "border-box", padding: "9px", marginTop: "4px", border: "1px solid #ced4da", borderRadius: "5px", background: "white" }
                     }
@@ -15768,117 +15974,6 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: saveWmsOriginAddress, disabled: wmsOriginSaving, className: "btn", style: { width: "auto", padding: "8px 16px", background: "#198754" }, children: wmsOriginSaving ? t2("wms.savingOrigin") : t2("wms.saveOrigin") })
                 ] })
               ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(280px,1fr) minmax(280px,1fr)", gap: "20px", marginBottom: "24px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 14px", color: "#333" }, children: t2("wms.addPartner") }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsPartnerForm.name, onChange: (e2) => setWmsPartnerForm({ ...wmsPartnerForm, name: e2.target.value }), placeholder: t2("wms.partnerNamePlaceholder"), style: { width: "100%", padding: "10px", marginBottom: "8px", boxSizing: "border-box", border: "1px solid #ced4da", borderRadius: "5px" } }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: wmsPartnerForm.code, onChange: (e2) => setWmsPartnerForm({ ...wmsPartnerForm, code: e2.target.value }), placeholder: t2("wms.partnerCodePlaceholder"), style: { width: "100%", padding: "10px", marginBottom: "10px", boxSizing: "border-box", border: "1px solid #ced4da", borderRadius: "5px" } }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { onClick: createWmsPartner, className: "btn", style: { width: "auto", padding: "8px 14px", background: "#198754" }, children: [
-                  "+ ",
-                  t2("wms.createPartner")
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 14px", color: "#333" }, children: t2("wms.newKey") }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: wmsKeyForm.partnerId, onChange: (e2) => setWmsKeyForm({ ...wmsKeyForm, partnerId: e2.target.value }), style: { width: "100%", padding: "10px", marginBottom: "8px", border: "1px solid #ced4da", borderRadius: "5px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("wms.selectPartner") }),
-                  wmsOverview.partners.map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: partner.id, children: [
-                    partner.name,
-                    " (",
-                    partner.code,
-                    ")"
-                  ] }, partner.id))
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: wmsKeyForm.environment, onChange: (e2) => setWmsKeyForm({ ...wmsKeyForm, environment: e2.target.value }), style: { width: "100%", padding: "10px", marginBottom: "10px", border: "1px solid #ced4da", borderRadius: "5px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "production", children: t2("wms.production") }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "sandbox", children: t2("wms.sandbox") })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { onClick: createWmsKey, className: "btn", style: { width: "auto", padding: "8px 14px", background: "#6f42c1" }, children: [
-                  "\u{1F511} ",
-                  t2("wms.generateKey")
-                ] })
-              ] })
-            ] }),
-            wmsPlaintextKey && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "#fff3cd", border: "1px solid #ffecb5", padding: "14px", borderRadius: "7px", marginBottom: "22px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: t2("wms.keyShownOnce") }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "8px", marginTop: "8px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { readOnly: true, value: wmsPlaintextKey, style: { flex: 1, padding: "9px", fontFamily: "monospace", border: "1px solid #ced4da", borderRadius: "4px" } }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => navigator.clipboard?.writeText(wmsPlaintextKey), className: "btn", style: { width: "auto", padding: "8px 12px" }, children: t2("wms.copy") }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => setWmsPlaintextKey(""), className: "btn btn-secondary", style: { width: "auto", padding: "8px 12px" }, children: t2("common.close") })
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: t2("wms.routingTitle") }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { background: wmsOverview.routingReady ? "#d1e7dd" : "#fff3cd", border: `1px solid ${wmsOverview.routingReady ? "#a3cfbb" : "#ffecb5"}`, padding: "10px 12px", borderRadius: "6px", marginBottom: "12px", fontSize: "13px" }, children: wmsOverview.routingReady ? t2("wms.routingReady") : t2("wms.routingNeedsDecision") }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px", marginBottom: "24px" }, children: visibleMarkets.map((market) => {
-              const route = partnerForMarket(market);
-              const decision = routingDecisionForMarket(market);
-              return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "7px", padding: "13px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: market.toUpperCase() }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: decision?.decision === "active" ? "#198754" : decision?.decision === "inactive" ? "#6c757d" : "#dc3545" }, children: decision?.decision === "active" ? t2("wms.active") : decision?.decision === "inactive" ? t2("wms.inactive") : t2("wms.unconfigured") })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: route?.partnerId || "", onChange: (e2) => routeWmsMarket(market, e2.target.value), style: { width: "100%", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "", children: t2("wms.noRouting") }),
-                  wmsOverview.partners.filter((partner) => partner.isActive || partner.id === route?.partnerId).map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("option", { value: partner.id, children: [
-                    partner.name,
-                    !partner.isActive ? ` (${t2("wms.inactive")})` : ""
-                  ] }, partner.id))
-                ] }),
-                route?.partnerId && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "7px", marginTop: "9px", fontSize: "13px", color: "#495057" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "checkbox", checked: route.isActive, onChange: (e2) => routeWmsMarket(market, route.partnerId, e2.target.checked) }),
-                  t2("wms.activeRouting")
-                ] })
-              ] }, market);
-            }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: t2("wms.partnersTitle") }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { overflowX: "auto" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { background: "#f8f9fa" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: t2("wms.name") }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: t2("wms.code") }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: t2("wms.markets") }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { textAlign: "left", padding: "10px" }, children: t2("wms.keys") }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "10px" }, children: t2("wms.actions") })
-                ] }) }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: wmsOverview.partners.map((partner) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderTop: "1px solid #eee" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "10px" }, children: [
-                    partner.name,
-                    " ",
-                    !partner.isActive && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { color: "#dc3545" }, children: [
-                      "(",
-                      t2("wms.inactive"),
-                      ")"
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px", fontFamily: "monospace" }, children: partner.code }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px" }, children: partner.markets?.join(", ") || "\u2014" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px" }, children: partner.keyCount || 0 }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px", textAlign: "right" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => loadWmsKeys(partner), className: "btn", style: { width: "auto", padding: "6px 10px", background: "#6c757d" }, children: t2("wms.viewKeys") }) })
-                ] }, partner.id)) })
-              ] }),
-              !wmsOverview.partners.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: t2("wms.noPartners") })
-            ] }),
-            wmsSelectedPartner && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "22px", borderTop: "1px solid #dee2e6", paddingTop: "18px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h4", { style: { color: "#333", margin: "0 0 12px" }, children: [
-                t2("wms.keyTitle"),
-                ": ",
-                wmsSelectedPartner.name
-              ] }),
-              wmsKeys.map((key) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #eee" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("code", { children: [
-                    key.keyPrefix,
-                    "\u2026"
-                  ] }),
-                  " \xB7 ",
-                  key.environment,
-                  " \xB7 ",
-                  key.isRevoked ? t2("wms.revoked") : t2("wms.active")
-                ] }),
-                !key.isRevoked && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { onClick: () => revokeWmsKey(key.id), className: "btn", style: { width: "auto", padding: "5px 10px", background: "#dc3545" }, children: t2("wms.revoke") })
-              ] }, key.id)),
-              !wmsKeys.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d" }, children: t2("wms.noKeys") })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(280px,1fr) minmax(280px,1fr)", gap: "20px", marginTop: "24px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { border: "1px solid #dee2e6", borderRadius: "8px", padding: "18px" }, children: [

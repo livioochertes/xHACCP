@@ -4546,6 +4546,13 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         return null;
       }
 
+      const [roOriginAddress] = await db.select().from(wmsOriginAddresses)
+        .where(eq(wmsOriginAddresses.market, "ro"))
+        .limit(1);
+      if (!roOriginAddress) {
+        throw new Error("Sameday origin address is not configured for the Romanian logistics integration");
+      }
+
       const [pickupPoints, services] = await Promise.all([
         samedayAPI.getPickupPoints(),
         samedayAPI.getServices()
@@ -4559,7 +4566,31 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const shippingAddr = order.shippingAddress as any;
       const billingAddr2 = order.billingAddress as any;
       const isB2B2 = !!(billingAddr2?.companyName);
-      const selectedPickupPoint = pickupPoints.find(p => p.id === 447249) || pickupPoints[0];
+      const normalizedOriginAddress = String(roOriginAddress.address || '').trim().toLowerCase();
+      const normalizedOriginCity = String(roOriginAddress.city || '').trim().toLowerCase();
+      const configuredPickupPoint = pickupPoints.find(point => {
+        const pointAddress = String(point.address || '').trim().toLowerCase();
+        const pointCity = String(point.city || '').trim().toLowerCase();
+        return Boolean(
+          normalizedOriginAddress &&
+          pointAddress &&
+          (pointAddress.includes(normalizedOriginAddress) || normalizedOriginAddress.includes(pointAddress)) &&
+          normalizedOriginCity &&
+          pointCity &&
+          (pointCity.includes(normalizedOriginCity) || normalizedOriginCity.includes(pointCity))
+        );
+      });
+      const selectedPickupPoint = configuredPickupPoint || pickupPoints.find(p => p.id === 447249) || pickupPoints[0];
+      const normalizedOriginEmail = String(roOriginAddress.email || '').trim().toLowerCase();
+      const normalizedOriginPhone = String(roOriginAddress.phone || '').replace(/\D/g, '');
+      const configuredContactPerson = selectedPickupPoint.contactPersons?.find(contact => {
+        const contactEmail = String(contact.email || '').trim().toLowerCase();
+        const contactPhone = String(contact.phone || '').replace(/\D/g, '');
+        return (
+          (normalizedOriginEmail && contactEmail === normalizedOriginEmail) ||
+          (normalizedOriginPhone && contactPhone && contactPhone.endsWith(normalizedOriginPhone.slice(-8)))
+        );
+      }) || selectedPickupPoint.contactPersons?.find(contact => contact.default);
 
       const parcels: any[] = [];
       let parcelCounter = 1;
@@ -4619,7 +4650,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const totalAmount = parseFloat(order.totalAmount.toString());
 
       const awbData = {
-        pickupPoint: 447249,
+        pickupPoint: selectedPickupPoint.id,
+        ...(configuredContactPerson?.id ? { contactPerson: configuredContactPerson.id } : {}),
         service: 7,
         packageType: 0,
         packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
