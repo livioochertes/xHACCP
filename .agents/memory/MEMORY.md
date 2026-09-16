@@ -14,6 +14,7 @@
 - [Viva currency-specific sources](viva-currency-specific-sources.md) — Viva source codes can reject currencies they do not support; never reuse the RO source for FR EUR payments.
 - [Viva market configuration](viva-market-configuration.md) — initial checkout and recurring renewals must resolve through one market-specific credential/currency mapping.
 - [Viva checkout error handling](viva-checkout-error-handling.md) — payment failures must stay JSON/user-safe; correlate logs without logging source codes or customer payloads.
+- [Viva production egress blocking](viva-production-egress-blocking.md) — dev OAuth may pass while Production gets HTML 403 from provider edge filtering.
 - [Payment callback idempotency](payment-callback-idempotency.md) — callbacks and webhooks must atomically claim the paid transition before invoice/email side effects.
 - [Invoice order cardinality](invoice-order-cardinality.md) — one order can retain multiple invoice records across fallback, issuance, and reissuance flows.
 - [Abandoned cart reminders](abandoned-cart-reminders.md) — send one market-specific reminder after 24h of cart inactivity; cart changes reset eligibility.
