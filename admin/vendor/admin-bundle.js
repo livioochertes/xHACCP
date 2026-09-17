@@ -10662,6 +10662,19 @@
       stock: "Stock",
       currency: "Currency",
       productCode: "Product Code",
+      smartbillCatalogButton: "Check SmartBill catalog",
+      smartbillCatalogTitle: "SmartBill catalog read-back",
+      smartbillCatalogSource: "Read-only V3 catalog, compared with active local RO products.",
+      smartbillCatalogError: "SmartBill catalog unavailable",
+      smartbillCatalogMatched: "{{matched}} of {{local}} local product codes found remotely",
+      smartbillCatalogRemote: "Remote products",
+      smartbillCatalogLocal: "Local products",
+      smartbillCatalogMissing: "Missing remotely",
+      smartbillCatalogRemoteOnly: "Remote only",
+      smartbillCatalogMissingCodes: "Local codes missing in SmartBill",
+      smartbillCatalogRemoteOnlyCodes: "Codes only in SmartBill",
+      smartbillCatalogCode: "Code",
+      smartbillCatalogName: "Name",
       add: "Add Product",
       edit: "Edit Product",
       name: "Product Name",
@@ -11474,6 +11487,19 @@
       stock: "Stoc",
       currency: "Moned\u0103",
       productCode: "Cod Produs",
+      smartbillCatalogButton: "Verific\u0103 catalogul SmartBill",
+      smartbillCatalogTitle: "Catalog SmartBill",
+      smartbillCatalogSource: "Catalog V3 doar pentru citire, comparat cu produsele locale RO active.",
+      smartbillCatalogError: "Catalogul SmartBill nu este disponibil",
+      smartbillCatalogMatched: "{{matched}} din {{local}} coduri locale g\u0103site \xEEn SmartBill",
+      smartbillCatalogRemote: "Produse SmartBill",
+      smartbillCatalogLocal: "Produse locale",
+      smartbillCatalogMissing: "Lips\u0103 \xEEn SmartBill",
+      smartbillCatalogRemoteOnly: "Doar \xEEn SmartBill",
+      smartbillCatalogMissingCodes: "Coduri locale lips\u0103 \xEEn SmartBill",
+      smartbillCatalogRemoteOnlyCodes: "Coduri existente doar \xEEn SmartBill",
+      smartbillCatalogCode: "Cod",
+      smartbillCatalogName: "Nume",
       add: "Adaug\u0103 produs",
       edit: "Editeaz\u0103 produs",
       name: "Nume produs",
@@ -12286,6 +12312,19 @@
       stock: "Stock",
       currency: "Devise",
       productCode: "Code produit",
+      smartbillCatalogButton: "V\xE9rifier le catalogue SmartBill",
+      smartbillCatalogTitle: "Lecture du catalogue SmartBill",
+      smartbillCatalogSource: "Catalogue V3 en lecture seule, compar\xE9 aux produits locaux RO actifs.",
+      smartbillCatalogError: "Catalogue SmartBill indisponible",
+      smartbillCatalogMatched: "{{matched}} sur {{local}} codes locaux trouv\xE9s \xE0 distance",
+      smartbillCatalogRemote: "Produits distants",
+      smartbillCatalogLocal: "Produits locaux",
+      smartbillCatalogMissing: "Manquants \xE0 distance",
+      smartbillCatalogRemoteOnly: "Uniquement \xE0 distance",
+      smartbillCatalogMissingCodes: "Codes locaux absents de SmartBill",
+      smartbillCatalogRemoteOnlyCodes: "Codes uniquement dans SmartBill",
+      smartbillCatalogCode: "Code",
+      smartbillCatalogName: "Nom",
       add: "Ajouter produit",
       edit: "Modifier produit",
       name: "Nom du produit",
@@ -13339,6 +13378,7 @@
     const [users, setUsers] = (0, import_react13.useState)([]);
     const [products, setProducts] = (0, import_react13.useState)([]);
     const [productSyncState, setProductSyncState] = (0, import_react13.useState)(null);
+    const [smartbillCatalogState, setSmartbillCatalogState] = (0, import_react13.useState)(null);
     const [categories, setCategories] = (0, import_react13.useState)([]);
     const categoriesRequestIdRef = import_react13.default.useRef(0);
     const [suppliers, setSuppliers] = (0, import_react13.useState)([]);
@@ -14014,6 +14054,23 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         console.error("Billing provider product sync failed:", error2);
         setProductSyncState({ success: false, message: error2.message || "Sincronizarea a e\u0219uat." });
         alert(`\u274C ${error2.message || "Sincronizarea a e\u0219uat."}`);
+      }
+    };
+    const fetchSmartbillCatalog = async () => {
+      setSmartbillCatalogState({ loading: true });
+      try {
+        const response = await fetch("/admin/api/smartbill/products", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || "SmartBill catalog could not be loaded.");
+        setSmartbillCatalogState({ ...result, loadedAt: (/* @__PURE__ */ new Date()).toISOString() });
+      } catch (error2) {
+        console.error("SmartBill catalog read-back failed:", error2);
+        setSmartbillCatalogState({
+          success: false,
+          message: error2.message || "SmartBill catalog could not be loaded."
+        });
       }
     };
     const fetchCategories = async (marketOverride = selectedMarketTab, { requireMarket = false } = {}) => {
@@ -16227,6 +16284,50 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                 )
               ] })
             ] }),
+            selectedMarketTab === "ro" && smartbillCatalogState && !smartbillCatalogState.loading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { background: smartbillCatalogState.success === false ? "#fff5f5" : "#f8f9fa", padding: "16px", borderRadius: "6px", marginBottom: "20px", border: `1px solid ${smartbillCatalogState.success === false ? "#f5c2c7" : "#dee2e6"}` }, children: smartbillCatalogState.success === false ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { color: "#842029" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { children: t2("products.smartbillCatalogError") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "6px" }, children: smartbillCatalogState.message })
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", flexWrap: "wrap" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", margin: "0 0 4px" }, children: t2("products.smartbillCatalogTitle") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "13px", color: "#6c757d" }, children: t2("products.smartbillCatalogSource") })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "13px", color: "#146c43" }, children: t2("products.smartbillCatalogMatched", {
+                  matched: smartbillCatalogState.comparison?.matchedCount || 0,
+                  local: smartbillCatalogState.comparison?.localSubmittedCount || 0
+                }) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: "10px", margin: "14px 0" }, children: [
+                [t2("products.smartbillCatalogRemote"), smartbillCatalogState.comparison?.remoteCatalogCount || 0],
+                [t2("products.smartbillCatalogLocal"), smartbillCatalogState.comparison?.localSubmittedCount || 0],
+                [t2("products.smartbillCatalogMissing"), smartbillCatalogState.comparison?.missingFromSmartbillCodes?.length || 0],
+                [t2("products.smartbillCatalogRemoteOnly"), smartbillCatalogState.comparison?.remoteOnlyCodes?.length || 0]
+              ].map(([label, value]) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "10px", borderRadius: "5px", border: "1px solid #e1e5e9" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d" }, children: label }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { fontSize: "20px", color: "#333" }, children: value })
+              ] }, label)) }),
+              (smartbillCatalogState.comparison?.missingFromSmartbillCodes?.length > 0 || smartbillCatalogState.comparison?.remoteOnlyCodes?.length > 0) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "12px", marginBottom: "14px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { fontSize: "13px", color: "#842029" }, children: t2("products.smartbillCatalogMissingCodes") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#842029", marginTop: "4px", wordBreak: "break-word" }, children: smartbillCatalogState.comparison?.missingFromSmartbillCodes?.join(", ") || "\u2014" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("strong", { style: { fontSize: "13px", color: "#6c757d" }, children: t2("products.smartbillCatalogRemoteOnlyCodes") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginTop: "4px", wordBreak: "break-word" }, children: smartbillCatalogState.comparison?.remoteOnlyCodes?.join(", ") || "\u2014" })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { maxHeight: "260px", overflow: "auto", background: "white", border: "1px solid #e1e5e9", borderRadius: "5px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "13px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { background: "#f1f3f5", position: "sticky", top: 0 }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: t2("products.smartbillCatalogCode") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: t2("products.smartbillCatalogName") })
+                ] }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: smartbillCatalogState.data?.map((product, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderTop: "1px solid #eee" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px" }, children: product.code || product.productCode || "\u2014" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "8px" }, children: product.name || product.productName || "\u2014" })
+                ] }, `${product.code || product.productCode || index}-${index}`)) })
+              ] }) })
+            ] }) }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: "Order Actions" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
@@ -16791,6 +16892,22 @@ This action cannot be undone.`)) {
                     onClick: syncProductsToBillingProvider,
                     title: `Sincronizeaz\u0103 produsele active cu ${selectedMarketTab === "fr" ? "Pennylane" : "Smartbill"}`,
                     children: productSyncState?.loading ? "\u23F3 Sincronizare\u2026" : `\u{1F504} Sync ${selectedMarketTab === "fr" ? "Pennylane" : "Smartbill"}`
+                  }
+                ),
+                selectedMarketTab === "ro" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  "button",
+                  {
+                    type: "button",
+                    className: "btn",
+                    disabled: smartbillCatalogState?.loading,
+                    style: { background: "#6c757d", width: "auto", padding: "8px 16px", opacity: smartbillCatalogState?.loading ? 0.65 : 1 },
+                    onClick: fetchSmartbillCatalog,
+                    title: t2("products.smartbillCatalogTitle"),
+                    children: [
+                      smartbillCatalogState?.loading ? "\u23F3" : "\u{1F50E}",
+                      " ",
+                      t2("products.smartbillCatalogButton")
+                    ]
                   }
                 ),
                 productSyncState?.market === selectedMarketTab && !productSyncState?.loading && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "12px", color: productSyncState.success === false ? "#b02a37" : "#146c43", alignSelf: "center", maxWidth: "360px" }, children: [

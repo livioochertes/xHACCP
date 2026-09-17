@@ -65,6 +65,16 @@ export interface SmartbillInvoiceData {
   sendEmail?: boolean;
 }
 
+export class SmartbillApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'SmartbillApiError';
+    this.status = status;
+  }
+}
+
 export class SmartbillAPI {
   private baseUrl = 'https://ws.smartbill.ro/SBORO/api';
   private config: SmartbillConfig;
@@ -467,19 +477,41 @@ export class SmartbillAPI {
     const products: any[] = [];
     let nextUrl: string | null =
       `${this.baseUrl}/v3/companies/${encodeURIComponent(companyVat)}/products?limit=100`;
+    const visitedUrls = new Set<string>();
+    let pageCount = 0;
 
     while (nextUrl) {
+      if (visitedUrls.has(nextUrl)) {
+        throw new Error('Smartbill product catalog pagination repeated the same page');
+      }
+      visitedUrls.add(nextUrl);
+      pageCount += 1;
+      if (pageCount > 100) {
+        throw new Error('Smartbill product catalog pagination exceeded the safety limit');
+      }
+
       const response: Response = await fetch(nextUrl, {
         method: 'GET',
         headers: this.getV3Headers()
       });
       const result: any = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(this.formatApiError(response.status, result));
+        throw new SmartbillApiError(response.status, this.formatApiError(response.status, result));
       }
 
-      if (Array.isArray(result?.items)) products.push(...result.items);
-      nextUrl = typeof result?.pagination?.next === 'string' ? result.pagination.next : null;
+      const pageItems = Array.isArray(result)
+        ? result
+        : Array.isArray(result?.items)
+          ? result.items
+          : Array.isArray(result?.products)
+            ? result.products
+            : [];
+      products.push(...pageItems);
+
+      const next = typeof result?.pagination?.next === 'string'
+        ? result.pagination.next.trim()
+        : '';
+      nextUrl = next ? new URL(next, nextUrl).toString() : null;
     }
 
     return products;

@@ -6508,7 +6508,7 @@ export async function registerAdminRoutes(app: Express) {
 
   app.get("/admin/api/smartbill/products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { SmartbillAPI } = await import('./smartbill-api.js');
+      const { SmartbillAPI, SmartbillApiError } = await import('./smartbill-api.js');
       
       if (process.env.ENABLE_SMARTBILL !== 'true') {
         return res.status(400).json({ 
@@ -6517,28 +6517,88 @@ export async function registerAdminRoutes(app: Express) {
         });
       }
 
+      if (!canAccessMarket(req as AdminAuthRequest, "ro")) {
+        return res.status(403).json({ success: false, message: "Access denied for the RO market" });
+      }
+
+      const v3Token = process.env.SMARTBILL_V3_TOKEN;
+      if (!v3Token) {
+        return res.status(400).json({
+          success: false,
+          message: "SmartBill catalog read-back is unavailable. Configure the SMARTBILL_V3_TOKEN secret with catalog read access."
+        });
+      }
+
       const smartbillConfig = {
         username: process.env.SMARTBILL_USERNAME || '',
         token: process.env.SMARTBILL_TOKEN || '',
         companyVat: process.env.SMARTBILL_COMPANY_VAT || '',
-        v3Token: process.env.SMARTBILL_V3_TOKEN || process.env.SMARTBILL_API_TOKEN || process.env.SMARTBILL_BEARER_TOKEN
+        v3Token
       };
-      
+      if (!smartbillConfig.companyVat) {
+        return res.status(400).json({
+          success: false,
+          message: "SmartBill company VAT is not configured"
+        });
+      }
+
       const smartbillApi = new SmartbillAPI(smartbillConfig);
-      const products = await smartbillApi.getProducts(smartbillConfig.companyVat);
+      const [remoteProducts, localProducts] = await Promise.all([
+        smartbillApi.getProducts(smartbillConfig.companyVat),
+        getActiveProductsForMarket("ro"),
+      ]);
+
+      const codeForProduct = (product: any): string => String(
+        product?.code
+          ?? product?.productCode
+          ?? product?.product?.code
+          ?? ''
+      ).trim();
+      const localCodes = localProducts
+        .map(codeForProduct)
+        .filter(Boolean);
+      const remoteCodes = remoteProducts
+        .map(codeForProduct)
+        .filter(Boolean);
+      const localCodeSet = new Set(localCodes);
+      const remoteCodeSet = new Set(remoteCodes);
+      const matchedCodes = localCodes.filter(code => remoteCodeSet.has(code));
+      const missingFromSmartbillCodes = [...new Set(localCodes.filter(code => !remoteCodeSet.has(code)))];
+      const remoteOnlyCodes = [...new Set(remoteCodes.filter(code => !localCodeSet.has(code)))];
       
       res.json({
         success: true,
-        data: products,
-        source: "SmartBill V3 /products (read-only catalog listing)"
+        data: remoteProducts,
+        source: "SmartBill V3 /products (read-only catalog listing)",
+        comparison: {
+          localSubmittedCount: localCodes.length,
+          remoteCatalogCount: remoteProducts.length,
+          remoteCodesCount: remoteCodeSet.size,
+          matchedCount: matchedCodes.length,
+          missingFromSmartbillCodes,
+          remoteOnlyCodes,
+        }
       });
       
     } catch (error) {
       console.error("Get Smartbill products error:", error);
+      if (
+        error instanceof Error
+        && error.name === "SmartbillApiError"
+        && "status" in error
+        && typeof error.status === "number"
+      ) {
+        const status = error.status;
+        if (status === 401 || status === 403) {
+          return res.status(502).json({
+            success: false,
+            message: "SmartBill catalog authentication failed. Configure a valid SMARTBILL_V3_TOKEN with catalog read access."
+          });
+        }
+      }
       res.status(500).json({ 
         success: false, 
-        message: "Failed to get products from Smartbill",
-        error: error instanceof Error ? error.message : String(error)
+        message: "SmartBill catalog read-back failed. Try again or check the V3 catalog access."
       });
     }
   });
