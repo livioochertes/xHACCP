@@ -6175,8 +6175,15 @@ export async function registerAdminRoutes(app: Express) {
         username: process.env.SMARTBILL_USERNAME || '',
         token: process.env.SMARTBILL_TOKEN || '',
         companyVat: process.env.SMARTBILL_COMPANY_VAT || '',
+        v3Token: process.env.SMARTBILL_V3_TOKEN || process.env.SMARTBILL_API_TOKEN || process.env.SMARTBILL_BEARER_TOKEN,
         invoiceSeries: process.env.SMARTBILL_SERIES || 'KTO'
       };
+      if (!smartbillConfig.v3Token) {
+        return res.status(400).json({
+          success: false,
+          message: "SmartBill V3 catalog access is required to preserve SmartBill product names"
+        });
+      }
       
       const smartbillApi = new SmartbillAPI(smartbillConfig);
       
@@ -6286,10 +6293,16 @@ export async function registerAdminRoutes(app: Express) {
           username: process.env.SMARTBILL_USERNAME || "",
           token: process.env.SMARTBILL_TOKEN || "",
           companyVat: process.env.SMARTBILL_COMPANY_VAT || "",
+           v3Token: process.env.SMARTBILL_V3_TOKEN || process.env.SMARTBILL_API_TOKEN || process.env.SMARTBILL_BEARER_TOKEN,
           invoiceSeries: process.env.SMARTBILL_SERIES || "KTO",
         };
-        if (!smartbillConfig.username || !smartbillConfig.token || !smartbillConfig.companyVat) {
-          return res.status(400).json({ success: false, market, provider, message: "Smartbill credentials are not configured" });
+         if (!smartbillConfig.username || !smartbillConfig.token || !smartbillConfig.companyVat || !smartbillConfig.v3Token) {
+           return res.status(400).json({
+             success: false,
+             market,
+             provider,
+             message: "SmartBill V1 and V3 credentials are required to preserve SmartBill product names"
+           });
         }
         const results = await new SmartbillAPI(smartbillConfig).syncProductsToSmartbill(
           smartbillConfig.companyVat,

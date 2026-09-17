@@ -533,6 +533,10 @@ export class InvoiceService {
         this.config.defaultSeries,
         defaultVatPercentage
       );
+      await this.smartbillApi.preserveExistingProductNames(
+        this.config.smartbill.companyVat,
+        smartbillInvoiceData.products,
+      );
       
       console.log(`📋 Smartbill invoice data prepared:`, JSON.stringify(smartbillInvoiceData, null, 2));
 
@@ -1026,6 +1030,7 @@ export async function createInvoiceService(): Promise<InvoiceService> {
       username: process.env.SMARTBILL_USERNAME || '',
       token: process.env.SMARTBILL_TOKEN || '',
       companyVat: process.env.SMARTBILL_COMPANY_VAT || 'RO16582983',
+      v3Token: process.env.SMARTBILL_V3_TOKEN || process.env.SMARTBILL_API_TOKEN || process.env.SMARTBILL_BEARER_TOKEN,
     },
     defaultSeries: 'KTO', // Use hardcoded series
     enableSmartbill: true, // Force enable Smartbill

@@ -69,6 +69,7 @@ function createClient() {
   return new SmartbillAPI({
     username: "smartbill-test-user",
     token: "smartbill-basic-secret",
+    v3Token: "smartbill-v3-secret",
     companyVat: "RO12345678",
     invoiceSeries: "TEST",
   });
@@ -92,6 +93,7 @@ test("product sync uses invoice/v2 drafts with the documented saveToDb fields", 
 
   await withMockFetch(
     [
+      { body: [{ code: "SKU-1", name: "SmartBill Product 1" }] },
       { body: [] },
       {
         body: {
@@ -122,18 +124,22 @@ test("product sync uses invoice/v2 drafts with the documented saveToDb fields", 
         skippedDuplicateCodes: [],
       });
 
-      assert.equal(calls.length, 2);
+      assert.equal(calls.length, 3);
       assert.equal(
         calls[0].url,
-        "https://ws.smartbill.ro/SBORO/api/series?cif=RO12345678",
+        "https://ws.smartbill.ro/SBORO/api/v3/companies/RO12345678/products?limit=100",
       );
       assert.equal(
         calls[1].url,
+        "https://ws.smartbill.ro/SBORO/api/series?cif=RO12345678",
+      );
+      assert.equal(
+        calls[2].url,
         "https://ws.smartbill.ro/SBORO/api/invoice/v2",
       );
-      assert.equal(calls[1].init?.method, "POST");
+      assert.equal(calls[2].init?.method, "POST");
 
-      const payload = JSON.parse(String(calls[1].init?.body));
+      const payload = JSON.parse(String(calls[2].init?.body));
       assert.equal(payload.companyVatCode, "RO12345678");
       assert.equal(payload.seriesName, "TEST");
       assert.match(payload.issueDate, /^\d{4}-\d{2}-\d{2}$/);
@@ -145,7 +151,7 @@ test("product sync uses invoice/v2 drafts with the documented saveToDb fields", 
       });
       assert.deepEqual(payload.products, [
         {
-          name: "Product 1",
+           name: "SmartBill Product 1",
           code: "SKU-1",
           quantity: 1,
           price: 11,
@@ -173,7 +179,10 @@ test("product sync uses invoice/v2 drafts with the documented saveToDb fields", 
           isService: true,
         },
       ]);
-      assert.ok(calls.every(({ url }) => !url.endsWith("/products")));
+      assert.equal(
+        (calls[0].init?.headers as Record<string, string>).Authorization,
+        "Bearer smartbill-v3-secret",
+      );
     },
   );
 });
@@ -187,6 +196,7 @@ test("product sync filters duplicate codes and submits at most 400 lines per dra
   try {
     await withMockFetch(
       [
+        { body: [] },
         { body: [] },
         { body: { documentId: 1 } },
         { body: [] },
@@ -233,6 +243,7 @@ test("a successful HTTP response with errorText is treated as a failed sync", as
     await withMockFetch(
       [
         { body: [] },
+        { body: [] },
         { body: { errorText: "Product code is invalid" } },
       ],
       async (calls) => {
@@ -241,7 +252,7 @@ test("a successful HTTP response with errorText is treated as a failed sync", as
           [product(1)],
         );
 
-        assert.equal(calls.length, 2);
+        assert.equal(calls.length, 3);
         assert.equal(result.submitted, 0);
         assert.equal(result.draftsCreated, 0);
         assert.equal(result.failed, 1);

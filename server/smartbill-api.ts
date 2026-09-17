@@ -9,6 +9,7 @@ export interface SmartbillConfig {
    * contract below. SmartBill is intentionally write-only for the
    * product catalog from this application.
    */
+  v3Token?: string;
   invoiceSeries?: string;
 }
 
@@ -64,6 +65,16 @@ export interface SmartbillInvoiceData {
   sendEmail?: boolean;
 }
 
+export class SmartbillApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'SmartbillApiError';
+    this.status = status;
+  }
+}
+
 export class SmartbillAPI {
   private baseUrl = 'https://ws.smartbill.ro/SBORO/api';
   private config: SmartbillConfig;
@@ -94,6 +105,17 @@ export class SmartbillAPI {
       'Accept': 'application/json',
       'Authorization': this.getAuthHeader(),
       'X-SB-Access-Token': this.config.token, // Add the missing X-SB-Access-Token header
+    };
+  }
+
+  private getV3Headers(): Record<string, string> {
+    if (!this.config.v3Token) {
+      throw new Error('SmartBill V3 product catalog token is not configured');
+    }
+
+    return {
+      Accept: 'application/json',
+      Authorization: `Bearer ${this.config.v3Token}`,
     };
   }
 
@@ -455,6 +477,92 @@ export class SmartbillAPI {
   }
 
   /**
+   * Read the remote catalog only to preserve SmartBill's own names while
+   * sending site-owned prices and tax data. Nothing from this response is
+   * written to the local catalog or shown as a local product.
+   */
+  private async getProductNamesByCode(companyVat: string): Promise<Map<string, string>> {
+    const remoteProducts: any[] = [];
+    let nextUrl: string | null =
+      `${this.baseUrl}/v3/companies/${encodeURIComponent(companyVat)}/products?limit=100`;
+    const visitedUrls = new Set<string>();
+    let pageCount = 0;
+
+    while (nextUrl) {
+      if (visitedUrls.has(nextUrl)) {
+        throw new Error('Smartbill product catalog pagination repeated the same page');
+      }
+      visitedUrls.add(nextUrl);
+      pageCount += 1;
+      if (pageCount > 100) {
+        throw new Error('Smartbill product catalog pagination exceeded the safety limit');
+      }
+
+      const response: Response = await fetch(nextUrl, {
+        method: 'GET',
+        headers: this.getV3Headers(),
+      });
+      const result: any = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new SmartbillApiError(response.status, this.formatApiError(response.status, result));
+      }
+
+      const pageItems = Array.isArray(result)
+        ? result
+        : Array.isArray(result?.items)
+          ? result.items
+          : Array.isArray(result?.products)
+            ? result.products
+            : [];
+      remoteProducts.push(...pageItems);
+
+      const next = typeof result?.pagination?.next === 'string'
+        ? result.pagination.next.trim()
+        : '';
+      nextUrl = next ? new URL(next, nextUrl).toString() : null;
+    }
+
+    const namesByCode = new Map<string, string>();
+    for (const product of remoteProducts) {
+      const code = String(
+        product?.code
+          ?? product?.productCode
+          ?? product?.product?.code
+          ?? '',
+      ).trim();
+      const name = String(
+        product?.name
+          ?? product?.productName
+          ?? product?.product?.name
+          ?? '',
+      ).trim();
+      if (code && name && !namesByCode.has(code)) {
+        namesByCode.set(code, name);
+      }
+    }
+    return namesByCode;
+  }
+
+  /**
+   * Keep the remote nomenclature name on invoice lines for existing codes.
+   * The local product name remains unchanged; this only adjusts the outbound
+   * SmartBill request so saveToDb cannot overwrite the remote name.
+   */
+  async preserveExistingProductNames(
+    companyVat: string,
+    products: SmartbillProduct[],
+  ): Promise<void> {
+    const namesByCode = await this.getProductNamesByCode(companyVat);
+    for (const product of products) {
+      const code = String(product.code || '').trim();
+      const remoteName = namesByCode.get(code);
+      if (remoteName) {
+        product.name = remoteName;
+      }
+    }
+  }
+
+  /**
    * Save all active products to SmartBill's nomenclature without creating
    * numbered invoices. SmartBill accepts at most 400 document lines, so large
    * catalogs are split into multiple draft documents.
@@ -476,6 +584,7 @@ export class SmartbillAPI {
       skippedDuplicateCodes: [] as string[],
     };
 
+    const remoteNamesByCode = await this.getProductNamesByCode(companyVat);
     const seenCodes = new Set<string>();
     const payloads = products.flatMap((product: any) => {
       const code = String(product.productCode || product.id || '').trim();
@@ -486,7 +595,9 @@ export class SmartbillAPI {
       seenCodes.add(code);
 
       return [{
-        name: String(product.name || code),
+        // Keep SmartBill's independent nomenclature name for an existing
+        // code. A new code is created using the site's product name.
+        name: remoteNamesByCode.get(code) || String(product.name || code),
         code,
         quantity: 1,
         price: Number(product.marketPrice ?? product.price ?? 0),
