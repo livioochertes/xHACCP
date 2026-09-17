@@ -32,3 +32,4 @@
 - [Autoscale startup readiness](deployment-readiness.md) — bind the HTTP port before slow database warm-up so publishing health checks can pass.
 - [Pennylane API contract](pennylane-api-contract.md) — Company API v2 requires structured filters, company-scoped numeric IDs, and country VAT codes.
 - [Billing schema rollout](billing-schema-rollout.md) — billing provider and Pennylane mapping columns must be present before the app loads marketplace caches.
+- [SmartBill product synchronization](smartbill-product-sync.md) — use V1 invoice/v2 saveToDb drafts for product writes; V3 product listing is read-only and needs a separate Bearer token.

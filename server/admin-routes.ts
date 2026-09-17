@@ -6165,7 +6165,8 @@ export async function registerAdminRoutes(app: Express) {
       const smartbillConfig = {
         username: process.env.SMARTBILL_USERNAME || '',
         token: process.env.SMARTBILL_TOKEN || '',
-        companyVat: process.env.SMARTBILL_COMPANY_VAT || ''
+        companyVat: process.env.SMARTBILL_COMPANY_VAT || '',
+        invoiceSeries: process.env.SMARTBILL_SERIES || 'KTO'
       };
       
       const smartbillApi = new SmartbillAPI(smartbillConfig);
@@ -6177,8 +6178,8 @@ export async function registerAdminRoutes(app: Express) {
       );
       
       res.json({
-        success: true,
-        message: `Product sync completed: ${syncResults.success} successful, ${syncResults.failed} failed`,
+        success: syncResults.failed === 0,
+        message: `Product sync submitted ${syncResults.submitted} products in ${syncResults.draftsCreated} SmartBill draft(s); ${syncResults.failed} failed`,
         data: syncResults
       });
       
@@ -6276,6 +6277,7 @@ export async function registerAdminRoutes(app: Express) {
           username: process.env.SMARTBILL_USERNAME || "",
           token: process.env.SMARTBILL_TOKEN || "",
           companyVat: process.env.SMARTBILL_COMPANY_VAT || "",
+          invoiceSeries: process.env.SMARTBILL_SERIES || "KTO",
         };
         if (!smartbillConfig.username || !smartbillConfig.token || !smartbillConfig.companyVat) {
           return res.status(400).json({ success: false, market, provider, message: "Smartbill credentials are not configured" });
@@ -6289,10 +6291,15 @@ export async function registerAdminRoutes(app: Express) {
           market,
           provider,
           total: products.length,
-          created: results.success,
-          updated: 0,
+          submitted: results.submitted,
+          draftsCreated: results.draftsCreated,
           failed: results.failed,
           errors: results.errors,
+          drafts: results.drafts,
+          skippedDuplicateCodes: results.skippedDuplicateCodes,
+          message: results.failed === 0
+            ? `SmartBill a salvat ${results.submitted} produse în ${results.draftsCreated} ciornă/ciorne; produsele existente au fost actualizate după cod.`
+            : `SmartBill a salvat ${results.submitted} produse și a raportat ${results.failed} erori.`,
         });
       }
 
@@ -6336,8 +6343,15 @@ export async function registerAdminRoutes(app: Express) {
       const smartbillConfig = {
         username: process.env.SMARTBILL_USERNAME || '',
         token: process.env.SMARTBILL_TOKEN || '',
-        companyVat: process.env.SMARTBILL_COMPANY_VAT || ''
+        companyVat: process.env.SMARTBILL_COMPANY_VAT || '',
+        v3Token: process.env.SMARTBILL_V3_TOKEN || process.env.SMARTBILL_API_TOKEN || process.env.SMARTBILL_BEARER_TOKEN
       };
+      if (!smartbillConfig.v3Token) {
+        return res.status(400).json({
+          success: false,
+          message: "SmartBill V3 product catalog token is not configured"
+        });
+      }
       
       const smartbillApi = new SmartbillAPI(smartbillConfig);
       
@@ -6506,7 +6520,8 @@ export async function registerAdminRoutes(app: Express) {
       const smartbillConfig = {
         username: process.env.SMARTBILL_USERNAME || '',
         token: process.env.SMARTBILL_TOKEN || '',
-        companyVat: process.env.SMARTBILL_COMPANY_VAT || ''
+        companyVat: process.env.SMARTBILL_COMPANY_VAT || '',
+        v3Token: process.env.SMARTBILL_V3_TOKEN || process.env.SMARTBILL_API_TOKEN || process.env.SMARTBILL_BEARER_TOKEN
       };
       
       const smartbillApi = new SmartbillAPI(smartbillConfig);
@@ -6514,7 +6529,8 @@ export async function registerAdminRoutes(app: Express) {
       
       res.json({
         success: true,
-        data: products
+        data: products,
+        source: "SmartBill V3 /products (read-only catalog listing)"
       });
       
     } catch (error) {

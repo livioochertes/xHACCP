@@ -1,74 +1,74 @@
-// Test minimal invoice payload to Smartbill API
+// Test minimal SmartBill invoice payload using Replit/local environment secrets.
 const smartbillCredentials = {
-  username: 'liviu.chertes@gmail.com',
-  token: '001|2af8fcdc3ea579cb7a81093ca404b31e',
-  companyVat: 'RO16582983'
+  username: process.env.SMARTBILL_USERNAME,
+  token: process.env.SMARTBILL_TOKEN,
+  companyVat: process.env.SMARTBILL_COMPANY_VAT,
 };
+
+if (!smartbillCredentials.username || !smartbillCredentials.token || !smartbillCredentials.companyVat) {
+  throw new Error('SMARTBILL_USERNAME, SMARTBILL_TOKEN and SMARTBILL_COMPANY_VAT are required');
+}
 
 const baseUrl = 'https://ws.smartbill.ro/SBORO/api';
 
 function getAuthHeaders() {
   const credentials = `${smartbillCredentials.username}:${smartbillCredentials.token}`;
   const base64Credentials = Buffer.from(credentials).toString('base64');
-  
+
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'Authorization': `Basic ${base64Credentials}`
+    'Authorization': `Basic ${base64Credentials}`,
   };
 }
 
-// Test minimal invoice payload
 const minimalInvoicePayload = {
-  cif: smartbillCredentials.companyVat,
+  companyVatCode: smartbillCredentials.companyVat,
   client: {
-    name: "Test Customer",
-    address: "Test Address",
-    city: "Bucharest",
-    country: "Romania"
+    name: 'Test Customer',
+    address: 'Test Address',
+    city: 'Bucharest',
+    country: 'Romania',
   },
-  issueDate: "2025-01-22",
-  seriesName: "KTO",
-  isDraft: false,
+  issueDate: new Date().toISOString().split('T')[0],
+  seriesName: process.env.SMARTBILL_SERIES || 'KTO',
+  isDraft: true,
   products: [
     {
-      name: "Test Product",
-      code: "TEST-001",
+      name: 'Test Product',
+      code: 'TEST-001',
       isDiscount: false,
-      measuringUnitName: "buc",
-      currency: "RON",
+      measuringUnitName: 'buc',
+      currency: 'RON',
       quantity: 1,
       price: 100,
       isTaxIncluded: true,
-      taxName: "Normala",
-      taxPercentage: 19,
-      vatPercentage: 19,
+      taxName: 'Normala',
+      taxPercentage: 21,
       saveToDb: false,
-      isService: false
-    }
-  ]
+      isService: false,
+    },
+  ],
 };
 
-console.log('🧪 Testing minimal Smartbill invoice payload...');
-console.log('Payload:', JSON.stringify(minimalInvoicePayload, null, 2));
+console.log('Testing minimal SmartBill invoice payload...');
 
-fetch(`${baseUrl}/invoice`, {
+fetch(`${baseUrl}/invoice/v2`, {
   method: 'POST',
   headers: getAuthHeaders(),
-  body: JSON.stringify(minimalInvoicePayload)
+  body: JSON.stringify(minimalInvoicePayload),
 })
-.then(response => {
-  console.log('Response status:', response.status);
-  return response.text();
-})
-.then(data => {
-  try {
-    const parsed = JSON.parse(data);
-    console.log('✅ Success:', parsed);
-  } catch (e) {
-    console.log('❌ Raw response:', data);
-  }
-})
-.catch(error => {
-  console.error('Error:', error);
-});
+  .then(async (response) => {
+    const body = await response.json().catch(() => ({}));
+    console.log(JSON.stringify({
+      status: response.status,
+      ok: response.ok,
+      errorText: body.errorText || '',
+      message: body.message || '',
+      documentId: body.documentId,
+    }, null, 2));
+  })
+  .catch((error) => {
+    console.error('SmartBill request failed:', error.message);
+    process.exitCode = 1;
+  });

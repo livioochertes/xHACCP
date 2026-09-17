@@ -1134,8 +1134,15 @@ import {
           if (!response.ok) throw new Error(result.message || 'Sincronizarea a eșuat.');
           setProductSyncState({ ...result, provider: providerLabel });
           await fetchProducts(selectedMarketTab);
-          const errorSuffix = result.failed ? `\nErori: ${result.failed}` : '';
-          alert(`Sincronizare ${providerLabel} finalizată pentru .${selectedMarketTab}.\n\nCreate: ${result.created || 0}\nActualizate: ${result.updated || 0}${errorSuffix}`);
+          if (provider === 'smartbill') {
+            const duplicateSuffix = result.skippedDuplicateCodes?.length
+              ? `\nCoduri duplicate omise local: ${result.skippedDuplicateCodes.length}`
+              : '';
+            alert(`${result.message || `Sincronizare Smartbill finalizată pentru .${selectedMarketTab}.`}\n\nProduse trimise: ${result.submitted || 0}\nCiorne create: ${result.draftsCreated || 0}\nErori: ${result.failed || 0}${duplicateSuffix}`);
+          } else {
+            const errorSuffix = result.failed ? `\nErori: ${result.failed}` : '';
+            alert(`Sincronizare ${providerLabel} finalizată pentru .${selectedMarketTab}.\n\nCreate: ${result.created || 0}\nActualizate: ${result.updated || 0}${errorSuffix}`);
+          }
         } catch (error) {
           console.error('Billing provider product sync failed:', error);
           setProductSyncState({ success: false, message: error.message || 'Sincronizarea a eșuat.' });
@@ -4042,6 +4049,14 @@ import {
                       >
                         {productSyncState?.loading ? '⏳ Sincronizare…' : `🔄 Sync ${selectedMarketTab === 'fr' ? 'Pennylane' : 'Smartbill'}`}
                       </button>
+                    )}
+                    {productSyncState?.market === selectedMarketTab && !productSyncState?.loading && (
+                      <div style={{fontSize: '12px', color: productSyncState.success === false ? '#b02a37' : '#146c43', alignSelf: 'center', maxWidth: '360px'}}>
+                        {productSyncState.message || 'Sincronizarea s-a încheiat.'}
+                        {productSyncState.provider === 'Smartbill' && productSyncState.submitted != null && (
+                          <div>Trimise: {productSyncState.submitted} · Ciorne: {productSyncState.draftsCreated || 0} · Erori: {productSyncState.failed || 0}</div>
+                        )}
+                      </div>
                     )}
                     <button 
                       className="btn" 

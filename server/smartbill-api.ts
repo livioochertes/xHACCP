@@ -4,6 +4,13 @@ export interface SmartbillConfig {
   username: string;
   token: string;
   companyVat: string;
+  /**
+   * V3 has a separate Bearer token. Product listing is read-only in the
+   * published SmartBill API; product writes are performed through the V1
+   * invoice/v2 saveToDb contract below.
+   */
+  v3Token?: string;
+  invoiceSeries?: string;
 }
 
 export interface SmartbillProduct {
@@ -20,6 +27,7 @@ export interface SmartbillProduct {
   isTaxIncluded?: boolean;
   taxName?: string;
   taxPercentage?: number;
+  productDescription?: string;
   saveToDb?: boolean;
   isService?: boolean;
 }
@@ -76,7 +84,6 @@ export class SmartbillAPI {
     console.log('🔐 Auth header details:', {
       username: this.config.username,
       tokenLength: this.config.token?.length || 0,
-      credentials: `${this.config.username}:${this.config.token?.substring(0, 10)}...`,
       base64Length: base64Credentials.length
     });
     return `Basic ${base64Credentials}`;
@@ -89,6 +96,29 @@ export class SmartbillAPI {
       'Authorization': this.getAuthHeader(),
       'X-SB-Access-Token': this.config.token, // Add the missing X-SB-Access-Token header
     };
+  }
+
+  private getV3Headers(): Record<string, string> {
+    if (!this.config.v3Token) {
+      throw new Error('SmartBill V3 product catalog token is not configured');
+    }
+
+    return {
+      Accept: 'application/json',
+      Authorization: `Bearer ${this.config.v3Token}`,
+    };
+  }
+
+  private formatApiError(status: number, body: any): string {
+    const errorText = typeof body?.errorText === 'string' ? body.errorText.trim() : '';
+    const errors = Array.isArray(body?.errors)
+      ? body.errors
+          .map((entry: any) => [entry?.code, entry?.param, entry?.message].filter(Boolean).join(': '))
+          .filter(Boolean)
+          .join('; ')
+      : '';
+    const message = errorText || errors || (typeof body?.message === 'string' ? body.message : '');
+    return message ? `Smartbill API error ${status}: ${message.replace(/<[^>]*>/g, '').slice(0, 500)}` : `Smartbill API error ${status}`;
   }
 
   /**
@@ -137,7 +167,6 @@ export class SmartbillAPI {
       
       console.log('🌐 Making test connection request:');
       console.log('   URL:', url);
-      console.log('   Headers:', JSON.stringify(headers, null, 2));
       
       const response = await fetch(url, {
         method: 'GET',
@@ -147,15 +176,14 @@ export class SmartbillAPI {
       console.log('   Response status:', response.status);
       console.log('   Response ok:', response.ok);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log('   Error response:', errorText);
-      } else {
-        const data = await response.json();
-        console.log('   Available series:', JSON.stringify(data, null, 2));
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || (typeof data?.errorText === 'string' && data.errorText.trim())) {
+        console.log('   SmartBill connection returned an error');
+        return false;
       }
-      
-      return response.ok;
+
+      console.log('   Available series count:', Array.isArray(data) ? data.length : 0);
+      return true;
     } catch (error) {
       console.error('Smartbill connection test failed:', error);
       return false;
@@ -168,7 +196,6 @@ export class SmartbillAPI {
   async createInvoice(invoiceData: SmartbillInvoiceData): Promise<any> {
     try {
       console.log('🌐 Creating Smartbill invoice...');
-      console.log('📋 Request headers:', JSON.stringify(this.getHeaders(), null, 2));
       console.log('📋 Invoice data:', JSON.stringify(invoiceData, null, 2));
       
       // First test the connection
@@ -179,34 +206,23 @@ export class SmartbillAPI {
         throw new Error('Smartbill API connection failed - check credentials');
       }
       
-      const response = await fetch(`${this.baseUrl}/invoice`, {
+      const response = await fetch(`${this.baseUrl}/invoice/v2`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify(invoiceData)
       });
 
       console.log('📤 Response status:', response.status);
-      console.log('📤 Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Smartbill API error response:', response.status, errorText);
-        
-        // Try to parse more specific error information
-        if (response.status === 401) {
-          throw new Error('Smartbill API authentication failed - check username and token');
-        } else if (response.status === 400) {
-          throw new Error(`Smartbill API validation error: ${errorText}`);
-        } else if (response.status === 500) {
-          console.log('🔍 Analyzing 500 error - likely field validation issue');
-          throw new Error(`Smartbill API server error - field validation failed: ${errorText}`);
-        }
-        
-        throw new Error(`Smartbill API error: ${response.status} - ${errorText}`);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || (typeof result?.errorText === 'string' && result.errorText.trim())) {
+        throw new Error(this.formatApiError(response.status, result));
       }
-
-      const result = await response.json();
-      console.log('✅ Smartbill invoice created successfully:', result);
+      console.log('✅ Smartbill invoice created successfully:', {
+        message: result?.message,
+        number: result?.number,
+        series: result?.series,
+        documentId: result?.documentId,
+      });
       return result;
     } catch (error) {
       console.error('💥 Error creating Smartbill invoice:', error);
@@ -442,113 +458,152 @@ export class SmartbillAPI {
   }
 
   /**
-   * Get products from Smartbill
+   * List products from Smartbill's supported V3 catalog endpoint.
+   *
+   * V1 has no product-list endpoint and V3 product resources are currently
+   * read-only. Product writes are handled by saveToDb on invoice/v2.
    */
   async getProducts(companyVat: string): Promise<any[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/products?cif=${companyVat}`, {
-        method: 'GET',
-        headers: this.getHeaders()
-      });
+    const products: any[] = [];
+    let nextUrl: string | null =
+      `${this.baseUrl}/v3/companies/${encodeURIComponent(companyVat)}/products?limit=100`;
 
+    while (nextUrl) {
+      const response: Response = await fetch(nextUrl, {
+        method: 'GET',
+        headers: this.getV3Headers()
+      });
+      const result: any = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(`Failed to get products: ${response.status}`);
+        throw new Error(this.formatApiError(response.status, result));
       }
 
-      const result = await response.json();
-      return Array.isArray(result) ? result : [];
-    } catch (error) {
-      console.error('Error getting products from Smartbill:', error);
-      return [];
+      if (Array.isArray(result?.items)) products.push(...result.items);
+      nextUrl = typeof result?.pagination?.next === 'string' ? result.pagination.next : null;
     }
+
+    return products;
   }
 
   /**
-   * Create or update product in Smartbill
+   * Create or update a product through SmartBill's supported V1 contract.
+   *
+   * SmartBill does not expose POST /products. saveToDb=true on a draft
+   * invoice saves a missing product and updates an existing product matched by
+   * code, without allocating an invoice number.
    */
   async createOrUpdateProduct(companyVat: string, productData: {
     name: string;
     code: string;
-    um: string;
+    um?: string;
+    measuringUnitName?: string;
     price?: number;
     currency?: string;
     vatPercentage?: number;
-    category?: string;
+    taxName?: string;
     description?: string;
-    barcode?: string;
+    isService?: boolean;
   }): Promise<any> {
-    try {
-      console.log('Creating/updating Smartbill product:', JSON.stringify(productData, null, 2));
-      
-      const response = await fetch(`${this.baseUrl}/products`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          cif: companyVat,
-          ...productData
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Smartbill product creation error:', response.status, errorText);
-        throw new Error(`Smartbill product creation failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('Smartbill product created/updated successfully:', result);
-      return result;
-    } catch (error) {
-      console.error('Error creating/updating Smartbill product:', error);
-      throw error;
-    }
+    return this.createProductSyncDraft(companyVat, [{
+      name: productData.name,
+      code: productData.code,
+      quantity: 1,
+      price: Number(productData.price ?? 0),
+      measuringUnitName: productData.measuringUnitName || productData.um || 'buc',
+      currency: productData.currency || 'RON',
+      isTaxIncluded: true,
+      taxName: productData.taxName || 'Normala',
+      taxPercentage: Number(productData.vatPercentage ?? 21),
+      productDescription: productData.description || '',
+      saveToDb: true,
+      isService: productData.isService === true,
+    }]);
   }
 
   /**
-   * Sync all products from local database to Smartbill
+   * Save all active products to SmartBill's nomenclature without creating
+   * numbered invoices. SmartBill accepts at most 400 document lines, so large
+   * catalogs are split into multiple draft documents.
    */
   async syncProductsToSmartbill(companyVat: string, products: any[]): Promise<{
-    success: number;
+    submitted: number;
+    draftsCreated: number;
     failed: number;
     errors: string[];
+    drafts: Array<{ documentId?: number; series?: string; number?: string; message?: string }>;
+    skippedDuplicateCodes: string[];
   }> {
     const results = {
-      success: 0,
+      submitted: 0,
+      draftsCreated: 0,
       failed: 0,
-      errors: [] as string[]
+      errors: [] as string[],
+      drafts: [] as Array<{ documentId?: number; series?: string; number?: string; message?: string }>,
+      skippedDuplicateCodes: [] as string[],
     };
 
-    console.log(`Starting sync of ${products.length} products to Smartbill...`);
-
-    for (const product of products) {
-      try {
-        await this.createOrUpdateProduct(companyVat, {
-          name: product.name,
-          code: product.productCode || product.id.toString(),
-          um: 'buc', // pieces in Romanian
-            price: parseFloat(product.marketPrice ?? product.price ?? '0'),
-            currency: product.marketCurrency || 'RON',
-            vatPercentage: parseFloat(product.marketVatPercentage ?? product.vatPercentage ?? '0'),
-          category: product.category?.name || 'General',
-          description: product.description || '',
-          barcode: product.productCode || ''
-        });
-
-        results.success++;
-        console.log(`✓ Synced product: ${product.name}`);
-      } catch (error) {
-        results.failed++;
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        results.errors.push(`Failed to sync "${product.name}": ${errorMessage}`);
-        console.error(`✗ Failed to sync product "${product.name}":`, error);
+    const seenCodes = new Set<string>();
+    const payloads = products.flatMap((product: any) => {
+      const code = String(product.productCode || product.id || '').trim();
+      if (!code || seenCodes.has(code)) {
+        if (code) results.skippedDuplicateCodes.push(code);
+        return [];
       }
+      seenCodes.add(code);
 
-      // Add small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
+      return [{
+        name: String(product.name || code),
+        code,
+        quantity: 1,
+        price: Number(product.marketPrice ?? product.price ?? 0),
+        measuringUnitName: 'buc',
+        currency: product.marketCurrency || 'RON',
+        isTaxIncluded: true,
+        taxName: 'Normala',
+        taxPercentage: Number(product.marketVatPercentage ?? product.vatPercentage ?? 21) || 21,
+        productDescription: product.description || '',
+        saveToDb: true,
+        isService: product.isService === true,
+      }];
+    });
+
+    for (let offset = 0; offset < payloads.length; offset += 400) {
+      const chunk = payloads.slice(offset, offset + 400);
+      try {
+        const draft = await this.createProductSyncDraft(companyVat, chunk);
+        results.submitted += chunk.length;
+        results.draftsCreated++;
+        results.drafts.push({
+          documentId: draft?.documentId,
+          series: draft?.series,
+          number: draft?.number,
+          message: draft?.message,
+        });
+      } catch (error) {
+        results.failed += chunk.length;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        results.errors.push(`Failed to sync ${chunk.length} products: ${errorMessage}`);
+      }
     }
 
-    console.log(`Product sync completed: ${results.success} success, ${results.failed} failed`);
+    console.log(`Product sync completed: ${results.submitted} submitted, ${results.failed} failed`);
     return results;
+  }
+
+  private async createProductSyncDraft(companyVat: string, products: SmartbillProduct[]): Promise<any> {
+    const today = new Date().toISOString().split('T')[0];
+    return this.createInvoice({
+      companyVatCode: companyVat,
+      seriesName: this.config.invoiceSeries || 'KTO',
+      issueDate: today,
+      isDraft: true,
+      client: {
+        name: 'xHACCP product synchronization',
+        country: 'Romania',
+        saveToDb: false,
+      },
+      products,
+    });
   }
 
   /**

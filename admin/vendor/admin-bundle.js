@@ -13994,12 +13994,22 @@ Produsele existente vor fi actualizate, iar cele lips\u0103 vor fi create.`)) re
         if (!response.ok) throw new Error(result.message || "Sincronizarea a e\u0219uat.");
         setProductSyncState({ ...result, provider: providerLabel });
         await fetchProducts(selectedMarketTab);
-        const errorSuffix = result.failed ? `
+        if (provider === "smartbill") {
+          const duplicateSuffix = result.skippedDuplicateCodes?.length ? `
+Coduri duplicate omise local: ${result.skippedDuplicateCodes.length}` : "";
+          alert(`${result.message || `Sincronizare Smartbill finalizat\u0103 pentru .${selectedMarketTab}.`}
+
+Produse trimise: ${result.submitted || 0}
+Ciorne create: ${result.draftsCreated || 0}
+Erori: ${result.failed || 0}${duplicateSuffix}`);
+        } else {
+          const errorSuffix = result.failed ? `
 Erori: ${result.failed}` : "";
-        alert(`Sincronizare ${providerLabel} finalizat\u0103 pentru .${selectedMarketTab}.
+          alert(`Sincronizare ${providerLabel} finalizat\u0103 pentru .${selectedMarketTab}.
 
 Create: ${result.created || 0}
 Actualizate: ${result.updated || 0}${errorSuffix}`);
+        }
       } catch (error2) {
         console.error("Billing provider product sync failed:", error2);
         setProductSyncState({ success: false, message: error2.message || "Sincronizarea a e\u0219uat." });
@@ -16783,6 +16793,17 @@ This action cannot be undone.`)) {
                     children: productSyncState?.loading ? "\u23F3 Sincronizare\u2026" : `\u{1F504} Sync ${selectedMarketTab === "fr" ? "Pennylane" : "Smartbill"}`
                   }
                 ),
+                productSyncState?.market === selectedMarketTab && !productSyncState?.loading && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "12px", color: productSyncState.success === false ? "#b02a37" : "#146c43", alignSelf: "center", maxWidth: "360px" }, children: [
+                  productSyncState.message || "Sincronizarea s-a \xEEncheiat.",
+                  productSyncState.provider === "Smartbill" && productSyncState.submitted != null && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                    "Trimise: ",
+                    productSyncState.submitted,
+                    " \xB7 Ciorne: ",
+                    productSyncState.draftsCreated || 0,
+                    " \xB7 Erori: ",
+                    productSyncState.failed || 0
+                  ] })
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "button",
                   {
