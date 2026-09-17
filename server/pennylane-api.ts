@@ -311,10 +311,18 @@ export function createPennylaneHttpTransport(): PennylaneTransport | null {
       });
       const responseText = await response.text();
       if (!response.ok) {
-        throw new PennylaneError(`Pennylane request failed (${response.status})`, {
+        const detail = responseText
+          .replace(/<[^>]*>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 500);
+        throw new PennylaneError(
+          `Pennylane request failed (${response.status})${detail ? `: ${detail}` : ""}`,
+          {
           status: response.status,
           retryable: response.status === 408 || response.status === 429 || response.status >= 500,
-        });
+          },
+        );
       }
       try {
         return JSON.parse(responseText) as T;
