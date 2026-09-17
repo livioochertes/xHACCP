@@ -211,8 +211,10 @@ export interface IStorage {
   getInvoices(userId?: number, market?: string): Promise<Invoice[]>;
   getInvoice(id: number): Promise<InvoiceWithItems | undefined>;
   getInvoiceByNumber(invoiceNumber: string): Promise<InvoiceWithItems | undefined>;
+  getInvoiceByExternalRef(externalRef: string): Promise<InvoiceWithItems | undefined>;
   createInvoice(invoice: InsertInvoice, items: Omit<InsertInvoiceItem, "invoiceId">[]): Promise<Invoice>;
   updateInvoice(id: number, invoice: Partial<InsertInvoice>): Promise<Invoice>;
+  claimInvoiceEmail(id: number): Promise<Invoice | undefined>;
   deleteInvoice(id: number): Promise<void>;
 
   // Admin stats operations
@@ -1494,6 +1496,11 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getInvoiceByExternalRef(externalRef: string): Promise<InvoiceWithItems | undefined> {
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.externalRef, externalRef)).limit(1);
+    return invoice ? this.getInvoice(invoice.id) : undefined;
+  }
+
   async createInvoice(invoice: InsertInvoice, items: Omit<InsertInvoiceItem, "invoiceId">[]): Promise<Invoice> {
     // Create the invoice
     const [newInvoice] = await db.insert(invoices).values(invoice).returning();
@@ -1516,6 +1523,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(invoices.id, id))
       .returning();
     return updatedInvoice;
+  }
+
+  async claimInvoiceEmail(id: number): Promise<Invoice | undefined> {
+    const [claimed] = await db.update(invoices)
+      .set({ emailSentAt: new Date() })
+      .where(and(eq(invoices.id, id), isNull(invoices.emailSentAt), eq(invoices.providerStatus, "issued")))
+      .returning();
+    return claimed;
   }
 
   async deleteInvoice(id: number): Promise<void> {

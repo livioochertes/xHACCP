@@ -219,6 +219,10 @@ export const productMarkets = pgTable("product_markets", {
   price: decimal("price", { precision: 10, scale: 2 }),
   compareAtPrice: decimal("compare_at_price", { precision: 10, scale: 2 }),
   currency: varchar("currency", { length: 3 }), // null = inherit from marketSettings.currency
+  // Pennylane mappings are market/company specific and are intentionally
+  // nullable: sandbox and production IDs are not portable.
+  pennylaneProductId: varchar("pennylane_product_id", { length: 100 }),
+  pennylaneAccountingAccountId: varchar("pennylane_accounting_account_id", { length: 100 }),
   // Stock overrides — null means fall back to product-level stock
   inStock: boolean("in_stock"),
   stockQuantity: integer("stock_quantity"),
@@ -529,7 +533,7 @@ export const reviews = pgTable("reviews", {
 // Invoices table
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
-  invoiceNumber: varchar("invoice_number", { length: 100 }).notNull().unique(),
+  invoiceNumber: varchar("invoice_number", { length: 100 }).unique(),
   // An order can have an earlier local/fallback invoice and a later
   // SmartBill or reissued invoice, so this relationship is not unique.
   orderId: integer("order_id").references(() => orders.id),
@@ -556,6 +560,15 @@ export const invoices = pgTable("invoices", {
   efacturaStatus: varchar("efactura_status", { length: 50 }), // stub: pending, submitted, accepted
   efacturaRef: text("efactura_ref"), // stub: e-factura reference number
   externalRef: text("external_ref"), // external API reference (.com integrations, Chorus Pro tx ID, etc.)
+  provider: varchar("provider", { length: 30 }), // local, smartbill, pennylane
+  providerStatus: varchar("provider_status", { length: 30 }), // pending, failed, issued
+  providerInvoiceId: varchar("provider_invoice_id", { length: 120 }),
+  providerInvoiceUrl: text("provider_invoice_url"),
+  providerPdfUrl: text("provider_pdf_url"),
+  providerError: text("provider_error"),
+  providerLastAttemptAt: timestamp("provider_last_attempt_at"),
+  providerNextRetryAt: timestamp("provider_next_retry_at"),
+  emailSentAt: timestamp("email_sent_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

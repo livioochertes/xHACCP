@@ -6156,9 +6156,10 @@ import {
                       <tbody>
                         {adminInvoices.map((inv, idx) => {
                           const isSmartbill = !!(inv.smartbillSeries && inv.smartbillNumber);
-                          const hasPdf = !!(inv.pdfPath) || isSmartbill;
-                          const sourceLabel = isSmartbill ? t('invoices.smartbill') : inv.efacturaStatus ? t('invoices.efactura') : t('invoices.local');
-                          const sourceColor = isSmartbill ? '#0d6efd' : inv.efacturaStatus ? '#6610f2' : '#198754';
+                          const isPennylane = inv.provider === 'pennylane';
+                          const hasPdf = !!(inv.pdfPath) || isSmartbill || !!inv.providerPdfUrl;
+                          const sourceLabel = isPennylane ? 'Pennylane' : isSmartbill ? t('invoices.smartbill') : inv.efacturaStatus ? t('invoices.efactura') : t('invoices.local');
+                          const sourceColor = isPennylane ? '#6f42c1' : isSmartbill ? '#0d6efd' : inv.efacturaStatus ? '#6610f2' : '#198754';
                           const statusColor = inv.status === 'issued' ? '#198754' : inv.status === 'cancelled' ? '#dc3545' : '#ffc107';
                           const marketFlag = inv.market === 'ro' ? '🇷🇴' : inv.market === 'fr' ? '🇫🇷' : '🌍';
                           const customerName = inv.userFirstName ? `${inv.userFirstName} ${inv.userLastName || ''}`.trim() : inv.userEmail || '-';
@@ -6180,6 +6181,8 @@ import {
                                   {inv.status === 'issued' ? t('invoices.issued') : inv.status === 'cancelled' ? t('invoices.cancelled') : t('invoices.pending')}
                                 </span>
                                 {inv.efacturaStatus && <span style={{marginLeft: '4px', fontSize: '10px', color: '#6c757d'}}>e-fact: {inv.efacturaStatus}</span>}
+                                {isPennylane && <span style={{marginLeft: '4px', fontSize: '10px', color: inv.providerStatus === 'issued' ? '#198754' : '#dc3545'}}>Pennylane: {inv.providerStatus || 'pending'}</span>}
+                                {isPennylane && inv.providerError && <div style={{fontSize: '10px', color: '#dc3545', maxWidth: '180px'}}>{inv.providerError}</div>}
                               </td>
                               <td style={{padding: '10px 12px', textAlign: 'center'}}>
                                 <div style={{display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap'}}>
@@ -6231,6 +6234,20 @@ import {
                                       style={{background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px'}}
                                     >
                                       📤 Ext.
+                                    </button>
+                                  )}
+                                  {isPennylane && inv.providerStatus !== 'issued' && (
+                                    <button
+                                      onClick={async () => {
+                                        const resp = await fetch(`/admin/api/invoices/${inv.id}/retry-pennylane`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                                        const data = await resp.json();
+                                        alert(data.message || (data.success ? 'Pennylane invoice retry completed.' : 'Pennylane retry failed.'));
+                                        fetchInvoices();
+                                      }}
+                                      title="Retry Pennylane invoice"
+                                      style={{background: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px'}}
+                                    >
+                                      ↻ Retry
                                     </button>
                                   )}
                                   {/* View details */}

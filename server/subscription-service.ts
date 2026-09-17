@@ -310,7 +310,9 @@ export async function processDueSubscriptions(now = new Date()) {
             invoicePdf = await invoiceService.getInvoicePdf(invoice.id).catch(() => null);
           }
           const user = await storage.getUser(subscription.userId);
-          if (user?.email) {
+          const canSendFrenchInvoice = renewalOrder.market !== "fr" || !invoice?.id ||
+            !!(await storage.claimInvoiceEmail(invoice.id));
+          if (user?.email && canSendFrenchInvoice) {
             const { sendSubscriptionRenewalEmail } = await import("./email-service");
             await sendSubscriptionRenewalEmail(user.email, renewalOrder as any, invoicePdf, invoice?.invoiceNumber);
           }

@@ -2495,7 +2495,7 @@ export async function registerAdminRoutes(app: Express) {
         const orderInvoices = await db.select().from(invoices).where(eq(invoices.orderId, orderId)).limit(1);
         if (orderInvoices.length > 0) {
           const inv = orderInvoices[0];
-          invoiceNumber = inv.invoiceNumber;
+          invoiceNumber = inv.invoiceNumber || undefined;
           const { createInvoiceService } = await import('./invoice-service.js');
           const invoiceService = await createInvoiceService();
           invoicePdfBuffer = await invoiceService.getInvoicePdf(inv.id);
@@ -4849,7 +4849,7 @@ export async function registerAdminRoutes(app: Express) {
         const invoicesList = await storage.getInvoices(order.userId || undefined, order.market || "ro");
         const orderInvoice = invoicesList.find(inv => inv.orderId === orderId);
         if (orderInvoice) {
-          invoiceNumber = orderInvoice.invoiceNumber;
+          invoiceNumber = orderInvoice.invoiceNumber || undefined;
           const { createInvoiceService } = await import('./invoice-service.js');
           const invoiceService = await createInvoiceService();
           invoicePdfBuffer = await invoiceService.getInvoicePdf(orderInvoice.id);
@@ -7060,7 +7060,8 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // PUT /admin/api/products/:id/markets — replace ALL market rows for a product
-  // body: [{ market, isActive, price, compareAtPrice, currency, inStock, stockQuantity }]
+  // body: [{ market, isActive, price, compareAtPrice, currency, inStock,
+  //          stockQuantity, pennylaneProductId, pennylaneAccountingAccountId }]
   // Markets NOT included in the body are deleted (true replace semantics)
   app.put("/admin/api/products/:id/markets", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
@@ -7117,6 +7118,8 @@ export async function registerAdminRoutes(app: Express) {
           currency: m.currency ?? null,
           inStock: m.inStock ?? null,
           stockQuantity: m.stockQuantity ?? null,
+          pennylaneProductId: m.pennylaneProductId ?? null,
+          pennylaneAccountingAccountId: m.pennylaneAccountingAccountId ?? null,
         });
         results.push(pm);
       }
@@ -7133,7 +7136,10 @@ export async function registerAdminRoutes(app: Express) {
       const productId = parseInt(req.params.id);
       const market = req.params.market;
       const validMarkets = ['ro', 'fr', 'com'];
-      const { categoryId: rawCategoryId, isActive, price, compareAtPrice, currency, inStock, stockQuantity } = req.body;
+      const {
+        categoryId: rawCategoryId, isActive, price, compareAtPrice, currency,
+        inStock, stockQuantity, pennylaneProductId, pennylaneAccountingAccountId,
+      } = req.body;
 
       if (!validMarkets.includes(market)) {
         return res.status(400).json({ message: "Invalid market" });
@@ -7159,6 +7165,8 @@ export async function registerAdminRoutes(app: Express) {
         currency: currency ?? null,
         inStock: inStock ?? null,
         stockQuantity: stockQuantity ?? null,
+        pennylaneProductId: pennylaneProductId ?? null,
+        pennylaneAccountingAccountId: pennylaneAccountingAccountId ?? null,
       });
       await refreshMarketCaches();
       res.json(pm);
@@ -7197,7 +7205,9 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // POST /admin/api/products/:id/markets/bulk — set all markets for one product at once
-  // body: { markets: [{ market, isActive, price, compareAtPrice, currency, inStock, stockQuantity }] }
+  // body: { markets: [{ market, isActive, price, compareAtPrice, currency,
+  //                    inStock, stockQuantity, pennylaneProductId,
+  //                    pennylaneAccountingAccountId }] }
   app.post("/admin/api/products/:id/markets/bulk", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const productId = parseInt(req.params.id);
@@ -7227,6 +7237,8 @@ export async function registerAdminRoutes(app: Express) {
           currency: m.currency ?? null,
           inStock: m.inStock ?? null,
           stockQuantity: m.stockQuantity ?? null,
+          pennylaneProductId: m.pennylaneProductId ?? null,
+          pennylaneAccountingAccountId: m.pennylaneAccountingAccountId ?? null,
         });
         results.push(pm);
       }
@@ -7257,6 +7269,14 @@ export async function registerAdminRoutes(app: Express) {
           i.issue_date as "issueDate", i.status, i.total_amount as "totalAmount", i.currency,
           i.market, i.pdf_path as "pdfPath", i.efactura_status as "efacturaStatus",
           i.efactura_ref as "efacturaRef", i.external_ref as "externalRef",
+          i.provider, i.provider_status as "providerStatus",
+          i.provider_invoice_id as "providerInvoiceId",
+          i.provider_invoice_url as "providerInvoiceUrl",
+          i.provider_pdf_url as "providerPdfUrl",
+          i.provider_error as "providerError",
+          i.provider_last_attempt_at as "providerLastAttemptAt",
+          i.provider_next_retry_at as "providerNextRetryAt",
+          i.email_sent_at as "emailSentAt",
           i.smartbill_series as "smartbillSeries", i.smartbill_number as "smartbillNumber",
           i.smartbill_url as "smartbillUrl",
           i.payment_method as "paymentMethod", i.created_at as "createdAt",
@@ -7377,6 +7397,42 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error('Error downloading invoice PDF:', error);
       res.status(500).json({ message: 'Failed to download PDF' });
+    }
+  });
+
+  // POST /admin/api/invoices/:id/retry-pennylane — retry a failed/pending .fr invoice
+  app.post("/admin/api/invoices/:id/retry-pennylane", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const invoice = await storage.getInvoice(id);
+      if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+      const invoiceMarket = (invoice as any).market || 'ro';
+      if (!canAccessMarket(req as AdminAuthRequest, invoiceMarket)) {
+        return res.status(403).json({ message: 'Access denied for this invoice market' });
+      }
+      if (invoiceMarket !== 'fr' || (invoice as any).provider !== 'pennylane') {
+        return res.status(400).json({ message: 'Only French Pennylane invoices can be retried' });
+      }
+      const { createInvoiceService } = await import('./invoice-service.js');
+      const result = await (await createInvoiceService()).retryPennylaneInvoice(id);
+      res.json({ success: true, invoice: result });
+    } catch (error) {
+      console.error('Error retrying Pennylane invoice:', error instanceof Error ? error.message : 'unknown error');
+      res.status(502).json({ message: 'Pennylane retry failed; the invoice remains pending for another retry' });
+    }
+  });
+
+  // GET /admin/api/pennylane/status — connector health check without exposing credentials
+  app.get("/admin/api/pennylane/status", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!req.isSuperAdmin && !(req.adminMarkets || []).includes('fr')) {
+        return res.status(403).json({ message: 'Access denied for this market' });
+      }
+      const { createInvoiceService } = await import('./invoice-service.js');
+      const connected = await (await createInvoiceService()).testPennylaneConnection();
+      res.json({ connected });
+    } catch (error) {
+      res.status(502).json({ connected: false, message: 'Pennylane connection check failed' });
     }
   });
 

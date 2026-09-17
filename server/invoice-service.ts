@@ -2,6 +2,17 @@ import { SmartbillAPI, SmartbillConfig, orderToSmartbillInvoice } from './smartb
 import { storage } from './storage.js';
 import { getNextInvoiceNumber } from './invoice-counter.js';
 import { generateInvoicePdf, getInvoicePdfBuffer, pdfExists, type PdfInvoiceData } from './pdf-invoice-local.js';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import {
+  buildPennylaneCustomerPayload,
+  createPennylaneHttpTransport,
+  PennylaneClient,
+  pennylaneCustomerReference,
+  pennylaneExternalReference,
+  pennylaneVatRateCode,
+  type PennylaneInvoiceInput,
+} from './pennylane-api.js';
 
 function invoiceProductName(item: any): string {
   const productName = item.product?.name || item.productName || 'Product';
@@ -19,11 +30,13 @@ export interface InvoiceServiceConfig {
   defaultSeries: string;
   enableSmartbill: boolean;
   companyInfo?: any;
+  pennylane?: PennylaneClient;
 }
 
 export class InvoiceService {
   private smartbillApi: SmartbillAPI;
   private config: InvoiceServiceConfig;
+  private pennylaneApi?: PennylaneClient;
 
   constructor(config: InvoiceServiceConfig) {
     this.config = config;
@@ -37,6 +50,7 @@ export class InvoiceService {
       }
     });
     this.smartbillApi = new SmartbillAPI(config.smartbill);
+    this.pennylaneApi = config.pennylane;
   }
 
   /**
@@ -115,8 +129,12 @@ export class InvoiceService {
 
       let invoice;
 
-      if (orderMarket === 'fr' || orderMarket === 'com') {
-        // fr/com: use local PDF generation with per-market counter (not Smartbill)
+      if (orderMarket === 'fr') {
+        // Pennylane owns French invoice numbering. There is deliberately no
+        // local-PDF fallback for this market.
+        invoice = await this.generatePennylaneInvoice(order, user, paymentData, resolvedCompanyInfo);
+      } else if (orderMarket === 'com') {
+        // .com remains on the established local invoice flow.
         invoice = await this.generateLocalInvoiceForMarket(order, user, paymentData, resolvedCompanyInfo, orderMarket);
       } else if (this.config.enableSmartbill) {
         // ro: Generate invoice via Smartbill API
@@ -132,7 +150,9 @@ export class InvoiceService {
     } catch (error) {
       console.error(`Error generating invoice for order ${orderId}:`, error);
       
-      // If Smartbill fails, try local generation as fallback
+      // SmartBill's established Romanian fallback remains unchanged. A
+      // Pennylane failure is persisted as pending/failed by the adapter and
+      // must never become a local official French invoice.
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (this.config.enableSmartbill && errorMessage.includes('Smartbill')) {
         console.log('Smartbill failed, falling back to local invoice generation');
@@ -198,7 +218,10 @@ export class InvoiceService {
         status: 'manual_creation'
       };
 
-      if (orderMarket === 'fr' || orderMarket === 'com') {
+      if (orderMarket === 'fr') {
+        console.log(`📋 ✅ USING PENNYLANE INVOICE for market '${orderMarket}'`);
+        return await this.generatePennylaneInvoice(order, user, paymentData, resolvedCompanyInfo);
+      } else if (orderMarket === 'com') {
         console.log(`📋 ✅ USING LOCAL PDF INVOICE for market '${orderMarket}'`);
         return await this.generateLocalInvoiceForMarket(order, user, paymentData, resolvedCompanyInfo, orderMarket);
       } else if (this.config.enableSmartbill) {
@@ -234,6 +257,235 @@ export class InvoiceService {
       
       throw error;
     }
+  }
+
+  /**
+   * Issue a French invoice in Pennylane. The local row is created first with
+   * a deterministic technical number so a timeout can be retried safely; the
+   * official number is written only after Pennylane finalizes the document.
+   */
+  private async generatePennylaneInvoice(order: any, user: any, paymentData: any, companyInfo?: any): Promise<any> {
+    const externalRef = pennylaneExternalReference(order.id);
+    let invoice: any = await storage.getInvoiceByExternalRef(externalRef);
+    if (invoice?.providerStatus === 'issued') return invoice;
+
+    const vatRate = parseFloat(String(companyInfo?.defaultVatPercentage ?? 20));
+    const totalAmount = Number(order.totalAmount || 0);
+    const vatAmount = (totalAmount * vatRate) / (100 + vatRate);
+    const items: any[] = (order.items || []).map((item: any) => ({
+      productId: item.productId,
+      productName: invoiceProductName(item),
+      productCode: item.product?.productCode || null,
+      quantity: Number(item.quantity),
+      // Pennylane's raw_currency_unit_price is tax-exclusive. Order prices
+      // are stored tax-inclusive, so remove the configured FR VAT first.
+      unitPrice: Number(item.price) / (1 + vatRate / 100),
+      vatRate,
+      lineTotal: Number(item.totalPrice),
+    }));
+    const discountAmount = Number(order.discountAmount || 0) ||
+      (() => {
+        const match = String(order.notes || '').match(/Voucher:\s*[^\s(]+\s*\(-?([\d.]+)\)/);
+        return match ? Number(match[1]) : 0;
+      })();
+    if (discountAmount > 0) {
+      items.push({
+        productId: null,
+        productName: `Remise${order.voucherCode ? ` ${order.voucherCode}` : ''}`,
+        productCode: 'DISCOUNT',
+        quantity: 1,
+        unitPrice: -Math.abs(discountAmount) / (1 + vatRate / 100),
+        vatRate,
+        lineTotal: -Math.abs(discountAmount),
+      });
+    }
+
+    if (!invoice) {
+      try {
+        invoice = await storage.createInvoice({
+          invoiceNumber: `PENDING-FR-${order.id}`,
+          orderId: order.id,
+          userId: order.userId || undefined,
+          issueDate: new Date(),
+          supplyDate: new Date(),
+          subtotal: (totalAmount - vatAmount).toFixed(2),
+          vatAmount: vatAmount.toFixed(2),
+          totalAmount: totalAmount.toFixed(2),
+          currency: 'EUR',
+          paymentMethod: paymentData.paymentMethod || order.paymentMethod || 'card',
+          notes: 'Facture Pennylane — émission en attente',
+          status: 'pending',
+          market: 'fr',
+          provider: 'pennylane',
+          providerStatus: 'pending',
+          externalRef,
+          providerLastAttemptAt: new Date(),
+        } as any, items.map(item => ({
+          productId: item.productId,
+          productName: item.productName,
+          productCode: item.productCode,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice.toFixed(2),
+          vatRate: item.vatRate.toFixed(2),
+          lineTotal: item.lineTotal.toFixed(2),
+        })));
+      } catch (error) {
+        // A unique external_ref claim means another callback won the race.
+        invoice = await storage.getInvoiceByExternalRef(externalRef);
+        if (!invoice) throw error;
+      }
+    }
+    if (!invoice) throw new Error('Unable to create local Pennylane invoice record');
+
+    try {
+      await storage.updateInvoice(invoice.id, {
+        providerStatus: 'pending',
+        providerError: null,
+        providerLastAttemptAt: new Date(),
+        providerNextRetryAt: null,
+      } as any);
+      const client = this.pennylaneApi;
+      if (!client) throw new Error('Pennylane connector is not configured');
+
+      const billing = (order.billingAddress as any) || {};
+      const shipping = (order.shippingAddress as any) || {};
+      const email = billing.email || shipping.email || user?.email || undefined;
+      const firstName = billing.firstName || shipping.firstName || user?.firstName || '';
+      const lastName = billing.lastName || shipping.lastName || user?.lastName || '';
+      const customerExternalRef = pennylaneCustomerReference({
+        email,
+        companyName: billing.companyName || user?.companyName,
+        firstName,
+        lastName,
+      });
+      const customerPayload = buildPennylaneCustomerPayload({
+        externalReference: customerExternalRef,
+        name: `${firstName} ${lastName}`.trim() || 'Client',
+        email,
+        companyName: billing.companyName || user?.companyName,
+        vatNumber: billing.vatNumber || user?.vatNumber,
+        address: billing.address || shipping.address,
+        city: billing.city || shipping.city,
+        zipCode: billing.zipCode || shipping.zipCode,
+        country: billing.country || shipping.country || 'FR',
+      });
+      const customer = await client.findOrCreateCustomer(customerExternalRef, customerPayload);
+      const lineItems = await Promise.all(items.map(async item => {
+        const mapping = item.productId ? await getPennylaneProductMapping(item.productId, 'fr') : null;
+        return {
+          label: item.productName,
+          quantity: item.quantity,
+          unit: 'piece',
+          raw_currency_unit_price: item.unitPrice.toFixed(2),
+          vat_rate: pennylaneVatRateCode(item.vatRate),
+          ...(mapping?.pennylaneProductId && /^\d+$/.test(mapping.pennylaneProductId)
+            ? { product_id: Number(mapping.pennylaneProductId) }
+            : {}),
+          ...(mapping?.pennylaneAccountingAccountId && /^\d+$/.test(mapping.pennylaneAccountingAccountId)
+            ? { ledger_account_id: Number(mapping.pennylaneAccountingAccountId) }
+            : {}),
+        };
+      }));
+      const customerId = Number(customer.id);
+      if (!Number.isSafeInteger(customerId)) {
+        throw new Error('Pennylane customer response returned an invalid numeric ID');
+      }
+      const payload: PennylaneInvoiceInput = {
+        external_reference: externalRef,
+        customer_id: customerId,
+        date: new Date().toISOString().slice(0, 10),
+        currency: 'EUR',
+        line_items: lineItems,
+        seller: {
+          name: companyInfo?.name || 'xHACCP',
+          vat_number: companyInfo?.vatNumber || undefined,
+          registration_number: companyInfo?.registrationNumber || undefined,
+          address: companyInfo?.address || undefined,
+          city: companyInfo?.city || undefined,
+          zip_code: companyInfo?.zipCode || undefined,
+          country: companyInfo?.country || 'France',
+          email: companyInfo?.email || undefined,
+        },
+      };
+      let remote = invoice.providerInvoiceId
+        ? await client.getInvoice(invoice.providerInvoiceId)
+        : await client.findInvoiceByReference(externalRef);
+      if (!remote) remote = await client.createInvoice(payload);
+      if (!remote.status || !['finalized', 'issued', 'paid', 'sent'].includes(remote.status.toLowerCase())) {
+        remote = await client.finalizeInvoice(remote.id);
+      }
+      const officialNumber = remote.invoice_number || remote.number;
+      if (!officialNumber) throw new Error('Pennylane finalized invoice returned no official number');
+
+      let pdfPath = invoice.pdfPath;
+      if (!pdfPath) {
+        const pdf = await client.downloadInvoicePdf(remote);
+        if (pdf?.length) {
+          pdfPath = path.join('uploads', 'invoices', `pennylane-${invoice.id}.pdf`);
+          await mkdir(path.dirname(pdfPath), { recursive: true });
+          await writeFile(pdfPath, pdf);
+        }
+      }
+      await storage.updateInvoice(invoice.id, {
+        invoiceNumber: officialNumber,
+        status: 'issued',
+        provider: 'pennylane',
+        providerStatus: 'issued',
+        providerInvoiceId: remote.id,
+        providerInvoiceUrl: remote.url || null,
+        providerPdfUrl: remote.pdf_url || remote.download_url || null,
+        providerError: null,
+        providerLastAttemptAt: new Date(),
+        providerNextRetryAt: null,
+        pdfPath: pdfPath || null,
+        notes: 'Facture émise et numérotée par Pennylane',
+      } as any);
+      return await storage.getInvoice(invoice.id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await storage.updateInvoice(invoice.id, {
+        status: 'pending',
+        provider: 'pennylane',
+        providerStatus: 'failed',
+        providerError: message.slice(0, 1000),
+        providerLastAttemptAt: new Date(),
+        providerNextRetryAt: new Date(Date.now() + 15 * 60 * 1000),
+      } as any);
+      throw error;
+    }
+  }
+
+  async retryPennylaneInvoice(invoiceId: number): Promise<any> {
+    const invoice = await storage.getInvoice(invoiceId);
+    if (!invoice) throw new Error('Invoice not found');
+    if ((invoice as any).market !== 'fr' || (invoice as any).provider !== 'pennylane') {
+      throw new Error('Only pending French Pennylane invoices can be retried');
+    }
+    if ((invoice as any).providerStatus === 'issued') return invoice;
+    const order = invoice.orderId ? await storage.getOrder(invoice.orderId) : undefined;
+    if (!order) throw new Error('Invoice order not found');
+    const billing = (order.billingAddress as any) || {};
+    const shipping = (order.shippingAddress as any) || {};
+    const user = order.userId
+      ? await storage.getUser(order.userId)
+      : {
+          id: 0,
+          email: billing.email || shipping.email || '',
+          firstName: billing.firstName || shipping.firstName || 'Guest',
+          lastName: billing.lastName || shipping.lastName || 'Customer',
+        };
+    return this.generatePennylaneInvoice(
+      order,
+      user,
+      { paymentMethod: order.paymentMethod || 'card', status: 'succeeded' },
+      await getCompanySettingsByMarket('fr'),
+    );
+  }
+
+  async testPennylaneConnection(): Promise<boolean> {
+    if (!this.pennylaneApi) return false;
+    await this.pennylaneApi.testConnection();
+    return true;
   }
 
   /**
@@ -602,6 +854,11 @@ export class InvoiceService {
         );
       }
 
+      if ((invoice as any).provider === 'pennylane' && (invoice as any).providerInvoiceId && this.pennylaneApi) {
+        const remote = await this.pennylaneApi.getInvoice((invoice as any).providerInvoiceId);
+        return await this.pennylaneApi.downloadInvoicePdf(remote);
+      }
+
       // Otherwise return null
       return null;
 
@@ -753,7 +1010,27 @@ export async function createInvoiceService(): Promise<InvoiceService> {
     smartbill: config.smartbill
   });
 
-  return new InvoiceService(config);
+  const pennylaneTransport = createPennylaneHttpTransport();
+  return new InvoiceService({
+    ...config,
+    pennylane: pennylaneTransport ? new PennylaneClient(pennylaneTransport) : undefined,
+  });
+}
+
+async function getPennylaneProductMapping(productId: number, market: string): Promise<{
+  pennylaneProductId: string | null;
+  pennylaneAccountingAccountId: string | null;
+} | null> {
+  const { pool } = await import('./db.js');
+  const result = await pool.query(
+    `SELECT pennylane_product_id as "pennylaneProductId",
+            pennylane_accounting_account_id as "pennylaneAccountingAccountId"
+       FROM product_markets
+      WHERE product_id = $1 AND market = $2
+      LIMIT 1`,
+    [productId, market],
+  );
+  return result.rows[0] || null;
 }
 
 // Helper function to get company settings by market (exact-match only, no cross-market fallback)

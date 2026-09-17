@@ -4981,11 +4981,13 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
                     if (customerEmail) {
                       try {
-                        if (orderMarket === 'fr') {
+                        const canSendFrenchInvoice = orderMarket !== 'fr' || !invoiceId ||
+                          !!(await storage.claimInvoiceEmail(invoiceId));
+                        if (orderMarket === 'fr' && canSendFrenchInvoice) {
                           // .fr: send dedicated French invoice email (no AWB/courier)
                           await sendInvoiceEmailFr(customerEmail, latestOrder, invoicePdfBuffer, invoiceNumber);
                           console.log(`✅ FR invoice email sent to ${customerEmail} for Viva order #${orderId}`);
-                        } else {
+                        } else if (orderMarket !== 'fr') {
                           await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber || '', invoicePdfBuffer, invoiceNumber);
                           console.log(`✅ Customer shipment email sent to ${customerEmail} for Viva order #${orderId}`);
                         }
@@ -5189,11 +5191,13 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
                     if (customerEmail) {
                       try {
-                        if (orderMarket === 'fr') {
+                        const canSendFrenchInvoice = orderMarket !== 'fr' || !invoiceId ||
+                          !!(await storage.claimInvoiceEmail(invoiceId));
+                        if (orderMarket === 'fr' && canSendFrenchInvoice) {
                           // .fr: dedicated French invoice email (no AWB/courier)
                           await sendInvoiceEmailFr(customerEmail, latestOrder, invoicePdfBuffer, invoiceNumber);
                           console.log(`✅ FR invoice email sent via webhook to ${customerEmail} for order #${orderId}`);
-                        } else {
+                        } else if (orderMarket !== 'fr') {
                           await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber || '', invoicePdfBuffer, invoiceNumber);
                           console.log(`✅ Customer shipment email sent via webhook for order #${orderId}`);
                         }

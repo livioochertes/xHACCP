@@ -19169,9 +19169,10 @@ This action cannot be undone.`)) {
                 ] }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: adminInvoices.map((inv, idx) => {
                   const isSmartbill = !!(inv.smartbillSeries && inv.smartbillNumber);
-                  const hasPdf = !!inv.pdfPath || isSmartbill;
-                  const sourceLabel = isSmartbill ? t2("invoices.smartbill") : inv.efacturaStatus ? t2("invoices.efactura") : t2("invoices.local");
-                  const sourceColor = isSmartbill ? "#0d6efd" : inv.efacturaStatus ? "#6610f2" : "#198754";
+                  const isPennylane = inv.provider === "pennylane";
+                  const hasPdf = !!inv.pdfPath || isSmartbill || !!inv.providerPdfUrl;
+                  const sourceLabel = isPennylane ? "Pennylane" : isSmartbill ? t2("invoices.smartbill") : inv.efacturaStatus ? t2("invoices.efactura") : t2("invoices.local");
+                  const sourceColor = isPennylane ? "#6f42c1" : isSmartbill ? "#0d6efd" : inv.efacturaStatus ? "#6610f2" : "#198754";
                   const statusColor = inv.status === "issued" ? "#198754" : inv.status === "cancelled" ? "#dc3545" : "#ffc107";
                   const marketFlag = inv.market === "ro" ? "\u{1F1F7}\u{1F1F4}" : inv.market === "fr" ? "\u{1F1EB}\u{1F1F7}" : "\u{1F30D}";
                   const customerName = inv.userFirstName ? `${inv.userFirstName} ${inv.userLastName || ""}`.trim() : inv.userEmail || "-";
@@ -19201,7 +19202,12 @@ This action cannot be undone.`)) {
                       inv.efacturaStatus && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { marginLeft: "4px", fontSize: "10px", color: "#6c757d" }, children: [
                         "e-fact: ",
                         inv.efacturaStatus
-                      ] })
+                      ] }),
+                      isPennylane && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { marginLeft: "4px", fontSize: "10px", color: inv.providerStatus === "issued" ? "#198754" : "#dc3545" }, children: [
+                        "Pennylane: ",
+                        inv.providerStatus || "pending"
+                      ] }),
+                      isPennylane && inv.providerError && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "10px", color: "#dc3545", maxWidth: "180px" }, children: inv.providerError })
                     ] }),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "10px 12px", textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "4px", justifyContent: "center", flexWrap: "wrap" }, children: [
                       hasPdf && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -19248,6 +19254,20 @@ This action cannot be undone.`)) {
                           title: "Submit to external API (stub)",
                           style: { background: "#6c757d", color: "white", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px" },
                           children: "\u{1F4E4} Ext."
+                        }
+                      ),
+                      isPennylane && inv.providerStatus !== "issued" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          onClick: async () => {
+                            const resp = await fetch(`/admin/api/invoices/${inv.id}/retry-pennylane`, { method: "POST", headers: { "Authorization": `Bearer ${token}` } });
+                            const data = await resp.json();
+                            alert(data.message || (data.success ? "Pennylane invoice retry completed." : "Pennylane retry failed."));
+                            fetchInvoices();
+                          },
+                          title: "Retry Pennylane invoice",
+                          style: { background: "#6f42c1", color: "white", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px" },
+                          children: "\u21BB Retry"
                         }
                       ),
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(

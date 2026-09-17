@@ -31,6 +31,7 @@ export type PayPalReconciliationStorage = {
   updateOrder(id: number, order: { paymentTransactionId: string }): Promise<unknown>;
   markOrderPaid(id: number): Promise<PayPalLocalOrder | null>;
   getOrder(id: number): Promise<PayPalLocalOrder | undefined>;
+  claimInvoiceEmail?(id: number): Promise<unknown>;
 };
 
 export type PayPalInvoiceService = {
@@ -128,7 +129,12 @@ export async function reconcilePayPalPayment(
       const invoicePdf = invoice?.id
         ? await invoiceService.getInvoicePdf(invoice.id).catch(() => null)
         : null;
-      if (latest && email) {
+      const canSend = latest && email && (
+        latest.market !== "fr" || !invoice?.id ||
+        !dependencies.storage.claimInvoiceEmail ||
+        !!(await dependencies.storage.claimInvoiceEmail(invoice.id))
+      );
+      if (canSend) {
         await dependencies.sendInvoiceEmailFr(email, latest, invoicePdf, invoice.invoiceNumber);
       }
     } catch (error) {
