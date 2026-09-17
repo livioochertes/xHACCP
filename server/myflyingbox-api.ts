@@ -122,6 +122,18 @@ function unwrapApiData<T>(response: T | { data?: T }): T {
   return response as T;
 }
 
+function isPickupOffer(offer: MyFlyingBoxOffer): boolean {
+  const code = String(offer.product?.code || "").toLowerCase();
+  const name = String(offer.product?.name || "").toLowerCase();
+  return code.includes("store_relais") ||
+    code.includes("_relais") ||
+    code.includes("_pickup") ||
+    code.includes("horsdom") ||
+    name.includes("relais") ||
+    name.includes("point retrait") ||
+    name.includes("pickup");
+}
+
 export class MyFlyingBoxAPI {
   private readonly config: MyFlyingBoxConfig;
 
@@ -231,7 +243,14 @@ export class MyFlyingBoxAPI {
       return configuredOffer;
     }
 
-    return [...eligibleOffers].sort((left, right) => {
+    // The API can return pickup-point offers as the cheapest option. The
+    // current checkout sends a street address and has no pickup-point data,
+    // so prefer home-delivery offers unless the caller selected a product
+    // explicitly through MYFLYINGBOX_PRODUCT_CODE.
+    const homeDeliveryOffers = eligibleOffers.filter((offer) => !isPickupOffer(offer));
+    const selectableOffers = homeDeliveryOffers.length > 0 ? homeDeliveryOffers : eligibleOffers;
+
+    return [...selectableOffers].sort((left, right) => {
       const leftAmount = left.total_price?.amount ?? left.price?.amount ?? Number.POSITIVE_INFINITY;
       const rightAmount = right.total_price?.amount ?? right.price?.amount ?? Number.POSITIVE_INFINITY;
       return leftAmount - rightAmount;
