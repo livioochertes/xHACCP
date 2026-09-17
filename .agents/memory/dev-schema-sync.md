@@ -7,4 +7,4 @@ Use the development database tooling for additive schema changes when `drizzle-k
 
 **Why:** The workspace shell is non-interactive, so Drizzle's confirmation prompt can appear to complete without applying the schema. Forcing the prompt risks approving destructive changes.
 
-**How to apply:** Keep the Drizzle schema and migration source in the repository, then apply the reviewed migration to `development` through the database tool and verify the workflow logs.
+**How to apply:** Keep the Drizzle schema and migration source in the repository, then apply the reviewed migration to `development` through the database tool and verify the workflow logs. Tables read with Drizzle `select()` need every schema column present before startup data loading can succeed.

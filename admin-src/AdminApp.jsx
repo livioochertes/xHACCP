@@ -624,7 +624,9 @@ import {
             priority: editingProduct.priority || 0,
             productType: editingProduct.productType || (editingProduct.isService ? 'service' : 'standard'),
             isService: editingProduct.isService || false,
-            isComposite: editingProduct.isComposite || false
+            isComposite: editingProduct.isComposite || false,
+            pennylaneProductId: '',
+            pennylaneAccountingAccountId: ''
           };
           
           // Trigger ModalsComponent to load the data
@@ -8450,7 +8452,9 @@ import {
           priority: 0,
           productType: 'standard',
           isService: false,
-          isComposite: false
+          isComposite: false,
+          pennylaneProductId: '',
+          pennylaneAccountingAccountId: ''
         });
         const [uploadedImages, setUploadedImages] = useState([]);
         const [componentProducts, setComponentProducts] = useState([]);
@@ -8536,6 +8540,8 @@ import {
             compareAtPrice: (mktData.compareAtPrice !== null && mktData.compareAtPrice !== undefined && mktData.compareAtPrice !== '') ? String(mktData.compareAtPrice) : prev.compareAtPrice,
             currency: mktData.currency || prev.currency,
             stockQuantity: (mktData.stockQuantity !== null && mktData.stockQuantity !== undefined) ? String(mktData.stockQuantity) : prev.stockQuantity,
+            pennylaneProductId: mktData.pennylaneProductId || '',
+            pennylaneAccountingAccountId: mktData.pennylaneAccountingAccountId || '',
           }));
         }, [editingProductMarkets, selectedMarketTab]);
 
@@ -8917,10 +8923,25 @@ import {
             return;
           }
           
+          const normalizePennylaneId = (value, label) => {
+            const normalized = String(value || '').trim();
+            if (!normalized) return null;
+            if (!/^\d+$/.test(normalized) || !Number.isSafeInteger(Number(normalized)) || Number(normalized) <= 0) {
+              alert(`${label} trebuie să fie un ID numeric pozitiv.`);
+              return undefined;
+            }
+            return normalized;
+          };
+          const pennylaneProductId = normalizePennylaneId(productFormData.pennylaneProductId, 'ID-ul produsului Pennylane');
+          const pennylaneAccountingAccountId = normalizePennylaneId(productFormData.pennylaneAccountingAccountId, 'ID-ul contului contabil Pennylane');
+          if (pennylaneProductId === undefined || pennylaneAccountingAccountId === undefined) return;
+
           // Include uploaded images in the product data
           const productData = {
             ...productFormData,
-            images: uploadedImages
+            images: uploadedImages,
+            pennylaneProductId,
+            pennylaneAccountingAccountId,
           };
           
           console.log('Product form data being submitted:', productData);
@@ -8960,6 +8981,8 @@ import {
                   categoryId: productData.categoryId ? parseInt(String(productData.categoryId)) : null,
                   stockQuantity: productData.stockQuantity !== '' && productData.stockQuantity !== null ? parseInt(String(productData.stockQuantity)) : null,
                   inStock: productData.stockQuantity ? parseInt(String(productData.stockQuantity)) > 0 : null,
+                   pennylaneProductId: productData.pennylaneProductId,
+                   pennylaneAccountingAccountId: productData.pennylaneAccountingAccountId,
                 })
               });
               const result = await response.json();
@@ -8986,7 +9009,12 @@ import {
             // ── EDITING on specific market tab ──────────────────────────────
             // 1. Save global fields (name, desc, images, specs, weight, etc.)
             //    but NOT price/compareAtPrice/currency/stockQuantity — those are market-specific
-            const { price, compareAtPrice, currency, stockQuantity, inStock, categoryId, ...globalFields } = productData;
+            const {
+              price, compareAtPrice, currency, stockQuantity, inStock, categoryId,
+              pennylaneProductId: _pennylaneProductId,
+              pennylaneAccountingAccountId: _pennylaneAccountingAccountId,
+              ...globalFields
+            } = productData;
             const globalResult = await updateProduct(editingProduct.id, globalFields);
             
             if (!globalResult.success) {
@@ -9031,8 +9059,13 @@ import {
           } else {
             // ── 'all' tab OR creating globally ─────────────────────────────
             // Current behavior: save everything to global products table
+            const {
+              pennylaneProductId: _pennylaneProductId,
+              pennylaneAccountingAccountId: _pennylaneAccountingAccountId,
+              ...globalProductData
+            } = productData;
             const result = editingProduct
-              ? await updateProduct(editingProduct.id, productData)
+              ? await updateProduct(editingProduct.id, globalProductData)
               : await createProduct(productData);
             
             if (result.success) {
@@ -10147,6 +10180,46 @@ import {
                       </div>
                     )}
 
+                    {/* French Pennylane mapping - stored on the selected market row */}
+                    {selectedMarketTab === 'fr' && (
+                      <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#f0f7ff', borderRadius: '6px', border: '1px solid #b3d4fc'}}>
+                        <h5 style={{color: '#155fa0', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                          🧾 Mapare Pennylane (.fr)
+                        </h5>
+                        <div style={{fontSize: '12px', color: '#52708a', marginBottom: '12px'}}>
+                          ID-urile sunt specifice companiei/pieței FR și sunt folosite la emiterea facturilor noi.
+                        </div>
+                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                          <div className="form-group">
+                            <label className="form-label">ID produs Pennylane</label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              className="form-input"
+                              value={productFormData.pennylaneProductId || ''}
+                              onChange={(e) => setProductFormData({...productFormData, pennylaneProductId: e.target.value})}
+                              placeholder="Ex.: 123456"
+                            />
+                            <small style={{color: '#6c757d'}}>Opțional; numai cifre.</small>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">ID cont contabil Pennylane</label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              className="form-input"
+                              value={productFormData.pennylaneAccountingAccountId || ''}
+                              onChange={(e) => setProductFormData({...productFormData, pennylaneAccountingAccountId: e.target.value})}
+                              placeholder="Ex.: 789012"
+                            />
+                            <small style={{color: '#6c757d'}}>Opțional; numai cifre.</small>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Volume Discounts Section */}
                     {productFormData.productType !== 'service' && productFormData.productType !== 'subscription' && (
                     <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#fff8e1', borderRadius: '6px', border: '1px solid #ffd54f'}}>
@@ -10459,7 +10532,9 @@ import {
                             volumeDiscounts: [],
                             priority: 0,
                             isService: false,
-                            isComposite: false
+                            isComposite: false,
+                            pennylaneProductId: '',
+                            pennylaneAccountingAccountId: ''
                           });
                           setUploadedImages([]);
                           // Reset import from URL state

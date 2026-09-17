@@ -55,6 +55,39 @@ function normalizeOptionalEan(value: unknown): string | null {
   return ean;
 }
 
+type PennylaneMappingFields = {
+  pennylaneProductId?: string | null;
+  pennylaneAccountingAccountId?: string | null;
+};
+
+function normalizeOptionalPennylaneId(value: unknown, label: string): string | null | undefined {
+  if (value === undefined) return undefined;
+  const id = value === null ? "" : String(value).trim();
+  if (!id) return null;
+  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)) || Number(id) <= 0) {
+    throw new Error(`${label} must be a positive numeric ID`);
+  }
+  return id;
+}
+
+function normalizePennylaneMappings(input: Record<string, unknown>): PennylaneMappingFields {
+  return {
+    pennylaneProductId: normalizeOptionalPennylaneId(
+      input.pennylaneProductId,
+      "Pennylane product ID",
+    ),
+    pennylaneAccountingAccountId: normalizeOptionalPennylaneId(
+      input.pennylaneAccountingAccountId,
+      "Pennylane accounting account ID",
+    ),
+  };
+}
+
+function isProductMarketValidationError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.startsWith("Pennylane ") || message.startsWith("Category ");
+}
+
 async function buildCombinedParcels(items: any[], storageRef: typeof storage): Promise<any[]> {
   const parcels: any[] = [];
   let parcelCounter = 1;
@@ -2962,7 +2995,16 @@ export async function registerAdminRoutes(app: Express) {
 
   app.post("/admin/api/products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { market: requestedMarket, ...productData } = req.body || {};
+      const {
+        market: requestedMarket,
+        pennylaneProductId,
+        pennylaneAccountingAccountId,
+        ...productData
+      } = req.body || {};
+      const pennylaneMappings = normalizePennylaneMappings({
+        pennylaneProductId,
+        pennylaneAccountingAccountId,
+      });
       const validMarkets = ['ro', 'fr', 'com'];
       const allowedMarkets = req.adminMarkets || [];
       const targetMarket = validMarkets.includes(requestedMarket)
@@ -3059,7 +3101,6 @@ export async function registerAdminRoutes(app: Express) {
         isService: productType === 'service',
         isComposite
       };
-
       const { newProduct, productMarket } = await db.transaction(async (tx) => {
         const [createdProduct] = await tx
           .insert(productsTable)
@@ -3079,6 +3120,7 @@ export async function registerAdminRoutes(app: Express) {
             currency: productData.currency || null,
             inStock: stockQuantity == null ? null : stockQuantity > 0,
             stockQuantity,
+            ...pennylaneMappings,
           })
           .returning();
         return { newProduct: createdProduct, productMarket: createdMarket };
@@ -3100,7 +3142,11 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("Error creating product:", error);
       console.error("Product data that failed:", req.body);
-      res.status(500).json({ message: "Failed to create product", error: error instanceof Error ? error.message : String(error) });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(isProductMarketValidationError(error) ? 400 : 500).json({
+        message: isProductMarketValidationError(error) ? message : "Failed to create product",
+        ...(isProductMarketValidationError(error) ? {} : { error: message }),
+      });
     }
   });
 
@@ -6938,8 +6984,12 @@ export async function registerAdminRoutes(app: Express) {
       const entries = req.body;
       if (!Array.isArray(entries)) return res.status(400).json({ message: "Array of entries required" });
       const validMarkets = ['ro', 'fr', 'com'];
+      const normalizedEntries = entries.map(entry => ({
+        ...entry,
+        ...normalizePennylaneMappings(entry || {}),
+      }));
 
-      for (const entry of entries) {
+      for (const entry of normalizedEntries) {
         if (!entry?.productId || !validMarkets.includes(entry.market)) {
           return res.status(400).json({ message: "Each entry requires a valid product and market" });
         }
@@ -6949,7 +6999,9 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       const results = [];
-      for (const entry of entries) {
+      for (const entry of normalizedEntries) {
+        const existing = (await storage.getProductMarkets(entry.productId))
+          .find(row => row.market === entry.market);
         const pm = await storage.setProductMarket({
           productId: entry.productId,
           market: entry.market,
@@ -6959,13 +7011,20 @@ export async function registerAdminRoutes(app: Express) {
           currency: entry.currency ?? null,
           inStock: entry.inStock ?? null,
           stockQuantity: entry.stockQuantity ?? null,
+          pennylaneProductId: entry.pennylaneProductId !== undefined
+            ? entry.pennylaneProductId
+            : existing?.pennylaneProductId ?? null,
+          pennylaneAccountingAccountId: entry.pennylaneAccountingAccountId !== undefined
+            ? entry.pennylaneAccountingAccountId
+            : existing?.pennylaneAccountingAccountId ?? null,
         });
         results.push(pm);
       }
       await refreshMarketCaches();
       res.json(results);
     } catch (error) {
-      res.status(500).json({ message: "Failed to bulk-assign product markets" });
+      const message = error instanceof Error ? error.message : "Failed to bulk-assign product markets";
+      res.status(isProductMarketValidationError(error) ? 400 : 500).json({ message });
     }
   });
 
@@ -7087,6 +7146,11 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       const existingRows = await storage.getProductMarkets(productId);
+      const existingByMarket = new Map(existingRows.map(row => [row.market, row]));
+      const normalizedMarkets = markets.map(marketEntry => ({
+        ...marketEntry,
+        ...normalizePennylaneMappings(marketEntry),
+      }));
       // Validate every affected row before deleting anything. This prevents a
       // restricted admin from omitting another market and deleting it.
       for (const row of existingRows) {
@@ -7104,29 +7168,37 @@ export async function registerAdminRoutes(app: Express) {
       }
       // Upsert all provided rows
       const results = [];
-      for (const m of markets) {
+      for (const m of normalizedMarkets) {
         const categoryId = m.categoryId === undefined
           ? undefined
           : await validateCategoryForMarket(m.categoryId, m.market);
+        const existing = existingByMarket.get(m.market);
+        const pennylaneProductId = m.pennylaneProductId !== undefined
+          ? m.pennylaneProductId
+          : existing?.pennylaneProductId ?? null;
+        const pennylaneAccountingAccountId = m.pennylaneAccountingAccountId !== undefined
+          ? m.pennylaneAccountingAccountId
+          : existing?.pennylaneAccountingAccountId ?? null;
         const pm = await storage.setProductMarket({
           productId,
           market: m.market,
           ...(categoryId !== undefined ? { categoryId } : {}),
-          isActive: m.isActive ?? true,
-          price: m.price ?? null,
-          compareAtPrice: m.compareAtPrice ?? null,
-          currency: m.currency ?? null,
-          inStock: m.inStock ?? null,
-          stockQuantity: m.stockQuantity ?? null,
-          pennylaneProductId: m.pennylaneProductId ?? null,
-          pennylaneAccountingAccountId: m.pennylaneAccountingAccountId ?? null,
+          isActive: m.isActive ?? existing?.isActive ?? true,
+          price: m.price ?? existing?.price ?? null,
+          compareAtPrice: m.compareAtPrice ?? existing?.compareAtPrice ?? null,
+          currency: m.currency ?? existing?.currency ?? null,
+          inStock: m.inStock ?? existing?.inStock ?? null,
+          stockQuantity: m.stockQuantity ?? existing?.stockQuantity ?? null,
+          pennylaneProductId,
+          pennylaneAccountingAccountId,
         });
         results.push(pm);
       }
       await refreshMarketCaches();
       res.json(results);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update product markets" });
+      const message = error instanceof Error ? error.message : "Failed to update product markets";
+      res.status(isProductMarketValidationError(error) ? 400 : 500).json({ message });
     }
   });
 
@@ -7154,25 +7226,31 @@ export async function registerAdminRoutes(app: Express) {
       const categoryId = rawCategoryId === undefined
         ? undefined
         : await validateCategoryForMarket(rawCategoryId, market);
+      const existing = (await storage.getProductMarkets(productId)).find(row => row.market === market);
+      const normalizedMappings = normalizePennylaneMappings(req.body || {});
 
       const pm = await storage.setProductMarket({
         productId,
         market,
         ...(categoryId !== undefined ? { categoryId } : {}),
-        isActive: isActive ?? true,
-        price: price ?? null,
-        compareAtPrice: compareAtPrice ?? null,
-        currency: currency ?? null,
-        inStock: inStock ?? null,
-        stockQuantity: stockQuantity ?? null,
-        pennylaneProductId: pennylaneProductId ?? null,
-        pennylaneAccountingAccountId: pennylaneAccountingAccountId ?? null,
+        isActive: isActive ?? existing?.isActive ?? true,
+        price: price ?? existing?.price ?? null,
+        compareAtPrice: compareAtPrice ?? existing?.compareAtPrice ?? null,
+        currency: currency ?? existing?.currency ?? null,
+        inStock: inStock ?? existing?.inStock ?? null,
+        stockQuantity: stockQuantity ?? existing?.stockQuantity ?? null,
+        pennylaneProductId: normalizedMappings.pennylaneProductId !== undefined
+          ? normalizedMappings.pennylaneProductId
+          : existing?.pennylaneProductId ?? null,
+        pennylaneAccountingAccountId: normalizedMappings.pennylaneAccountingAccountId !== undefined
+          ? normalizedMappings.pennylaneAccountingAccountId
+          : existing?.pennylaneAccountingAccountId ?? null,
       });
       await refreshMarketCaches();
       res.json(pm);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to update product market";
-      res.status(message.includes("Category") ? 400 : 500).json({ message });
+      res.status(isProductMarketValidationError(error) ? 400 : 500).json({ message });
     }
   });
 
@@ -7227,25 +7305,37 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       const results = [];
-      for (const m of markets) {
+      const existingRows = await storage.getProductMarkets(productId);
+      const existingByMarket = new Map(existingRows.map(row => [row.market, row]));
+      const normalizedMarkets = markets.map(marketEntry => ({
+        ...marketEntry,
+        ...normalizePennylaneMappings(marketEntry),
+      }));
+      for (const m of normalizedMarkets) {
+        const existing = existingByMarket.get(m.market);
         const pm = await storage.setProductMarket({
           productId,
           market: m.market,
-          isActive: m.isActive ?? true,
-          price: m.price ?? null,
-          compareAtPrice: m.compareAtPrice ?? null,
-          currency: m.currency ?? null,
-          inStock: m.inStock ?? null,
-          stockQuantity: m.stockQuantity ?? null,
-          pennylaneProductId: m.pennylaneProductId ?? null,
-          pennylaneAccountingAccountId: m.pennylaneAccountingAccountId ?? null,
+          isActive: m.isActive ?? existing?.isActive ?? true,
+          price: m.price ?? existing?.price ?? null,
+          compareAtPrice: m.compareAtPrice ?? existing?.compareAtPrice ?? null,
+          currency: m.currency ?? existing?.currency ?? null,
+          inStock: m.inStock ?? existing?.inStock ?? null,
+          stockQuantity: m.stockQuantity ?? existing?.stockQuantity ?? null,
+          pennylaneProductId: m.pennylaneProductId !== undefined
+            ? m.pennylaneProductId
+            : existing?.pennylaneProductId ?? null,
+          pennylaneAccountingAccountId: m.pennylaneAccountingAccountId !== undefined
+            ? m.pennylaneAccountingAccountId
+            : existing?.pennylaneAccountingAccountId ?? null,
         });
         results.push(pm);
       }
       await refreshMarketCaches();
       res.json(results);
     } catch (error) {
-      res.status(500).json({ message: "Failed to bulk-update product markets" });
+      const message = error instanceof Error ? error.message : "Failed to bulk-update product markets";
+      res.status(isProductMarketValidationError(error) ? 400 : 500).json({ message });
     }
   });
 
