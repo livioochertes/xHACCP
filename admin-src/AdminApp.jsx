@@ -391,7 +391,6 @@ import {
       const [users, setUsers] = useState([]);
       const [products, setProducts] = useState([]);
       const [productSyncState, setProductSyncState] = useState(null);
-      const [smartbillCatalogState, setSmartbillCatalogState] = useState(null);
       const [categories, setCategories] = useState([]);
       const categoriesRequestIdRef = React.useRef(0);
       const [suppliers, setSuppliers] = useState([]);
@@ -1148,24 +1147,6 @@ import {
           console.error('Billing provider product sync failed:', error);
           setProductSyncState({ success: false, message: error.message || 'Sincronizarea a eșuat.' });
           alert(`❌ ${error.message || 'Sincronizarea a eșuat.'}`);
-        }
-      };
-
-      const fetchSmartbillCatalog = async () => {
-        setSmartbillCatalogState({ loading: true });
-        try {
-          const response = await fetch('/admin/api/smartbill/products', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.message || 'SmartBill catalog could not be loaded.');
-          setSmartbillCatalogState({ ...result, loadedAt: new Date().toISOString() });
-        } catch (error) {
-          console.error('SmartBill catalog read-back failed:', error);
-          setSmartbillCatalogState({
-            success: false,
-            message: error.message || 'SmartBill catalog could not be loaded.'
-          });
         }
       };
 
@@ -3527,79 +3508,6 @@ import {
                     </button>
                   </div>
                 </div>
-                {selectedMarketTab === 'ro' && smartbillCatalogState && !smartbillCatalogState.loading && (
-                  <div style={{background: smartbillCatalogState.success === false ? '#fff5f5' : '#f8f9fa', padding: '16px', borderRadius: '6px', marginBottom: '20px', border: `1px solid ${smartbillCatalogState.success === false ? '#f5c2c7' : '#dee2e6'}`}}>
-                    {smartbillCatalogState.success === false ? (
-                      <div style={{color: '#842029'}}>
-                        <strong>{t('products.smartbillCatalogError')}</strong>
-                        <div style={{marginTop: '6px'}}>{smartbillCatalogState.message}</div>
-                      </div>
-                    ) : (
-                      <>
-                        <div style={{display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center', flexWrap: 'wrap'}}>
-                          <div>
-                            <h4 style={{color: '#333', margin: '0 0 4px'}}>{t('products.smartbillCatalogTitle')}</h4>
-                            <div style={{fontSize: '13px', color: '#6c757d'}}>{t('products.smartbillCatalogSource')}</div>
-                          </div>
-                          <div style={{fontSize: '13px', color: '#146c43'}}>
-                            {t('products.smartbillCatalogMatched', {
-                              matched: smartbillCatalogState.comparison?.matchedCount || 0,
-                              local: smartbillCatalogState.comparison?.localSubmittedCount || 0
-                            })}
-                          </div>
-                        </div>
-                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '10px', margin: '14px 0'}}>
-                          {[
-                            [t('products.smartbillCatalogRemote'), smartbillCatalogState.comparison?.remoteCatalogCount || 0],
-                            [t('products.smartbillCatalogLocal'), smartbillCatalogState.comparison?.localSubmittedCount || 0],
-                            [t('products.smartbillCatalogMissing'), smartbillCatalogState.comparison?.missingFromSmartbillCodes?.length || 0],
-                            [t('products.smartbillCatalogRemoteOnly'), smartbillCatalogState.comparison?.remoteOnlyCodes?.length || 0],
-                          ].map(([label, value]) => (
-                            <div key={label} style={{background: 'white', padding: '10px', borderRadius: '5px', border: '1px solid #e1e5e9'}}>
-                              <div style={{fontSize: '12px', color: '#6c757d'}}>{label}</div>
-                              <strong style={{fontSize: '20px', color: '#333'}}>{value}</strong>
-                            </div>
-                          ))}
-                        </div>
-                        {(smartbillCatalogState.comparison?.missingFromSmartbillCodes?.length > 0 || smartbillCatalogState.comparison?.remoteOnlyCodes?.length > 0) && (
-                          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '12px', marginBottom: '14px'}}>
-                            <div>
-                              <strong style={{fontSize: '13px', color: '#842029'}}>{t('products.smartbillCatalogMissingCodes')}</strong>
-                              <div style={{fontSize: '12px', color: '#842029', marginTop: '4px', wordBreak: 'break-word'}}>
-                                {smartbillCatalogState.comparison?.missingFromSmartbillCodes?.join(', ') || '—'}
-                              </div>
-                            </div>
-                            <div>
-                              <strong style={{fontSize: '13px', color: '#6c757d'}}>{t('products.smartbillCatalogRemoteOnlyCodes')}</strong>
-                              <div style={{fontSize: '12px', color: '#6c757d', marginTop: '4px', wordBreak: 'break-word'}}>
-                                {smartbillCatalogState.comparison?.remoteOnlyCodes?.join(', ') || '—'}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        <div style={{maxHeight: '260px', overflow: 'auto', background: 'white', border: '1px solid #e1e5e9', borderRadius: '5px'}}>
-                          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
-                            <thead>
-                              <tr style={{background: '#f1f3f5', position: 'sticky', top: 0}}>
-                                <th style={{padding: '8px', textAlign: 'left'}}>{t('products.smartbillCatalogCode')}</th>
-                                <th style={{padding: '8px', textAlign: 'left'}}>{t('products.smartbillCatalogName')}</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {smartbillCatalogState.data?.map((product, index) => (
-                                <tr key={`${product.code || product.productCode || index}-${index}`} style={{borderTop: '1px solid #eee'}}>
-                                  <td style={{padding: '8px'}}>{product.code || product.productCode || '—'}</td>
-                                  <td style={{padding: '8px'}}>{product.name || product.productName || '—'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-                
                 <div style={{marginBottom: '20px'}}>
                   <h4 style={{color: '#333', marginBottom: '15px'}}>Order Actions</h4>
                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
@@ -4139,18 +4047,6 @@ import {
                         title={`Sincronizează produsele active cu ${selectedMarketTab === 'fr' ? 'Pennylane' : 'Smartbill'}`}
                       >
                         {productSyncState?.loading ? '⏳ Sincronizare…' : `🔄 Sync ${selectedMarketTab === 'fr' ? 'Pennylane' : 'Smartbill'}`}
-                      </button>
-                    )}
-                    {selectedMarketTab === 'ro' && (
-                      <button
-                        type="button"
-                        className="btn"
-                        disabled={smartbillCatalogState?.loading}
-                        style={{background: '#6c757d', width: 'auto', padding: '8px 16px', opacity: smartbillCatalogState?.loading ? 0.65 : 1}}
-                        onClick={fetchSmartbillCatalog}
-                        title={t('products.smartbillCatalogTitle')}
-                      >
-                        {smartbillCatalogState?.loading ? '⏳' : '🔎'} {t('products.smartbillCatalogButton')}
                       </button>
                     )}
                     {productSyncState?.market === selectedMarketTab && !productSyncState?.loading && (

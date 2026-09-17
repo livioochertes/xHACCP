@@ -5,11 +5,10 @@ export interface SmartbillConfig {
   token: string;
   companyVat: string;
   /**
-   * V3 has a separate Bearer token. Product listing is read-only in the
-   * published SmartBill API; product writes are performed through the V1
-   * invoice/v2 saveToDb contract below.
+   * Product writes are performed through the V1 invoice/v2 saveToDb
+   * contract below. SmartBill is intentionally write-only for the
+   * product catalog from this application.
    */
-  v3Token?: string;
   invoiceSeries?: string;
 }
 
@@ -65,16 +64,6 @@ export interface SmartbillInvoiceData {
   sendEmail?: boolean;
 }
 
-export class SmartbillApiError extends Error {
-  readonly status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = 'SmartbillApiError';
-    this.status = status;
-  }
-}
-
 export class SmartbillAPI {
   private baseUrl = 'https://ws.smartbill.ro/SBORO/api';
   private config: SmartbillConfig;
@@ -105,17 +94,6 @@ export class SmartbillAPI {
       'Accept': 'application/json',
       'Authorization': this.getAuthHeader(),
       'X-SB-Access-Token': this.config.token, // Add the missing X-SB-Access-Token header
-    };
-  }
-
-  private getV3Headers(): Record<string, string> {
-    if (!this.config.v3Token) {
-      throw new Error('SmartBill V3 product catalog token is not configured');
-    }
-
-    return {
-      Accept: 'application/json',
-      Authorization: `Bearer ${this.config.v3Token}`,
     };
   }
 
@@ -402,32 +380,6 @@ export class SmartbillAPI {
   }
 
   /**
-   * Get product stock from Smartbill
-   */
-  async getProductStock(companyVat: string, productCode?: string): Promise<any[]> {
-    try {
-      const url = productCode 
-        ? `${this.baseUrl}/stocks?cif=${companyVat}&productCode=${productCode}`
-        : `${this.baseUrl}/stocks?cif=${companyVat}`;
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: this.getHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get product stock: ${response.status}`);
-      }
-
-      const result = await response.json();
-      return Array.isArray(result) ? result : [result];
-    } catch (error) {
-      console.error('Error getting product stock:', error);
-      return [];
-    }
-  }
-
-  /**
    * Update product stock in Smartbill
    */
   async updateProductStock(companyVat: string, stockUpdates: {
@@ -465,56 +417,6 @@ export class SmartbillAPI {
       console.error('Error updating Smartbill stock:', error);
       return false;
     }
-  }
-
-  /**
-   * List products from Smartbill's supported V3 catalog endpoint.
-   *
-   * V1 has no product-list endpoint and V3 product resources are currently
-   * read-only. Product writes are handled by saveToDb on invoice/v2.
-   */
-  async getProducts(companyVat: string): Promise<any[]> {
-    const products: any[] = [];
-    let nextUrl: string | null =
-      `${this.baseUrl}/v3/companies/${encodeURIComponent(companyVat)}/products?limit=100`;
-    const visitedUrls = new Set<string>();
-    let pageCount = 0;
-
-    while (nextUrl) {
-      if (visitedUrls.has(nextUrl)) {
-        throw new Error('Smartbill product catalog pagination repeated the same page');
-      }
-      visitedUrls.add(nextUrl);
-      pageCount += 1;
-      if (pageCount > 100) {
-        throw new Error('Smartbill product catalog pagination exceeded the safety limit');
-      }
-
-      const response: Response = await fetch(nextUrl, {
-        method: 'GET',
-        headers: this.getV3Headers()
-      });
-      const result: any = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new SmartbillApiError(response.status, this.formatApiError(response.status, result));
-      }
-
-      const pageItems = Array.isArray(result)
-        ? result
-        : Array.isArray(result?.items)
-          ? result.items
-          : Array.isArray(result?.products)
-            ? result.products
-            : [];
-      products.push(...pageItems);
-
-      const next = typeof result?.pagination?.next === 'string'
-        ? result.pagination.next.trim()
-        : '';
-      nextUrl = next ? new URL(next, nextUrl).toString() : null;
-    }
-
-    return products;
   }
 
   /**
@@ -638,64 +540,6 @@ export class SmartbillAPI {
     });
   }
 
-  /**
-   * Sync stock levels from Smartbill to local database
-   */
-  async syncStockFromSmartbill(companyVat: string, productMappings: Map<string, number>): Promise<{
-    success: number;
-    failed: number;
-    errors: string[];
-    stockUpdates: Array<{ productId: number; oldStock: number; newStock: number; productCode: string; }>;
-  }> {
-    const results = {
-      success: 0,
-      failed: 0,
-      errors: [] as string[],
-      stockUpdates: [] as Array<{ productId: number; oldStock: number; newStock: number; productCode: string; }>
-    };
-
-    try {
-      console.log('Fetching stock levels from Smartbill...');
-      const stockData = await this.getProductStock(companyVat);
-
-      for (const stockItem of stockData) {
-        try {
-          const productCode = stockItem.productCode || stockItem.code;
-          const productId = productMappings.get(productCode);
-          
-          if (!productId) {
-            console.log(`No mapping found for product code: ${productCode}`);
-            continue;
-          }
-
-          const newStock = parseInt(stockItem.quantity || stockItem.stock || '0');
-          
-          // Here you would update your local database stock
-          // This is a placeholder - you'll need to implement the actual database update
-          results.stockUpdates.push({
-            productId,
-            oldStock: 0, // You'd get this from your database
-            newStock,
-            productCode
-          });
-
-          results.success++;
-          console.log(`✓ Updated stock for product ${productCode}: ${newStock}`);
-        } catch (error) {
-          results.failed++;
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          results.errors.push(`Failed to update stock for ${stockItem.productCode}: ${errorMessage}`);
-        }
-      }
-
-    } catch (error) {
-      console.error('Error syncing stock from Smartbill:', error);
-      results.errors.push(`Failed to fetch stock data: ${error}`);
-    }
-
-    console.log(`Stock sync completed: ${results.success} success, ${results.failed} failed`);
-    return results;
-  }
 }
 
 /**

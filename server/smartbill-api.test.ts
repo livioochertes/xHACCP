@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   SmartbillAPI,
-  SmartbillApiError,
 } from "./smartbill-api.js";
 
 type FetchCall = {
@@ -70,7 +69,6 @@ function createClient() {
   return new SmartbillAPI({
     username: "smartbill-test-user",
     token: "smartbill-basic-secret",
-    v3Token: "smartbill-v3-secret",
     companyVat: "RO12345678",
     invoiceSeries: "TEST",
   });
@@ -255,40 +253,4 @@ test("a successful HTTP response with errorText is treated as a failed sync", as
   } finally {
     captured.restore();
   }
-});
-
-test("V3 catalog errors expose status and message without logging credentials", async () => {
-  const captured = captureConsole();
-
-  try {
-    const client = createClient();
-    await withMockFetch(
-      [{ status: 401, body: { errorText: "V3 token expired" } }],
-      async (calls) => {
-        await assert.rejects(
-          () => client.getProducts("RO12345678"),
-          (error: unknown) =>
-            error instanceof SmartbillApiError &&
-            error.status === 401 &&
-            error.message === "Smartbill API error 401: V3 token expired",
-        );
-
-        assert.equal(
-          calls[0].url,
-          "https://ws.smartbill.ro/SBORO/api/v3/companies/RO12345678/products?limit=100",
-        );
-        assert.equal(
-          calls[0].init?.headers &&
-            (calls[0].init.headers as Record<string, string>).Authorization,
-          "Bearer smartbill-v3-secret",
-        );
-      },
-    );
-  } finally {
-    captured.restore();
-  }
-
-  const output = captured.lines.join("\n");
-  assert.doesNotMatch(output, /smartbill-basic-secret/);
-  assert.doesNotMatch(output, /smartbill-v3-secret/);
 });
