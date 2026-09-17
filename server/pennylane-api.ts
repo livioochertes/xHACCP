@@ -294,23 +294,36 @@ export function createPennylaneHttpTransport(): PennylaneTransport | null {
   const baseUrl = (process.env.PENNYLANE_API_BASE_URL || "https://app.pennylane.com/api/external/v2").trim();
   const token = process.env.PENNYLANE_API_TOKEN?.trim();
   if (!baseUrl || !token) return null;
+  const resolveApiUrl = (path: string) => new URL(
+    path.replace(/^\/+/, ""),
+    baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`,
+  ).toString();
+
   const request = async <T>(method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), Number(process.env.PENNYLANE_TIMEOUT_MS || 10000));
     try {
-      const response = await fetch(new URL(path, baseUrl).toString(), {
+      const response = await fetch(resolveApiUrl(path), {
         method,
         signal: controller.signal,
         headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...extraHeaders },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
+      const responseText = await response.text();
       if (!response.ok) {
         throw new PennylaneError(`Pennylane request failed (${response.status})`, {
           status: response.status,
           retryable: response.status === 408 || response.status === 429 || response.status >= 500,
         });
       }
-      return await response.json() as T;
+      try {
+        return JSON.parse(responseText) as T;
+      } catch {
+        throw new PennylaneError(
+          `Pennylane returned a non-JSON response (${response.status})`,
+          { status: response.status, retryable: true },
+        );
+      }
     } catch (error) {
       if (error instanceof PennylaneError) throw error;
       throw new PennylaneError(error instanceof Error && error.name === "AbortError" ? "Pennylane request timed out" : "Pennylane request failed");
@@ -324,7 +337,7 @@ export function createPennylaneHttpTransport(): PennylaneTransport | null {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), Number(process.env.PENNYLANE_TIMEOUT_MS || 10000));
       try {
-        const response = await fetch(new URL(path, baseUrl).toString(), {
+        const response = await fetch(resolveApiUrl(path), {
           headers: { Accept: "application/pdf", Authorization: `Bearer ${token}` },
           signal: controller.signal,
         });

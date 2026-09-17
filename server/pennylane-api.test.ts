@@ -6,6 +6,7 @@ import {
   buildPennylaneInvoicePayload,
   PennylaneClient,
   PennylaneError,
+  createPennylaneHttpTransport,
   pennylaneCustomerReference,
   pennylaneExternalReference,
   pennylaneProductExternalReference,
@@ -126,4 +127,34 @@ test("provider timeout/error remains retryable and does not become a local invoi
     () => client.findInvoiceByReference("xhaccp-fr-order-77"),
     (error: unknown) => error instanceof PennylaneError && error.retryable,
   );
+});
+
+test("HTTP transport preserves the configured API base path", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalBaseUrl = process.env.PENNYLANE_API_BASE_URL;
+  const originalToken = process.env.PENNYLANE_API_TOKEN;
+  let requestedUrl = "";
+
+  process.env.PENNYLANE_API_BASE_URL = "https://example.test/api/external/v2";
+  process.env.PENNYLANE_API_TOKEN = "test-token";
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    requestedUrl = input.toString();
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  try {
+    const transport = createPennylaneHttpTransport();
+    assert.ok(transport);
+    await transport.request("GET", "/me");
+    assert.equal(requestedUrl, "https://example.test/api/external/v2/me");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalBaseUrl === undefined) delete process.env.PENNYLANE_API_BASE_URL;
+    else process.env.PENNYLANE_API_BASE_URL = originalBaseUrl;
+    if (originalToken === undefined) delete process.env.PENNYLANE_API_TOKEN;
+    else process.env.PENNYLANE_API_TOKEN = originalToken;
+  }
 });

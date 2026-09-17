@@ -1130,7 +1130,17 @@ import {
             },
             body: JSON.stringify({ market: selectedMarketTab }),
           });
-          const result = await response.json();
+          const responseText = await response.text();
+          let result;
+          try {
+            result = responseText ? JSON.parse(responseText) : {};
+          } catch {
+            throw new Error(
+              response.ok
+                ? 'Serverul Pennylane a returnat un răspuns invalid.'
+                : `Sincronizarea a eșuat (HTTP ${response.status}). Serverul a returnat un răspuns invalid.`
+            );
+          }
           if (!response.ok) throw new Error(result.message || 'Sincronizarea a eșuat.');
           setProductSyncState({ ...result, provider: providerLabel });
           await fetchProducts(selectedMarketTab);

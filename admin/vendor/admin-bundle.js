@@ -13990,7 +13990,15 @@ Produsele existente vor fi actualizate, iar cele lips\u0103 vor fi create.`)) re
           },
           body: JSON.stringify({ market: selectedMarketTab })
         });
-        const result = await response.json();
+        const responseText = await response.text();
+        let result;
+        try {
+          result = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          throw new Error(
+            response.ok ? "Serverul Pennylane a returnat un r\u0103spuns invalid." : `Sincronizarea a e\u0219uat (HTTP ${response.status}). Serverul a returnat un r\u0103spuns invalid.`
+          );
+        }
         if (!response.ok) throw new Error(result.message || "Sincronizarea a e\u0219uat.");
         setProductSyncState({ ...result, provider: providerLabel });
         await fetchProducts(selectedMarketTab);
