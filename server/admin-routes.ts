@@ -3057,11 +3057,15 @@ export async function registerAdminRoutes(app: Express) {
       });
       const validMarkets = ['ro', 'fr', 'com'];
       const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+      if (!validMarkets.includes(requestedMarket) && isSuperAdmin) {
+        return res.status(400).json({
+          message: "Selectează explicit piața (.ro, .fr sau .com) înainte de a crea produsul",
+        });
+      }
       const targetMarket = validMarkets.includes(requestedMarket)
         ? requestedMarket
-        : allowedMarkets.length === 1
-          ? allowedMarkets[0]
-          : 'ro';
+        : allowedMarkets[0];
 
       if (!canAccessMarket(req, targetMarket)) {
         return res.status(403).json({ message: "Access denied for this market" });
@@ -5724,6 +5728,11 @@ export async function registerAdminRoutes(app: Express) {
 
       // Determine target markets — never exceed admin's own access
       const isSuperAdmin = !req.adminMarkets || req.adminMarkets.length === 0;
+      if (!importMarket && isSuperAdmin) {
+        return res.status(400).json({
+          message: "Selectează explicit piața înainte de importul produselor; importul global este dezactivat pentru a preveni copierea între piețe",
+        });
+      }
       const adminAllowed: string[] = isSuperAdmin ? ['ro', 'com', 'fr'] : req.adminMarkets!;
       const targetMarkets: string[] = importMarket ? [importMarket] : adminAllowed.filter(m => ['ro', 'com', 'fr'].includes(m));
       if (targetMarkets.length === 0) {

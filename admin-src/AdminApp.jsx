@@ -9236,6 +9236,10 @@ import {
           } else {
             // ── 'all' tab OR creating globally ─────────────────────────────
             // Current behavior: save everything to global products table
+            if (!editingProduct && selectedMarketTab === 'all') {
+              alert('Selectează mai întâi piața (.ro, .fr sau .com) pentru produsul nou.');
+              return;
+            }
             const {
               pennylaneProductId: _pennylaneProductId,
               pennylaneAccountingAccountId: _pennylaneAccountingAccountId,

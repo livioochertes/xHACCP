@@ -22405,6 +22405,10 @@ Cordialement,`
             alert("Error: " + result.message);
           }
         } else {
+          if (!editingProduct && selectedMarketTab === "all") {
+            alert("Selecteaz\u0103 mai \xEEnt\xE2i pia\u021Ba (.ro, .fr sau .com) pentru produsul nou.");
+            return;
+          }
           const {
             pennylaneProductId: _pennylaneProductId,
             pennylaneAccountingAccountId: _pennylaneAccountingAccountId,
