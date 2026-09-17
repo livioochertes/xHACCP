@@ -33,6 +33,32 @@ export interface InvoiceServiceConfig {
   pennylane?: PennylaneClient;
 }
 
+type InvoiceProvider = "smartbill" | "pennylane" | "local";
+
+function defaultInvoiceProvider(market: string): InvoiceProvider {
+  if (market === "fr") return "pennylane";
+  if (market === "ro") return "smartbill";
+  return "local";
+}
+
+async function resolveInvoiceProvider(market: string): Promise<InvoiceProvider> {
+  try {
+    const { pool } = await import("./db.js");
+    const result = await pool.query(
+      "SELECT invoice_provider FROM market_settings WHERE market = $1 LIMIT 1",
+      [market],
+    );
+    const provider = result.rows[0]?.invoice_provider;
+    if (provider === "smartbill" || provider === "pennylane" || provider === "local") return provider;
+  } catch (error) {
+    console.warn(
+      "Could not resolve market invoice provider; using default:",
+      error instanceof Error ? error.message : "unknown error",
+    );
+  }
+  return defaultInvoiceProvider(market);
+}
+
 export class InvoiceService {
   private smartbillApi: SmartbillAPI;
   private config: InvoiceServiceConfig;
@@ -81,6 +107,7 @@ export class InvoiceService {
       // Resolve per-market company settings at runtime — immutable local variable,
       // never mutate this.config (shared singleton) to avoid concurrency issues.
       const orderMarket = (order.market as string) || 'ro';
+      const invoiceProvider = await resolveInvoiceProvider(orderMarket);
       const resolvedCompanyInfo = await getCompanySettingsByMarket(orderMarket);
       if (resolvedCompanyInfo) {
         console.log(`📋 Using market '${orderMarket}' company settings for order ${orderId}: ${resolvedCompanyInfo.name}`);
@@ -129,11 +156,11 @@ export class InvoiceService {
 
       let invoice;
 
-      if (orderMarket === 'fr') {
+      if (invoiceProvider === 'pennylane') {
         // Pennylane owns French invoice numbering. There is deliberately no
         // local-PDF fallback for this market.
         invoice = await this.generatePennylaneInvoice(order, user, paymentData, resolvedCompanyInfo);
-      } else if (orderMarket === 'com') {
+      } else if (invoiceProvider === 'local') {
         // .com remains on the established local invoice flow.
         invoice = await this.generateLocalInvoiceForMarket(order, user, paymentData, resolvedCompanyInfo, orderMarket);
       } else if (this.config.enableSmartbill) {
@@ -200,6 +227,8 @@ export class InvoiceService {
    * Create invoice for an order (main method for manual invoice creation)
    */
   async createInvoiceForOrder(order: any, user: any, options: { paymentMethod?: string } = {}): Promise<any> {
+    const orderMarket = (order.market as string) || 'ro';
+    const invoiceProvider = await resolveInvoiceProvider(orderMarket);
     try {
       console.log(`🧾 Creating invoice for order ${order.id}, Smartbill enabled: ${this.config.enableSmartbill}`);
       
@@ -209,7 +238,6 @@ export class InvoiceService {
       }
 
       // Resolve per-market company settings — immutable local variable, never mutate this.config
-      const orderMarket = (order.market as string) || 'ro';
       const resolvedCompanyInfo = await getCompanySettingsByMarket(orderMarket);
       console.log(`📋 Manual invoice for order ${order.id}: using market '${orderMarket}' company settings`);
 
@@ -218,10 +246,10 @@ export class InvoiceService {
         status: 'manual_creation'
       };
 
-      if (orderMarket === 'fr') {
+      if (invoiceProvider === 'pennylane') {
         console.log(`📋 ✅ USING PENNYLANE INVOICE for market '${orderMarket}'`);
         return await this.generatePennylaneInvoice(order, user, paymentData, resolvedCompanyInfo);
-      } else if (orderMarket === 'com') {
+      } else if (invoiceProvider === 'local') {
         console.log(`📋 ✅ USING LOCAL PDF INVOICE for market '${orderMarket}'`);
         return await this.generateLocalInvoiceForMarket(order, user, paymentData, resolvedCompanyInfo, orderMarket);
       } else if (this.config.enableSmartbill) {
@@ -236,7 +264,7 @@ export class InvoiceService {
       console.error(`❌ Error creating invoice for order ${order.id}:`, error);
       
       // If Smartbill fails, try local generation as fallback
-      if (this.config.enableSmartbill) {
+      if (invoiceProvider === 'smartbill' && this.config.enableSmartbill) {
         console.log('🔄 ⚠️ SMARTBILL FAILED - FALLING BACK TO LOCAL GENERATION');
         console.log(`   Smartbill error: ${error instanceof Error ? error.message : String(error)}`);
         try {

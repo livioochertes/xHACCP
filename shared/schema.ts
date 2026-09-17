@@ -154,6 +154,7 @@ export const marketSettings = pgTable("market_settings", {
   market: varchar("market", { length: 10 }).notNull().unique(), // ro, com, fr
   label: varchar("label", { length: 100 }).notNull(), // e.g. "România", "International", "France"
   currency: varchar("currency", { length: 3 }).notNull().default("RON"), // RON, EUR
+  invoiceProvider: varchar("invoice_provider", { length: 30 }), // smartbill, pennylane, local; null keeps the market default
   vatPercentage: decimal("default_vat_percentage", { precision: 5, scale: 2 }).default("19.00"),
   freeShippingThreshold: decimal("free_shipping_threshold", { precision: 10, scale: 2 }).default("1000.00"),
   standardShippingCost: decimal("standard_shipping_cost", { precision: 10, scale: 2 }).default("35.00"),

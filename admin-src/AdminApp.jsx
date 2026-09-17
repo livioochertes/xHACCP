@@ -390,6 +390,7 @@ import {
       const [wmsSamedayPickupPointsLoading, setWmsSamedayPickupPointsLoading] = useState(false);
       const [users, setUsers] = useState([]);
       const [products, setProducts] = useState([]);
+      const [productSyncState, setProductSyncState] = useState(null);
       const [categories, setCategories] = useState([]);
       const categoriesRequestIdRef = React.useRef(0);
       const [suppliers, setSuppliers] = useState([]);
@@ -1102,6 +1103,43 @@ import {
           }
         } catch (err) {
           console.error('Network error fetching products:', err);
+        }
+      };
+
+      const syncProductsToBillingProvider = async () => {
+        if (!['ro', 'fr'].includes(selectedMarketTab)) {
+          alert('Selectează piața .ro sau .fr înainte de sincronizare.');
+          return;
+        }
+        const configuredProvider = marketsData[selectedMarketTab]?.invoiceProvider;
+        const provider = configuredProvider || (selectedMarketTab === 'fr' ? 'pennylane' : 'smartbill');
+        const providerLabel = provider === 'pennylane' ? 'Pennylane' : provider === 'smartbill' ? 'Smartbill' : 'facturare locală';
+        if (provider === 'local') {
+          alert(`Piața .${selectedMarketTab} folosește facturare locală și nu are sincronizare de produse.`);
+          return;
+        }
+        if (!confirm(`Sincronizezi toate produsele active din .${selectedMarketTab} cu ${providerLabel}?\n\nProdusele existente vor fi actualizate, iar cele lipsă vor fi create.`)) return;
+
+        setProductSyncState({ loading: true, market: selectedMarketTab, provider: providerLabel });
+        try {
+          const response = await fetch('/admin/api/products/sync-billing-provider', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ market: selectedMarketTab }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || 'Sincronizarea a eșuat.');
+          setProductSyncState({ ...result, provider: providerLabel });
+          await fetchProducts(selectedMarketTab);
+          const errorSuffix = result.failed ? `\nErori: ${result.failed}` : '';
+          alert(`Sincronizare ${providerLabel} finalizată pentru .${selectedMarketTab}.\n\nCreate: ${result.created || 0}\nActualizate: ${result.updated || 0}${errorSuffix}`);
+        } catch (error) {
+          console.error('Billing provider product sync failed:', error);
+          setProductSyncState({ success: false, message: error.message || 'Sincronizarea a eșuat.' });
+          alert(`❌ ${error.message || 'Sincronizarea a eșuat.'}`);
         }
       };
 
@@ -3993,6 +4031,18 @@ import {
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
                   <h3 style={{color: '#333', margin: '0'}}>📦 {t('products.title')}</h3>
                   <div style={{display: 'flex', gap: '10px'}}>
+                    {['ro', 'fr'].includes(selectedMarketTab) && (
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={productSyncState?.loading}
+                        style={{background: selectedMarketTab === 'fr' ? '#6f42c1' : '#0d6efd', width: 'auto', padding: '8px 16px', opacity: productSyncState?.loading ? 0.65 : 1}}
+                        onClick={syncProductsToBillingProvider}
+                        title={`Sincronizează produsele active cu ${selectedMarketTab === 'fr' ? 'Pennylane' : 'Smartbill'}`}
+                      >
+                        {productSyncState?.loading ? '⏳ Sincronizare…' : `🔄 Sync ${selectedMarketTab === 'fr' ? 'Pennylane' : 'Smartbill'}`}
+                      </button>
+                    )}
                     <button 
                       className="btn" 
                       style={{background: '#28a745', width: 'auto', padding: '8px 16px'}}
@@ -7660,9 +7710,9 @@ import {
       // Market Setting Card — standalone component so React hooks work correctly (not inside .map)
       const MarketSettingCard = ({ market, marketsData, saveMarket }) => {
         const defaults = {
-          ro: { label: 'România (.ro)', currency: 'RON', vatPercentage: '19.00', freeShippingThreshold: '500', standardShippingCost: '20', isActive: true },
-          fr: { label: 'France (.fr)', currency: 'EUR', vatPercentage: '20.00', freeShippingThreshold: '150', standardShippingCost: '10', isActive: false },
-          com: { label: 'International (.com)', currency: 'EUR', vatPercentage: '0.00', freeShippingThreshold: '200', standardShippingCost: '15', isActive: false },
+          ro: { label: 'România (.ro)', currency: 'RON', vatPercentage: '19.00', freeShippingThreshold: '500', standardShippingCost: '20', invoiceProvider: 'smartbill', isActive: true },
+          fr: { label: 'France (.fr)', currency: 'EUR', vatPercentage: '20.00', freeShippingThreshold: '150', standardShippingCost: '10', invoiceProvider: 'pennylane', isActive: false },
+          com: { label: 'International (.com)', currency: 'EUR', vatPercentage: '0.00', freeShippingThreshold: '200', standardShippingCost: '15', invoiceProvider: 'local', isActive: false },
         }[market];
         const serverVals = marketsData[market];
         const [local, setLocal] = useState(serverVals || defaults);
@@ -7700,6 +7750,14 @@ import {
                 <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#495057'}}>Cost transport standard</label>
                 <input type="number" step="0.01" min="0" value={local.standardShippingCost || ''} onChange={e => set('standardShippingCost', e.target.value)} placeholder="20.00" style={{width: '100%', padding: '8px 10px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box'}} />
               </div>
+              <div>
+                <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#495057'}}>Partener facturare</label>
+                <select value={local.invoiceProvider || defaults.invoiceProvider} onChange={e => set('invoiceProvider', e.target.value)} style={{width: '100%', padding: '8px 10px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box'}}>
+                  <option value="smartbill">Smartbill</option>
+                  <option value="pennylane">Pennylane</option>
+                  <option value="local">PDF local</option>
+                </select>
+              </div>
             </div>
             <div style={{marginTop: '16px', display: 'flex', justifyContent: 'flex-end'}}>
               <button
@@ -7707,6 +7765,7 @@ import {
                   currency: local.currency, vatPercentage: local.vatPercentage,
                   freeShippingThreshold: local.freeShippingThreshold,
                   standardShippingCost: local.standardShippingCost,
+                  invoiceProvider: local.invoiceProvider || defaults.invoiceProvider,
                   isActive: local.isActive, label: local.label || defaults.label
                 })}
                 style={{background: '#28a745', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 20px', cursor: 'pointer', fontSize: '14px', fontWeight: '600'}}

@@ -526,9 +526,9 @@ export class SmartbillAPI {
           name: product.name,
           code: product.productCode || product.id.toString(),
           um: 'buc', // pieces in Romanian
-          price: parseFloat(product.price || '0'),
-          currency: 'RON',
-          vatPercentage: parseFloat(product.vatValue || '0'),
+            price: parseFloat(product.marketPrice ?? product.price ?? '0'),
+            currency: product.marketCurrency || 'RON',
+            vatPercentage: parseFloat(product.marketVatPercentage ?? product.vatPercentage ?? '0'),
           category: product.category?.name || 'General',
           description: product.description || '',
           barcode: product.productCode || ''

@@ -13338,6 +13338,7 @@
     const [wmsSamedayPickupPointsLoading, setWmsSamedayPickupPointsLoading] = (0, import_react13.useState)(false);
     const [users, setUsers] = (0, import_react13.useState)([]);
     const [products, setProducts] = (0, import_react13.useState)([]);
+    const [productSyncState, setProductSyncState] = (0, import_react13.useState)(null);
     const [categories, setCategories] = (0, import_react13.useState)([]);
     const categoriesRequestIdRef = import_react13.default.useRef(0);
     const [suppliers, setSuppliers] = (0, import_react13.useState)([]);
@@ -13551,7 +13552,9 @@
           priority: editingProduct.priority || 0,
           productType: editingProduct.productType || (editingProduct.isService ? "service" : "standard"),
           isService: editingProduct.isService || false,
-          isComposite: editingProduct.isComposite || false
+          isComposite: editingProduct.isComposite || false,
+          pennylaneProductId: "",
+          pennylaneAccountingAccountId: ""
         };
         setProductLoadTrigger((prev) => prev + 1);
         setShowAddProductModal(true);
@@ -13960,6 +13963,47 @@
         }
       } catch (err) {
         console.error("Network error fetching products:", err);
+      }
+    };
+    const syncProductsToBillingProvider = async () => {
+      if (!["ro", "fr"].includes(selectedMarketTab)) {
+        alert("Selecteaz\u0103 pia\u021Ba .ro sau .fr \xEEnainte de sincronizare.");
+        return;
+      }
+      const configuredProvider = marketsData[selectedMarketTab]?.invoiceProvider;
+      const provider = configuredProvider || (selectedMarketTab === "fr" ? "pennylane" : "smartbill");
+      const providerLabel = provider === "pennylane" ? "Pennylane" : provider === "smartbill" ? "Smartbill" : "facturare local\u0103";
+      if (provider === "local") {
+        alert(`Pia\u021Ba .${selectedMarketTab} folose\u0219te facturare local\u0103 \u0219i nu are sincronizare de produse.`);
+        return;
+      }
+      if (!confirm(`Sincronizezi toate produsele active din .${selectedMarketTab} cu ${providerLabel}?
+
+Produsele existente vor fi actualizate, iar cele lips\u0103 vor fi create.`)) return;
+      setProductSyncState({ loading: true, market: selectedMarketTab, provider: providerLabel });
+      try {
+        const response = await fetch("/admin/api/products/sync-billing-provider", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ market: selectedMarketTab })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || "Sincronizarea a e\u0219uat.");
+        setProductSyncState({ ...result, provider: providerLabel });
+        await fetchProducts(selectedMarketTab);
+        const errorSuffix = result.failed ? `
+Erori: ${result.failed}` : "";
+        alert(`Sincronizare ${providerLabel} finalizat\u0103 pentru .${selectedMarketTab}.
+
+Create: ${result.created || 0}
+Actualizate: ${result.updated || 0}${errorSuffix}`);
+      } catch (error2) {
+        console.error("Billing provider product sync failed:", error2);
+        setProductSyncState({ success: false, message: error2.message || "Sincronizarea a e\u0219uat." });
+        alert(`\u274C ${error2.message || "Sincronizarea a e\u0219uat."}`);
       }
     };
     const fetchCategories = async (marketOverride = selectedMarketTab, { requireMarket = false } = {}) => {
@@ -16726,65 +16770,79 @@ This action cannot be undone.`)) {
                 "\u{1F4E6} ",
                 t2("products.title")
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "flex", gap: "10px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                "button",
-                {
-                  className: "btn",
-                  style: { background: "#28a745", width: "auto", padding: "8px 16px" },
-                  onClick: () => {
-                    fetchCategories();
-                    fetchSuppliers();
-                    setEditingProduct(null);
-                    const timestamp = Date.now().toString(36).toUpperCase();
-                    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-                    const generatedCode = `PRD-${timestamp}${random}`;
-                    fetchCompanyDefaults().then((defaults) => {
-                      console.log("Company defaults for new product:", defaults);
-                      initialProductDataRef.current = {
-                        name: "",
-                        description: "",
-                        price: "",
-                        compareAtPrice: "",
-                        categoryId: "",
-                        supplierId: "",
-                        imageUrl: "",
-                        stockQuantity: "",
-                        featured: false,
-                        vatValue: "",
-                        vatPercentage: defaults.vatPercentage || (selectedMarketTab === "fr" ? "20.00" : selectedMarketTab === "ro" ? "19.00" : "0.00"),
-                        currency: defaults.currency || "RON",
-                        productCode: generatedCode,
-                        ean: "",
-                        ncCode: "",
-                        cpvCode: "",
-                        status: "active",
-                        images: [],
-                        weight: "",
-                        length: "",
-                        width: "",
-                        height: "",
-                        piecesPerPackage: "",
-                        productQuantity: "",
-                        specs: [],
-                        volumeDiscounts: [],
-                        priority: 0,
-                        productType: "standard",
-                        isService: false,
-                        isComposite: false
-                      };
-                      setProductLoadTrigger((prev) => prev + 1);
-                      setProductTranslations([]);
-                      setShowTranslationsTab(false);
-                      lastLoadedProductIdRef.current = null;
-                      setShowAddProductModal(true);
-                    });
-                  },
-                  children: [
-                    "\u2795 ",
-                    t2("products.addNew")
-                  ]
-                }
-              ) })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "10px" }, children: [
+                ["ro", "fr"].includes(selectedMarketTab) && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "button",
+                  {
+                    type: "button",
+                    className: "btn",
+                    disabled: productSyncState?.loading,
+                    style: { background: selectedMarketTab === "fr" ? "#6f42c1" : "#0d6efd", width: "auto", padding: "8px 16px", opacity: productSyncState?.loading ? 0.65 : 1 },
+                    onClick: syncProductsToBillingProvider,
+                    title: `Sincronizeaz\u0103 produsele active cu ${selectedMarketTab === "fr" ? "Pennylane" : "Smartbill"}`,
+                    children: productSyncState?.loading ? "\u23F3 Sincronizare\u2026" : `\u{1F504} Sync ${selectedMarketTab === "fr" ? "Pennylane" : "Smartbill"}`
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  "button",
+                  {
+                    className: "btn",
+                    style: { background: "#28a745", width: "auto", padding: "8px 16px" },
+                    onClick: () => {
+                      fetchCategories();
+                      fetchSuppliers();
+                      setEditingProduct(null);
+                      const timestamp = Date.now().toString(36).toUpperCase();
+                      const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+                      const generatedCode = `PRD-${timestamp}${random}`;
+                      fetchCompanyDefaults().then((defaults) => {
+                        console.log("Company defaults for new product:", defaults);
+                        initialProductDataRef.current = {
+                          name: "",
+                          description: "",
+                          price: "",
+                          compareAtPrice: "",
+                          categoryId: "",
+                          supplierId: "",
+                          imageUrl: "",
+                          stockQuantity: "",
+                          featured: false,
+                          vatValue: "",
+                          vatPercentage: defaults.vatPercentage || (selectedMarketTab === "fr" ? "20.00" : selectedMarketTab === "ro" ? "19.00" : "0.00"),
+                          currency: defaults.currency || "RON",
+                          productCode: generatedCode,
+                          ean: "",
+                          ncCode: "",
+                          cpvCode: "",
+                          status: "active",
+                          images: [],
+                          weight: "",
+                          length: "",
+                          width: "",
+                          height: "",
+                          piecesPerPackage: "",
+                          productQuantity: "",
+                          specs: [],
+                          volumeDiscounts: [],
+                          priority: 0,
+                          productType: "standard",
+                          isService: false,
+                          isComposite: false
+                        };
+                        setProductLoadTrigger((prev) => prev + 1);
+                        setProductTranslations([]);
+                        setShowTranslationsTab(false);
+                        lastLoadedProductIdRef.current = null;
+                        setShowAddProductModal(true);
+                      });
+                    },
+                    children: [
+                      "\u2795 ",
+                      t2("products.addNew")
+                    ]
+                  }
+                )
+              ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "20px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: t2("products.actions") }),
@@ -20725,9 +20783,9 @@ This action cannot be undone.`)) {
     };
     const MarketSettingCard = ({ market, marketsData: marketsData2, saveMarket: saveMarket2 }) => {
       const defaults = {
-        ro: { label: "Rom\xE2nia (.ro)", currency: "RON", vatPercentage: "19.00", freeShippingThreshold: "500", standardShippingCost: "20", isActive: true },
-        fr: { label: "France (.fr)", currency: "EUR", vatPercentage: "20.00", freeShippingThreshold: "150", standardShippingCost: "10", isActive: false },
-        com: { label: "International (.com)", currency: "EUR", vatPercentage: "0.00", freeShippingThreshold: "200", standardShippingCost: "15", isActive: false }
+        ro: { label: "Rom\xE2nia (.ro)", currency: "RON", vatPercentage: "19.00", freeShippingThreshold: "500", standardShippingCost: "20", invoiceProvider: "smartbill", isActive: true },
+        fr: { label: "France (.fr)", currency: "EUR", vatPercentage: "20.00", freeShippingThreshold: "150", standardShippingCost: "10", invoiceProvider: "pennylane", isActive: false },
+        com: { label: "International (.com)", currency: "EUR", vatPercentage: "0.00", freeShippingThreshold: "200", standardShippingCost: "15", invoiceProvider: "local", isActive: false }
       }[market];
       const serverVals = marketsData2[market];
       const [local, setLocal] = (0, import_react13.useState)(serverVals || defaults);
@@ -20764,6 +20822,14 @@ This action cannot be undone.`)) {
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#495057" }, children: "Cost transport standard" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "number", step: "0.01", min: "0", value: local.standardShippingCost || "", onChange: (e2) => set("standardShippingCost", e2.target.value), placeholder: "20.00", style: { width: "100%", padding: "8px 10px", border: "1px solid #ced4da", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" } })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#495057" }, children: "Partener facturare" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("select", { value: local.invoiceProvider || defaults.invoiceProvider, onChange: (e2) => set("invoiceProvider", e2.target.value), style: { width: "100%", padding: "8px 10px", border: "1px solid #ced4da", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "smartbill", children: "Smartbill" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "pennylane", children: "Pennylane" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "local", children: "PDF local" })
+            ] })
           ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "16px", display: "flex", justifyContent: "flex-end" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
@@ -20774,6 +20840,7 @@ This action cannot be undone.`)) {
               vatPercentage: local.vatPercentage,
               freeShippingThreshold: local.freeShippingThreshold,
               standardShippingCost: local.standardShippingCost,
+              invoiceProvider: local.invoiceProvider || defaults.invoiceProvider,
               isActive: local.isActive,
               label: local.label || defaults.label
             }),
@@ -21669,7 +21736,9 @@ Cordialement,`
         priority: 0,
         productType: "standard",
         isService: false,
-        isComposite: false
+        isComposite: false,
+        pennylaneProductId: "",
+        pennylaneAccountingAccountId: ""
       });
       const [uploadedImages, setUploadedImages] = (0, import_react13.useState)([]);
       const [componentProducts, setComponentProducts] = (0, import_react13.useState)([]);
@@ -21740,7 +21809,9 @@ Cordialement,`
           price: mktData.price !== null && mktData.price !== void 0 && mktData.price !== "" ? String(mktData.price) : prev.price,
           compareAtPrice: mktData.compareAtPrice !== null && mktData.compareAtPrice !== void 0 && mktData.compareAtPrice !== "" ? String(mktData.compareAtPrice) : prev.compareAtPrice,
           currency: mktData.currency || prev.currency,
-          stockQuantity: mktData.stockQuantity !== null && mktData.stockQuantity !== void 0 ? String(mktData.stockQuantity) : prev.stockQuantity
+          stockQuantity: mktData.stockQuantity !== null && mktData.stockQuantity !== void 0 ? String(mktData.stockQuantity) : prev.stockQuantity,
+          pennylaneProductId: mktData.pennylaneProductId || "",
+          pennylaneAccountingAccountId: mktData.pennylaneAccountingAccountId || ""
         }));
       }, [editingProductMarkets, selectedMarketTab]);
       import_react13.default.useEffect(() => {
@@ -22053,9 +22124,23 @@ Cordialement,`
           alert("Te rog confirm\u0103 c\u0103 ai dreptul de utilizare a datelor \u0219i imaginilor importate.");
           return;
         }
+        const normalizePennylaneId = (value, label) => {
+          const normalized = String(value || "").trim();
+          if (!normalized) return null;
+          if (!/^\d+$/.test(normalized) || !Number.isSafeInteger(Number(normalized)) || Number(normalized) <= 0) {
+            alert(`${label} trebuie s\u0103 fie un ID numeric pozitiv.`);
+            return void 0;
+          }
+          return normalized;
+        };
+        const pennylaneProductId = normalizePennylaneId(productFormData.pennylaneProductId, "ID-ul produsului Pennylane");
+        const pennylaneAccountingAccountId = normalizePennylaneId(productFormData.pennylaneAccountingAccountId, "ID-ul contului contabil Pennylane");
+        if (pennylaneProductId === void 0 || pennylaneAccountingAccountId === void 0) return;
         const productData = {
           ...productFormData,
-          images: uploadedImages
+          images: uploadedImages,
+          pennylaneProductId,
+          pennylaneAccountingAccountId
         };
         console.log("Product form data being submitted:", productData);
         console.log("selectedMarketTab:", selectedMarketTab);
@@ -22113,7 +22198,9 @@ Cordialement,`
                 currency: productData.currency || null,
                 categoryId: productData.categoryId ? parseInt(String(productData.categoryId)) : null,
                 stockQuantity: productData.stockQuantity !== "" && productData.stockQuantity !== null ? parseInt(String(productData.stockQuantity)) : null,
-                inStock: productData.stockQuantity ? parseInt(String(productData.stockQuantity)) > 0 : null
+                inStock: productData.stockQuantity ? parseInt(String(productData.stockQuantity)) > 0 : null,
+                pennylaneProductId: productData.pennylaneProductId,
+                pennylaneAccountingAccountId: productData.pennylaneAccountingAccountId
               })
             });
             const result = await response.json();
@@ -22135,7 +22222,17 @@ Cordialement,`
           if (!response.ok) throw new Error(result.message || "Failed to save components");
         };
         if (editingProduct && selectedMarketTab !== "all") {
-          const { price, compareAtPrice, currency, stockQuantity, inStock, categoryId, ...globalFields } = productData;
+          const {
+            price,
+            compareAtPrice,
+            currency,
+            stockQuantity,
+            inStock,
+            categoryId,
+            pennylaneProductId: _pennylaneProductId,
+            pennylaneAccountingAccountId: _pennylaneAccountingAccountId,
+            ...globalFields
+          } = productData;
           const globalResult = await updateProduct(editingProduct.id, globalFields);
           if (!globalResult.success) {
             alert("Eroare la salvare: " + globalResult.message);
@@ -22170,7 +22267,12 @@ Cordialement,`
             alert("Error: " + result.message);
           }
         } else {
-          const result = editingProduct ? await updateProduct(editingProduct.id, productData) : await createProduct(productData);
+          const {
+            pennylaneProductId: _pennylaneProductId,
+            pennylaneAccountingAccountId: _pennylaneAccountingAccountId,
+            ...globalProductData
+          } = productData;
+          const result = editingProduct ? await updateProduct(editingProduct.id, globalProductData) : await createProduct(productData);
           if (result.success) {
             alert(result.message);
             resetForm();
@@ -23355,6 +23457,44 @@ Cordialement,`
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", onClick: () => setComponentProducts(componentProducts.filter((item) => item.id !== product.id)), style: { border: "none", background: "none", cursor: "pointer", color: "#dc2626" }, children: "\xD7" })
               ] }, product.id))
             ] }),
+            selectedMarketTab === "fr" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#f0f7ff", borderRadius: "6px", border: "1px solid #b3d4fc" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h5", { style: { color: "#155fa0", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }, children: "\u{1F9FE} Mapare Pennylane (.fr)" }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#52708a", marginBottom: "12px" }, children: "ID-urile sunt specifice companiei/pie\u021Bei FR \u0219i sunt folosite la emiterea facturilor noi." }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "ID produs Pennylane" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      inputMode: "numeric",
+                      pattern: "[0-9]*",
+                      className: "form-input",
+                      value: productFormData.pennylaneProductId || "",
+                      onChange: (e2) => setProductFormData({ ...productFormData, pennylaneProductId: e2.target.value }),
+                      placeholder: "Ex.: 123456"
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("small", { style: { color: "#6c757d" }, children: "Op\u021Bional; numai cifre." })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "form-group", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { className: "form-label", children: "ID cont contabil Pennylane" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      inputMode: "numeric",
+                      pattern: "[0-9]*",
+                      className: "form-input",
+                      value: productFormData.pennylaneAccountingAccountId || "",
+                      onChange: (e2) => setProductFormData({ ...productFormData, pennylaneAccountingAccountId: e2.target.value }),
+                      placeholder: "Ex.: 789012"
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("small", { style: { color: "#6c757d" }, children: "Op\u021Bional; numai cifre." })
+                ] })
+              ] })
+            ] }),
             productFormData.productType !== "service" && productFormData.productType !== "subscription" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#fff8e1", borderRadius: "6px", border: "1px solid #ffd54f" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "15px", display: "flex", alignItems: "center", gap: "8px" }, children: [
                 "\u{1F3F7}\uFE0F ",
@@ -23682,7 +23822,9 @@ Cordialement,`
                       volumeDiscounts: [],
                       priority: 0,
                       isService: false,
-                      isComposite: false
+                      isComposite: false,
+                      pennylaneProductId: "",
+                      pennylaneAccountingAccountId: ""
                     });
                     setUploadedImages([]);
                     setImportUrl("");

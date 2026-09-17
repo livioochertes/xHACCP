@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  buildPennylaneProductPayload,
   buildPennylaneCustomerPayload,
   buildPennylaneInvoicePayload,
   PennylaneClient,
   PennylaneError,
   pennylaneCustomerReference,
   pennylaneExternalReference,
+  pennylaneProductExternalReference,
   type PennylaneTransport,
 } from "./pennylane-api.js";
 
@@ -46,6 +48,31 @@ test("customer upsert searches by external reference before creating", async () 
     operator: "eq",
     value: "stable-customer-ref",
   }]);
+});
+
+test("product sync lists remote products and updates an existing deterministic mapping", async () => {
+  const transport = new FakeTransport();
+  transport.responses.push({
+    items: [{ id: "product-1", external_reference: "xhaccp-fr-product-42" }],
+    next_cursor: null,
+  });
+  transport.responses.push({ data: { id: "product-1", external_reference: "xhaccp-fr-product-42" } });
+  const client = new PennylaneClient(transport);
+  const products = await client.listProducts();
+  const payload = buildPennylaneProductPayload({
+    market: "fr",
+    productId: 42,
+    label: "Thermomètre",
+    description: "Description",
+    priceBeforeTax: 100,
+    vatRate: 20,
+  });
+  const updated = await client.updateProduct(products[0].id, payload);
+  assert.equal(pennylaneProductExternalReference("fr", 42), payload.external_reference);
+  assert.equal(updated.id, "product-1");
+  assert.equal(transport.calls[0].path, "/products?limit=100");
+  assert.equal(transport.calls[1].method, "PUT");
+  assert.equal((transport.calls[1].body as any).price_before_tax, "100.00");
 });
 
 test("invoice creation adds deterministic idempotency key and finalizes separately", async () => {

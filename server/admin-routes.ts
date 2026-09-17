@@ -88,6 +88,56 @@ function isProductMarketValidationError(error: unknown): boolean {
   return message.startsWith("Pennylane ") || message.startsWith("Category ");
 }
 
+const VALID_INVOICE_PROVIDERS = ["smartbill", "pennylane", "local"] as const;
+
+function normalizeInvoiceProvider(value: unknown): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const provider = String(value).trim().toLowerCase();
+  if (!VALID_INVOICE_PROVIDERS.includes(provider as typeof VALID_INVOICE_PROVIDERS[number])) {
+    throw new Error("Invoice provider must be smartbill, pennylane, or local");
+  }
+  return provider;
+}
+
+async function getActiveProductsForMarket(market: string) {
+  const rows = await db.select({ product: productsTable, market: productMarkets })
+    .from(productsTable)
+    .innerJoin(productMarkets, and(
+      eq(productMarkets.productId, productsTable.id),
+      eq(productMarkets.market, market),
+      eq(productMarkets.isActive, true),
+    ))
+    .where(eq(productsTable.status, "active"));
+
+  const translations = rows.length
+    ? await db.select({
+        productId: productTranslations.productId,
+        name: productTranslations.name,
+        description: productTranslations.description,
+      })
+        .from(productTranslations)
+        .where(and(
+          eq(productTranslations.language, market === "fr" ? "fr" : "ro"),
+          inArray(productTranslations.productId, rows.map(({ product }) => product.id)),
+        ))
+    : [];
+  const translationByProduct = new Map(translations.map(row => [row.productId, row]));
+
+  return rows.map(({ product, market: marketRow }) => {
+    const translation = translationByProduct.get(product.id);
+    return {
+      ...product,
+      name: translation?.name || product.name,
+      description: translation?.description || product.description || "",
+      marketPrice: marketRow.price ?? product.price,
+      marketCurrency: marketRow.currency || (market === "fr" ? "EUR" : "RON"),
+      marketVatPercentage: product.vatPercentage,
+      marketProductId: marketRow.id,
+      pennylaneProductId: marketRow.pennylaneProductId,
+    };
+  });
+}
+
 async function buildCombinedParcels(items: any[], storageRef: typeof storage): Promise<any[]> {
   const parcels: any[] = [];
   let parcelCounter = 1;
@@ -6103,8 +6153,13 @@ export async function registerAdminRoutes(app: Express) {
         });
       }
 
-      // Get all products from local database
-      const products = await storage.getProducts();
+      if (!canAccessMarket(req as AdminAuthRequest, "ro")) {
+        return res.status(403).json({ success: false, message: "Access denied for the RO market" });
+      }
+
+      // Keep the legacy endpoint safe: Smartbill is the RO provider and only
+      // active RO products may be sent to the Romanian company.
+      const products = await getActiveProductsForMarket("ro");
       
       // Initialize Smartbill API
       const smartbillConfig = {
@@ -6133,6 +6188,126 @@ export async function registerAdminRoutes(app: Express) {
         success: false, 
         message: "Failed to sync products to Smartbill",
         error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // POST /admin/api/products/sync-billing-provider — sync active products for
+  // the selected marketplace to its configured invoice provider.
+  app.post("/admin/api/products/sync-billing-provider", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const market = String(req.body?.market || "");
+      if (!["ro", "fr"].includes(market)) {
+        return res.status(400).json({ success: false, message: "Only RO and FR product synchronization is supported" });
+      }
+      if (!canAccessMarket(req as AdminAuthRequest, market)) {
+        return res.status(403).json({ success: false, message: "Access denied for this market" });
+      }
+
+      const marketSetting = await storage.getMarketSetting(market);
+      const provider = normalizeInvoiceProvider(marketSetting?.invoiceProvider) ||
+        (market === "fr" ? "pennylane" : "smartbill");
+      const products = await getActiveProductsForMarket(market);
+      if (products.length === 0) {
+        return res.json({
+          success: true,
+          market,
+          provider,
+          total: 0,
+          created: 0,
+          updated: 0,
+          failed: 0,
+          message: `No active products found for .${market}`,
+        });
+      }
+
+      if (provider === "pennylane") {
+        const { createPennylaneHttpTransport, PennylaneClient, buildPennylaneProductPayload } = await import("./pennylane-api.js");
+        const transport = createPennylaneHttpTransport();
+        if (!transport) {
+          return res.status(400).json({ success: false, market, provider, message: "Pennylane is not configured" });
+        }
+        const client = new PennylaneClient(transport);
+        const remoteProducts = await client.listProducts();
+        const remoteByReference = new Map(remoteProducts
+          .filter(product => product.external_reference)
+          .map(product => [product.external_reference as string, product]));
+        const results = { total: products.length, created: 0, updated: 0, failed: 0, errors: [] as string[] };
+
+        for (const product of products) {
+          try {
+            const vatRate = Number(product.marketVatPercentage ?? 20);
+            const grossPrice = Number(product.marketPrice || 0);
+            const netPrice = grossPrice / (1 + vatRate / 100);
+            const payload = buildPennylaneProductPayload({
+              market,
+              productId: product.id,
+              label: product.name,
+              description: product.description,
+              priceBeforeTax: netPrice,
+              vatRate,
+              unit: product.isService ? "service" : "piece",
+              currency: product.marketCurrency || "EUR",
+            });
+            const existing = remoteByReference.get(payload.external_reference);
+            const remote = existing
+              ? await client.updateProduct(existing.id, payload)
+              : await client.createProduct(payload);
+            remoteByReference.set(payload.external_reference, remote);
+            await db.update(productMarkets)
+              .set({ pennylaneProductId: String(remote.id), updatedAt: new Date() })
+              .where(eq(productMarkets.id, product.marketProductId));
+            if (existing) results.updated += 1;
+            else results.created += 1;
+          } catch (error) {
+            results.failed += 1;
+            results.errors.push(`${product.name}: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+        return res.json({ success: results.failed === 0, market, provider, ...results });
+      }
+
+      if (provider === "smartbill") {
+        if (process.env.ENABLE_SMARTBILL !== "true") {
+          return res.status(400).json({ success: false, market, provider, message: "Smartbill integration is not enabled" });
+        }
+        const { SmartbillAPI } = await import("./smartbill-api.js");
+        const smartbillConfig = {
+          username: process.env.SMARTBILL_USERNAME || "",
+          token: process.env.SMARTBILL_TOKEN || "",
+          companyVat: process.env.SMARTBILL_COMPANY_VAT || "",
+        };
+        if (!smartbillConfig.username || !smartbillConfig.token || !smartbillConfig.companyVat) {
+          return res.status(400).json({ success: false, market, provider, message: "Smartbill credentials are not configured" });
+        }
+        const results = await new SmartbillAPI(smartbillConfig).syncProductsToSmartbill(
+          smartbillConfig.companyVat,
+          products,
+        );
+        return res.json({
+          success: results.failed === 0,
+          market,
+          provider,
+          total: products.length,
+          created: results.success,
+          updated: 0,
+          failed: results.failed,
+          errors: results.errors,
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        market,
+        provider,
+        message: "The selected market has local invoices and no external product sync",
+      });
+    } catch (error) {
+      console.error("Billing provider product sync error:", error instanceof Error ? error.message : "unknown error");
+      res.status(502).json({
+        success: false,
+        message: "Product synchronization failed",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -6909,6 +7084,10 @@ export async function registerAdminRoutes(app: Express) {
       if ("abandonedCartReminderHours" in req.body) {
         req.body.abandonedCartReminderHours = normalizeReminderHours(req.body.abandonedCartReminderHours);
       }
+      if ("invoiceProvider" in req.body) {
+        const invoiceProvider = normalizeInvoiceProvider(req.body.invoiceProvider);
+        if (invoiceProvider) req.body.invoiceProvider = invoiceProvider;
+      }
       const ms = await storage.upsertMarketSettings(req.params.market, req.body);
       refreshMarketCaches().catch(console.error);
       res.json(ms);
@@ -6952,6 +7131,10 @@ export async function registerAdminRoutes(app: Express) {
       }
       if ("abandonedCartReminderHours" in req.body) {
         req.body.abandonedCartReminderHours = normalizeReminderHours(req.body.abandonedCartReminderHours);
+      }
+      if ("invoiceProvider" in req.body) {
+        const invoiceProvider = normalizeInvoiceProvider(req.body.invoiceProvider);
+        if (invoiceProvider) req.body.invoiceProvider = invoiceProvider;
       }
       const ms = await storage.upsertMarketSettings(req.params.market, req.body);
       refreshMarketCaches().catch(console.error);

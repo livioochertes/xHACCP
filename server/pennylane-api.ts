@@ -7,6 +7,19 @@ export type PennylaneCustomer = {
   email?: string;
 };
 
+export type PennylaneProduct = {
+  id: string;
+  label?: string;
+  description?: string;
+  external_reference?: string;
+  price_before_tax?: string;
+  vat_rate?: string;
+  price?: string;
+  unit?: string;
+  currency?: string;
+  reference?: string | null;
+};
+
 export type PennylaneInvoice = {
   id: string;
   invoice_number?: string;
@@ -68,11 +81,12 @@ function text(value: unknown): string | undefined {
 }
 
 function unwrap<T>(value: any): T {
-  return (value?.data ?? value?.customer ?? value?.invoice ?? value) as T;
+  return (value?.data ?? value?.customer ?? value?.invoice ?? value?.product ?? value) as T;
 }
 
 function responseId(value: any): string | undefined {
-  return text(value?.id) || text(value?.data?.id) || text(value?.customer?.id) || text(value?.invoice?.id);
+  return text(value?.id) || text(value?.data?.id) || text(value?.customer?.id) ||
+    text(value?.invoice?.id) || text(value?.product?.id);
 }
 
 function responseUrl(value: any): string | undefined {
@@ -82,6 +96,10 @@ function responseUrl(value: any): string | undefined {
 
 export function pennylaneExternalReference(orderId: number): string {
   return `xhaccp-fr-order-${orderId}`;
+}
+
+export function pennylaneProductExternalReference(market: string, productId: number): string {
+  return `xhaccp-${market}-product-${productId}`;
 }
 
 export function pennylaneCustomerReference(input: {
@@ -98,6 +116,27 @@ export function pennylaneCustomerReference(input: {
 export function pennylaneVatRateCode(rate: number): string {
   if (rate === 0) return "exempt";
   return `FR_${Math.round(rate * 10).toString().padStart(3, "0")}`;
+}
+
+export function buildPennylaneProductPayload(input: {
+  market: string;
+  productId: number;
+  label: string;
+  description?: string | null;
+  priceBeforeTax: number;
+  vatRate: number;
+  unit?: string;
+  currency?: string;
+}) {
+  return {
+    label: input.label,
+    description: (input.description || "").slice(0, 5000),
+    external_reference: pennylaneProductExternalReference(input.market, input.productId),
+    price_before_tax: input.priceBeforeTax.toFixed(2),
+    vat_rate: pennylaneVatRateCode(input.vatRate),
+    unit: input.unit || "piece",
+    currency: input.currency || "EUR",
+  };
 }
 
 export function buildPennylaneCustomerPayload(input: {
@@ -172,6 +211,39 @@ export class PennylaneClient {
   async findOrCreateCustomer(externalReference: string, payload: Record<string, unknown>): Promise<PennylaneCustomer> {
     const existing = await this.findCustomerByReference(externalReference);
     return existing || this.createCustomer(payload);
+  }
+
+  async listProducts(): Promise<PennylaneProduct[]> {
+    const products: PennylaneProduct[] = [];
+    let cursor: string | undefined;
+    do {
+      const query = new URLSearchParams({ limit: "100" });
+      if (cursor) query.set("cursor", cursor);
+      const result = await this.transport.request<any>("GET", `/products?${query.toString()}`);
+      const items = Array.isArray(result) ? result : result?.items || result?.data || result?.products || [];
+      products.push(...(Array.isArray(items) ? items.map((item: any) => unwrap<PennylaneProduct>(item)) : []));
+      cursor = typeof result?.next_cursor === "string" && result.next_cursor ? result.next_cursor : undefined;
+    } while (cursor);
+    return products;
+  }
+
+  async createProduct(payload: Record<string, unknown>): Promise<PennylaneProduct> {
+    const result = await this.transport.request<any>("POST", "/products", payload);
+    const product = unwrap<PennylaneProduct>(result);
+    const id = responseId(result);
+    if (!id) throw new PennylaneError("Pennylane product response had no ID", { retryable: true });
+    return { ...product, id };
+  }
+
+  async updateProduct(productId: string, payload: Record<string, unknown>): Promise<PennylaneProduct> {
+    const result = await this.transport.request<any>(
+      "PUT",
+      `/products/${encodeURIComponent(productId)}`,
+      payload,
+    );
+    const product = unwrap<PennylaneProduct>(result);
+    const id = responseId(result) || product.id || productId;
+    return { ...product, id };
   }
 
   async findInvoiceByReference(externalReference: string): Promise<PennylaneInvoice | null> {
