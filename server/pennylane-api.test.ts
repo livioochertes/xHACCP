@@ -92,8 +92,24 @@ test("invoice creation adds deterministic idempotency key and finalizes separate
   const created = await client.createInvoice(payload);
   const finalized = await client.finalizeInvoice(created.id);
   assert.equal(finalized.invoice_number, "FA-2026-1");
+  assert.equal(transport.calls[1].method, "PUT");
   assert.equal(transport.calls[0].headers?.["Idempotency-Key"], "xhaccp-fr-order-9");
   assert.deepEqual((transport.calls[0].body as any).invoice_lines[0], payload.line_items[0]);
+});
+
+test("invoice lookup keeps the invoice when its response includes a nested customer", async () => {
+  const transport = new FakeTransport();
+  transport.responses.push({
+    items: [{
+      id: 9876,
+      status: "draft",
+      customer: { id: 1234, url: "/customers/1234" },
+    }],
+  });
+  const client = new PennylaneClient(transport);
+  const invoice = await client.findInvoiceByReference("stable-invoice-ref");
+  assert.equal(invoice?.id, "9876");
+  assert.equal(invoice?.status, "draft");
 });
 
 test("payload builder preserves EUR, VAT lines, and seller identity", () => {
@@ -114,7 +130,10 @@ test("payload builder preserves EUR, VAT lines, and seller identity", () => {
   });
   assert.equal(customer.external_reference, "customer-ref");
   assert.equal(customer.vat_number, "FR123");
+  assert.equal(customer.billing_address.country_alpha2, "FR");
   assert.equal(invoice.currency, "EUR");
+  assert.equal(invoice.deadline, "2026-10-17");
+  assert.equal(invoice.draft, true);
   assert.equal(invoice.invoice_lines[0].vat_rate, "FR_200");
   assert.match(invoice.pdf_invoice_free_text, /TVA FR456/);
 });

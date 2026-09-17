@@ -45,6 +45,8 @@ export type PennylaneInvoiceInput = {
   external_reference: string;
   customer_id: number;
   date: string;
+  deadline?: string;
+  draft?: boolean;
   currency: "EUR";
   line_items: PennylaneLine[];
   seller: {
@@ -80,17 +82,37 @@ function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function identifier(value: unknown): string | undefined {
+  if (typeof value === "number" && Number.isSafeInteger(value)) return String(value);
+  return text(value);
+}
+
 function unwrap<T>(value: any): T {
+  if (value && typeof value === "object" && value.id !== undefined) return value as T;
   return (value?.data ?? value?.customer ?? value?.invoice ?? value?.product ?? value) as T;
 }
 
+function responseList(value: any, keys: string[]): any[] {
+  const candidates = [value, ...keys.map(key => value?.[key])];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+    if (Array.isArray(candidate?.items)) return candidate.items;
+    if (Array.isArray(candidate?.data)) return candidate.data;
+    if (candidate && typeof candidate === "object" && (candidate.id !== undefined || candidate.external_reference)) {
+      return [candidate];
+    }
+  }
+  return [];
+}
+
 function responseId(value: any): string | undefined {
-  return text(value?.id) || text(value?.data?.id) || text(value?.customer?.id) ||
-    text(value?.invoice?.id) || text(value?.product?.id);
+  return identifier(value?.id) || identifier(value?.data?.id) || identifier(value?.customer?.id) ||
+    identifier(value?.invoice?.id) || identifier(value?.product?.id) ||
+    identifier(value?.customer_id) || identifier(value?.data?.customer_id);
 }
 
 function responseUrl(value: any): string | undefined {
-  return text(value?.pdf_url) || text(value?.download_url) || text(value?.url) ||
+  return text(value?.pdf_url) || text(value?.download_url) || text(value?.public_file_url) || text(value?.url) ||
     text(value?.data?.pdf_url) || text(value?.data?.download_url) || text(value?.data?.url);
 }
 
@@ -158,17 +180,23 @@ export function buildPennylaneCustomerPayload(input: {
       address: input.address || undefined,
       city: input.city || undefined,
       postal_code: input.zipCode || undefined,
-      country: input.country || "FR",
+      country_alpha2: input.country || "FR",
     },
     ...(input.vatNumber ? { vat_number: input.vatNumber } : {}),
   };
 }
 
 export function buildPennylaneInvoicePayload(input: PennylaneInvoiceInput) {
+  const issueDate = new Date(`${input.date}T00:00:00Z`);
+  issueDate.setUTCDate(issueDate.getUTCDate() + 30);
+  const defaultDeadline = issueDate.toISOString().slice(0, 10);
+
   return {
     external_reference: input.external_reference,
     customer_id: input.customer_id,
     date: input.date,
+    deadline: input.deadline || defaultDeadline,
+    draft: input.draft ?? true,
     currency: input.currency,
     invoice_lines: input.line_items,
     // Official seller identity and numbering come from the Pennylane company
@@ -190,14 +218,21 @@ export class PennylaneClient {
   }
 
   async findCustomerByReference(externalReference: string): Promise<PennylaneCustomer | null> {
-    const result = await this.transport.request<any>(
-      "GET",
-      `/customers?filter=${encodeURIComponent(JSON.stringify([
-        { field: "external_reference", operator: "eq", value: externalReference },
-      ]))}`,
-    );
-    const list = Array.isArray(result) ? result : result?.data || result?.customers || [];
-    return (list[0] ? unwrap<PennylaneCustomer>(list[0]) : null);
+    try {
+      const result = await this.transport.request<any>(
+        "GET",
+        `/customers?filter=${encodeURIComponent(JSON.stringify([
+          { field: "external_reference", operator: "eq", value: externalReference },
+        ]))}`,
+      );
+      const list = responseList(result, ["data", "customers"]);
+      if (!list[0]) return null;
+      const customer = unwrap<PennylaneCustomer>(list[0]);
+      return { ...customer, id: responseId(list[0]) || customer.id };
+    } catch (error) {
+      if (error instanceof PennylaneError && error.status === 404) return null;
+      throw error;
+    }
   }
 
   async createCustomer(payload: Record<string, unknown>): Promise<PennylaneCustomer> {
@@ -247,14 +282,25 @@ export class PennylaneClient {
   }
 
   async findInvoiceByReference(externalReference: string): Promise<PennylaneInvoice | null> {
-    const result = await this.transport.request<any>(
-      "GET",
-      `/customer_invoices?filter=${encodeURIComponent(JSON.stringify([
-        { field: "external_reference", operator: "eq", value: externalReference },
-      ]))}`,
-    );
-    const list = Array.isArray(result) ? result : result?.data || result?.customer_invoices || [];
-    return list[0] ? unwrap<PennylaneInvoice>(list[0]) : null;
+    try {
+      const result = await this.transport.request<any>(
+        "GET",
+        `/customer_invoices?filter=${encodeURIComponent(JSON.stringify([
+          { field: "external_reference", operator: "eq", value: externalReference },
+        ]))}`,
+      );
+      const list = responseList(result, ["data", "customer_invoices"]);
+      if (!list[0]) return null;
+      const invoice = unwrap<PennylaneInvoice>(list[0]);
+      return {
+        ...invoice,
+        id: responseId(list[0]) || invoice.id,
+        url: responseUrl(list[0]) || invoice.url,
+      };
+    } catch (error) {
+      if (error instanceof PennylaneError && error.status === 404) return null;
+      throw error;
+    }
   }
 
   async createInvoice(payload: PennylaneInvoiceInput): Promise<PennylaneInvoice> {
@@ -271,7 +317,7 @@ export class PennylaneClient {
   }
 
   async finalizeInvoice(invoiceId: string): Promise<PennylaneInvoice> {
-    const result = await this.transport.request<any>("POST", `/customer_invoices/${encodeURIComponent(invoiceId)}/finalize`);
+    const result = await this.transport.request<any>("PUT", `/customer_invoices/${encodeURIComponent(invoiceId)}/finalize`);
     const invoice = unwrap<PennylaneInvoice>(result);
     return { ...invoice, id: responseId(result) || invoice.id, url: responseUrl(result) || invoice.url };
   }
