@@ -1,7 +1,15 @@
 import type { Express } from "express";
 import type { Order } from "@shared/schema";
+import rateLimit from "express-rate-limit";
 
 const DEFAULT_PUBLIC_APP_URL = "https://xhaccp.fr";
+const publicTrackingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => res.status(429).send("Veuillez réessayer plus tard."),
+});
 
 type PublicTrackingOrder = Pick<Order, "market" | "awbNumber" | "awbCourier">;
 
@@ -46,7 +54,7 @@ export function registerPublicTrackingRoute(
   app: Express,
   dependencies: PublicTrackingDependencies,
 ): void {
-  app.get("/tracking/:publicOrderRef", async (req, res) => {
+  app.get("/tracking/:publicOrderRef", publicTrackingLimiter, async (req, res) => {
     try {
       const order = await dependencies.getOrderByPublicOrderRef(req.params.publicOrderRef);
       if (

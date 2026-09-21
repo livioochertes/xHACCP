@@ -48,6 +48,7 @@ interface TrackingResponse {
 async function requestTrackingPage(
   app: express.Express,
   publicOrderRef: string,
+  headers: http.OutgoingHttpHeaders = {},
 ): Promise<TrackingResponse> {
   const server = await new Promise<http.Server>((resolve) => {
     const listeningServer = app.listen(0, () => resolve(listeningServer));
@@ -62,6 +63,7 @@ async function requestTrackingPage(
           hostname: "127.0.0.1",
           port: address.port,
           path: `/tracking/${encodeURIComponent(publicOrderRef)}`,
+          headers,
         },
         (response) => {
           const chunks: Buffer[] = [];
@@ -150,4 +152,45 @@ test("public tracking rejects missing and non-French references without calling 
     assert.equal(response.body, "Suivi indisponible");
   }
   assert.equal(carrierCalls, 0);
+});
+
+test("public tracking throttles repeated requests before looking up an order", async () => {
+  const app = express();
+  app.set("trust proxy", true);
+  let orderLookups = 0;
+  let carrierCalls = 0;
+  registerPublicTrackingRoute(app, {
+    getOrderByPublicOrderRef: async () => {
+      orderLookups += 1;
+      return {
+        market: "fr",
+        awbNumber: "MFB-FR-RATE-LIMIT",
+        awbCourier: "MyFlyingBox",
+      };
+    },
+    createTrackingClient: () => ({
+      getTracking: async () => {
+        carrierCalls += 1;
+        return { status: "in_transit" };
+      },
+    }),
+  });
+
+  const clientIp = "203.0.113.227";
+  const responses = [];
+  for (let requestNumber = 0; requestNumber < 10; requestNumber += 1) {
+    responses.push(await requestTrackingPage(app, "ord_fr_customer", {
+      "X-Forwarded-For": clientIp,
+    }));
+  }
+  const limitedResponse = await requestTrackingPage(app, "ord_fr_customer", {
+    "X-Forwarded-For": clientIp,
+  });
+
+  assert.ok(responses.every((response) => response.statusCode === 200));
+  assert.equal(limitedResponse.statusCode, 429);
+  assert.equal(limitedResponse.body, "Veuillez réessayer plus tard.");
+  assert.doesNotMatch(limitedResponse.body, /ord_fr_customer|MFB-FR-RATE-LIMIT/);
+  assert.equal(orderLookups, 10);
+  assert.equal(carrierCalls, 10);
 });
