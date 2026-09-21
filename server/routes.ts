@@ -4797,9 +4797,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (!invoiceService) invoiceService = await createInvoiceService();
       return invoiceService;
     },
-    sendInvoiceEmailFr: async (...args: Parameters<typeof import("./email-service.js").sendInvoiceEmailFr>) => {
-      const { sendInvoiceEmailFr } = await import("./email-service.js");
-      await sendInvoiceEmailFr(...args);
+    ensureFrenchOrderAwb: async (orderId: number) => {
+      await generateAWBForOrder(orderId);
+    },
+    sendFrenchOrderDocumentsEmail: async (orderId: number) => {
+      await sendFrenchOrderDocumentsEmail(orderId);
     },
   };
 

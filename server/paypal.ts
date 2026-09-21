@@ -49,12 +49,8 @@ export type PayPalReconciliationDependencies = {
   getPayPalOrder?: typeof getPayPalOrder;
   capturePayPalOrder?: typeof capturePayPalOrder;
   getInvoiceService: () => Promise<PayPalInvoiceService>;
-  sendInvoiceEmailFr: (
-    customerEmail: string,
-    order: any,
-    invoicePdf: Buffer | null,
-    invoiceNumber?: string,
-  ) => Promise<void>;
+  ensureFrenchOrderAwb: (orderId: number) => Promise<unknown>;
+  sendFrenchOrderDocumentsEmail: (orderId: number) => Promise<unknown>;
 };
 
 type PayPalWebhookRequest = {
@@ -117,28 +113,25 @@ export async function reconcilePayPalPayment(
   if (paid) {
     try {
       const invoiceService = await dependencies.getInvoiceService();
-      const invoice = await invoiceService.generateInvoiceAfterPayment(local.id, {
+      await invoiceService.generateInvoiceAfterPayment(local.id, {
         status: "succeeded",
         paymentMethod: "paypal",
         paymentId: captureId,
         amount: Number(local.totalAmount),
       });
-      const latest = await dependencies.storage.getOrder(local.id);
-      const email = (latest?.shippingAddress as any)?.email ||
-        (latest?.billingAddress as any)?.email;
-      const invoicePdf = invoice?.id
-        ? await invoiceService.getInvoicePdf(invoice.id).catch(() => null)
-        : null;
-      const canSend = latest && email && (
-        latest.market !== "fr" || !invoice?.id ||
-        !dependencies.storage.claimInvoiceEmail ||
-        !!(await dependencies.storage.claimInvoiceEmail(invoice.id))
-      );
-      if (canSend) {
-        await dependencies.sendInvoiceEmailFr(email, latest, invoicePdf, invoice.invoiceNumber);
-      }
     } catch (error) {
-      console.error(`[PayPal ${requestId}] post-payment invoice/email failed:`, error instanceof Error ? error.message : "unknown error");
+      console.error(`[PayPal ${requestId}] invoice generation failed:`, error instanceof Error ? error.message : "unknown error");
+    }
+
+    try {
+      // French customer delivery requires both the invoice and the
+      // MyFlyingBox shipment details. The AWB generator reuses an existing
+      // AWB, so retries remain safe, while the notifier owns the durable
+      // invoice-email claim and PDF/label retrieval.
+      await dependencies.ensureFrenchOrderAwb(local.id);
+      await dependencies.sendFrenchOrderDocumentsEmail(local.id);
+    } catch (error) {
+      console.error(`[PayPal ${requestId}] post-payment AWB/email failed:`, error instanceof Error ? error.message : "unknown error");
     }
   }
   return local.id;

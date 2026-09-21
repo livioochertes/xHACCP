@@ -100,8 +100,10 @@ function reconciliationDependencies() {
   let paymentStatus = "pending";
   let paymentTransactionId: string | undefined;
   let invoiceCount = 0;
-  let emailCount = 0;
+  let awbCount = 0;
+  let notificationCount = 0;
   let captureCount = 0;
+  const sideEffects: string[] = [];
   const dependencies = {
     storage: {
       async getOrderByPaymentProviderOrderId() {
@@ -130,6 +132,7 @@ function reconciliationDependencies() {
       return {
         async generateInvoiceAfterPayment() {
           invoiceCount++;
+          sideEffects.push("invoice");
           return { id: 7, invoiceNumber: "INV-7" };
         },
         async getInvoicePdf() {
@@ -137,13 +140,20 @@ function reconciliationDependencies() {
         },
       };
     },
-    async sendInvoiceEmailFr() {
-      emailCount++;
+    async ensureFrenchOrderAwb(orderId: number) {
+      assert.equal(orderId, 42);
+      awbCount++;
+      sideEffects.push("awb");
+    },
+    async sendFrenchOrderDocumentsEmail(orderId: number) {
+      assert.equal(orderId, 42);
+      notificationCount++;
+      sideEffects.push("notification");
     },
   };
   return {
     dependencies,
-    counts: () => ({ paymentStatus, paymentTransactionId, invoiceCount, emailCount, captureCount }),
+    counts: () => ({ paymentStatus, paymentTransactionId, invoiceCount, awbCount, notificationCount, captureCount, sideEffects }),
   };
 }
 
@@ -169,8 +179,10 @@ test("verified PayPal webhook reconciles a completed capture after the browser c
     paymentStatus: "paid",
     paymentTransactionId: "C-1",
     invoiceCount: 1,
-    emailCount: 1,
+    awbCount: 1,
+    notificationCount: 1,
     captureCount: 0,
+    sideEffects: ["invoice", "awb", "notification"],
   });
 });
 
@@ -196,8 +208,10 @@ test("repeated verified PayPal webhooks produce one paid transition, invoice, an
     paymentStatus: "paid",
     paymentTransactionId: "C-1",
     invoiceCount: 1,
-    emailCount: 1,
+    awbCount: 1,
+    notificationCount: 1,
     captureCount: 0,
+    sideEffects: ["invoice", "awb", "notification"],
   });
 });
 
@@ -226,7 +240,9 @@ test("invalid PayPal webhook signatures never change the order", async () => {
     paymentStatus: "pending",
     paymentTransactionId: undefined,
     invoiceCount: 0,
-    emailCount: 0,
+    awbCount: 0,
+    notificationCount: 0,
     captureCount: 0,
+    sideEffects: [],
   });
 });
