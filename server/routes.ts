@@ -49,7 +49,7 @@ import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscript
 import { createPayPalOrder, getPayPalOrder, capturePayPalOrder, paypalApprovalUrl, paypalCreateRequestId, reconcilePayPalPayment, handlePayPalWebhook } from "./paypal";
 import { getRomanianSamedayShippingContext } from "./sameday-shipping";
 import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
-import { buildPublicTrackingUrl, escapeHtml } from "./public-tracking.js";
+import { buildPublicTrackingUrl, registerPublicTrackingRoute } from "./public-tracking.js";
 
 const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
 const EVENT_VOUCHER_CAMPAIGN_DEFAULTS = {
@@ -3507,51 +3507,14 @@ Sitemap: https://${domain}/sitemap.xml
     }
   });
 
-  // Track AWB
-  app.get("/tracking/:publicOrderRef", async (req, res) => {
-    try {
-      const order = await storage.getOrderByPublicOrderRef(req.params.publicOrderRef);
-      if (!order || order.market !== "fr" || !order.awbNumber || order.awbCourier?.toLowerCase() !== "myflyingbox") {
-        return res.status(404).send("Suivi indisponible");
-      }
-
-      const myFlyingBoxAPI = (await import("./myflyingbox-api")).createMyFlyingBoxAPI();
-      if (!myFlyingBoxAPI) {
-        return res.status(503).send("Le suivi est temporairement indisponible");
-      }
-
-      const trackingInfo = await myFlyingBoxAPI.getTracking(order.awbNumber);
-      const trackingJson = JSON.stringify(trackingInfo, null, 2);
-      res.setHeader("Cache-Control", "no-store");
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      return res.send(`<!doctype html>
-        <html lang="fr">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>Suivi de votre colis - xHACCP</title>
-            <style>
-              body { font-family: Arial, sans-serif; color: #243447; background: #f5f7fa; margin: 0; padding: 24px; }
-              main { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 10px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
-              h1 { color: #1a4f8a; font-size: 24px; margin-top: 0; }
-              .awb { background: #eef8ee; border-left: 4px solid #27ae60; padding: 12px 16px; margin: 20px 0; }
-              pre { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 14px; overflow: auto; white-space: pre-wrap; }
-              .muted { color: #68737d; font-size: 14px; }
-            </style>
-          </head>
-          <body>
-            <main>
-              <h1>Suivi de votre colis</h1>
-              <p class="awb"><strong>Transporteur :</strong> MyFlyingBox<br><strong>N° de suivi :</strong> ${escapeHtml(order.awbNumber)}</p>
-              <p class="muted">Les dernières informations communiquées par le transporteur sont affichées ci-dessous.</p>
-              <pre>${escapeHtml(trackingJson)}</pre>
-            </main>
-          </body>
-        </html>`);
-    } catch (error) {
-      console.error("Public MyFlyingBox tracking error:", error);
-      return res.status(502).send("Le suivi est temporairement indisponible");
-    }
+  // Public French tracking is intentionally unauthenticated; the opaque order
+  // reference and market/carrier checks are enforced by the route handler.
+  registerPublicTrackingRoute(app, {
+    getOrderByPublicOrderRef: (publicOrderRef) => storage.getOrderByPublicOrderRef(publicOrderRef),
+    createTrackingClient: async () => {
+      const { createMyFlyingBoxAPI } = await import("./myflyingbox-api");
+      return createMyFlyingBoxAPI();
+    },
   });
 
   app.get("/api/orders/:id/track-awb", authenticateToken, async (req: AuthRequest, res) => {
