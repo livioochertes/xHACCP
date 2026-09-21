@@ -1489,9 +1489,10 @@ export async function sendInvoiceEmailFr(
     awbNumber?: string;
     trackingUrl?: string | null;
     awbPdfBuffer?: Buffer | null;
+    send?: typeof sendEmail;
   } = {}
 ): Promise<boolean> {
-  if (!mailService || !VERIFIED_SENDER) {
+  if (!options.send && (!mailService || !VERIFIED_SENDER)) {
     console.warn('Email service not configured. Skipping FR invoice email.');
     return false;
   }
@@ -1634,6 +1635,10 @@ export async function sendInvoiceEmailFr(
   }
 
   try {
+    if (options.send) {
+      return await options.send(emailData);
+    }
+    if (!mailService) return false;
     await mailService.send(emailData);
     console.log(`✅ FR invoice email sent to ${customerEmail} for order #${order.id} (invoice: ${invoiceNumber})`);
     return true;

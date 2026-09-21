@@ -86,6 +86,19 @@ function completedRemoteOrder() {
   };
 }
 
+let frenchNotifierModule: typeof import("./fr-order-notification.js") | undefined;
+
+async function sendRealFrenchOrderDocumentsEmail(
+  orderId: number,
+  dependencies: Parameters<typeof import("./fr-order-notification.js")["sendFrenchOrderDocumentsEmail"]>[1],
+) {
+  if (!frenchNotifierModule) {
+    process.env.DATABASE_URL ||= "postgresql://paypal-test.invalid/test";
+    frenchNotifierModule = await import("./fr-order-notification.js");
+  }
+  return frenchNotifierModule.sendFrenchOrderDocumentsEmail(orderId, dependencies);
+}
+
 function reconciliationDependencies() {
   const local: PayPalLocalOrder = {
     id: 42,
@@ -96,18 +109,29 @@ function reconciliationDependencies() {
     totalAmount: "12.30",
     shippingAddress: { email: "customer@example.invalid" },
     billingAddress: {},
+    items: [],
   };
+  const localWithShipping = local as PayPalLocalOrder & {
+    publicOrderRef: string;
+    awbNumber?: string;
+    awbCourier?: string;
+    awbTrackingUrl?: string;
+  };
+  localWithShipping.publicOrderRef = "fr-paypal-42";
   let paymentStatus = "pending";
   let paymentTransactionId: string | undefined;
   let invoiceCount = 0;
   let awbCount = 0;
   let notificationCount = 0;
   let captureCount = 0;
+  let issuedInvoice: { id: number; invoiceNumber: string } | undefined;
+  let invoiceEmailClaimed = false;
+  const sentEmails: any[] = [];
   const sideEffects: string[] = [];
   const dependencies = {
     storage: {
       async getOrderByPaymentProviderOrderId() {
-        return local;
+        return localWithShipping;
       },
       async updateOrder(_id: number, update: { paymentTransactionId: string }) {
         paymentTransactionId = update.paymentTransactionId;
@@ -118,7 +142,7 @@ function reconciliationDependencies() {
         return local;
       },
       async getOrder() {
-        return local;
+        return localWithShipping;
       },
     },
     async getPayPalOrder() {
@@ -133,6 +157,7 @@ function reconciliationDependencies() {
         async generateInvoiceAfterPayment() {
           invoiceCount++;
           sideEffects.push("invoice");
+          issuedInvoice = { id: 7, invoiceNumber: "INV-FR-7" };
           return { id: 7, invoiceNumber: "INV-7" };
         },
         async getInvoicePdf() {
@@ -144,21 +169,51 @@ function reconciliationDependencies() {
       assert.equal(orderId, 42);
       awbCount++;
       sideEffects.push("awb");
+      localWithShipping.awbNumber = "MFB-FR-42";
+      localWithShipping.awbCourier = "MyFlyingBox";
+      localWithShipping.awbTrackingUrl = "https://xhaccp.fr/tracking/fr-paypal-42";
     },
     async sendFrenchOrderDocumentsEmail(orderId: number) {
       assert.equal(orderId, 42);
       notificationCount++;
       sideEffects.push("notification");
+      return sendRealFrenchOrderDocumentsEmail(orderId, {
+        getOrder: async () => localWithShipping,
+        getIssuedInvoice: async () => issuedInvoice,
+        getInvoicePdf: async (invoiceId) => {
+          assert.equal(invoiceId, 7);
+          return Buffer.from("invoice-pdf");
+        },
+        claimInvoiceEmail: async (invoiceId) => {
+          assert.equal(invoiceId, 7);
+          if (invoiceEmailClaimed) return undefined;
+          invoiceEmailClaimed = true;
+          return issuedInvoice;
+        },
+        resetInvoiceEmailClaim: async (invoiceId) => {
+          assert.equal(invoiceId, 7);
+          invoiceEmailClaimed = false;
+        },
+        getAwbPdf: async (awbNumber) => {
+          assert.equal(awbNumber, "MFB-FR-42");
+          return Buffer.from("awb-pdf");
+        },
+        sendEmail: async (email) => {
+          sentEmails.push(email);
+          return true;
+        },
+      });
     },
   };
   return {
     dependencies,
+    sentEmails,
     counts: () => ({ paymentStatus, paymentTransactionId, invoiceCount, awbCount, notificationCount, captureCount, sideEffects }),
   };
 }
 
 test("verified PayPal webhook reconciles a completed capture after the browser callback is lost", async () => {
-  const { dependencies, counts } = reconciliationDependencies();
+  const { dependencies, counts, sentEmails } = reconciliationDependencies();
   const response = webhookResponse();
 
   await handlePayPalWebhook(
@@ -184,10 +239,25 @@ test("verified PayPal webhook reconciles a completed capture after the browser c
     captureCount: 0,
     sideEffects: ["invoice", "awb", "notification"],
   });
+  assert.equal(sentEmails.length, 1);
+  assert.equal(sentEmails[0].to, "customer@example.invalid");
+  assert.match(sentEmails[0].text, /MFB-FR-42/);
+  assert.match(sentEmails[0].text, /MyFlyingBox/);
+  assert.match(sentEmails[0].text, /https:\/\/xhaccp\.fr\/tracking\/fr-paypal-42/);
+  assert.deepEqual(
+    sentEmails[0].attachments.map((attachment: { filename: string; content: string }) => ({
+      filename: attachment.filename,
+      content: Buffer.from(attachment.content, "base64").toString(),
+    })),
+    [
+      { filename: "Facture_xHACCP_INV_FR_7.pdf", content: "invoice-pdf" },
+      { filename: "AWB_MFB-FR-42.pdf", content: "awb-pdf" },
+    ],
+  );
 });
 
 test("repeated verified PayPal webhooks produce one paid transition, invoice, and email", async () => {
-  const { dependencies, counts } = reconciliationDependencies();
+  const { dependencies, counts, sentEmails } = reconciliationDependencies();
   const requests = () => ({
     headers: { "paypal-transmission-id": "t-1" },
     body: {
@@ -213,6 +283,8 @@ test("repeated verified PayPal webhooks produce one paid transition, invoice, an
     captureCount: 0,
     sideEffects: ["invoice", "awb", "notification"],
   });
+  assert.equal(sentEmails.length, 1);
+  assert.match(sentEmails[0].text, /https:\/\/xhaccp\.fr\/tracking\/fr-paypal-42/);
 });
 
 test("invalid PayPal webhook signatures never change the order", async () => {
