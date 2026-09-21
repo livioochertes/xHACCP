@@ -99,7 +99,7 @@ async function sendRealFrenchOrderDocumentsEmail(
   return frenchNotifierModule.sendFrenchOrderDocumentsEmail(orderId, dependencies);
 }
 
-function reconciliationDependencies() {
+function reconciliationDependencies(sendResults: boolean[] = [true]) {
   const local: PayPalLocalOrder = {
     id: 42,
     paymentProviderOrderId: "P-1",
@@ -124,8 +124,9 @@ function reconciliationDependencies() {
   let awbCount = 0;
   let notificationCount = 0;
   let captureCount = 0;
-  let issuedInvoice: { id: number; invoiceNumber: string } | undefined;
+  let issuedInvoice: { id: number; invoiceNumber: string } = { id: 7, invoiceNumber: "INV-FR-7" };
   let invoiceEmailClaimed = false;
+  let deliveryAttempts = 0;
   const sentEmails: any[] = [];
   const sideEffects: string[] = [];
   const dependencies = {
@@ -199,15 +200,19 @@ function reconciliationDependencies() {
           return Buffer.from("awb-pdf");
         },
         sendEmail: async (email) => {
-          sentEmails.push(email);
-          return true;
+          deliveryAttempts++;
+          const sent = sendResults[deliveryAttempts - 1] ?? sendResults.at(-1) ?? false;
+          if (sent) sentEmails.push(email);
+          return sent;
         },
       });
     },
   };
   return {
     dependencies,
+    order: localWithShipping,
     sentEmails,
+    state: () => ({ invoiceEmailClaimed, deliveryAttempts }),
     counts: () => ({ paymentStatus, paymentTransactionId, invoiceCount, awbCount, notificationCount, captureCount, sideEffects }),
   };
 }
@@ -285,6 +290,38 @@ test("repeated verified PayPal webhooks produce one paid transition, invoice, an
   });
   assert.equal(sentEmails.length, 1);
   assert.match(sentEmails[0].text, /https:\/\/xhaccp\.fr\/tracking\/fr-paypal-42/);
+});
+
+test("failed French invoice delivery releases its claim for a successful retry", async () => {
+  const { dependencies, order, sentEmails, state } = reconciliationDependencies([false, true]);
+  order.awbNumber = "MFB-FR-42";
+  order.awbCourier = "MyFlyingBox";
+  order.awbTrackingUrl = "https://xhaccp.fr/tracking/fr-paypal-42";
+
+  const firstAttempt = await dependencies.sendFrenchOrderDocumentsEmail(42);
+
+  assert.equal(firstAttempt, "failed");
+  assert.deepEqual(state(), { invoiceEmailClaimed: false, deliveryAttempts: 1 });
+  assert.equal(sentEmails.length, 0);
+
+  const secondAttempt = await dependencies.sendFrenchOrderDocumentsEmail(42);
+
+  assert.equal(secondAttempt, "sent");
+  assert.deepEqual(state(), { invoiceEmailClaimed: true, deliveryAttempts: 2 });
+  assert.equal(sentEmails.length, 1);
+  assert.equal(sentEmails[0].to, "customer@example.invalid");
+  assert.match(sentEmails[0].text, /Facture N° INV-FR-7/);
+  assert.match(sentEmails[0].text, /https:\/\/xhaccp\.fr\/tracking\/fr-paypal-42/);
+  assert.deepEqual(
+    sentEmails[0].attachments.map((attachment: { filename: string; content: string }) => ({
+      filename: attachment.filename,
+      content: Buffer.from(attachment.content, "base64").toString(),
+    })),
+    [
+      { filename: "Facture_xHACCP_INV_FR_7.pdf", content: "invoice-pdf" },
+      { filename: "AWB_MFB-FR-42.pdf", content: "awb-pdf" },
+    ],
+  );
 });
 
 test("invalid PayPal webhook signatures never change the order", async () => {
