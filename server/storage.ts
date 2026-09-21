@@ -178,6 +178,7 @@ export interface IStorage {
   // Order operations
   getOrders(userId?: number): Promise<OrderWithItems[]>;
   getOrder(id: number): Promise<OrderWithItems | undefined>;
+  getOrderByPublicOrderRef(publicOrderRef: string): Promise<OrderWithItems | undefined>;
   createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order>;
   updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order>;
   getOrderByPaymentProviderOrderId(providerOrderId: string): Promise<Order | undefined>;
@@ -932,6 +933,14 @@ export class DatabaseStorage implements IStorage {
       .groupBy(orders.id);
 
     return order as OrderWithItems | undefined;
+  }
+
+  async getOrderByPublicOrderRef(publicOrderRef: string): Promise<OrderWithItems | undefined> {
+    const [order] = await db.select({ id: orders.id })
+      .from(orders)
+      .where(eq(orders.publicOrderRef, publicOrderRef))
+      .limit(1);
+    return order ? this.getOrder(order.id) : undefined;
   }
 
   async createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order> {

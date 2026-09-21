@@ -48,6 +48,8 @@ import {
 import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
 import { createPayPalOrder, getPayPalOrder, capturePayPalOrder, paypalApprovalUrl, paypalCreateRequestId, reconcilePayPalPayment, handlePayPalWebhook } from "./paypal";
 import { getRomanianSamedayShippingContext } from "./sameday-shipping";
+import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
+import { buildPublicTrackingUrl, escapeHtml } from "./public-tracking.js";
 
 const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
 const EVENT_VOUCHER_CAMPAIGN_DEFAULTS = {
@@ -3012,96 +3014,114 @@ Sitemap: https://${domain}/sitemap.xml
               console.error(`❌ Failed to generate invoice for order #${orderId}:`, invoiceError);
             }
 
-            try {
-              const { createSamedayAPI } = await import('./sameday-api');
-              const samedayAPI = createSamedayAPI();
-              if (samedayAPI) {
-                const currentOrder = await storage.getOrder(orderId);
-                if (currentOrder && !currentOrder.awbNumber) {
-                  console.log(`📦 Generating AWB for order #${orderId}...`);
-                  const [shippingContext, services] = await Promise.all([
-                    getRomanianSamedayShippingContext(samedayAPI),
-                    samedayAPI.getServices()
-                  ]);
-                  console.log(`📦 Using configured pickup point ${shippingContext.pickupPoint.id}; Services: ${services.length}`);
+            if ((fullOrder.market || 'ro') === 'fr') {
+              try {
+                const awbResult = await generateAWBForOrder(orderId);
+                if (awbResult) awbNumber = awbResult.awbNumber;
+              } catch (awbError) {
+                console.error(`❌ Failed to generate MyFlyingBox AWB for order #${orderId}:`, awbError);
+              }
+            } else {
+              try {
+                const { createSamedayAPI } = await import('./sameday-api');
+                const samedayAPI = createSamedayAPI();
+                if (samedayAPI) {
+                  const currentOrder = await storage.getOrder(orderId);
+                  if (currentOrder && !currentOrder.awbNumber) {
+                    console.log(`📦 Generating AWB for order #${orderId}...`);
+                    const [shippingContext, services] = await Promise.all([
+                      getRomanianSamedayShippingContext(samedayAPI),
+                      samedayAPI.getServices()
+                    ]);
+                    console.log(`📦 Using configured pickup point ${shippingContext.pickupPoint.id}; Services: ${services.length}`);
 
-                  if (services.length > 0) {
-                    const selectedPickupPoint = shippingContext.pickupPoint;
-                    const parcels: any[] = [];
-                    let parcelCounter = 1;
+                    if (services.length > 0) {
+                      const selectedPickupPoint = shippingContext.pickupPoint;
+                      const parcels: any[] = [];
+                      let parcelCounter = 1;
 
-                    if (currentOrder.items && currentOrder.items.length > 0) {
-                      for (const item of currentOrder.items) {
-                        const product = item.productId != null ? await storage.getProduct(item.productId) : undefined;
-                        if (!product) continue;
-                        const piecesPerPackage = (product as any).piecesPerPackage || 1;
-                        const weight = (product as any).weight || 1;
-                        const numberOfPackages = Math.ceil(item.quantity / piecesPerPackage);
-                        for (let i = 0; i < numberOfPackages; i++) {
-                          parcels.push({ sequenceNo: parcelCounter++, weight, width: 30, height: 20, length: 40 });
+                      if (currentOrder.items && currentOrder.items.length > 0) {
+                        for (const item of currentOrder.items) {
+                          const product = item.productId != null ? await storage.getProduct(item.productId) : undefined;
+                          if (!product) continue;
+                          const piecesPerPackage = (product as any).piecesPerPackage || 1;
+                          const weight = (product as any).weight || 1;
+                          const numberOfPackages = Math.ceil(item.quantity / piecesPerPackage);
+                          for (let i = 0; i < numberOfPackages; i++) {
+                            parcels.push({ sequenceNo: parcelCounter++, weight, width: 30, height: 20, length: 40 });
+                          }
                         }
                       }
-                    }
-                    if (parcels.length === 0) {
-                      parcels.push({ sequenceNo: 1, weight: 1, width: 30, height: 20, length: 40 });
-                    }
+                      if (parcels.length === 0) {
+                        parcels.push({ sequenceNo: 1, weight: 1, width: 30, height: 20, length: 40 });
+                      }
 
-                    const totalAmount = parseFloat(String(currentOrder.totalAmount));
-                    const defaultContact = shippingContext.contactPerson;
-                    const awbData: any = {
-                      pickupPoint: selectedPickupPoint.id,
-                      contactPerson: defaultContact?.id,
-                      service: services[0].id,
-                      packageType: 0,
-                      packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
-                      awbPayment: 1,
-                      awbRecipient: {
-                        name: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || 'Customer',
-                        phoneNumber: shippingAddr?.phone || '',
-                        personType: 0,
-                        address: shippingAddr?.streetAddress || shippingAddr?.address || '',
-                        countyString: shippingAddr?.state || shippingAddr?.county || '',
-                        cityString: shippingAddr?.city || shippingAddr?.state || shippingAddr?.county || 'N/A',
-                        postalCode: shippingAddr?.zipCode || '',
-                      },
-                      parcels,
-                      thirdPartyPickup: 0,
-                      insuredValue: 0,
-                      cashOnDelivery: isCOD ? totalAmount : 0,
-                      observation: `Order #${orderId}`,
-                      clientInternalReference: `order_${orderId}`,
-                    };
+                      const totalAmount = parseFloat(String(currentOrder.totalAmount));
+                      const defaultContact = shippingContext.contactPerson;
+                      const awbData: any = {
+                        pickupPoint: selectedPickupPoint.id,
+                        contactPerson: defaultContact?.id,
+                        service: services[0].id,
+                        packageType: 0,
+                        packageWeight: parcels.reduce((sum: number, p: any) => sum + p.weight, 0),
+                        awbPayment: 1,
+                        awbRecipient: {
+                          name: `${shippingAddr?.firstName || ''} ${shippingAddr?.lastName || ''}`.trim() || 'Customer',
+                          phoneNumber: shippingAddr?.phone || '',
+                          personType: 0,
+                          address: shippingAddr?.streetAddress || shippingAddr?.address || '',
+                          countyString: shippingAddr?.state || shippingAddr?.county || '',
+                          cityString: shippingAddr?.city || shippingAddr?.state || shippingAddr?.county || 'N/A',
+                          postalCode: shippingAddr?.zipCode || '',
+                        },
+                        parcels,
+                        thirdPartyPickup: 0,
+                        insuredValue: 0,
+                        cashOnDelivery: isCOD ? totalAmount : 0,
+                        observation: `Order #${orderId}`,
+                        clientInternalReference: `order_${orderId}`,
+                      };
 
-                    const awbResult = await samedayAPI.createAWB(awbData);
-                    if (awbResult && awbResult.awbNumber) {
-                      await storage.updateOrder(orderId, {
-                        awbNumber: awbResult.awbNumber,
-                        awbCost: String(awbResult.cost || 0),
-                        awbCurrency: awbResult.currency || 'RON',
-                        status: 'processing',
-                      });
-                      awbNumber = awbResult.awbNumber;
-                      console.log(`✅ AWB generated for order #${orderId}: ${awbNumber}`);
+                      const awbResult = await samedayAPI.createAWB(awbData);
+                      if (awbResult && awbResult.awbNumber) {
+                        await storage.updateOrder(orderId, {
+                          awbNumber: awbResult.awbNumber,
+                          awbCost: String(awbResult.cost || 0),
+                          awbCurrency: awbResult.currency || 'RON',
+                          status: 'processing',
+                        });
+                        awbNumber = awbResult.awbNumber;
+                        console.log(`✅ AWB generated for order #${orderId}: ${awbNumber}`);
+                      }
                     }
+                  } else if (currentOrder?.awbNumber) {
+                    awbNumber = currentOrder.awbNumber;
                   }
-                } else if (currentOrder?.awbNumber) {
-                  awbNumber = currentOrder.awbNumber;
                 }
+              } catch (awbError) {
+                console.error(`❌ Failed to generate AWB for order #${orderId}:`, awbError);
               }
-            } catch (awbError) {
-              console.error(`❌ Failed to generate AWB for order #${orderId}:`, awbError);
             }
 
             if (awbNumber) {
               const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service.js');
-              const { createSamedayAPI } = await import('./sameday-api');
 
               let awbPdfBuffer: Buffer | undefined;
               try {
-                const samedayAPI = createSamedayAPI();
-                if (samedayAPI) {
-                  awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
-                  console.log(`📄 AWB PDF retrieved for order #${orderId}`);
+                if ((fullOrder.market || 'ro') === 'fr') {
+                  const { createMyFlyingBoxAPI } = await import("./myflyingbox-api");
+                  const myFlyingBoxAPI = createMyFlyingBoxAPI();
+                  if (myFlyingBoxAPI) {
+                    awbPdfBuffer = await myFlyingBoxAPI.getLabels(awbNumber);
+                    console.log(`📄 MyFlyingBox label retrieved for order #${orderId}`);
+                  }
+                } else {
+                  const { createSamedayAPI } = await import('./sameday-api');
+                  const samedayAPI = createSamedayAPI();
+                  if (samedayAPI) {
+                    awbPdfBuffer = await samedayAPI.getAWBPDF(awbNumber);
+                    console.log(`📄 AWB PDF retrieved for order #${orderId}`);
+                  }
                 }
               } catch (pdfError) {
                 console.error(`AWB PDF retrieval failed for ${awbNumber}:`, pdfError);
@@ -3171,8 +3191,13 @@ Sitemap: https://${domain}/sitemap.xml
 
                 if (customerEmail) {
                   try {
-                    await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber, invoicePdfBuffer, invoiceNumber);
-                    console.log(`✅ Customer shipment email sent to ${customerEmail} for order #${orderId}`);
+                    if ((latestOrder.market || 'ro') === 'fr') {
+                      const result = await sendFrenchOrderDocumentsEmail(orderId);
+                      console.log(`FR customer documents email for accepted order #${orderId}: ${result}`);
+                    } else {
+                      await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber, invoicePdfBuffer, invoiceNumber);
+                      console.log(`✅ Customer shipment email sent to ${customerEmail} for order #${orderId}`);
+                    }
                   } catch (err) {
                     console.error(`❌ Failed to send customer shipment email for order #${orderId}:`, err);
                   }
@@ -3182,7 +3207,7 @@ Sitemap: https://${domain}/sitemap.xml
               // No AWB — but still send invoice confirmation email for fr/com markets (PDF attached)
               // and a plain confirmation for .ro orders that couldn't generate AWB
               console.log(`⚠️ No AWB generated for order #${orderId} — sending invoice confirmation email instead`);
-              if (invoiceGenerated && invoiceId && customerEmail) {
+              if ((fullOrder.market || 'ro') !== 'fr' && invoiceGenerated && invoiceId && customerEmail) {
                 try {
                   const { sendOrderConfirmationEmail } = await import('./email-service.js');
                   let invoicePdfBuffer: Buffer | null = null;
@@ -3483,6 +3508,52 @@ Sitemap: https://${domain}/sitemap.xml
   });
 
   // Track AWB
+  app.get("/tracking/:publicOrderRef", async (req, res) => {
+    try {
+      const order = await storage.getOrderByPublicOrderRef(req.params.publicOrderRef);
+      if (!order || order.market !== "fr" || !order.awbNumber || order.awbCourier?.toLowerCase() !== "myflyingbox") {
+        return res.status(404).send("Suivi indisponible");
+      }
+
+      const myFlyingBoxAPI = (await import("./myflyingbox-api")).createMyFlyingBoxAPI();
+      if (!myFlyingBoxAPI) {
+        return res.status(503).send("Le suivi est temporairement indisponible");
+      }
+
+      const trackingInfo = await myFlyingBoxAPI.getTracking(order.awbNumber);
+      const trackingJson = JSON.stringify(trackingInfo, null, 2);
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.send(`<!doctype html>
+        <html lang="fr">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Suivi de votre colis - xHACCP</title>
+            <style>
+              body { font-family: Arial, sans-serif; color: #243447; background: #f5f7fa; margin: 0; padding: 24px; }
+              main { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 10px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+              h1 { color: #1a4f8a; font-size: 24px; margin-top: 0; }
+              .awb { background: #eef8ee; border-left: 4px solid #27ae60; padding: 12px 16px; margin: 20px 0; }
+              pre { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 14px; overflow: auto; white-space: pre-wrap; }
+              .muted { color: #68737d; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <main>
+              <h1>Suivi de votre colis</h1>
+              <p class="awb"><strong>Transporteur :</strong> MyFlyingBox<br><strong>N° de suivi :</strong> ${escapeHtml(order.awbNumber)}</p>
+              <p class="muted">Les dernières informations communiquées par le transporteur sont affichées ci-dessous.</p>
+              <pre>${escapeHtml(trackingJson)}</pre>
+            </main>
+          </body>
+        </html>`);
+    } catch (error) {
+      console.error("Public MyFlyingBox tracking error:", error);
+      return res.status(502).send("Le suivi est temporairement indisponible");
+    }
+  });
+
   app.get("/api/orders/:id/track-awb", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const orderId = parseInt(req.params.id);
@@ -4467,6 +4538,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       status: "shipped",
       awbNumber,
       awbCourier: "myflyingbox",
+      awbTrackingUrl: buildPublicTrackingUrl(order.publicOrderRef),
       awbCost: String(cost),
       awbCurrency: currency,
       awbCreatedAt: new Date(),
@@ -4836,7 +4908,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                 }
 
                 try {
-                  const { sendSupplierOrderEmail, sendCustomerShipmentEmail, sendInvoiceEmailFr } = await import('./email-service.js');
+                   const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service.js');
 
                   const latestOrder = await storage.getOrder(orderId);
                   if (latestOrder) {
@@ -4941,12 +5013,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
                     if (customerEmail) {
                       try {
-                        const canSendFrenchInvoice = orderMarket !== 'fr' || !invoiceId ||
-                          !!(await storage.claimInvoiceEmail(invoiceId));
-                        if (orderMarket === 'fr' && canSendFrenchInvoice) {
-                          // .fr: send dedicated French invoice email (no AWB/courier)
-                          await sendInvoiceEmailFr(customerEmail, latestOrder, invoicePdfBuffer, invoiceNumber);
-                          console.log(`✅ FR invoice email sent to ${customerEmail} for Viva order #${orderId}`);
+                         if (orderMarket === 'fr') {
+                           const result = await sendFrenchOrderDocumentsEmail(orderId);
+                           console.log(`FR customer documents email for Viva order #${orderId}: ${result}`);
                         } else if (orderMarket !== 'fr') {
                           await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber || '', invoicePdfBuffer, invoiceNumber);
                           console.log(`✅ Customer shipment email sent to ${customerEmail} for Viva order #${orderId}`);
@@ -5049,7 +5118,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                 }
 
                 try {
-                  const { sendSupplierOrderEmail, sendCustomerShipmentEmail, sendInvoiceEmailFr } = await import('./email-service.js');
+                   const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import('./email-service.js');
 
                   const latestOrder = await storage.getOrder(orderId);
                   if (latestOrder) {
@@ -5151,12 +5220,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
                     if (customerEmail) {
                       try {
-                        const canSendFrenchInvoice = orderMarket !== 'fr' || !invoiceId ||
-                          !!(await storage.claimInvoiceEmail(invoiceId));
-                        if (orderMarket === 'fr' && canSendFrenchInvoice) {
-                          // .fr: dedicated French invoice email (no AWB/courier)
-                          await sendInvoiceEmailFr(customerEmail, latestOrder, invoicePdfBuffer, invoiceNumber);
-                          console.log(`✅ FR invoice email sent via webhook to ${customerEmail} for order #${orderId}`);
+                         if (orderMarket === 'fr') {
+                           const result = await sendFrenchOrderDocumentsEmail(orderId);
+                           console.log(`FR customer documents email via webhook for order #${orderId}: ${result}`);
                         } else if (orderMarket !== 'fr') {
                           await sendCustomerShipmentEmail(customerEmail, latestOrder, awbNumber || '', invoicePdfBuffer, invoiceNumber);
                           console.log(`✅ Customer shipment email sent via webhook for order #${orderId}`);

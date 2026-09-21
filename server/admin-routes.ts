@@ -40,6 +40,7 @@ import {
   getRomanianSamedayShippingContext,
   serializeSamedayPickupPoints,
 } from "./sameday-shipping";
+import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -2535,6 +2536,23 @@ export async function registerAdminRoutes(app: Express) {
 
       if (!canAccessMarket(req, order.market || 'ro')) {
         return res.status(403).json({ success: false, message: 'Access denied for this market' });
+      }
+
+      if ((order.market || 'ro') === 'fr') {
+        const result = await sendFrenchOrderDocumentsEmail(orderId);
+        if (result === 'sent') {
+          return res.json({ success: true, message: 'Mail FR cu factura și linkul de urmărire a fost trimis.' });
+        }
+        if (result === 'already_sent') {
+          return res.json({ success: true, message: 'Mailul FR cu factura și linkul de urmărire a fost deja trimis.' });
+        }
+        if (result === 'not_ready') {
+          return res.status(409).json({
+            success: false,
+            message: 'Factura PDF Pennylane și AWB-ul MyFlyingBox trebuie să fie disponibile înainte de trimiterea mailului.',
+          });
+        }
+        return res.status(500).json({ success: false, message: 'Trimiterea mailului FR a eșuat.' });
       }
 
       if (!order.awbNumber) {
@@ -7579,6 +7597,11 @@ export async function registerAdminRoutes(app: Express) {
       }
       const { createInvoiceService } = await import('./invoice-service.js');
       const result = await (await createInvoiceService()).retryPennylaneInvoice(id);
+      if ((result as any)?.orderId) {
+        await sendFrenchOrderDocumentsEmail((result as any).orderId);
+      } else if ((invoice as any).orderId) {
+        await sendFrenchOrderDocumentsEmail((invoice as any).orderId);
+      }
       res.json({ success: true, invoice: result });
     } catch (error) {
       console.error('Error retrying Pennylane invoice:', error instanceof Error ? error.message : 'unknown error');

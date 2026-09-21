@@ -6,6 +6,7 @@ import {
   type ContactFormData,
   type ContactMarket,
 } from './contact-email.js';
+import { buildPublicTrackingUrl } from './public-tracking.js';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const VERIFIED_SENDER: string = process.env.SENDGRID_FROM_EMAIL || 'noreply@xhaccp.com';
@@ -279,6 +280,7 @@ export async function sendOrderConfirmationEmail(
 ): Promise<boolean> {
   const shippingAddress = order.shippingAddress as any;
   const billingAddress = order.billingAddress as any;
+  const isFrenchOrder = (order as any).market === 'fr';
   
   const orderItemsHtml = order.items
     .map(item => `
@@ -396,6 +398,13 @@ export async function sendOrderConfirmationEmail(
           <li>Your order will be delivered to the address provided</li>
         </ul>
       </div>
+      ${isFrenchOrder ? `
+      <div style="background-color: #e8f4fd; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #1a4f8a;">
+        <p style="margin: 0; color: #1a4f8a;">
+          Vous recevrez un nouvel e-mail avec votre facture et le lien de suivi de votre colis.
+        </p>
+      </div>
+      ` : ''}
 
       <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
         <p style="margin: 0; color: #666;">
@@ -441,6 +450,7 @@ export async function sendOrderConfirmationEmail(
     Phone: ${billingAddress.phone}
     
     Your order will be prepared for shipping and you'll receive tracking information soon.
+    ${isFrenchOrder ? '\n\nVous recevrez un nouvel e-mail avec votre facture et le lien de suivi de votre colis.\n' : ''}
     
     Questions? Contact us at info@xhaccp.com
     
@@ -1474,7 +1484,12 @@ export async function sendInvoiceEmailFr(
   customerEmail: string,
   order: OrderWithItems,
   invoicePdfBuffer: Buffer | null,
-  invoiceNumber: string | undefined
+  invoiceNumber: string | undefined,
+  options: {
+    awbNumber?: string;
+    trackingUrl?: string | null;
+    awbPdfBuffer?: Buffer | null;
+  } = {}
 ): Promise<boolean> {
   if (!mailService || !VERIFIED_SENDER) {
     console.warn('Email service not configured. Skipping FR invoice email.');
@@ -1491,6 +1506,7 @@ export async function sendInvoiceEmailFr(
   const vatRate      = 20; // France standard VAT
   const vatAmount    = (totalAmount * vatRate) / (100 + vatRate);
   const subtotalHT   = totalAmount - vatAmount;
+  const trackingUrl = options.trackingUrl || buildPublicTrackingUrl((order as any).publicOrderRef);
 
   const orderItemsHtml = order.items.map(item => `
     <tr>
@@ -1531,6 +1547,12 @@ export async function sendInvoiceEmailFr(
     <div style="background:#e8f4fd;padding:14px 18px;border-radius:6px;margin:16px 0;border-left:4px solid #1a4f8a;">
       <p style="margin:0;font-weight:bold;">📄 Facture N° ${invoiceNumber}</p>
       ${invoicePdfBuffer ? '<p style="margin:4px 0 0;font-size:13px;color:#555;">Votre facture est jointe à cet email en format PDF.</p>' : ''}
+    </div>` : ''}
+    ${options.awbNumber && trackingUrl ? `
+    <div style="background:#eef8ee;padding:14px 18px;border-radius:6px;margin:16px 0;border-left:4px solid #27ae60;">
+      <p style="margin:0;font-weight:bold;">📦 Suivi de votre colis</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#555;">Transporteur : MyFlyingBox · N° de suivi : ${options.awbNumber}</p>
+      <p style="margin:8px 0 0;"><a href="${trackingUrl}" style="color:#1a4f8a;font-weight:bold;">Suivre mon colis →</a></p>
     </div>` : ''}
 
     <h3 style="color:#2c3e50;border-bottom:2px solid #eee;padding-bottom:8px;">Récapitulatif de commande</h3>
@@ -1587,7 +1609,7 @@ export async function sendInvoiceEmailFr(
     subject: invoiceNumber
       ? `Votre facture xHACCP N° ${invoiceNumber} – Commande #${order.id}`
       : `Confirmation de commande xHACCP #${order.id}`,
-    text: `Bonjour ${customerName},\n\nMerci pour votre commande #${order.id} sur xhaccp.fr.\nMontant total TTC : ${totalAmount.toFixed(2)} ${currency}\n${invoiceNumber ? `Facture N° ${invoiceNumber}\n` : ''}${invoicePdfBuffer ? 'Votre facture est jointe en PDF.\n' : ''}\nCordialement,\nL'équipe xHACCP`,
+    text: `Bonjour ${customerName},\n\nMerci pour votre commande #${order.id} sur xhaccp.fr.\nMontant total TTC : ${totalAmount.toFixed(2)} ${currency}\n${invoiceNumber ? `Facture N° ${invoiceNumber}\n` : ''}${invoicePdfBuffer ? 'Votre facture est jointe en PDF.\n' : ''}${options.awbNumber && trackingUrl ? `\nTransporteur : MyFlyingBox\nN° de suivi : ${options.awbNumber}\nSuivre votre colis : ${trackingUrl}\n` : ''}\nCordialement,\nL'équipe xHACCP`,
     html,
   };
 
@@ -1598,6 +1620,17 @@ export async function sendInvoiceEmailFr(
       type: 'application/pdf',
       disposition: 'attachment',
     }];
+  }
+  if (options.awbPdfBuffer && options.awbPdfBuffer.length > 0) {
+    emailData.attachments = [
+      ...(emailData.attachments || []),
+      {
+        content: options.awbPdfBuffer.toString('base64'),
+        filename: `AWB_${options.awbNumber || order.id}.pdf`,
+        type: 'application/pdf',
+        disposition: 'attachment',
+      },
+    ];
   }
 
   try {

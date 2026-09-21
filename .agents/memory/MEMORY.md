@@ -16,6 +16,7 @@
 - [Viva checkout error handling](viva-checkout-error-handling.md) — payment failures must stay JSON/user-safe; correlate logs without logging source codes or customer payloads.
 - [Viva production egress blocking](viva-production-egress-blocking.md) — dev OAuth may pass while Production gets HTML 403 from provider edge filtering.
 - [Payment callback idempotency](payment-callback-idempotency.md) — callbacks and webhooks must atomically claim the paid transition before invoice/email side effects.
+- [French order documents email](fr-order-documents-email.md) — send one FR invoice+MyFlyingBox email only after both artifacts exist; claim after readiness and release on send failure.
 - [Invoice order cardinality](invoice-order-cardinality.md) — one order can retain multiple invoice records across fallback, issuance, and reissuance flows.
 - [Abandoned cart reminders](abandoned-cart-reminders.md) — send one market-specific reminder after 24h of cart inactivity; cart changes reset eligibility.
 - [Marketing automation](marketing-automation.md) — reminder thresholds, segments, and campaigns are market-scoped and require both email and promotions consent.
