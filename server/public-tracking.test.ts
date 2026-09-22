@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import {
   buildPublicTrackingUrl,
   escapeHtml,
+  PostgresPublicTrackingRateLimitStore,
   registerPublicTrackingRoute,
 } from "./public-tracking";
 
@@ -39,10 +40,71 @@ test("tracking page values are HTML escaped", () => {
   );
 });
 
+test("tracking limiter stores share counters across application instances", async () => {
+  const sharedCounters = new Map<string, number>();
+  const sharedQuery = {
+    async query<Row = Record<string, unknown>>(
+      text: string,
+      values?: unknown[],
+    ): Promise<{ rows: Row[] }> {
+      if (!text.includes("INSERT INTO")) return { rows: [] };
+
+      const key = String(values?.[0]);
+      const totalHits = (sharedCounters.get(key) || 0) + 1;
+      sharedCounters.set(key, totalHits);
+      return {
+        rows: [{
+          total_hits: totalHits,
+          reset_at: new Date(Date.now() + 60_000),
+        } as Row],
+      };
+    },
+  };
+  const firstInstanceStore = new PostgresPublicTrackingRateLimitStore(sharedQuery);
+  const secondInstanceStore = new PostgresPublicTrackingRateLimitStore(sharedQuery);
+  firstInstanceStore.init({ windowMs: 60_000, limit: 2 });
+  secondInstanceStore.init({ windowMs: 60_000, limit: 2 });
+
+  try {
+    assert.equal((await firstInstanceStore.increment("203.0.113.240")).totalHits, 1);
+    assert.equal((await secondInstanceStore.increment("203.0.113.240")).totalHits, 2);
+    assert.equal((await firstInstanceStore.increment("203.0.113.240")).totalHits, 3);
+  } finally {
+    await firstInstanceStore.shutdown();
+    await secondInstanceStore.shutdown();
+  }
+});
+
+test("tracking limiter fails closed when the shared store is unavailable", async () => {
+  const unavailableStore = new PostgresPublicTrackingRateLimitStore({
+    query: async () => {
+      throw new Error("database unavailable");
+    },
+  });
+  unavailableStore.init({ windowMs: 60_000, limit: 2 });
+
+  try {
+    const result = await unavailableStore.increment("203.0.113.241");
+    assert.equal(result.totalHits, 3);
+    assert.ok(result.resetTime.getTime() > Date.now());
+  } finally {
+    await unavailableStore.shutdown();
+  }
+});
+
 interface TrackingResponse {
   statusCode: number;
   headers: http.IncomingHttpHeaders;
   body: string;
+}
+
+let testClientSequence = 0;
+
+function uniqueTestClientIp(): string {
+  testClientSequence = (testClientSequence + 1) & 0xffff;
+  const processSegment = process.pid & 0xffff;
+  const timeSegment = Date.now() & 0xffff;
+  return `2001:db8:${processSegment.toString(16)}:${timeSegment.toString(16)}:${testClientSequence.toString(16)}::1`;
 }
 
 async function requestTrackingPage(
@@ -86,6 +148,8 @@ async function requestTrackingPage(
 
 test("French public tracking route renders status, courier, and AWB without authentication", async () => {
   const app = express();
+  app.set("trust proxy", 1);
+  const clientIp = uniqueTestClientIp();
   let requestedReference = "";
   let requestedAwb = "";
   registerPublicTrackingRoute(app, {
@@ -111,7 +175,9 @@ test("French public tracking route renders status, courier, and AWB without auth
     }),
   });
 
-  const response = await requestTrackingPage(app, "ord_fr_customer");
+  const response = await requestTrackingPage(app, "ord_fr_customer", {
+    "X-Forwarded-For": clientIp,
+  });
 
   assert.equal(response.statusCode, 200);
   assert.equal(requestedReference, "ord_fr_customer");
@@ -128,6 +194,8 @@ test("French public tracking route renders status, courier, and AWB without auth
 
 test("public tracking rejects missing and non-French references without calling the carrier", async () => {
   const app = express();
+  app.set("trust proxy", 1);
+  const clientIp = uniqueTestClientIp();
   const orders = new Map([
     ["ord_fr_missing_awb", { market: "fr", awbNumber: null, awbCourier: "MyFlyingBox" }],
     ["ord_ro_other_market", { market: "ro", awbNumber: "MFB-RO-999", awbCourier: "MyFlyingBox" }],
@@ -143,9 +211,10 @@ test("public tracking rejects missing and non-French references without calling 
     }),
   });
 
-  const missingResponse = await requestTrackingPage(app, "ord_unknown");
-  const nonFrenchResponse = await requestTrackingPage(app, "ord_ro_other_market");
-  const noAwbResponse = await requestTrackingPage(app, "ord_fr_missing_awb");
+  const headers = { "X-Forwarded-For": clientIp };
+  const missingResponse = await requestTrackingPage(app, "ord_unknown", headers);
+  const nonFrenchResponse = await requestTrackingPage(app, "ord_ro_other_market", headers);
+  const noAwbResponse = await requestTrackingPage(app, "ord_fr_missing_awb", headers);
 
   for (const response of [missingResponse, nonFrenchResponse, noAwbResponse]) {
     assert.equal(response.statusCode, 404);
@@ -156,7 +225,7 @@ test("public tracking rejects missing and non-French references without calling 
 
 test("public tracking throttles repeated requests before looking up an order", async () => {
   const app = express();
-  app.set("trust proxy", true);
+  app.set("trust proxy", 1);
   let orderLookups = 0;
   let carrierCalls = 0;
   registerPublicTrackingRoute(app, {
@@ -176,7 +245,7 @@ test("public tracking throttles repeated requests before looking up an order", a
     }),
   });
 
-  const clientIp = "203.0.113.227";
+  const clientIp = uniqueTestClientIp();
   const responses = [];
   for (let requestNumber = 0; requestNumber < 10; requestNumber += 1) {
     responses.push(await requestTrackingPage(app, "ord_fr_customer", {
@@ -197,7 +266,7 @@ test("public tracking throttles repeated requests before looking up an order", a
 
 test("public tracking throttles a concurrent request burst before lookup and carrier calls", async () => {
   const app = express();
-  app.set("trust proxy", true);
+  app.set("trust proxy", 1);
   let orderLookups = 0;
   let carrierCalls = 0;
   registerPublicTrackingRoute(app, {
@@ -217,7 +286,7 @@ test("public tracking throttles a concurrent request burst before lookup and car
     }),
   });
 
-  const clientIp = "203.0.113.228";
+  const clientIp = uniqueTestClientIp();
   const requestedReferences = Array.from(
     { length: 12 },
     (_, requestNumber) => `ord_fr_burst_${requestNumber}`,
