@@ -194,3 +194,51 @@ test("public tracking throttles repeated requests before looking up an order", a
   assert.equal(orderLookups, 10);
   assert.equal(carrierCalls, 10);
 });
+
+test("public tracking throttles a concurrent request burst before lookup and carrier calls", async () => {
+  const app = express();
+  app.set("trust proxy", true);
+  let orderLookups = 0;
+  let carrierCalls = 0;
+  registerPublicTrackingRoute(app, {
+    getOrderByPublicOrderRef: async (publicOrderRef) => {
+      orderLookups += 1;
+      return {
+        market: "fr",
+        awbNumber: `MFB-FR-BURST-${publicOrderRef}`,
+        awbCourier: "MyFlyingBox",
+      };
+    },
+    createTrackingClient: () => ({
+      getTracking: async () => {
+        carrierCalls += 1;
+        return { status: "in_transit" };
+      },
+    }),
+  });
+
+  const clientIp = "203.0.113.228";
+  const requestedReferences = Array.from(
+    { length: 12 },
+    (_, requestNumber) => `ord_fr_burst_${requestNumber}`,
+  );
+  const responses = await Promise.all(
+    requestedReferences.map((publicOrderRef) =>
+      requestTrackingPage(app, publicOrderRef, {
+        "X-Forwarded-For": clientIp,
+      }),
+    ),
+  );
+
+  const acceptedResponses = responses.filter((response) => response.statusCode === 200);
+  const limitedResponses = responses.filter((response) => response.statusCode === 429);
+
+  assert.equal(acceptedResponses.length, 10);
+  assert.equal(limitedResponses.length, 2);
+  assert.ok(limitedResponses.every((response) => response.body === "Veuillez réessayer plus tard."));
+  for (const response of limitedResponses) {
+    assert.doesNotMatch(response.body, /ord_fr_burst_|MFB-FR-BURST-/);
+  }
+  assert.equal(orderLookups, 10);
+  assert.equal(carrierCalls, 10);
+});
