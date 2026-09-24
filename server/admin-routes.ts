@@ -41,7 +41,11 @@ import {
   serializeSamedayPickupPoints,
 } from "./sameday-shipping";
 import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
-import { normalizeRomanianVatCode, toRomanianOrderCustomerSuggestion } from "./order-customer-lookup";
+import {
+  normalizeOrderLookupEmail,
+  normalizeRomanianVatCode,
+  toRomanianOrderCustomerSuggestion,
+} from "./order-customer-lookup";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -1853,6 +1857,46 @@ export async function registerAdminRoutes(app: Express) {
       });
     } catch (error) {
       console.error("Romanian customer VAT lookup error:", error);
+      res.status(500).json({ success: false, message: "Nu s-au putut căuta datele clientului" });
+    }
+  });
+
+  // Search Romanian orders for the most recent matching customer email.
+  app.get("/admin/api/orders/customer-by-email", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!canAccessMarket(req, "ro")) {
+        return res.status(403).json({ success: false, message: "Access denied for this market" });
+      }
+
+      const rawEmail = typeof req.query.email === "string" ? req.query.email : "";
+      const normalizedEmail = normalizeOrderLookupEmail(rawEmail);
+      if (!normalizedEmail) {
+        return res.status(400).json({ success: false, message: "Adresa de email este invalidă" });
+      }
+
+      const [match] = await db.select({
+        id: orders.id,
+        createdAt: orders.createdAt,
+        shippingAddress: orders.shippingAddress,
+        billingAddress: orders.billingAddress,
+      })
+        .from(orders)
+        .where(and(
+          eq(orders.market, "ro"),
+          sql`(
+            lower(trim(coalesce(${orders.shippingAddress}->>'email', ''))) = ${normalizedEmail}
+            OR lower(trim(coalesce(${orders.billingAddress}->>'email', ''))) = ${normalizedEmail}
+          )`,
+        ))
+        .orderBy(sql`${orders.createdAt} DESC NULLS LAST`, desc(orders.id))
+        .limit(1);
+
+      res.json({
+        success: true,
+        match: match ? toRomanianOrderCustomerSuggestion(match) : null,
+      });
+    } catch (error) {
+      console.error("Romanian customer email lookup error:", error);
       res.status(500).json({ success: false, message: "Nu s-au putut căuta datele clientului" });
     }
   });

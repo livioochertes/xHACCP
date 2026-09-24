@@ -8204,6 +8204,7 @@ import {
         const [aoIsCompany, setAoIsCompany] = useState(false);
         const [aoCompany, setAoCompany] = useState({ companyName: '', vatNumber: '', registrationNumber: '' });
         const [aoVatLookup, setAoVatLookup] = useState({ status: 'idle', match: null, error: '' });
+        const [aoEmailLookup, setAoEmailLookup] = useState({ status: 'idle', match: null, error: '' });
         const [aoPaymentMethod, setAoPaymentMethod] = useState('cash_on_delivery');
         const [aoNotes, setAoNotes] = useState('');
 
@@ -8277,6 +8278,53 @@ import {
           };
         }, [aoMarket, aoIsCompany, aoCompany.vatNumber, token]);
 
+        useEffect(() => {
+          if (aoMarket !== 'ro') {
+            setAoEmailLookup({ status: 'idle', match: null, error: '' });
+            return;
+          }
+
+          const enteredEmail = String(aoCustomer.email || '').trim();
+          if (!enteredEmail) {
+            setAoEmailLookup({ status: 'idle', match: null, error: '' });
+            return;
+          }
+          const normalizedEmail = enteredEmail.toLowerCase();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+            setAoEmailLookup({ status: 'invalid', match: null, error: '' });
+            return;
+          }
+
+          setAoEmailLookup({ status: 'pending', match: null, error: '' });
+          let cancelled = false;
+          const timeout = setTimeout(async () => {
+            setAoEmailLookup({ status: 'searching', match: null, error: '' });
+            try {
+              const response = await fetch(`/admin/api/orders/customer-by-email?email=${encodeURIComponent(enteredEmail)}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              const data = await response.json();
+              if (cancelled) return;
+              if (!response.ok || !data.success) {
+                setAoEmailLookup({ status: 'error', match: null, error: data.message || 'Căutarea clientului a eșuat.' });
+                return;
+              }
+              setAoEmailLookup(data.match
+                ? { status: 'found', match: data.match, error: '' }
+                : { status: 'not_found', match: null, error: '' });
+            } catch (error) {
+              if (!cancelled) {
+                setAoEmailLookup({ status: 'error', match: null, error: 'Nu s-au putut încărca datele clientului.' });
+              }
+            }
+          }, 450);
+
+          return () => {
+            cancelled = true;
+            clearTimeout(timeout);
+          };
+        }, [aoMarket, aoCustomer.email, token]);
+
         const getProduct = (pid) => aoProducts.find(p => String(p.id) === String(pid));
 
         const computeUnitPrice = (product, qty) => {
@@ -8303,14 +8351,16 @@ import {
           setAoItems(items => items.map((it, i) => i === idx ? { ...it, [field]: value } : it));
         };
 
-        const applyVatMatch = () => {
-          const match = aoVatLookup.match;
+        const applyCustomerMatch = (match, fromEmailLookup = false) => {
           if (!match) return;
 
           const fieldsWithExistingValues = [
-            ...Object.entries(aoCustomer).filter(([key]) => key !== 'country').map(([, value]) => value),
-            aoCompany.companyName,
-            aoCompany.registrationNumber,
+            ...Object.entries(aoCustomer)
+              .filter(([key]) => key !== 'country' && !(fromEmailLookup && key === 'email'))
+              .map(([, value]) => value),
+            ...(fromEmailLookup
+              ? [aoCompany.companyName, aoCompany.vatNumber, aoCompany.registrationNumber]
+              : [aoCompany.companyName, aoCompany.registrationNumber]),
             ...(!aoBillingSameAsShipping
               ? Object.entries(aoBilling).filter(([key]) => key !== 'country').map(([, value]) => value)
               : [])
@@ -8329,7 +8379,7 @@ import {
           setAoCustomer({
             firstName: shipping.firstName || '',
             lastName: shipping.lastName || '',
-            email: shipping.email || billing.email || '',
+            email: shipping.email || billing.email || aoCustomer.email,
             phone: shipping.phone || billing.phone || '',
             streetAddress: shipping.streetAddress || '',
             city: shipping.city || '',
@@ -8349,11 +8399,20 @@ import {
             country: billing.country || 'Romania'
           });
           setAoBillingSameAsShipping(addressesMatch);
-          setAoCompany({
-            companyName: match.companyName || '',
-            vatNumber: match.vatNumber || aoCompany.vatNumber,
-            registrationNumber: match.registrationNumber || ''
-          });
+          const hasCompanyData = Boolean(match.isCompany || match.companyName || match.vatNumber || match.registrationNumber);
+          setAoCompany(fromEmailLookup
+            ? {
+                companyName: match.companyName || '',
+                vatNumber: match.vatNumber || '',
+                registrationNumber: match.registrationNumber || ''
+              }
+            : {
+                companyName: match.companyName || aoCompany.companyName,
+                vatNumber: match.vatNumber || aoCompany.vatNumber,
+                registrationNumber: match.registrationNumber || aoCompany.registrationNumber
+              });
+          if (fromEmailLookup) setAoIsCompany(hasCompanyData);
+          else if (hasCompanyData) setAoIsCompany(true);
         };
 
         const submit = async () => {

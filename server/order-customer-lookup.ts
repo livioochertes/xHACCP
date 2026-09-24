@@ -13,6 +13,7 @@ export type CustomerAddressSuggestion = {
 export type RomanianOrderCustomerSuggestion = {
   orderId: number;
   createdAt: string | null;
+  isCompany: boolean;
   companyName: string;
   vatNumber: string;
   registrationNumber: string;
@@ -70,6 +71,16 @@ export function normalizeRomanianVatCode(value: unknown): string | null {
 }
 
 /**
+ * Match customer email addresses case-insensitively, ignoring surrounding whitespace.
+ */
+export function normalizeOrderLookupEmail(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return null;
+  return normalized;
+}
+
+/**
  * Return only the customer fields needed by the manual-order form.
  * Never return notes, payment information, products, or other order data.
  */
@@ -78,6 +89,15 @@ export function toRomanianOrderCustomerSuggestion(
 ): RomanianOrderCustomerSuggestion {
   const shipping = asRecord(source.shippingAddress);
   const billing = asRecord(source.billingAddress);
+  const companyName = firstText(billing.companyName, shipping.companyName);
+  const vatNumber = firstText(billing.vatNumber, shipping.vatNumber);
+  const registrationNumber = firstText(
+    billing.registrationNumber,
+    billing.regCom,
+    shipping.registrationNumber,
+    shipping.regCom,
+  );
+  const clientType = firstText(billing.clientType, shipping.clientType).toLowerCase();
   const createdAt = source.createdAt instanceof Date
     ? source.createdAt.toISOString()
     : typeof source.createdAt === "string"
@@ -87,14 +107,10 @@ export function toRomanianOrderCustomerSuggestion(
   return {
     orderId: source.id,
     createdAt,
-    companyName: firstText(billing.companyName, shipping.companyName),
-    vatNumber: firstText(billing.vatNumber, shipping.vatNumber),
-    registrationNumber: firstText(
-      billing.registrationNumber,
-      billing.regCom,
-      shipping.registrationNumber,
-      shipping.regCom,
-    ),
+    isCompany: clientType === "company" || Boolean(companyName || vatNumber || registrationNumber),
+    companyName,
+    vatNumber,
+    registrationNumber,
     shippingAddress: sanitizeAddress(shipping),
     billingAddress: sanitizeAddress(billing, shipping),
   };
