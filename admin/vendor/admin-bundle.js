@@ -21326,8 +21326,21 @@ Cordialement,`
         zipCode: "",
         country: defaultCountry
       });
+      const [aoBillingSameAsShipping, setAoBillingSameAsShipping] = (0, import_react13.useState)(true);
+      const [aoBilling, setAoBilling] = (0, import_react13.useState)({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        streetAddress: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: defaultCountry
+      });
       const [aoIsCompany, setAoIsCompany] = (0, import_react13.useState)(false);
       const [aoCompany, setAoCompany] = (0, import_react13.useState)({ companyName: "", vatNumber: "", registrationNumber: "" });
+      const [aoVatLookup, setAoVatLookup] = (0, import_react13.useState)({ status: "idle", match: null, error: "" });
       const [aoPaymentMethod, setAoPaymentMethod] = (0, import_react13.useState)("cash_on_delivery");
       const [aoNotes, setAoNotes] = (0, import_react13.useState)("");
       (0, import_react13.useEffect)(() => {
@@ -21356,6 +21369,48 @@ Cordialement,`
           cancelled = true;
         };
       }, [aoMarket]);
+      (0, import_react13.useEffect)(() => {
+        if (aoMarket !== "ro" || !aoIsCompany) {
+          setAoVatLookup({ status: "idle", match: null, error: "" });
+          return;
+        }
+        const enteredVat = String(aoCompany.vatNumber || "").trim();
+        if (!enteredVat) {
+          setAoVatLookup({ status: "idle", match: null, error: "" });
+          return;
+        }
+        const compactVat = enteredVat.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const lookupDigits = compactVat.replace(/^RO(?=\d)/, "");
+        if (!/^\d{2,10}$/.test(lookupDigits)) {
+          setAoVatLookup({ status: "invalid", match: null, error: "" });
+          return;
+        }
+        setAoVatLookup({ status: "pending", match: null, error: "" });
+        let cancelled = false;
+        const timeout = setTimeout(async () => {
+          setAoVatLookup({ status: "searching", match: null, error: "" });
+          try {
+            const response = await fetch(`/admin/api/orders/customer-by-vat?vatNumber=${encodeURIComponent(enteredVat)}`, {
+              headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (cancelled) return;
+            if (!response.ok || !data.success) {
+              setAoVatLookup({ status: "error", match: null, error: data.message || "C\u0103utarea clientului a e\u0219uat." });
+              return;
+            }
+            setAoVatLookup(data.match ? { status: "found", match: data.match, error: "" } : { status: "not_found", match: null, error: "" });
+          } catch (error2) {
+            if (!cancelled) {
+              setAoVatLookup({ status: "error", match: null, error: "Nu s-au putut \xEEnc\u0103rca datele clientului." });
+            }
+          }
+        }, 450);
+        return () => {
+          cancelled = true;
+          clearTimeout(timeout);
+        };
+      }, [aoMarket, aoIsCompany, aoCompany.vatNumber, token]);
       const getProduct = (pid) => aoProducts.find((p) => String(p.id) === String(pid));
       const computeUnitPrice = (product, qty) => {
         if (!product) return 0;
@@ -21377,6 +21432,53 @@ Cordialement,`
       }, 0);
       const updateItem = (idx, field, value) => {
         setAoItems((items) => items.map((it, i) => i === idx ? { ...it, [field]: value } : it));
+      };
+      const applyVatMatch = () => {
+        const match = aoVatLookup.match;
+        if (!match) return;
+        const fieldsWithExistingValues = [
+          ...Object.entries(aoCustomer).filter(([key]) => key !== "country").map(([, value]) => value),
+          aoCompany.companyName,
+          aoCompany.registrationNumber,
+          ...!aoBillingSameAsShipping ? Object.entries(aoBilling).filter(([key]) => key !== "country").map(([, value]) => value) : []
+        ];
+        if (fieldsWithExistingValues.some((value) => String(value || "").trim()) && !window.confirm("Completarea va \xEEnlocui unele date deja introduse. Continui?")) {
+          return;
+        }
+        const shipping = match.shippingAddress || {};
+        const billing = match.billingAddress || shipping;
+        const addressFields = ["firstName", "lastName", "email", "phone", "streetAddress", "city", "state", "zipCode", "country"];
+        const addressesMatch = addressFields.every(
+          (field) => String(shipping[field] || "").trim().toLowerCase() === String(billing[field] || "").trim().toLowerCase()
+        );
+        setAoCustomer({
+          firstName: shipping.firstName || "",
+          lastName: shipping.lastName || "",
+          email: shipping.email || billing.email || "",
+          phone: shipping.phone || billing.phone || "",
+          streetAddress: shipping.streetAddress || "",
+          city: shipping.city || "",
+          state: shipping.state || "",
+          zipCode: shipping.zipCode || "",
+          country: shipping.country || "Romania"
+        });
+        setAoBilling({
+          firstName: billing.firstName || "",
+          lastName: billing.lastName || "",
+          email: billing.email || shipping.email || "",
+          phone: billing.phone || shipping.phone || "",
+          streetAddress: billing.streetAddress || "",
+          city: billing.city || "",
+          state: billing.state || "",
+          zipCode: billing.zipCode || "",
+          country: billing.country || "Romania"
+        });
+        setAoBillingSameAsShipping(addressesMatch);
+        setAoCompany({
+          companyName: match.companyName || "",
+          vatNumber: match.vatNumber || aoCompany.vatNumber,
+          registrationNumber: match.registrationNumber || ""
+        });
       };
       const submit = async () => {
         const validItems = aoItems.filter((it) => it.productId && (parseInt(it.quantity) || 0) > 0);
@@ -21425,18 +21527,27 @@ Cordialement,`
           alert("Numele firmei este obligatoriu pentru comand\u0103 B2B.");
           return;
         }
+        if (aoMarket === "ro" && aoIsCompany && !aoBillingSameAsShipping) {
+          if (!aoBilling.streetAddress || !aoBilling.city || !aoBilling.state) {
+            alert("Completeaz\u0103 adresa, ora\u0219ul \u0219i jude\u021Bul de facturare.");
+            return;
+          }
+        }
         setAoSubmitting(true);
         try {
           const resp = await fetch("/admin/api/orders/create-manual", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify((() => {
-              const addr = {
-                ...aoCustomer,
-                address: aoCustomer.streetAddress,
-                county: aoCustomer.state
-              };
-              const billing = aoIsCompany ? { ...addr, clientType: "company", companyName: aoCompany.companyName, vatNumber: aoCompany.vatNumber, registrationNumber: aoCompany.registrationNumber } : { ...addr, clientType: "individual" };
+              const toOrderAddress = (customer) => ({
+                ...customer,
+                address: customer.streetAddress,
+                county: customer.state
+              });
+              const addr = toOrderAddress(aoCustomer);
+              const billingSource = aoMarket === "ro" && aoIsCompany && !aoBillingSameAsShipping ? aoBilling : aoCustomer;
+              const billingAddress = toOrderAddress(billingSource);
+              const billing = aoIsCompany ? { ...billingAddress, clientType: "company", companyName: aoCompany.companyName, vatNumber: aoCompany.vatNumber, registrationNumber: aoCompany.registrationNumber } : { ...billingAddress, clientType: "individual" };
               return {
                 market: aoMarket,
                 items: validItems.map((it) => {
@@ -21486,7 +21597,9 @@ Cordialement,`
             setAoMarket(m);
             setAoItems([{ productId: "", quantity: 1 }]);
             setAoCustomShipping(void 0);
+            setAoBillingSameAsShipping(true);
             setAoCustomer((c) => ({ ...c, country: m === "fr" ? "France" : m === "com" ? c.country : "Romania" }));
+            setAoBilling((c) => ({ ...c, country: m === "fr" ? "France" : m === "com" ? c.country : "Romania" }));
           }, style: { padding: "6px 10px", border: "1px solid #ddd", borderRadius: "4px" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "ro", children: "\u{1F1F7}\u{1F1F4} RO (RON)" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: "com", children: "\u{1F30D} COM (EUR)" }),
@@ -21711,6 +21824,83 @@ Cordialement,`
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontWeight: "normal", color: "#888" }, children: "(ex. J12/345/2020)" })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCompany.registrationNumber, onChange: (e2) => setAoCompany((c) => ({ ...c, registrationNumber: e2.target.value })) })
+            ] })
+          ] }),
+          aoMarket === "ro" && aoIsCompany && aoCompany.vatNumber.trim() && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { "aria-live": "polite", style: { marginTop: "10px", padding: "9px 10px", borderRadius: "4px", background: aoVatLookup.status === "found" ? "#eef8ee" : "#f8f9fa", border: "1px solid #e5e5e5", fontSize: "12px" }, children: [
+            aoVatLookup.status === "invalid" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#856404" }, children: "Introdu un CUI cu 2\u201310 cifre; prefixul RO este op\u021Bional." }),
+            (aoVatLookup.status === "pending" || aoVatLookup.status === "searching") && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#666" }, children: "Se caut\u0103 \xEEn comenzile anterioare..." }),
+            aoVatLookup.status === "not_found" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#666" }, children: "Nu am g\u0103sit o comand\u0103 anterioar\u0103 cu acest CUI. Po\u021Bi completa datele manual." }),
+            aoVatLookup.status === "error" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#a94442" }, children: aoVatLookup.error }),
+            aoVatLookup.status === "found" && aoVatLookup.match && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                "G\u0103sit\u0103 comanda #",
+                aoVatLookup.match.orderId,
+                aoVatLookup.match.createdAt ? ` din ${new Date(aoVatLookup.match.createdAt).toLocaleDateString("ro-RO")}` : "",
+                " \u2014 ",
+                aoVatLookup.match.companyName || "Firm\u0103",
+                aoVatLookup.match.billingAddress?.city ? `, ${aoVatLookup.match.billingAddress.city}` : ""
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", onClick: applyVatMatch, style: { padding: "6px 10px", border: "1px solid #198754", background: "white", color: "#198754", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }, children: "Folose\u0219te datele acestei comenzi" })
+            ] })
+          ] })
+        ] }),
+        aoMarket === "ro" && aoIsCompany && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "16px", padding: "12px", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #eee" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "input",
+              {
+                type: "checkbox",
+                checked: aoBillingSameAsShipping,
+                onChange: (e2) => {
+                  const same = e2.target.checked;
+                  setAoBillingSameAsShipping(same);
+                  if (!same && !aoBilling.streetAddress && aoCustomer.streetAddress) {
+                    setAoBilling({ ...aoCustomer });
+                  }
+                }
+              }
+            ),
+            "Adresa de facturare este aceea\u0219i cu adresa de livrare"
+          ] }),
+          !aoBillingSameAsShipping && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "12px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", fontWeight: "bold", color: "#555", marginBottom: "8px" }, children: "Date de facturare" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Prenume facturare" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoBilling.firstName, onChange: (e2) => setAoBilling((c) => ({ ...c, firstName: e2.target.value })) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Nume facturare" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoBilling.lastName, onChange: (e2) => setAoBilling((c) => ({ ...c, lastName: e2.target.value })) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Email facturare" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "email", style: inputStyle, value: aoBilling.email, onChange: (e2) => setAoBilling((c) => ({ ...c, email: e2.target.value })) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Telefon facturare" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoBilling.phone, onChange: (e2) => setAoBilling((c) => ({ ...c, phone: e2.target.value })) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { gridColumn: "1 / -1" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Adres\u0103 de facturare *" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoBilling.streetAddress, onChange: (e2) => setAoBilling((c) => ({ ...c, streetAddress: e2.target.value })) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Ora\u0219 facturare *" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoBilling.city, onChange: (e2) => setAoBilling((c) => ({ ...c, city: e2.target.value })) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Jude\u021B facturare *" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoBilling.state, onChange: (e2) => setAoBilling((c) => ({ ...c, state: e2.target.value })) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Cod po\u0219tal facturare" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoBilling.zipCode, onChange: (e2) => setAoBilling((c) => ({ ...c, zipCode: e2.target.value })) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "\u021Aar\u0103 facturare" }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoBilling.country, onChange: (e2) => setAoBilling((c) => ({ ...c, country: e2.target.value })) })
+              ] })
             ] })
           ] })
         ] }),

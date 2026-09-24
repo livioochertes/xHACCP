@@ -41,6 +41,7 @@ import {
   serializeSamedayPickupPoints,
 } from "./sameday-shipping";
 import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
+import { normalizeRomanianVatCode, toRomanianOrderCustomerSuggestion } from "./order-customer-lookup";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -1799,6 +1800,60 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error('Error fetching product options:', error);
       res.status(500).json({ success: false, message: 'Eroare la încărcarea produselor' });
+    }
+  });
+
+  // Search Romanian orders for a company by its normalized CUI/VAT number.
+  // The response intentionally contains only fields used by the manual-order form.
+  app.get("/admin/api/orders/customer-by-vat", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!canAccessMarket(req, "ro")) {
+        return res.status(403).json({ success: false, message: "Access denied for this market" });
+      }
+
+      const rawVatNumber = typeof req.query.vatNumber === "string" ? req.query.vatNumber : "";
+      const normalizedVatNumber = normalizeRomanianVatCode(rawVatNumber);
+      if (!normalizedVatNumber) {
+        return res.status(400).json({ success: false, message: "Cod CUI/VAT românesc invalid" });
+      }
+
+      const storedVatNumber = sql<string>`
+        regexp_replace(
+          regexp_replace(
+            upper(coalesce(
+              nullif(${orders.billingAddress}->>'vatNumber', ''),
+              ${orders.shippingAddress}->>'vatNumber',
+              ''
+            )),
+            '[^A-Z0-9]',
+            '',
+            'g'
+          ),
+          '^RO',
+          ''
+        )
+      `;
+      const [match] = await db.select({
+        id: orders.id,
+        createdAt: orders.createdAt,
+        shippingAddress: orders.shippingAddress,
+        billingAddress: orders.billingAddress,
+      })
+        .from(orders)
+        .where(and(
+          eq(orders.market, "ro"),
+          sql`${storedVatNumber} = ${normalizedVatNumber}`,
+        ))
+        .orderBy(sql`${orders.createdAt} DESC NULLS LAST`, desc(orders.id))
+        .limit(1);
+
+      res.json({
+        success: true,
+        match: match ? toRomanianOrderCustomerSuggestion(match) : null,
+      });
+    } catch (error) {
+      console.error("Romanian customer VAT lookup error:", error);
+      res.status(500).json({ success: false, message: "Nu s-au putut căuta datele clientului" });
     }
   });
 

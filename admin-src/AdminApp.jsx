@@ -8196,8 +8196,14 @@ import {
           firstName: '', lastName: '', email: '', phone: '',
           streetAddress: '', city: '', state: '', zipCode: '', country: defaultCountry
         });
+        const [aoBillingSameAsShipping, setAoBillingSameAsShipping] = useState(true);
+        const [aoBilling, setAoBilling] = useState({
+          firstName: '', lastName: '', email: '', phone: '',
+          streetAddress: '', city: '', state: '', zipCode: '', country: defaultCountry
+        });
         const [aoIsCompany, setAoIsCompany] = useState(false);
         const [aoCompany, setAoCompany] = useState({ companyName: '', vatNumber: '', registrationNumber: '' });
+        const [aoVatLookup, setAoVatLookup] = useState({ status: 'idle', match: null, error: '' });
         const [aoPaymentMethod, setAoPaymentMethod] = useState('cash_on_delivery');
         const [aoNotes, setAoNotes] = useState('');
 
@@ -8222,6 +8228,54 @@ import {
           })();
           return () => { cancelled = true; };
         }, [aoMarket]);
+
+        useEffect(() => {
+          if (aoMarket !== 'ro' || !aoIsCompany) {
+            setAoVatLookup({ status: 'idle', match: null, error: '' });
+            return;
+          }
+
+          const enteredVat = String(aoCompany.vatNumber || '').trim();
+          if (!enteredVat) {
+            setAoVatLookup({ status: 'idle', match: null, error: '' });
+            return;
+          }
+          const compactVat = enteredVat.toUpperCase().replace(/[^A-Z0-9]/g, '');
+          const lookupDigits = compactVat.replace(/^RO(?=\d)/, '');
+          if (!/^\d{2,10}$/.test(lookupDigits)) {
+            setAoVatLookup({ status: 'invalid', match: null, error: '' });
+            return;
+          }
+
+          setAoVatLookup({ status: 'pending', match: null, error: '' });
+          let cancelled = false;
+          const timeout = setTimeout(async () => {
+            setAoVatLookup({ status: 'searching', match: null, error: '' });
+            try {
+              const response = await fetch(`/admin/api/orders/customer-by-vat?vatNumber=${encodeURIComponent(enteredVat)}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              const data = await response.json();
+              if (cancelled) return;
+              if (!response.ok || !data.success) {
+                setAoVatLookup({ status: 'error', match: null, error: data.message || 'Căutarea clientului a eșuat.' });
+                return;
+              }
+              setAoVatLookup(data.match
+                ? { status: 'found', match: data.match, error: '' }
+                : { status: 'not_found', match: null, error: '' });
+            } catch (error) {
+              if (!cancelled) {
+                setAoVatLookup({ status: 'error', match: null, error: 'Nu s-au putut încărca datele clientului.' });
+              }
+            }
+          }, 450);
+
+          return () => {
+            cancelled = true;
+            clearTimeout(timeout);
+          };
+        }, [aoMarket, aoIsCompany, aoCompany.vatNumber, token]);
 
         const getProduct = (pid) => aoProducts.find(p => String(p.id) === String(pid));
 
@@ -8249,6 +8303,59 @@ import {
           setAoItems(items => items.map((it, i) => i === idx ? { ...it, [field]: value } : it));
         };
 
+        const applyVatMatch = () => {
+          const match = aoVatLookup.match;
+          if (!match) return;
+
+          const fieldsWithExistingValues = [
+            ...Object.entries(aoCustomer).filter(([key]) => key !== 'country').map(([, value]) => value),
+            aoCompany.companyName,
+            aoCompany.registrationNumber,
+            ...(!aoBillingSameAsShipping
+              ? Object.entries(aoBilling).filter(([key]) => key !== 'country').map(([, value]) => value)
+              : [])
+          ];
+          if (fieldsWithExistingValues.some(value => String(value || '').trim()) &&
+              !window.confirm('Completarea va înlocui unele date deja introduse. Continui?')) {
+            return;
+          }
+
+          const shipping = match.shippingAddress || {};
+          const billing = match.billingAddress || shipping;
+          const addressFields = ['firstName', 'lastName', 'email', 'phone', 'streetAddress', 'city', 'state', 'zipCode', 'country'];
+          const addressesMatch = addressFields.every((field) =>
+            String(shipping[field] || '').trim().toLowerCase() === String(billing[field] || '').trim().toLowerCase()
+          );
+          setAoCustomer({
+            firstName: shipping.firstName || '',
+            lastName: shipping.lastName || '',
+            email: shipping.email || billing.email || '',
+            phone: shipping.phone || billing.phone || '',
+            streetAddress: shipping.streetAddress || '',
+            city: shipping.city || '',
+            state: shipping.state || '',
+            zipCode: shipping.zipCode || '',
+            country: shipping.country || 'Romania'
+          });
+          setAoBilling({
+            firstName: billing.firstName || '',
+            lastName: billing.lastName || '',
+            email: billing.email || shipping.email || '',
+            phone: billing.phone || shipping.phone || '',
+            streetAddress: billing.streetAddress || '',
+            city: billing.city || '',
+            state: billing.state || '',
+            zipCode: billing.zipCode || '',
+            country: billing.country || 'Romania'
+          });
+          setAoBillingSameAsShipping(addressesMatch);
+          setAoCompany({
+            companyName: match.companyName || '',
+            vatNumber: match.vatNumber || aoCompany.vatNumber,
+            registrationNumber: match.registrationNumber || ''
+          });
+        };
+
         const submit = async () => {
           const validItems = aoItems.filter(it => it.productId && (parseInt(it.quantity) || 0) > 0);
           if (validItems.length === 0) { alert('Adaugă cel puțin un produs.'); return; }
@@ -8270,6 +8377,12 @@ import {
             if (!confirm('Codul poștal nu are 6 cifre — Sameday îl va ignora. Continui?')) return;
           }
           if (aoIsCompany && !aoCompany.companyName) { alert('Numele firmei este obligatoriu pentru comandă B2B.'); return; }
+          if (aoMarket === 'ro' && aoIsCompany && !aoBillingSameAsShipping) {
+            if (!aoBilling.streetAddress || !aoBilling.city || !aoBilling.state) {
+              alert('Completează adresa, orașul și județul de facturare.');
+              return;
+            }
+          }
           setAoSubmitting(true);
           try {
             const resp = await fetch('/admin/api/orders/create-manual', {
@@ -8277,14 +8390,17 @@ import {
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify((() => {
                 // Aliases: AWB reads streetAddress/state, Smartbill invoice reads address/county
-                const addr = {
-                  ...aoCustomer,
-                  address: aoCustomer.streetAddress,
-                  county: aoCustomer.state
-                };
+                const toOrderAddress = (customer) => ({
+                  ...customer,
+                  address: customer.streetAddress,
+                  county: customer.state
+                });
+                const addr = toOrderAddress(aoCustomer);
+                const billingSource = aoMarket === 'ro' && aoIsCompany && !aoBillingSameAsShipping ? aoBilling : aoCustomer;
+                const billingAddress = toOrderAddress(billingSource);
                 const billing = aoIsCompany
-                  ? { ...addr, clientType: 'company', companyName: aoCompany.companyName, vatNumber: aoCompany.vatNumber, registrationNumber: aoCompany.registrationNumber }
-                  : { ...addr, clientType: 'individual' };
+                  ? { ...billingAddress, clientType: 'company', companyName: aoCompany.companyName, vatNumber: aoCompany.vatNumber, registrationNumber: aoCompany.registrationNumber }
+                  : { ...billingAddress, clientType: 'individual' };
                 return {
                   market: aoMarket,
                   items: validItems.map(it => {
@@ -8334,7 +8450,7 @@ import {
 
               <div style={{display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px', padding: '10px', background: '#f8f9fa', borderRadius: '6px'}}>
                 <span style={{fontSize: '13px', fontWeight: 'bold'}}>Piață:</span>
-                <select value={aoMarket} onChange={e => { const m = e.target.value; setAoMarket(m); setAoItems([{ productId: '', quantity: 1 }]); setAoCustomShipping(undefined); setAoCustomer(c => ({...c, country: m === 'fr' ? 'France' : (m === 'com' ? c.country : 'Romania')})); }} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px'}}>
+                <select value={aoMarket} onChange={e => { const m = e.target.value; setAoMarket(m); setAoItems([{ productId: '', quantity: 1 }]); setAoCustomShipping(undefined); setAoBillingSameAsShipping(true); setAoCustomer(c => ({...c, country: m === 'fr' ? 'France' : (m === 'com' ? c.country : 'Romania')})); setAoBilling(c => ({...c, country: m === 'fr' ? 'France' : (m === 'com' ? c.country : 'Romania')})); }} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: '4px'}}>
                   <option value="ro">🇷🇴 RO (RON)</option>
                   <option value="com">🌍 COM (EUR)</option>
                   <option value="fr">🇫🇷 FR (EUR)</option>
@@ -8477,7 +8593,63 @@ import {
                     <div><label style={labelStyle}>Nr. Reg. Com. <span style={{fontWeight: 'normal', color: '#888'}}>(ex. J12/345/2020)</span></label><input style={inputStyle} value={aoCompany.registrationNumber} onChange={e => setAoCompany(c => ({...c, registrationNumber: e.target.value}))} /></div>
                   </div>
                 )}
+                {aoMarket === 'ro' && aoIsCompany && aoCompany.vatNumber.trim() && (
+                  <div aria-live="polite" style={{marginTop: '10px', padding: '9px 10px', borderRadius: '4px', background: aoVatLookup.status === 'found' ? '#eef8ee' : '#f8f9fa', border: '1px solid #e5e5e5', fontSize: '12px'}}>
+                    {aoVatLookup.status === 'invalid' && <span style={{color: '#856404'}}>Introdu un CUI cu 2–10 cifre; prefixul RO este opțional.</span>}
+                    {(aoVatLookup.status === 'pending' || aoVatLookup.status === 'searching') && <span style={{color: '#666'}}>Se caută în comenzile anterioare...</span>}
+                    {aoVatLookup.status === 'not_found' && <span style={{color: '#666'}}>Nu am găsit o comandă anterioară cu acest CUI. Poți completa datele manual.</span>}
+                    {aoVatLookup.status === 'error' && <span style={{color: '#a94442'}}>{aoVatLookup.error}</span>}
+                    {aoVatLookup.status === 'found' && aoVatLookup.match && (
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
+                        <span>
+                          Găsită comanda #{aoVatLookup.match.orderId}
+                          {aoVatLookup.match.createdAt ? ` din ${new Date(aoVatLookup.match.createdAt).toLocaleDateString('ro-RO')}` : ''}
+                          {' — '}{aoVatLookup.match.companyName || 'Firmă'}
+                          {aoVatLookup.match.billingAddress?.city ? `, ${aoVatLookup.match.billingAddress.city}` : ''}
+                        </span>
+                        <button type="button" onClick={applyVatMatch} style={{padding: '6px 10px', border: '1px solid #198754', background: 'white', color: '#198754', borderRadius: '4px', cursor: 'pointer', fontWeight: '600'}}>
+                          Folosește datele acestei comenzi
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {aoMarket === 'ro' && aoIsCompany && (
+                <div style={{marginBottom: '16px', padding: '12px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #eee'}}>
+                  <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold'}}>
+                    <input
+                      type="checkbox"
+                      checked={aoBillingSameAsShipping}
+                      onChange={e => {
+                        const same = e.target.checked;
+                        setAoBillingSameAsShipping(same);
+                        if (!same && !aoBilling.streetAddress && aoCustomer.streetAddress) {
+                          setAoBilling({ ...aoCustomer });
+                        }
+                      }}
+                    />
+                    Adresa de facturare este aceeași cu adresa de livrare
+                  </label>
+                  {!aoBillingSameAsShipping && (
+                    <div style={{marginTop: '12px'}}>
+                      <div style={{fontSize: '12px', fontWeight: 'bold', color: '#555', marginBottom: '8px'}}>Date de facturare</div>
+                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+                        <div><label style={labelStyle}>Prenume facturare</label><input style={inputStyle} value={aoBilling.firstName} onChange={e => setAoBilling(c => ({...c, firstName: e.target.value}))} /></div>
+                        <div><label style={labelStyle}>Nume facturare</label><input style={inputStyle} value={aoBilling.lastName} onChange={e => setAoBilling(c => ({...c, lastName: e.target.value}))} /></div>
+                        <div><label style={labelStyle}>Email facturare</label><input type="email" style={inputStyle} value={aoBilling.email} onChange={e => setAoBilling(c => ({...c, email: e.target.value}))} /></div>
+                        <div><label style={labelStyle}>Telefon facturare</label><input style={inputStyle} value={aoBilling.phone} onChange={e => setAoBilling(c => ({...c, phone: e.target.value}))} /></div>
+                        <div style={{gridColumn: '1 / -1'}}><label style={labelStyle}>Adresă de facturare *</label><input style={inputStyle} value={aoBilling.streetAddress} onChange={e => setAoBilling(c => ({...c, streetAddress: e.target.value}))} /></div>
+                        <div><label style={labelStyle}>Oraș facturare *</label><input style={inputStyle} value={aoBilling.city} onChange={e => setAoBilling(c => ({...c, city: e.target.value}))} /></div>
+                        <div><label style={labelStyle}>Județ facturare *</label><input style={inputStyle} value={aoBilling.state} onChange={e => setAoBilling(c => ({...c, state: e.target.value}))} /></div>
+                        <div><label style={labelStyle}>Cod poștal facturare</label><input style={inputStyle} value={aoBilling.zipCode} onChange={e => setAoBilling(c => ({...c, zipCode: e.target.value}))} /></div>
+                        <div><label style={labelStyle}>Țară facturare</label><input style={inputStyle} value={aoBilling.country} onChange={e => setAoBilling(c => ({...c, country: e.target.value}))} /></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px'}}>
                 <div>
