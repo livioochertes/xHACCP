@@ -8205,6 +8205,7 @@ import {
         const [aoCompany, setAoCompany] = useState({ companyName: '', vatNumber: '', registrationNumber: '' });
         const [aoVatLookup, setAoVatLookup] = useState({ status: 'idle', match: null, error: '' });
         const [aoEmailLookup, setAoEmailLookup] = useState({ status: 'idle', match: null, error: '' });
+        const skipNextEmailLookupRef = React.useRef(false);
         const [aoPaymentMethod, setAoPaymentMethod] = useState('cash_on_delivery');
         const [aoNotes, setAoNotes] = useState('');
 
@@ -8279,6 +8280,11 @@ import {
         }, [aoMarket, aoIsCompany, aoCompany.vatNumber, token]);
 
         useEffect(() => {
+          if (skipNextEmailLookupRef.current) {
+            skipNextEmailLookupRef.current = false;
+            setAoEmailLookup({ status: 'idle', match: null, error: '' });
+            return;
+          }
           if (aoMarket !== 'ro') {
             setAoEmailLookup({ status: 'idle', match: null, error: '' });
             return;
@@ -8290,7 +8296,7 @@ import {
             return;
           }
           const normalizedEmail = enteredEmail.toLowerCase();
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+          if (enteredEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
             setAoEmailLookup({ status: 'invalid', match: null, error: '' });
             return;
           }
@@ -8372,6 +8378,10 @@ import {
 
           const shipping = match.shippingAddress || {};
           const billing = match.billingAddress || shipping;
+          const nextEmail = shipping.email || billing.email || aoCustomer.email;
+          if (fromEmailLookup && nextEmail !== aoCustomer.email) {
+            skipNextEmailLookupRef.current = true;
+          }
           const addressFields = ['firstName', 'lastName', 'email', 'phone', 'streetAddress', 'city', 'state', 'zipCode', 'country'];
           const addressesMatch = addressFields.every((field) =>
             String(shipping[field] || '').trim().toLowerCase() === String(billing[field] || '').trim().toLowerCase()
@@ -8379,7 +8389,7 @@ import {
           setAoCustomer({
             firstName: shipping.firstName || '',
             lastName: shipping.lastName || '',
-            email: shipping.email || billing.email || aoCustomer.email,
+            email: nextEmail,
             phone: shipping.phone || billing.phone || '',
             streetAddress: shipping.streetAddress || '',
             city: shipping.city || '',
@@ -8629,9 +8639,36 @@ import {
 
               <h4 style={{margin: '0 0 8px 0', fontSize: '14px', color: '#333'}}>👤 Date client</h4>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px'}}>
+                {aoMarket === 'ro' && (
+                  <div style={{gridColumn: '1 / -1'}}>
+                    <label style={labelStyle}>Email *</label>
+                    <input type="email" style={inputStyle} value={aoCustomer.email} onChange={e => setAoCustomer(c => ({...c, email: e.target.value}))} />
+                    {aoCustomer.email.trim() && aoEmailLookup.status !== 'idle' && (
+                      <div aria-live="polite" style={{marginTop: '8px', padding: '9px 10px', borderRadius: '4px', background: aoEmailLookup.status === 'found' ? '#eef8ee' : '#f8f9fa', border: '1px solid #e5e5e5', fontSize: '12px'}}>
+                        {aoEmailLookup.status === 'invalid' && <span style={{color: '#856404'}}>Introdu o adresă de email validă pentru căutare.</span>}
+                        {(aoEmailLookup.status === 'pending' || aoEmailLookup.status === 'searching') && <span style={{color: '#666'}}>Se caută ultima comandă pentru această adresă...</span>}
+                        {aoEmailLookup.status === 'not_found' && <span style={{color: '#666'}}>Nu am găsit o comandă anterioară pentru această adresă. Poți completa datele manual.</span>}
+                        {aoEmailLookup.status === 'error' && <span style={{color: '#a94442'}}>{aoEmailLookup.error}</span>}
+                        {aoEmailLookup.status === 'found' && aoEmailLookup.match && (
+                          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
+                            <span>
+                              Găsită comanda #{aoEmailLookup.match.orderId}
+                              {aoEmailLookup.match.createdAt ? ` din ${new Date(aoEmailLookup.match.createdAt).toLocaleDateString('ro-RO')}` : ''}
+                              {' — '}{aoEmailLookup.match.companyName || [aoEmailLookup.match.shippingAddress?.firstName, aoEmailLookup.match.shippingAddress?.lastName].filter(Boolean).join(' ') || 'Client'}
+                              {aoEmailLookup.match.billingAddress?.city ? `, ${aoEmailLookup.match.billingAddress.city}` : ''}
+                            </span>
+                            <button type="button" onClick={() => applyCustomerMatch(aoEmailLookup.match, true)} style={{padding: '6px 10px', border: '1px solid #198754', background: 'white', color: '#198754', borderRadius: '4px', cursor: 'pointer', fontWeight: '600'}}>
+                              Folosește datele acestei comenzi
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div><label style={labelStyle}>Prenume *</label><input style={inputStyle} value={aoCustomer.firstName} onChange={e => setAoCustomer(c => ({...c, firstName: e.target.value}))} /></div>
                 <div><label style={labelStyle}>Nume *</label><input style={inputStyle} value={aoCustomer.lastName} onChange={e => setAoCustomer(c => ({...c, lastName: e.target.value}))} /></div>
-                <div><label style={labelStyle}>Email *</label><input type="email" style={inputStyle} value={aoCustomer.email} onChange={e => setAoCustomer(c => ({...c, email: e.target.value}))} /></div>
+                {aoMarket !== 'ro' && <div><label style={labelStyle}>Email *</label><input type="email" style={inputStyle} value={aoCustomer.email} onChange={e => setAoCustomer(c => ({...c, email: e.target.value}))} /></div>}
                 <div><label style={labelStyle}>Telefon * <span style={{fontWeight: 'normal', color: '#888'}}>(pentru AWB)</span></label><input style={inputStyle} value={aoCustomer.phone} onChange={e => setAoCustomer(c => ({...c, phone: e.target.value}))} /></div>
                 <div style={{gridColumn: '1 / -1'}}><label style={labelStyle}>Adresă (stradă, nr.) *</label><input style={inputStyle} value={aoCustomer.streetAddress} onChange={e => setAoCustomer(c => ({...c, streetAddress: e.target.value}))} /></div>
                 <div><label style={labelStyle}>Oraș *</label><input style={inputStyle} value={aoCustomer.city} onChange={e => setAoCustomer(c => ({...c, city: e.target.value}))} /></div>
@@ -8666,7 +8703,7 @@ import {
                           {' — '}{aoVatLookup.match.companyName || 'Firmă'}
                           {aoVatLookup.match.billingAddress?.city ? `, ${aoVatLookup.match.billingAddress.city}` : ''}
                         </span>
-                        <button type="button" onClick={applyVatMatch} style={{padding: '6px 10px', border: '1px solid #198754', background: 'white', color: '#198754', borderRadius: '4px', cursor: 'pointer', fontWeight: '600'}}>
+                        <button type="button" onClick={() => applyCustomerMatch(aoVatLookup.match)} style={{padding: '6px 10px', border: '1px solid #198754', background: 'white', color: '#198754', borderRadius: '4px', cursor: 'pointer', fontWeight: '600'}}>
                           Folosește datele acestei comenzi
                         </button>
                       </div>

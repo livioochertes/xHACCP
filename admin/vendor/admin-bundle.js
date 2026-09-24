@@ -21341,6 +21341,8 @@ Cordialement,`
       const [aoIsCompany, setAoIsCompany] = (0, import_react13.useState)(false);
       const [aoCompany, setAoCompany] = (0, import_react13.useState)({ companyName: "", vatNumber: "", registrationNumber: "" });
       const [aoVatLookup, setAoVatLookup] = (0, import_react13.useState)({ status: "idle", match: null, error: "" });
+      const [aoEmailLookup, setAoEmailLookup] = (0, import_react13.useState)({ status: "idle", match: null, error: "" });
+      const skipNextEmailLookupRef = import_react13.default.useRef(false);
       const [aoPaymentMethod, setAoPaymentMethod] = (0, import_react13.useState)("cash_on_delivery");
       const [aoNotes, setAoNotes] = (0, import_react13.useState)("");
       (0, import_react13.useEffect)(() => {
@@ -21411,6 +21413,52 @@ Cordialement,`
           clearTimeout(timeout);
         };
       }, [aoMarket, aoIsCompany, aoCompany.vatNumber, token]);
+      (0, import_react13.useEffect)(() => {
+        if (skipNextEmailLookupRef.current) {
+          skipNextEmailLookupRef.current = false;
+          setAoEmailLookup({ status: "idle", match: null, error: "" });
+          return;
+        }
+        if (aoMarket !== "ro") {
+          setAoEmailLookup({ status: "idle", match: null, error: "" });
+          return;
+        }
+        const enteredEmail = String(aoCustomer.email || "").trim();
+        if (!enteredEmail) {
+          setAoEmailLookup({ status: "idle", match: null, error: "" });
+          return;
+        }
+        const normalizedEmail = enteredEmail.toLowerCase();
+        if (enteredEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+          setAoEmailLookup({ status: "invalid", match: null, error: "" });
+          return;
+        }
+        setAoEmailLookup({ status: "pending", match: null, error: "" });
+        let cancelled = false;
+        const timeout = setTimeout(async () => {
+          setAoEmailLookup({ status: "searching", match: null, error: "" });
+          try {
+            const response = await fetch(`/admin/api/orders/customer-by-email?email=${encodeURIComponent(enteredEmail)}`, {
+              headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (cancelled) return;
+            if (!response.ok || !data.success) {
+              setAoEmailLookup({ status: "error", match: null, error: data.message || "C\u0103utarea clientului a e\u0219uat." });
+              return;
+            }
+            setAoEmailLookup(data.match ? { status: "found", match: data.match, error: "" } : { status: "not_found", match: null, error: "" });
+          } catch (error2) {
+            if (!cancelled) {
+              setAoEmailLookup({ status: "error", match: null, error: "Nu s-au putut \xEEnc\u0103rca datele clientului." });
+            }
+          }
+        }, 450);
+        return () => {
+          cancelled = true;
+          clearTimeout(timeout);
+        };
+      }, [aoMarket, aoCustomer.email, token]);
       const getProduct = (pid) => aoProducts.find((p) => String(p.id) === String(pid));
       const computeUnitPrice = (product, qty) => {
         if (!product) return 0;
@@ -21433,13 +21481,11 @@ Cordialement,`
       const updateItem = (idx, field, value) => {
         setAoItems((items) => items.map((it, i) => i === idx ? { ...it, [field]: value } : it));
       };
-      const applyVatMatch = () => {
-        const match = aoVatLookup.match;
+      const applyCustomerMatch = (match, fromEmailLookup = false) => {
         if (!match) return;
         const fieldsWithExistingValues = [
-          ...Object.entries(aoCustomer).filter(([key]) => key !== "country").map(([, value]) => value),
-          aoCompany.companyName,
-          aoCompany.registrationNumber,
+          ...Object.entries(aoCustomer).filter(([key]) => key !== "country" && !(fromEmailLookup && key === "email")).map(([, value]) => value),
+          ...fromEmailLookup ? [aoCompany.companyName, aoCompany.vatNumber, aoCompany.registrationNumber] : [aoCompany.companyName, aoCompany.registrationNumber],
           ...!aoBillingSameAsShipping ? Object.entries(aoBilling).filter(([key]) => key !== "country").map(([, value]) => value) : []
         ];
         if (fieldsWithExistingValues.some((value) => String(value || "").trim()) && !window.confirm("Completarea va \xEEnlocui unele date deja introduse. Continui?")) {
@@ -21447,6 +21493,10 @@ Cordialement,`
         }
         const shipping = match.shippingAddress || {};
         const billing = match.billingAddress || shipping;
+        const nextEmail = shipping.email || billing.email || aoCustomer.email;
+        if (fromEmailLookup && nextEmail !== aoCustomer.email) {
+          skipNextEmailLookupRef.current = true;
+        }
         const addressFields = ["firstName", "lastName", "email", "phone", "streetAddress", "city", "state", "zipCode", "country"];
         const addressesMatch = addressFields.every(
           (field) => String(shipping[field] || "").trim().toLowerCase() === String(billing[field] || "").trim().toLowerCase()
@@ -21454,7 +21504,7 @@ Cordialement,`
         setAoCustomer({
           firstName: shipping.firstName || "",
           lastName: shipping.lastName || "",
-          email: shipping.email || billing.email || "",
+          email: nextEmail,
           phone: shipping.phone || billing.phone || "",
           streetAddress: shipping.streetAddress || "",
           city: shipping.city || "",
@@ -21474,11 +21524,18 @@ Cordialement,`
           country: billing.country || "Romania"
         });
         setAoBillingSameAsShipping(addressesMatch);
-        setAoCompany({
+        const hasCompanyData = Boolean(match.isCompany || match.companyName || match.vatNumber || match.registrationNumber);
+        setAoCompany(fromEmailLookup ? {
           companyName: match.companyName || "",
-          vatNumber: match.vatNumber || aoCompany.vatNumber,
+          vatNumber: match.vatNumber || "",
           registrationNumber: match.registrationNumber || ""
+        } : {
+          companyName: match.companyName || aoCompany.companyName,
+          vatNumber: match.vatNumber || aoCompany.vatNumber,
+          registrationNumber: match.registrationNumber || aoCompany.registrationNumber
         });
+        if (fromEmailLookup) setAoIsCompany(hasCompanyData);
+        else if (hasCompanyData) setAoIsCompany(true);
       };
       const submit = async () => {
         const validItems = aoItems.filter((it) => it.productId && (parseInt(it.quantity) || 0) > 0);
@@ -21758,6 +21815,27 @@ Cordialement,`
         })(),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { margin: "0 0 8px 0", fontSize: "14px", color: "#333" }, children: "\u{1F464} Date client" }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }, children: [
+          aoMarket === "ro" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { gridColumn: "1 / -1" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Email *" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "email", style: inputStyle, value: aoCustomer.email, onChange: (e2) => setAoCustomer((c) => ({ ...c, email: e2.target.value })) }),
+            aoCustomer.email.trim() && aoEmailLookup.status !== "idle" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { "aria-live": "polite", style: { marginTop: "8px", padding: "9px 10px", borderRadius: "4px", background: aoEmailLookup.status === "found" ? "#eef8ee" : "#f8f9fa", border: "1px solid #e5e5e5", fontSize: "12px" }, children: [
+              aoEmailLookup.status === "invalid" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#856404" }, children: "Introdu o adres\u0103 de email valid\u0103 pentru c\u0103utare." }),
+              (aoEmailLookup.status === "pending" || aoEmailLookup.status === "searching") && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#666" }, children: "Se caut\u0103 ultima comand\u0103 pentru aceast\u0103 adres\u0103..." }),
+              aoEmailLookup.status === "not_found" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#666" }, children: "Nu am g\u0103sit o comand\u0103 anterioar\u0103 pentru aceast\u0103 adres\u0103. Po\u021Bi completa datele manual." }),
+              aoEmailLookup.status === "error" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#a94442" }, children: aoEmailLookup.error }),
+              aoEmailLookup.status === "found" && aoEmailLookup.match && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { children: [
+                  "G\u0103sit\u0103 comanda #",
+                  aoEmailLookup.match.orderId,
+                  aoEmailLookup.match.createdAt ? ` din ${new Date(aoEmailLookup.match.createdAt).toLocaleDateString("ro-RO")}` : "",
+                  " \u2014 ",
+                  aoEmailLookup.match.companyName || [aoEmailLookup.match.shippingAddress?.firstName, aoEmailLookup.match.shippingAddress?.lastName].filter(Boolean).join(" ") || "Client",
+                  aoEmailLookup.match.billingAddress?.city ? `, ${aoEmailLookup.match.billingAddress.city}` : ""
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", onClick: () => applyCustomerMatch(aoEmailLookup.match, true), style: { padding: "6px 10px", border: "1px solid #198754", background: "white", color: "#198754", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }, children: "Folose\u0219te datele acestei comenzi" })
+              ] })
+            ] })
+          ] }),
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Prenume *" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCustomer.firstName, onChange: (e2) => setAoCustomer((c) => ({ ...c, firstName: e2.target.value })) })
@@ -21766,7 +21844,7 @@ Cordialement,`
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Nume *" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { style: inputStyle, value: aoCustomer.lastName, onChange: (e2) => setAoCustomer((c) => ({ ...c, lastName: e2.target.value })) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+          aoMarket !== "ro" && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: labelStyle, children: "Email *" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "email", style: inputStyle, value: aoCustomer.email, onChange: (e2) => setAoCustomer((c) => ({ ...c, email: e2.target.value })) })
           ] }),
@@ -21840,7 +21918,7 @@ Cordialement,`
                 aoVatLookup.match.companyName || "Firm\u0103",
                 aoVatLookup.match.billingAddress?.city ? `, ${aoVatLookup.match.billingAddress.city}` : ""
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", onClick: applyVatMatch, style: { padding: "6px 10px", border: "1px solid #198754", background: "white", color: "#198754", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }, children: "Folose\u0219te datele acestei comenzi" })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "button", onClick: () => applyCustomerMatch(aoVatLookup.match), style: { padding: "6px 10px", border: "1px solid #198754", background: "white", color: "#198754", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }, children: "Folose\u0219te datele acestei comenzi" })
             ] })
           ] })
         ] }),
