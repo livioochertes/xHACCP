@@ -495,6 +495,10 @@
     document.addEventListener('DOMContentLoaded', function() {
       var root = document.getElementById('admin-root');
       if (!root) return;
+      if (root.childNodes.length > 0) {
+        hideAdminOverlay();
+        return;
+      }
       var observer = new MutationObserver(function(mutations) {
         for (var i = 0; i < mutations.length; i++) {
           if (mutations[i].addedNodes.length > 0) {
