@@ -864,7 +864,7 @@ import {
       const fetchUsers = async () => {
         try {
           const marketParam = selectedMarketTab && selectedMarketTab !== 'all' ? `?market=${selectedMarketTab}` : '';
-          const response = await fetch(`/admin/api/users${marketParam}`, {
+          const response = await fetch(`/admin/api/customers${marketParam}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -3923,28 +3923,28 @@ import {
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                  <h3 style={{color: '#333', margin: '0'}}>👥 User Management</h3>
+                  <h3 style={{color: '#333', margin: '0'}}>👥 {t('users.title')}</h3>
                   <button 
                     className="btn" 
                     style={{background: '#28a745', width: 'auto', padding: '8px 16px'}}
                     onClick={() => setShowAddUserModal(true)}
                   >
-                    ➕ Add New User
+                    ➕ {t('users.addNew')}
                   </button>
                 </div>
                 
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px'}}>
                   <div style={{padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                    <h4 style={{marginBottom: '10px', color: '#495057'}}>Total Users</h4>
-                    <p style={{fontSize: '24px', fontWeight: 'bold', color: '#007bff', margin: '0'}}>{stats?.totalUsers || '0'}</p>
+                    <h4 style={{marginBottom: '10px', color: '#495057'}}>{t('users.totalClients')}</h4>
+                    <p style={{fontSize: '24px', fontWeight: 'bold', color: '#007bff', margin: '0'}}>{users.filter(user => !user.isAdmin).length}</p>
                   </div>
                   <div style={{padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                    <h4 style={{marginBottom: '10px', color: '#495057'}}>Regular Users</h4>
-                    <p style={{fontSize: '24px', fontWeight: 'bold', color: '#28a745', margin: '0'}}>{users.filter(u => !u.isAdmin).length}</p>
+                    <h4 style={{marginBottom: '10px', color: '#495057'}}>{t('users.registeredAccounts')}</h4>
+                    <p style={{fontSize: '24px', fontWeight: 'bold', color: '#28a745', margin: '0'}}>{users.filter(user => user.isRegistered && !user.isAdmin).length}</p>
                   </div>
                   <div style={{padding: '20px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                    <h4 style={{marginBottom: '10px', color: '#495057'}}>Admin Users</h4>
-                    <p style={{fontSize: '24px', fontWeight: 'bold', color: '#dc3545', margin: '0'}}>{users.filter(u => u.isAdmin).length}</p>
+                    <h4 style={{marginBottom: '10px', color: '#495057'}}>{t('users.customersWithOrders')}</h4>
+                    <p style={{fontSize: '24px', fontWeight: 'bold', color: '#dc3545', margin: '0'}}>{users.filter(user => !user.isAdmin && user.orderCount > 0).length}</p>
                   </div>
                 </div>
                 
@@ -3996,27 +3996,36 @@ import {
                     <table style={{width: '100%', borderCollapse: 'collapse'}}>
                       <thead>
                         <tr style={{backgroundColor: '#f5f5f5'}}>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>User ID</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Name</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Email</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Role</th>
-                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>Actions</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('users.userId')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('users.name')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('users.email')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('users.customerType')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('users.orders')}</th>
+                          <th style={{padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd'}}>{t('users.actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedUsers.map((user, index) => (
-                          <tr key={index} style={{borderBottom: '1px solid #eee'}}>
-                            <td style={{padding: '12px'}}>#{user.id}</td>
-                            <td style={{padding: '12px', fontWeight: '500'}}>{user.firstName} {user.lastName}</td>
-                            <td style={{padding: '12px'}}>{user.email}</td>
+                        {paginatedUsers.map((user) => (
+                          <tr key={user.customerKey} style={{borderBottom: '1px solid #eee'}}>
+                            <td style={{padding: '12px'}}>
+                              {user.id
+                                ? t('users.accountRecord', { id: user.id })
+                                : user.lastOrderId
+                                  ? t('users.orderRecord', { id: user.lastOrderId })
+                                  : '—'}
+                            </td>
+                            <td style={{padding: '12px', fontWeight: '500'}}>
+                              {user.displayName || [user.firstName, user.lastName].filter(Boolean).join(' ') || '—'}
+                            </td>
+                            <td style={{padding: '12px'}}>{user.email || '—'}</td>
                             <td style={{padding: '12px'}}>
                               <span style={{
                                 padding: '4px 8px', 
                                 borderRadius: '4px', 
-                                backgroundColor: user.isAdmin ? '#f8d7da' : '#d4edda',
-                                color: user.isAdmin ? '#721c24' : '#155724'
+                                backgroundColor: user.isAdmin ? '#f8d7da' : user.isRegistered ? '#d4edda' : '#cfe2ff',
+                                color: user.isAdmin ? '#721c24' : user.isRegistered ? '#155724' : '#084298'
                               }}>
-                                {user.isAdmin ? 'Admin' : 'User'}
+                                {user.isAdmin ? 'Admin' : user.isRegistered ? t('users.registeredAccount') : t('users.orderCustomer')}
                               </span>
                               {user.isAdmin && (user.adminMarkets || []).length === 0 && (
                                 <span style={{marginLeft: '4px', padding: '2px 6px', borderRadius: '3px', fontSize: '10px', fontWeight: 'bold', background: '#f8d7da', color: '#721c24'}}>SUPER</span>
@@ -4024,53 +4033,56 @@ import {
                               {user.isAdmin && (user.adminMarkets || []).map(m => (
                                 <span key={m} style={{marginLeft: '4px', padding: '2px 6px', borderRadius: '3px', fontSize: '10px', fontWeight: 'bold', background: m==='ro' ? '#fff3cd' : m==='fr' ? '#cfe2ff' : '#d1e7dd', color: '#333'}}>{m.toUpperCase()}</span>
                               ))}
-                              {!user.isAdmin && (() => {
-                                const userMarkets = [...new Set(orders.filter(o => o.userId === user.id).map(o => o.market || 'ro'))];
-                                return userMarkets.map(m => (
+                              {!user.isAdmin && (user.markets || []).map(m => (
                                   <span key={m} style={{marginLeft: '4px', padding: '2px 4px', borderRadius: '3px', fontSize: '10px', fontWeight: 'bold', background: m==='ro' ? '#fff3cd' : m==='fr' ? '#cfe2ff' : '#d1e7dd', color: '#333'}}>{m.toUpperCase()}</span>
-                                ));
-                              })()}
+                              ))}
                             </td>
+                            <td style={{padding: '12px'}}>{user.orderCount || 0}</td>
                             <td style={{padding: '12px'}}>
-                              <div style={{display: 'flex', gap: '5px'}}>
-                                <button 
-                                  style={{
-                                    padding: '4px 8px', 
-                                    border: 'none', 
-                                    borderRadius: '3px', 
-                                    backgroundColor: '#007bff', 
-                                    color: 'white', 
-                                    cursor: 'pointer',
-                                    fontSize: '12px'
-                                  }}
-                                  onClick={() => setEditingUser(user)}
-                                >
-                                  ✏️ Edit
-                                </button>
-                                <button 
-                                  style={{
-                                    padding: '4px 8px', 
-                                    border: 'none', 
-                                    borderRadius: '3px', 
-                                    backgroundColor: '#dc3545', 
-                                    color: 'white', 
-                                    cursor: 'pointer',
-                                    fontSize: '12px'
-                                  }}
-                                  onClick={async () => {
-                                    if (confirm(`Delete user "${user.firstName} ${user.lastName}"?\n\nThis action cannot be undone.`)) {
-                                      const result = await deleteUser(user.id);
-                                      if (result.success) {
-                                        alert('User deleted successfully');
-                                      } else {
-                                        alert('Error: ' + result.message);
+                              {user.id ? (
+                                <div style={{display: 'flex', gap: '5px'}}>
+                                  <button
+                                    style={{
+                                      padding: '4px 8px',
+                                      border: 'none',
+                                      borderRadius: '3px',
+                                      backgroundColor: '#007bff',
+                                      color: 'white',
+                                      cursor: 'pointer',
+                                      fontSize: '12px'
+                                    }}
+                                    onClick={() => setEditingUser(user)}
+                                  >
+                                    ✏️ {t('users.edit')}
+                                  </button>
+                                  <button
+                                    style={{
+                                      padding: '4px 8px',
+                                      border: 'none',
+                                      borderRadius: '3px',
+                                      backgroundColor: '#dc3545',
+                                      color: 'white',
+                                      cursor: 'pointer',
+                                      fontSize: '12px'
+                                    }}
+                                    onClick={async () => {
+                                      const customerName = user.displayName || [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+                                      if (confirm(`Delete customer account "${customerName}"?\n\nThis action cannot be undone.`)) {
+                                        const result = await deleteUser(user.id);
+                                        if (result.success) {
+                                          alert('Customer account deleted successfully');
+                                        } else {
+                                          alert('Error: ' + result.message);
+                                        }
                                       }
-                                    }
-                                  }}
-                                >
-                                  🗑️ {t('common.delete')}
-                                </button>
-                              </div>
+                                    }}
+                                  >
+                                    🗑️ {t('common.delete')}
+                                  </button>
+                                </div>
+                              ) : (
+                                <span style={{color: '#6c757d', fontSize: '12px'}}>{t('users.noAccountActions')}</span>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -4080,14 +4092,14 @@ import {
                   </div>
                 ) : (
                   <div style={{padding: '40px', textAlign: 'center', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                    <p style={{color: '#666', fontSize: '18px', marginBottom: '15px'}}>No users found</p>
-                    <p style={{color: '#6c757d', marginBottom: '20px'}}>Create your first user to get started with user management.</p>
+                    <p style={{color: '#666', fontSize: '18px', marginBottom: '15px'}}>{t('users.noUsers')}</p>
+                    <p style={{color: '#6c757d', marginBottom: '20px'}}>{t('users.createFirst')}</p>
                     <button 
                       className="btn" 
                       style={{background: '#28a745', width: 'auto', padding: '12px 24px'}}
                       onClick={() => setShowAddUserModal(true)}
                     >
-                      ➕ Add Your First User
+                      ➕ {t('users.addFirst')}
                     </button>
                   </div>
                 )}

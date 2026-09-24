@@ -4,8 +4,9 @@ import { db, pool } from "./db";
 import {
   companySettings, suppliers, productMarkets, invoices, products as productsTable, productTranslations,
   fulfillmentPartners, marketFulfillment, wmsOriginAddresses, wmsApiKeys, wmsAuditLogs, wmsShipments, wmsOrderEvents, orders,
+  users as usersTable,
 } from "@shared/schema";
-import { desc, eq, and, inArray, sql } from "drizzle-orm";
+import { desc, eq, and, inArray, isNull, or, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import speakeasy from "speakeasy";
@@ -41,6 +42,7 @@ import {
   serializeSamedayPickupPoints,
 } from "./sameday-shipping";
 import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
+import { buildAdminCustomerList } from "./admin-customer-list";
 import {
   normalizeOrderLookupEmail,
   normalizeRomanianVatCode,
@@ -1546,6 +1548,63 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Admin customer directory: registered accounts plus guest customers from orders.
+  app.get("/admin/api/customers", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const allowedMarkets = req.adminMarkets || [];
+      const isSuperAdmin = allowedMarkets.length === 0;
+      const requestedMarket = typeof req.query.market === "string" ? req.query.market : "all";
+      const validMarkets = new Set(["ro", "fr", "com"]);
+
+      if (isSuperAdmin && requestedMarket !== "all" && !validMarkets.has(requestedMarket)) {
+        return res.status(400).json({ message: "Invalid market" });
+      }
+
+      const marketScope = isSuperAdmin
+        ? requestedMarket === "all" ? null : [requestedMarket]
+        : allowedMarkets;
+
+      const [accounts, customerOrders] = await Promise.all([
+        db.select({
+          id: usersTable.id,
+          email: usersTable.email,
+          firstName: usersTable.firstName,
+          lastName: usersTable.lastName,
+          isAdmin: usersTable.isAdmin,
+          adminMarkets: usersTable.adminMarkets,
+        }).from(usersTable),
+        marketScope === null
+          ? db.select({
+              id: orders.id,
+              userId: orders.userId,
+              market: orders.market,
+              createdAt: orders.createdAt,
+              shippingAddress: orders.shippingAddress,
+              billingAddress: orders.billingAddress,
+              notes: orders.notes,
+            }).from(orders)
+          : db.select({
+              id: orders.id,
+              userId: orders.userId,
+              market: orders.market,
+              createdAt: orders.createdAt,
+              shippingAddress: orders.shippingAddress,
+              billingAddress: orders.billingAddress,
+              notes: orders.notes,
+            }).from(orders).where(
+              marketScope.includes("ro")
+                ? or(inArray(orders.market, marketScope), isNull(orders.market))
+                : inArray(orders.market, marketScope)
+            ),
+      ]);
+
+      res.json(buildAdminCustomerList(accounts, customerOrders, marketScope));
+    } catch (error) {
+      console.error("Error fetching admin customers:", error);
+      res.status(500).json({ message: "Failed to fetch customers" });
     }
   });
 

@@ -10607,26 +10607,36 @@
       downloadInvoice: "Download Invoice"
     },
     users: {
-      title: "User Management",
-      addNew: "Add New User",
-      totalUsers: "Total Users",
-      regularUsers: "Regular Users",
-      adminUsers: "Admin Users",
-      userId: "User ID",
+      title: "Customer Management",
+      addNew: "Add Customer Account",
+      totalUsers: "Total Customers",
+      regularUsers: "Registered Accounts",
+      adminUsers: "Customers with Orders",
+      userId: "Account / order",
       name: "Name",
       email: "Email",
-      role: "Role",
+      role: "Customer type",
       roleAdmin: "Admin",
       roleUser: "User",
-      noUsers: "No users found",
-      createFirst: "Create your first user to get started.",
-      addFirst: "Add Your First User",
+      noUsers: "No customers found",
+      createFirst: "Customers will appear after their first order or registration.",
+      addFirst: "Add the first customer account",
       add: "Add User",
       edit: "Edit User",
       status: "Status",
       registered: "Registered",
       orders: "Orders",
       total_spent: "Total Spent",
+      totalClients: "Total customers",
+      registeredAccounts: "Registered accounts",
+      customersWithOrders: "Customers with orders",
+      customerType: "Customer type",
+      accountRecord: "Account #{{id}}",
+      orderRecord: "Order #{{id}}",
+      registeredAccount: "Registered account",
+      orderCustomer: "Guest customer",
+      noAccountActions: "No account to manage",
+      actions: "Actions",
       rowsPerPage: "Rows per page",
       showing: "Showing {{start}}\u2013{{end}} of {{total}}",
       pageOf: "Page {{page}} of {{totalPages}}",
@@ -11424,26 +11434,36 @@
       downloadInvoice: "Descarc\u0103 Factur\u0103"
     },
     users: {
-      title: "Gestionare Utilizatori",
-      addNew: "Adaug\u0103 Utilizator Nou",
-      totalUsers: "Total Utilizatori",
-      regularUsers: "Utilizatori Obi\u0219nui\u021Bi",
-      adminUsers: "Utilizatori Admin",
-      userId: "ID Utilizator",
+      title: "Gestionare clien\u021Bi",
+      addNew: "Adaug\u0103 cont client",
+      totalUsers: "Total clien\u021Bi",
+      regularUsers: "Conturi \xEEnregistrate",
+      adminUsers: "Clien\u021Bi cu comenzi",
+      userId: "Cont / comand\u0103",
       name: "Nume",
       email: "Email",
-      role: "Rol",
+      role: "Tip client",
       roleAdmin: "Admin",
       roleUser: "Utilizator",
-      noUsers: "Nu s-au g\u0103sit utilizatori",
-      createFirst: "Crea\u021Bi primul utilizator pentru a \xEEncepe.",
-      addFirst: "Adaug\u0103 Primul Utilizator",
+      noUsers: "Nu s-au g\u0103sit clien\u021Bi",
+      createFirst: "Clien\u021Bii vor ap\u0103rea dup\u0103 prima comand\u0103 sau \xEEnregistrare.",
+      addFirst: "Adaug\u0103 primul cont client",
       add: "Adaug\u0103 utilizator",
       edit: "Editeaz\u0103 utilizator",
       status: "Status",
       registered: "\xCEnregistrat",
       orders: "Comenzi",
       total_spent: "Total cheltuit",
+      totalClients: "Total clien\u021Bi",
+      registeredAccounts: "Conturi \xEEnregistrate",
+      customersWithOrders: "Clien\u021Bi cu comenzi",
+      customerType: "Tip client",
+      accountRecord: "Cont #{{id}}",
+      orderRecord: "Comand\u0103 #{{id}}",
+      registeredAccount: "Cont \xEEnregistrat",
+      orderCustomer: "Client f\u0103r\u0103 cont",
+      noAccountActions: "F\u0103r\u0103 cont de gestionat",
+      actions: "Ac\u021Biuni",
       rowsPerPage: "Pozi\u021Bii pe pagin\u0103",
       showing: "Afi\u0219are {{start}}\u2013{{end}} din {{total}}",
       pageOf: "{{page}} / {{totalPages}}",
@@ -12241,26 +12261,36 @@
       downloadInvoice: "T\xE9l\xE9charger la facture"
     },
     users: {
-      title: "Gestion des utilisateurs",
-      addNew: "Ajouter un utilisateur",
-      totalUsers: "Total utilisateurs",
-      regularUsers: "Utilisateurs standard",
-      adminUsers: "Utilisateurs admin",
-      userId: "ID Utilisateur",
+      title: "Gestion des clients",
+      addNew: "Ajouter un compte client",
+      totalUsers: "Total clients",
+      regularUsers: "Comptes enregistr\xE9s",
+      adminUsers: "Clients avec commandes",
+      userId: "Compte / commande",
       name: "Nom",
       email: "Email",
-      role: "R\xF4le",
+      role: "Type de client",
       roleAdmin: "Admin",
       roleUser: "Utilisateur",
-      noUsers: "Aucun utilisateur trouv\xE9",
-      createFirst: "Cr\xE9ez votre premier utilisateur pour commencer.",
-      addFirst: "Ajouter le premier utilisateur",
+      noUsers: "Aucun client trouv\xE9",
+      createFirst: "Les clients appara\xEEtront apr\xE8s leur premi\xE8re commande ou inscription.",
+      addFirst: "Ajouter le premier compte client",
       add: "Ajouter utilisateur",
       edit: "Modifier utilisateur",
       status: "Statut",
       registered: "Inscrit",
       orders: "Commandes",
       total_spent: "Total d\xE9pens\xE9",
+      totalClients: "Total clients",
+      registeredAccounts: "Comptes enregistr\xE9s",
+      customersWithOrders: "Clients avec commandes",
+      customerType: "Type de client",
+      accountRecord: "Compte #{{id}}",
+      orderRecord: "Commande #{{id}}",
+      registeredAccount: "Compte enregistr\xE9",
+      orderCustomer: "Client invit\xE9",
+      noAccountActions: "Aucun compte \xE0 g\xE9rer",
+      actions: "Actions",
       rowsPerPage: "Lignes par page",
       showing: "Affichage de {{start}} \xE0 {{end}} sur {{total}}",
       pageOf: "Page {{page}} sur {{totalPages}}",
@@ -13765,7 +13795,7 @@
     const fetchUsers = async () => {
       try {
         const marketParam = selectedMarketTab && selectedMarketTab !== "all" ? `?market=${selectedMarketTab}` : "";
-        const response = await fetch(`/admin/api/users${marketParam}`, {
+        const response = await fetch(`/admin/api/customers${marketParam}`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -16684,29 +16714,35 @@ This will:
         case "users":
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { color: "#333", margin: "0" }, children: "\u{1F465} User Management" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h3", { style: { color: "#333", margin: "0" }, children: [
+                "\u{1F465} ",
+                t2("users.title")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                 "button",
                 {
                   className: "btn",
                   style: { background: "#28a745", width: "auto", padding: "8px 16px" },
                   onClick: () => setShowAddUserModal(true),
-                  children: "\u2795 Add New User"
+                  children: [
+                    "\u2795 ",
+                    t2("users.addNew")
+                  ]
                 }
               )
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginBottom: "20px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: "Total Users" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#007bff", margin: "0" }, children: stats?.totalUsers || "0" })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: t2("users.totalClients") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#007bff", margin: "0" }, children: users.filter((user) => !user.isAdmin).length })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: "Regular Users" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#28a745", margin: "0" }, children: users.filter((u) => !u.isAdmin).length })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: t2("users.registeredAccounts") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#28a745", margin: "0" }, children: users.filter((user) => user.isRegistered && !user.isAdmin).length })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "20px", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: "Admin Users" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#dc3545", margin: "0" }, children: users.filter((u) => u.isAdmin).length })
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: { marginBottom: "10px", color: "#495057" }, children: t2("users.customersWithOrders") }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#dc3545", margin: "0" }, children: users.filter((user) => !user.isAdmin && user.orderCount > 0).length })
               ] })
             ] }),
             users.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
@@ -16752,39 +16788,31 @@ This will:
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "User ID" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Name" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Email" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Role" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Actions" })
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("users.userId") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("users.name") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("users.email") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("users.customerType") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("users.orders") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: t2("users.actions") })
                 ] }) }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: paginatedUsers.map((user, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
-                    "#",
-                    user.id
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px", fontWeight: "500" }, children: [
-                    user.firstName,
-                    " ",
-                    user.lastName
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: user.email }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: paginatedUsers.map((user) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: user.id ? t2("users.accountRecord", { id: user.id }) : user.lastOrderId ? t2("users.orderRecord", { id: user.lastOrderId }) : "\u2014" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px", fontWeight: "500" }, children: user.displayName || [user.firstName, user.lastName].filter(Boolean).join(" ") || "\u2014" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: user.email || "\u2014" }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
                       padding: "4px 8px",
                       borderRadius: "4px",
-                      backgroundColor: user.isAdmin ? "#f8d7da" : "#d4edda",
-                      color: user.isAdmin ? "#721c24" : "#155724"
-                    }, children: user.isAdmin ? "Admin" : "User" }),
+                      backgroundColor: user.isAdmin ? "#f8d7da" : user.isRegistered ? "#d4edda" : "#cfe2ff",
+                      color: user.isAdmin ? "#721c24" : user.isRegistered ? "#155724" : "#084298"
+                    }, children: user.isAdmin ? "Admin" : user.isRegistered ? t2("users.registeredAccount") : t2("users.orderCustomer") }),
                     user.isAdmin && (user.adminMarkets || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: "#f8d7da", color: "#721c24" }, children: "SUPER" }),
                     user.isAdmin && (user.adminMarkets || []).map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m)),
-                    !user.isAdmin && (() => {
-                      const userMarkets = [...new Set(orders.filter((o) => o.userId === user.id).map((o) => o.market || "ro"))];
-                      return userMarkets.map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 4px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m));
-                    })()
+                    !user.isAdmin && (user.markets || []).map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 4px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m))
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: user.orderCount || 0 }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: user.id ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                       "button",
                       {
                         style: {
@@ -16797,7 +16825,10 @@ This will:
                           fontSize: "12px"
                         },
                         onClick: () => setEditingUser(user),
-                        children: "\u270F\uFE0F Edit"
+                        children: [
+                          "\u270F\uFE0F ",
+                          t2("users.edit")
+                        ]
                       }
                     ),
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
@@ -16813,12 +16844,13 @@ This will:
                           fontSize: "12px"
                         },
                         onClick: async () => {
-                          if (confirm(`Delete user "${user.firstName} ${user.lastName}"?
+                          const customerName = user.displayName || [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
+                          if (confirm(`Delete customer account "${customerName}"?
 
 This action cannot be undone.`)) {
                             const result = await deleteUser(user.id);
                             if (result.success) {
-                              alert("User deleted successfully");
+                              alert("Customer account deleted successfully");
                             } else {
                               alert("Error: " + result.message);
                             }
@@ -16830,19 +16862,22 @@ This action cannot be undone.`)) {
                         ]
                       }
                     )
-                  ] }) })
-                ] }, index)) })
+                  ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#6c757d", fontSize: "12px" }, children: t2("users.noAccountActions") }) })
+                ] }, user.customerKey)) })
               ] }) })
             ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: "No users found" }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: "Create your first user to get started with user management." }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: t2("users.noUsers") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: t2("users.createFirst") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                 "button",
                 {
                   className: "btn",
                   style: { background: "#28a745", width: "auto", padding: "12px 24px" },
                   onClick: () => setShowAddUserModal(true),
-                  children: "\u2795 Add Your First User"
+                  children: [
+                    "\u2795 ",
+                    t2("users.addFirst")
+                  ]
                 }
               )
             ] })
