@@ -2,7 +2,7 @@
   "nav": {
     "dashboard": "Panou",
     "orders": "Comenzi",
-    "users": "Utilizatori",
+    "users": "Clienți",
     "products": "Produse",
     "categories": "Categorii",
     "suppliers": "Furnizori",
@@ -199,7 +199,12 @@
     "status": "Status",
     "registered": "Înregistrat",
     "orders": "Comenzi",
-    "total_spent": "Total cheltuit"
+    "total_spent": "Total cheltuit",
+    "rowsPerPage": "Poziții pe pagină",
+    "showing": "Afișare {{start}}–{{end}} din {{total}}",
+    "pageOf": "{{page}} / {{totalPages}}",
+    "previous": "Înapoi",
+    "next": "Înainte"
   },
   "products": {
     "title": "Gestionare Produse",

@@ -2,7 +2,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "orders": "Orders",
-    "users": "Users",
+    "users": "Customers",
     "products": "Products",
     "categories": "Categories",
     "suppliers": "Suppliers",
@@ -199,7 +199,12 @@
     "status": "Status",
     "registered": "Registered",
     "orders": "Orders",
-    "total_spent": "Total Spent"
+    "total_spent": "Total Spent",
+    "rowsPerPage": "Rows per page",
+    "showing": "Showing {{start}}–{{end}} of {{total}}",
+    "pageOf": "Page {{page}} of {{totalPages}}",
+    "previous": "Previous",
+    "next": "Next"
   },
   "products": {
     "title": "Product Management",

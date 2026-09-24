@@ -2,7 +2,7 @@
   "nav": {
     "dashboard": "Tableau de bord",
     "orders": "Commandes",
-    "users": "Utilisateurs",
+    "users": "Clients",
     "products": "Produits",
     "categories": "Catégories",
     "suppliers": "Fournisseurs",
@@ -199,7 +199,12 @@
     "status": "Statut",
     "registered": "Inscrit",
     "orders": "Commandes",
-    "total_spent": "Total dépensé"
+    "total_spent": "Total dépensé",
+    "rowsPerPage": "Lignes par page",
+    "showing": "Affichage de {{start}} à {{end}} sur {{total}}",
+    "pageOf": "Page {{page}} sur {{totalPages}}",
+    "previous": "Précédent",
+    "next": "Suivant"
   },
   "products": {
     "title": "Gestion des produits",

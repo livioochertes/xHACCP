@@ -10429,7 +10429,7 @@
     nav: {
       dashboard: "Dashboard",
       orders: "Orders",
-      users: "Users",
+      users: "Customers",
       products: "Products",
       categories: "Categories",
       suppliers: "Suppliers",
@@ -10626,7 +10626,12 @@
       status: "Status",
       registered: "Registered",
       orders: "Orders",
-      total_spent: "Total Spent"
+      total_spent: "Total Spent",
+      rowsPerPage: "Rows per page",
+      showing: "Showing {{start}}\u2013{{end}} of {{total}}",
+      pageOf: "Page {{page}} of {{totalPages}}",
+      previous: "Previous",
+      next: "Next"
     },
     products: {
       title: "Product Management",
@@ -11241,7 +11246,7 @@
     nav: {
       dashboard: "Panou",
       orders: "Comenzi",
-      users: "Utilizatori",
+      users: "Clien\u021Bi",
       products: "Produse",
       categories: "Categorii",
       suppliers: "Furnizori",
@@ -11438,7 +11443,12 @@
       status: "Status",
       registered: "\xCEnregistrat",
       orders: "Comenzi",
-      total_spent: "Total cheltuit"
+      total_spent: "Total cheltuit",
+      rowsPerPage: "Pozi\u021Bii pe pagin\u0103",
+      showing: "Afi\u0219are {{start}}\u2013{{end}} din {{total}}",
+      pageOf: "{{page}} / {{totalPages}}",
+      previous: "\xCEnapoi",
+      next: "\xCEnainte"
     },
     products: {
       title: "Gestionare Produse",
@@ -12053,7 +12063,7 @@
     nav: {
       dashboard: "Tableau de bord",
       orders: "Commandes",
-      users: "Utilisateurs",
+      users: "Clients",
       products: "Produits",
       categories: "Cat\xE9gories",
       suppliers: "Fournisseurs",
@@ -12250,7 +12260,12 @@
       status: "Statut",
       registered: "Inscrit",
       orders: "Commandes",
-      total_spent: "Total d\xE9pens\xE9"
+      total_spent: "Total d\xE9pens\xE9",
+      rowsPerPage: "Lignes par page",
+      showing: "Affichage de {{start}} \xE0 {{end}} sur {{total}}",
+      pageOf: "Page {{page}} sur {{totalPages}}",
+      previous: "Pr\xE9c\xE9dent",
+      next: "Suivant"
     },
     products: {
       title: "Gestion des produits",
@@ -13337,6 +13352,13 @@
     const [wmsSamedayPickupPoints, setWmsSamedayPickupPoints] = (0, import_react13.useState)([]);
     const [wmsSamedayPickupPointsLoading, setWmsSamedayPickupPointsLoading] = (0, import_react13.useState)(false);
     const [users, setUsers] = (0, import_react13.useState)([]);
+    const [usersPage, setUsersPage] = (0, import_react13.useState)(1);
+    const [usersPageSize, setUsersPageSize] = (0, import_react13.useState)(25);
+    const usersPageCount = Math.max(1, Math.ceil(users.length / usersPageSize));
+    const currentUsersPage = Math.min(usersPage, usersPageCount);
+    const firstVisibleUser = users.length === 0 ? 0 : (currentUsersPage - 1) * usersPageSize + 1;
+    const lastVisibleUser = Math.min(currentUsersPage * usersPageSize, users.length);
+    const paginatedUsers = users.slice(firstVisibleUser - 1, lastVisibleUser);
     const [products, setProducts] = (0, import_react13.useState)([]);
     const [productSyncState, setProductSyncState] = (0, import_react13.useState)(null);
     const [categories, setCategories] = (0, import_react13.useState)([]);
@@ -13614,6 +13636,7 @@
       setMarketFilter(selectedMarketTab);
       setProductCategoryFilter("all");
       setProductPage(1);
+      setUsersPage(1);
       fetchStats(selectedMarketTab);
       if (activeView === "users") fetchUsers();
       else if (activeView === "products") {
@@ -13750,6 +13773,7 @@
         const data = await response.json();
         if (response.ok) {
           setUsers(data);
+          setUsersPage(1);
         } else {
           console.error("Failed to fetch users:", data.message);
         }
@@ -16685,89 +16709,131 @@ This will:
                 /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { fontSize: "24px", fontWeight: "bold", color: "#dc3545", margin: "0" }, children: users.filter((u) => u.isAdmin).length })
               ] })
             ] }),
-            users.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "User ID" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Name" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Email" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Role" }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Actions" })
-              ] }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: users.map((user, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
-                  "#",
-                  user.id
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px", fontWeight: "500" }, children: [
-                  user.firstName,
-                  " ",
-                  user.lastName
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: user.email }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
-                    padding: "4px 8px",
-                    borderRadius: "4px",
-                    backgroundColor: user.isAdmin ? "#f8d7da" : "#d4edda",
-                    color: user.isAdmin ? "#721c24" : "#155724"
-                  }, children: user.isAdmin ? "Admin" : "User" }),
-                  user.isAdmin && (user.adminMarkets || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: "#f8d7da", color: "#721c24" }, children: "SUPER" }),
-                  user.isAdmin && (user.adminMarkets || []).map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m)),
-                  !user.isAdmin && (() => {
-                    const userMarkets = [...new Set(orders.filter((o) => o.userId === user.id).map((o) => o.market || "ro"))];
-                    return userMarkets.map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 4px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m));
-                  })()
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px" }, children: [
+            users.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", marginBottom: "12px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { color: "#6c757d", fontSize: "14px" }, children: t2("users.showing", { start: firstVisibleUser, end: lastVisibleUser, total: users.length }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { htmlFor: "admin-users-page-size", style: { fontSize: "14px", color: "#495057" }, children: t2("users.rowsPerPage") }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "select",
+                    {
+                      id: "admin-users-page-size",
+                      value: usersPageSize,
+                      onChange: (event) => {
+                        setUsersPageSize(Number(event.target.value));
+                        setUsersPage(1);
+                      },
+                      style: { padding: "7px 10px", border: "1px solid #ced4da", borderRadius: "4px", background: "white" },
+                      children: [25, 50, 100].map((pageSize) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("option", { value: pageSize, children: pageSize }, pageSize))
+                    }
+                  ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "button",
                     {
-                      style: {
-                        padding: "4px 8px",
-                        border: "none",
-                        borderRadius: "3px",
-                        backgroundColor: "#007bff",
-                        color: "white",
-                        cursor: "pointer",
-                        fontSize: "12px"
-                      },
-                      onClick: () => setEditingUser(user),
-                      children: "\u270F\uFE0F Edit"
+                      type: "button",
+                      onClick: () => setUsersPage(Math.max(1, currentUsersPage - 1)),
+                      disabled: currentUsersPage <= 1,
+                      style: { padding: "7px 10px", border: "1px solid #ced4da", borderRadius: "4px", background: "white", color: currentUsersPage <= 1 ? "#adb5bd" : "#333", cursor: currentUsersPage <= 1 ? "not-allowed" : "pointer" },
+                      children: t2("users.previous")
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "14px", color: "#495057" }, children: t2("users.pageOf", { page: currentUsersPage, totalPages: usersPageCount }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                     "button",
                     {
-                      style: {
-                        padding: "4px 8px",
-                        border: "none",
-                        borderRadius: "3px",
-                        backgroundColor: "#dc3545",
-                        color: "white",
-                        cursor: "pointer",
-                        fontSize: "12px"
-                      },
-                      onClick: async () => {
-                        if (confirm(`Delete user "${user.firstName} ${user.lastName}"?
-
-This action cannot be undone.`)) {
-                          const result = await deleteUser(user.id);
-                          if (result.success) {
-                            alert("User deleted successfully");
-                          } else {
-                            alert("Error: " + result.message);
-                          }
-                        }
-                      },
-                      children: [
-                        "\u{1F5D1}\uFE0F ",
-                        t2("common.delete")
-                      ]
+                      type: "button",
+                      onClick: () => setUsersPage(Math.min(usersPageCount, currentUsersPage + 1)),
+                      disabled: currentUsersPage >= usersPageCount,
+                      style: { padding: "7px 10px", border: "1px solid #ced4da", borderRadius: "4px", background: "white", color: currentUsersPage >= usersPageCount ? "#adb5bd" : "#333", cursor: currentUsersPage >= usersPageCount ? "not-allowed" : "pointer" },
+                      children: t2("users.next")
                     }
                   )
-                ] }) })
-              ] }, index)) })
-            ] }) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "User ID" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Name" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Email" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Role" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Actions" })
+                ] }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("tbody", { children: paginatedUsers.map((user, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
+                    "#",
+                    user.id
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px", fontWeight: "500" }, children: [
+                    user.firstName,
+                    " ",
+                    user.lastName
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: user.email }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("td", { style: { padding: "12px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: {
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      backgroundColor: user.isAdmin ? "#f8d7da" : "#d4edda",
+                      color: user.isAdmin ? "#721c24" : "#155724"
+                    }, children: user.isAdmin ? "Admin" : "User" }),
+                    user.isAdmin && (user.adminMarkets || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: "#f8d7da", color: "#721c24" }, children: "SUPER" }),
+                    user.isAdmin && (user.adminMarkets || []).map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 6px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m)),
+                    !user.isAdmin && (() => {
+                      const userMarkets = [...new Set(orders.filter((o) => o.userId === user.id).map((o) => o.market || "ro"))];
+                      return userMarkets.map((m) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { marginLeft: "4px", padding: "2px 4px", borderRadius: "3px", fontSize: "10px", fontWeight: "bold", background: m === "ro" ? "#fff3cd" : m === "fr" ? "#cfe2ff" : "#d1e7dd", color: "#333" }, children: m.toUpperCase() }, m));
+                    })()
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("td", { style: { padding: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "5px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        style: {
+                          padding: "4px 8px",
+                          border: "none",
+                          borderRadius: "3px",
+                          backgroundColor: "#007bff",
+                          color: "white",
+                          cursor: "pointer",
+                          fontSize: "12px"
+                        },
+                        onClick: () => setEditingUser(user),
+                        children: "\u270F\uFE0F Edit"
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                      "button",
+                      {
+                        style: {
+                          padding: "4px 8px",
+                          border: "none",
+                          borderRadius: "3px",
+                          backgroundColor: "#dc3545",
+                          color: "white",
+                          cursor: "pointer",
+                          fontSize: "12px"
+                        },
+                        onClick: async () => {
+                          if (confirm(`Delete user "${user.firstName} ${user.lastName}"?
+
+This action cannot be undone.`)) {
+                            const result = await deleteUser(user.id);
+                            if (result.success) {
+                              alert("User deleted successfully");
+                            } else {
+                              alert("Error: " + result.message);
+                            }
+                          }
+                        },
+                        children: [
+                          "\u{1F5D1}\uFE0F ",
+                          t2("common.delete")
+                        ]
+                      }
+                    )
+                  ] }) })
+                ] }, index)) })
+              ] }) })
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: "No users found" }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: "Create your first user to get started with user management." }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(

@@ -389,6 +389,13 @@ import {
       const [wmsSamedayPickupPoints, setWmsSamedayPickupPoints] = useState([]);
       const [wmsSamedayPickupPointsLoading, setWmsSamedayPickupPointsLoading] = useState(false);
       const [users, setUsers] = useState([]);
+      const [usersPage, setUsersPage] = useState(1);
+      const [usersPageSize, setUsersPageSize] = useState(25);
+      const usersPageCount = Math.max(1, Math.ceil(users.length / usersPageSize));
+      const currentUsersPage = Math.min(usersPage, usersPageCount);
+      const firstVisibleUser = users.length === 0 ? 0 : (currentUsersPage - 1) * usersPageSize + 1;
+      const lastVisibleUser = Math.min(currentUsersPage * usersPageSize, users.length);
+      const paginatedUsers = users.slice(firstVisibleUser - 1, lastVisibleUser);
       const [products, setProducts] = useState([]);
       const [productSyncState, setProductSyncState] = useState(null);
       const [categories, setCategories] = useState([]);
@@ -698,6 +705,7 @@ import {
         setMarketFilter(selectedMarketTab);
         setProductCategoryFilter('all');
         setProductPage(1);
+        setUsersPage(1);
         fetchStats(selectedMarketTab);
         if (activeView === 'users') fetchUsers();
         else if (activeView === 'products') {
@@ -866,6 +874,7 @@ import {
           
           if (response.ok) {
             setUsers(data);
+            setUsersPage(1);
           } else {
             console.error('Failed to fetch users:', data.message);
           }
@@ -3940,7 +3949,50 @@ import {
                 </div>
                 
                 {users.length > 0 ? (
-                  <div style={{overflowX: 'auto'}}>
+                  <div>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '12px'}}>
+                      <span style={{color: '#6c757d', fontSize: '14px'}}>
+                        {t('users.showing', { start: firstVisibleUser, end: lastVisibleUser, total: users.length })}
+                      </span>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                        <label htmlFor="admin-users-page-size" style={{fontSize: '14px', color: '#495057'}}>
+                          {t('users.rowsPerPage')}
+                        </label>
+                        <select
+                          id="admin-users-page-size"
+                          value={usersPageSize}
+                          onChange={(event) => {
+                            setUsersPageSize(Number(event.target.value));
+                            setUsersPage(1);
+                          }}
+                          style={{padding: '7px 10px', border: '1px solid #ced4da', borderRadius: '4px', background: 'white'}}
+                        >
+                          {[25, 50, 100].map((pageSize) => (
+                            <option key={pageSize} value={pageSize}>{pageSize}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setUsersPage(Math.max(1, currentUsersPage - 1))}
+                          disabled={currentUsersPage <= 1}
+                          style={{padding: '7px 10px', border: '1px solid #ced4da', borderRadius: '4px', background: 'white', color: currentUsersPage <= 1 ? '#adb5bd' : '#333', cursor: currentUsersPage <= 1 ? 'not-allowed' : 'pointer'}}
+                        >
+                          {t('users.previous')}
+                        </button>
+                        <span style={{fontSize: '14px', color: '#495057'}}>
+                          {t('users.pageOf', { page: currentUsersPage, totalPages: usersPageCount })}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setUsersPage(Math.min(usersPageCount, currentUsersPage + 1))}
+                          disabled={currentUsersPage >= usersPageCount}
+                          style={{padding: '7px 10px', border: '1px solid #ced4da', borderRadius: '4px', background: 'white', color: currentUsersPage >= usersPageCount ? '#adb5bd' : '#333', cursor: currentUsersPage >= usersPageCount ? 'not-allowed' : 'pointer'}}
+                        >
+                          {t('users.next')}
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{overflowX: 'auto'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse'}}>
                       <thead>
                         <tr style={{backgroundColor: '#f5f5f5'}}>
@@ -3952,7 +4004,7 @@ import {
                         </tr>
                       </thead>
                       <tbody>
-                        {users.map((user, index) => (
+                        {paginatedUsers.map((user, index) => (
                           <tr key={index} style={{borderBottom: '1px solid #eee'}}>
                             <td style={{padding: '12px'}}>#{user.id}</td>
                             <td style={{padding: '12px', fontWeight: '500'}}>{user.firstName} {user.lastName}</td>
@@ -4024,6 +4076,7 @@ import {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 ) : (
                   <div style={{padding: '40px', textAlign: 'center', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
