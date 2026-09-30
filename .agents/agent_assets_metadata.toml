@@ -91,3 +91,31 @@ mtime_ms = 1790810510453
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/64d3d2bb-d98b-4b38-953a-b52b82ba9eec/60477850-aed0-4f4c-9c08-64896f8c230d"
 storage_version_token = "1790810548069136"
 content_type = "image/png"
+
+[[outputs]]
+id = "77qWfjIve4UOxKKyP8iyl"
+uri = "file://attached_assets/generated_images/chef-event-cover-dark-1920x615.png"
+type = "image"
+title = "Cover Chef Event — bleu nuit"
+description = "Bannière xHACCP en 1920 × 615 px. Texte net et QR réel vers https://xhaccp.fr/chef-event."
+logical_id = "91cb082e-416a-4c85-8c63-d0a90b6acc7c"
+content_hash = "sha256:3703b176617384421bff99eae28e9951d090f2b5563fb0222ce4cad8d44b2b7b"
+size = 527352
+mtime_ms = 1790812571012
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/91cb082e-416a-4c85-8c63-d0a90b6acc7c/ea0eb0af-a45c-41cd-b520-c0cf1820472e"
+storage_version_token = "1790812609693983"
+content_type = "image/png"
+
+[[outputs]]
+id = "SBvco-_N5DaD6ayJ6_nRI"
+uri = "file://attached_assets/generated_images/chef-event-cover-light-1920x615.png"
+type = "image"
+title = "Cover Chef Event — clair"
+description = "Bannière xHACCP en 1920 × 615 px. Variante claire, avec le même QR réel vers https://xhaccp.fr/chef-event."
+logical_id = "6b840e5a-9339-4ebe-a4c0-d10cf3a96a1b"
+content_hash = "sha256:ee14b7f5de4bc62c6734d8a65fd273ffdf6d9b57c074f972377ac3ada44e9bc0"
+size = 524695
+mtime_ms = 1790812571376
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/6b840e5a-9339-4ebe-a4c0-d10cf3a96a1b/2c8a150a-f8b2-4d98-bad4-c6f3f6695ca5"
+storage_version_token = "1790812610268172"
+content_type = "image/png"
