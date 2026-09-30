@@ -26,6 +26,13 @@ interface HeroResponse {
   autoplaySeconds?: number;
 }
 
+function isArtworkOnlySlide(slide: HeroSlide): boolean {
+  return Boolean(slide.imageUrl?.trim()) &&
+    !slide.title?.trim() &&
+    !slide.subtitle?.trim() &&
+    !slide.ctaLabel?.trim();
+}
+
 function HeroCta({ slide, children }: { slide: HeroSlide; children: React.ReactNode }) {
   if (slide.ctaType === "quote") {
     return <ContactModal>{children}</ContactModal>;
@@ -61,7 +68,10 @@ export default function HomeHero() {
     staleTime: 60 * 1000,
   });
   const slides = useMemo<HeroSlide[]>(() => {
-    const configured = (data?.slides || []).filter((slide) => slide.slideType === "image" ? Boolean(slide.imageUrl) : Boolean(slide.title || slide.subtitle));
+    const configured = (data?.slides || []).filter((slide) =>
+      isArtworkOnlySlide(slide) ||
+      (slide.slideType === "image" ? Boolean(slide.imageUrl) : Boolean(slide.title || slide.subtitle))
+    );
     return configured.length > 0 ? configured : [{
       id: 0,
       slideType: "text",
@@ -72,6 +82,7 @@ export default function HomeHero() {
       ctaType: "link",
     }];
   }, [data?.slides, t]);
+  const artworkOnlyCarousel = slides.every(isArtworkOnlySlide);
   const autoplaySeconds = Math.min(30, Math.max(3, data?.autoplaySeconds || 5));
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -100,7 +111,7 @@ export default function HomeHero() {
   return (
     <section
       ref={heroRef}
-      className="relative overflow-hidden bg-slate-950 text-white"
+      className={`relative overflow-hidden bg-slate-950 text-white ${artworkOnlyCarousel ? "aspect-[1920/615]" : ""}`}
       aria-roledescription="carousel"
       aria-label="Promotional highlights"
       onMouseEnter={() => setPaused(true)}
@@ -110,9 +121,11 @@ export default function HomeHero() {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
       }}
     >
-      <div className="relative min-h-[360px] md:min-h-[410px]">
+      <div className={`relative ${artworkOnlyCarousel ? "h-full w-full" : "min-h-[360px] md:min-h-[410px]"}`}>
         {slides.map((slide, index) => {
           const isActive = index === activeIndex;
+          const artworkOnly = isArtworkOnlySlide(slide);
+          const hasImage = (slide.slideType === "image" || artworkOnly) && Boolean(slide.imageUrl);
           const title = slide.title || t("home.hero.title");
           const subtitle = slide.subtitle || t("home.hero.subtitle");
           const label = slide.ctaLabel || (slide.id <= 0 ? t("home.hero.shopNow") : "");
@@ -125,51 +138,55 @@ export default function HomeHero() {
               aria-roledescription="slide"
               aria-label={`${index + 1} of ${slides.length}`}
             >
-              {slide.slideType === "image" && slide.imageUrl ? (
+              {hasImage && slide.imageUrl ? (
                 <>
                   {(slide.destinationUrl || (slide.destinationType === "none" && slide.ctaType !== "quote" && slide.ctaUrl)) ? (
                     <HeroDestination
                       href={slide.destinationUrl || slide.ctaUrl as string}
-                      label={slide.imageAlt || title}
+                      label={slide.imageAlt || (artworkOnly ? "xHACCP France promotion" : title)}
                     >
                       <img
                         src={slide.imageUrl}
-                        alt={slide.imageAlt || title}
+                        alt={slide.imageAlt || (artworkOnly ? "xHACCP France promotion" : title)}
                         className="absolute inset-0 h-full w-full object-cover"
                       />
                     </HeroDestination>
                   ) : (
                     <img
                       src={slide.imageUrl}
-                      alt={slide.imageAlt || title}
+                      alt={slide.imageAlt || (artworkOnly ? "xHACCP France promotion" : title)}
                       className="absolute inset-0 h-full w-full object-cover"
                     />
                   )}
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-slate-950/10" />
+                  {!artworkOnly && (
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-slate-950/10" />
+                  )}
                 </>
               ) : (
                 <div className="absolute inset-0 hero-gradient" />
               )}
-              <div className="container relative z-10 mx-auto flex min-h-[360px] items-center px-4 py-16 md:min-h-[410px]">
-                <div className="mx-auto max-w-4xl text-center">
-                  <h1 className="mb-6 text-4xl font-bold md:text-5xl">{title}</h1>
-                  {subtitle && <p className="mb-8 text-xl text-slate-200">{subtitle}</p>}
-                  {label && (
-                    <div className="flex flex-col justify-center gap-4 sm:flex-row">
-                      <HeroCta slide={slide}>
-                        <Button size="lg" className="kitchen-pro-secondary">{label}</Button>
-                      </HeroCta>
-                      {slide.ctaType !== "quote" && (
-                        <ContactModal>
-                          <Button size="lg" variant="outline" className="border-white bg-white/10 text-white hover:bg-white hover:text-primary">
-                            {t("home.hero.quote")}
-                          </Button>
-                        </ContactModal>
-                      )}
-                    </div>
-                  )}
+              {!artworkOnly && (
+                <div className="container relative z-10 mx-auto flex min-h-[360px] items-center px-4 py-16 md:min-h-[410px]">
+                  <div className="mx-auto max-w-4xl text-center">
+                    <h1 className="mb-6 text-4xl font-bold md:text-5xl">{title}</h1>
+                    {subtitle && <p className="mb-8 text-xl text-slate-200">{subtitle}</p>}
+                    {label && (
+                      <div className="flex flex-col justify-center gap-4 sm:flex-row">
+                        <HeroCta slide={slide}>
+                          <Button size="lg" className="kitchen-pro-secondary">{label}</Button>
+                        </HeroCta>
+                        {slide.ctaType !== "quote" && (
+                          <ContactModal>
+                            <Button size="lg" variant="outline" className="border-white bg-white/10 text-white hover:bg-white hover:text-primary">
+                              {t("home.hero.quote")}
+                            </Button>
+                          </ContactModal>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
