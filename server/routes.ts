@@ -50,6 +50,11 @@ import { createPayPalOrder, getPayPalOrder, capturePayPalOrder, paypalApprovalUr
 import { getRomanianSamedayShippingContext } from "./sameday-shipping";
 import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
 import { buildPublicTrackingUrl, registerPublicTrackingRoute } from "./public-tracking.js";
+import {
+  createPublicProductDetailHandler,
+  createPublicProductSlugHandler,
+} from "./public-product-detail";
+import { getActiveProductMarketRow } from "./product-market-availability";
 
 const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
 const EVENT_VOUCHER_CAMPAIGN_DEFAULTS = {
@@ -309,17 +314,12 @@ export async function refreshMarketCaches(): Promise<void> {
 
 // Apply market-specific price/availability overlay to a product clone
 export function applyMarketOverlay(product: any, market: string): any {
-  const productMarketRows = productMarketsMap.get(product.id);
   // Marketplace availability is explicit. A product without any market row
   // belongs to no storefront and must not bypass Admin marketplace filters.
-  if (!productMarketRows || productMarketRows.size === 0) return null;
-
-  const marketRow = productMarketRows.get(market);
-  // Once a product is assigned to at least one marketplace, its availability
-  // is explicit. A missing FR row must not make an RO/COM-only item reappear
-  // on the French storefront after it was removed from that market.
+  // A missing or inactive market row must not expose an RO/COM-only product
+  // on the French storefront.
+  const marketRow = getActiveProductMarketRow(productMarketsMap, product.id, market);
   if (!marketRow) return null;
-  if (marketRow.isActive === false) return null; // disabled for this market → hide
   const marketCategory = marketRow.categoryId != null
     ? categoriesById.get(marketRow.categoryId)
     : null;
@@ -2266,89 +2266,21 @@ Sitemap: https://${domain}/sitemap.xml
     res.json(products);
   });
 
-  app.get("/api/products/:id", async (req, res) => {
-    try {
-      const productId = parseInt(req.params.id);
-      if (isNaN(productId)) {
-        return res.status(400).json({ message: "Invalid product ID" });
-      }
-      const product = await storage.getProduct(productId);
-      if (!product) {
-        return res.status(404).json({ message: "Product not found" });
-      }
-      // Hide inactive products from public access (case-insensitive)
-      if (product.status?.toLowerCase() !== 'active') {
-        return res.status(404).json({ message: "Product not found" });
-      }
-      // Apply market overlay
-      const market = getMarketFromRequest(req);
-      const overlaid = applyMarketOverlay(product, market);
-      if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
-      res.json(await decorateCompositeProduct(overlaid, market));
-    } catch (error) {
-      console.error("Get product error:", error);
-      res.status(500).json({ message: "Failed to get product" });
-    }
-  });
+  app.get("/api/products/:id", createPublicProductDetailHandler({
+    getProduct: productId => storage.getProduct(productId),
+    getMarket: getMarketFromRequest,
+    applyMarketOverlay,
+    decorateCompositeProduct,
+  }));
 
-  app.get("/api/products/slug/:slug", async (req, res) => {
-    try {
-      const requestedSlug = req.params.slug;
-      const market = getMarketFromRequest(req);
-
-      // Check in-memory first (includes category translations)
-      let product: any = productsBySlug.get(requestedSlug);
-
-      // Exact match found in memory
-      if (product && product.status?.toLowerCase() === 'active') {
-        const overlaid = applyMarketOverlay(product, market);
-        if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
-        return res.json(await decorateCompositeProduct(overlaid, market));
-      }
-
-      // Fall back to DB if not in memory (e.g. recently added product)
-      if (!product) {
-        product = await storage.getProductBySlug(requestedSlug);
-        if (product && product.status?.toLowerCase() === 'active') {
-          const overlaid = applyMarketOverlay(product, market);
-          if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
-          return res.json(await decorateCompositeProduct(overlaid, market));
-        }
-      }
-
-      // Fuzzy fallback: search by words extracted from slug
-      const words = requestedSlug
-        .split('-')
-        .filter(w => w.length > 2 && !['rol', 'set', 'de', 'si', 'cu'].includes(w));
-
-      if (words.length > 0) {
-        const activeProducts = allProductsData.filter(p => p.status?.toLowerCase() === 'active');
-
-        // Score each product by how many slug words appear in its slug or name
-        const scored = activeProducts.map(p => {
-          const haystack = `${p.slug || ''} ${p.name || ''}`.toLowerCase();
-          const score = words.filter(w => haystack.includes(w)).length;
-          return { product: p, score };
-        }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
-
-        if (scored.length > 0) {
-          // Apply market overlay to fuzzy match — filter unavailable products for this market
-          const overlaid = applyMarketOverlay(scored[0].product, market);
-          if (overlaid === null) return res.status(404).json({ message: "Product not available in this market" });
-          return res.json({
-            ...(await decorateCompositeProduct(overlaid, market)),
-            _redirected: true,
-            _originalSlug: requestedSlug,
-          });
-        }
-      }
-
-      return res.status(404).json({ message: "Product not found" });
-    } catch (error) {
-      console.error("Get product by slug error:", error);
-      res.status(500).json({ message: "Failed to get product" });
-    }
-  });
+  app.get("/api/products/slug/:slug", createPublicProductSlugHandler({
+    getCachedProductBySlug: slug => productsBySlug.get(slug),
+    getProductBySlug: slug => storage.getProductBySlug(slug),
+    getActiveProducts: () => allProductsData,
+    getMarket: getMarketFromRequest,
+    applyMarketOverlay,
+    decorateCompositeProduct,
+  }));
 
   // Get product translation by language (public endpoint)
   app.get("/api/products/:id/translation/:language", async (req, res) => {

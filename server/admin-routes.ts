@@ -43,6 +43,7 @@ import {
 } from "./sameday-shipping";
 import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
 import { buildAdminCustomerList } from "./admin-customer-list";
+import { createAdminProductListHandler } from "./admin-product-list";
 import {
   normalizeOrderLookupEmail,
   normalizeRomanianVatCode,
@@ -3083,141 +3084,23 @@ export async function registerAdminRoutes(app: Express) {
   });
 
   // Admin Product Management Routes
-  app.get("/admin/api/products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
-    try {
-      const { search, categoryId, featured, limit = 50, offset = 0, supplierId, market, language } = req.query;
-      if (market && market !== 'all' && !canAccessMarket(req as AdminAuthRequest, market as string)) {
-        return res.status(403).json({ message: "Access denied for this market" });
-      }
-
-      const allowedMarkets = req.adminMarkets || [];
-      const isSuperAdmin = allowedMarkets.length === 0;
-
-      // Determine which markets we need to filter by (if any) BEFORE fetching products
-      // so we can apply market-scoped IDs in the initial fetch, not post-pagination.
-      let marketProductIds: Set<number> | null = null;
-      let marketRowByProduct: Map<number, typeof productMarkets.$inferSelect> | null = null;
-      if (!isSuperAdmin && (!market || market === 'all')) {
-        // Restricted admin — limit to their markets
-        const marketRows = await db.select().from(productMarkets).where(
-          allowedMarkets.length === 1
-            ? eq(productMarkets.market, allowedMarkets[0])
-            : inArray(productMarkets.market, allowedMarkets)
-        );
-        marketProductIds = new Set(marketRows.map(r => r.productId));
-        // If restricted to a single market, we can safely apply its price overrides
-        if (allowedMarkets.length === 1) {
-          marketRowByProduct = new Map(marketRows.map(r => [r.productId, r]));
-        }
-      } else if (market && market !== 'all') {
-        // Explicit market filter requested
-        const marketRows = await db.select().from(productMarkets).where(eq(productMarkets.market, market as string));
-        marketProductIds = new Set(marketRows.map(r => r.productId));
-        marketRowByProduct = new Map(marketRows.map(r => [r.productId, r]));
-      }
-
-      // Fetch ALL products from memory when a market filter is active so that
-      // pagination is applied AFTER filtering (prevents missing items when limit < total).
-      const needsMarketFilter = marketProductIds !== null;
-      const fetchLimit = needsMarketFilter ? 100000 : parseInt(limit as string);
-      const fetchOffset = needsMarketFilter ? 0 : parseInt(offset as string);
-
-      const products = await storage.getProducts({
-        search: search as string,
-        categoryId: categoryId ? parseInt(categoryId as string) : undefined,
-        featured: featured === 'true',
-        limit: fetchLimit,
-        offset: fetchOffset
-      });
-
-      // Apply market filter
-      let filteredProducts = products;
-      if (marketProductIds !== null) {
-        filteredProducts = filteredProducts.filter(p => (marketProductIds as Set<number>).has(p.id));
-      }
-
-      // Filter by supplier if specified
-      if (supplierId) {
-        filteredProducts = filteredProducts.filter(product => product.supplierId === parseInt(supplierId as string));
-      }
-
-      // Apply limit/offset manually when we fetched everything for market filtering
-      if (needsMarketFilter) {
-        const off = parseInt(offset as string);
-        const lim = parseInt(limit as string);
-        filteredProducts = filteredProducts.slice(off, off + lim);
-      }
-
-      // Apply market-specific price/currency/stock overrides so the admin sees
-      // the values for the selected market (e.g. EUR prices on the FR tab).
-      if (marketRowByProduct) {
-        const effectiveMarket = (market && market !== 'all') ? (market as string) : allowedMarkets[0];
-        const marketCategories = await storage.getCategories(effectiveMarket);
-        const marketCategoriesById = new Map(marketCategories.map(category => [category.id, category]));
-        const marketCategoriesBySlug = new Map(marketCategories.map(category => [category.slug, category]));
-        let defaultCurrency: string | null = null;
-        try {
-          const settings = await storage.getMarketSettings();
-          defaultCurrency = settings.find((s: any) => s.market === effectiveMarket)?.currency || null;
-        } catch (e) {
-          console.error('Could not load market settings for currency fallback:', e);
-        }
-        filteredProducts = filteredProducts.map(p => {
-          const row = (marketRowByProduct as Map<number, any>).get(p.id);
-          if (!row) return p;
-          const marketCategory = row.categoryId != null
-            ? marketCategoriesById.get(row.categoryId)
-            : p.category?.slug
-              ? marketCategoriesBySlug.get(p.category.slug)
-              : undefined;
-          return {
-            ...p,
-            ...(marketCategory ? { categoryId: marketCategory.id, category: marketCategory } : {}),
-            price: row.price ?? p.price,
-            compareAtPrice: row.compareAtPrice ?? p.compareAtPrice,
-            currency: row.currency ?? defaultCurrency ?? p.currency,
-            stockQuantity: row.stockQuantity ?? p.stockQuantity,
-            marketIsActive: row.isActive,
-          };
-        });
-      }
-
-      const productCategories = filteredProducts
-        .map(product => product.category)
-        .filter(Boolean);
-      const localizedProductCategories = await localizeAdminCategories(
-        productCategories,
-        language,
-        market && market !== "all"
-          ? market as string
-          : allowedMarkets.length === 1
-            ? allowedMarkets[0]
-            : undefined,
-      );
-      const localizedCategoryById = new Map(
-        localizedProductCategories.map(category => [category.id, category]),
-      );
-
-      // storage's lightweight product projection intentionally omits this
-      // flag; include it for the composite-product admin controls.
-      const compositeRows = filteredProducts.length
-        ? await db.select({ id: productsTable.id, isComposite: productsTable.isComposite })
-          .from(productsTable)
-          .where(inArray(productsTable.id, filteredProducts.map(product => product.id)))
-        : [];
-      const compositeById = new Map(compositeRows.map(row => [row.id, row.isComposite]));
-      res.json(filteredProducts.map(product => ({
-        ...product,
-        ...(product.category
-          ? { category: localizedCategoryById.get(product.category.id) || product.category }
-          : {}),
-        isComposite: compositeById.get(product.id) ?? false,
-      })));
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      res.status(500).json({ message: "Failed to fetch products" });
-    }
-  });
+  app.get("/admin/api/products", authenticateAdmin, createAdminProductListHandler({
+    canAccessMarket: (req, market) => canAccessMarket(req as AdminAuthRequest, market),
+    getMarketRows: markets => {
+      const query = db.select().from(productMarkets);
+      return markets.length === 1
+        ? query.where(eq(productMarkets.market, markets[0]))
+        : query.where(inArray(productMarkets.market, markets));
+    },
+    getProducts: options => storage.getProducts(options),
+    getCategories: market => storage.getCategories(market),
+    getMarketSettings: () => storage.getMarketSettings(),
+    localizeCategories: localizeAdminCategories,
+    getCompositeRows: productIds => db.select({
+      id: productsTable.id,
+      isComposite: productsTable.isComposite,
+    }).from(productsTable).where(inArray(productsTable.id, productIds)),
+  }));
 
   app.post("/admin/api/products", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
