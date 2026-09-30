@@ -10644,9 +10644,9 @@ import {
                         accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
                         disabled={uploadingCertifications}
                         onChange={(e) => {
-                          const files = e.target.files;
+                          const files = Array.from(e.target.files || []);
                           e.target.value = '';
-                          if (files && files.length > 0) uploadCertifications(files);
+                          if (files.length > 0) uploadCertifications(files);
                         }}
                         style={{display: 'none'}}
                       />
