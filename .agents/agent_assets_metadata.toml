@@ -53,7 +53,7 @@ content_type = "application/pdf"
 [[outputs]]
 id = "TV_Y5tbJ-ibSw9bKigEb9"
 uri = "file://artifacts/mockup-sandbox/public/exports/chef-event-qr-card.html"
-type = "text"
+type = "html"
 title = "Card Chef Event — HTML clicabil responsive"
 description = "Cardul se adaptează la fereastră și se deschide către https://xhaccp.fr/chef-event la atingere."
 logical_id = "d517fd78-0021-4959-8924-06b79cff76ee"
@@ -63,3 +63,31 @@ mtime_ms = 1789329068550
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/d517fd78-0021-4959-8924-06b79cff76ee/bafff247-9dd9-4910-b52f-5ec692b990f9"
 storage_version_token = "1789329136696542"
 content_type = "text/html"
+
+[[outputs]]
+id = "KUfkksHXWfVtJlKzxg1Sp"
+uri = "file://artifacts/mockup-sandbox/public/exports/home-chef-participation.png"
+type = "image"
+title = "Cover Home — La Pétanque des Toqués"
+description = "PNG 1920 × 615 px · Participarea xHACCP France, fotografia originală și oferta pentru comunitatea evenimentului."
+logical_id = "7445fab2-a64c-4eb7-8128-090e0b54d4af"
+content_hash = "sha256:888289e35ced595232c55820d64b36039ec04cc50c8d688c1589fd915d0184dc"
+size = 786211
+mtime_ms = 1790810508170
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/7445fab2-a64c-4eb7-8128-090e0b54d4af/18d1d207-9f3e-4f12-8f13-488f2e114531"
+storage_version_token = "1790810547447459"
+content_type = "image/png"
+
+[[outputs]]
+id = "qwUrYDUG6Zfe2GzuZkRWF"
+uri = "file://artifacts/mockup-sandbox/public/exports/home-chef-offer.png"
+type = "image"
+title = "Cover Home — Oferta −20 %"
+description = "PNG 1920 × 615 px · −20 % timp de un an, prima comandă validată în 30 de zile și QR-ul original."
+logical_id = "64d3d2bb-d98b-4b38-953a-b52b82ba9eec"
+content_hash = "sha256:17f46f97824594753ccf3acb16db18296031134768dc2537b26457fe4ace7354"
+size = 817281
+mtime_ms = 1790810510453
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/64d3d2bb-d98b-4b38-953a-b52b82ba9eec/60477850-aed0-4f4c-9c08-64896f8c230d"
+storage_version_token = "1790810548069136"
+content_type = "image/png"
