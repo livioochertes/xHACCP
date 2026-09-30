@@ -807,10 +807,30 @@ export default function ProductDetails() {
         <div className="mt-16">
           <Tabs defaultValue="description" className="w-full">
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-              <TabsTrigger value="description">{t('products.description')}</TabsTrigger>
-              <TabsTrigger value="specifications">{t('products.specifications')}</TabsTrigger>
-              <TabsTrigger value="certifications">{t('products.certifications')}</TabsTrigger>
-              <TabsTrigger value="reviews">{t('products.reviews')} ({validReviews.length})</TabsTrigger>
+              <TabsTrigger
+                value="description"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:font-semibold"
+              >
+                {t('products.description')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="specifications"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:font-semibold"
+              >
+                {t('products.specifications')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="certifications"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:font-semibold"
+              >
+                {t('products.certifications')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="reviews"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:font-semibold"
+              >
+                {t('products.reviews')} ({validReviews.length})
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="description" className="mt-6">
