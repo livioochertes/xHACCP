@@ -806,9 +806,10 @@ export default function ProductDetails() {
         {/* ── Full-width tabs below ── */}
         <div className="mt-16">
           <Tabs defaultValue="description" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
               <TabsTrigger value="description">{t('products.description')}</TabsTrigger>
               <TabsTrigger value="specifications">{t('products.specifications')}</TabsTrigger>
+              <TabsTrigger value="certifications">{t('products.certifications')}</TabsTrigger>
               <TabsTrigger value="reviews">{t('products.reviews')} ({validReviews.length})</TabsTrigger>
             </TabsList>
 
@@ -894,6 +895,64 @@ export default function ProductDetails() {
                       </dl>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="certifications" className="mt-6">
+              <Card>
+                <CardContent className="p-6 md:p-8">
+                  {(() => {
+                    const certifications = Array.isArray((product as any).certifications)
+                      ? (product as any).certifications as {
+                          id: string;
+                          name: string;
+                          url: string;
+                          mimeType: string;
+                        }[]
+                      : [];
+                    const safeCertifications = certifications.filter(certificate =>
+                      typeof certificate.url === 'string' &&
+                      /^\/(?:r2|uploads)\/certifications\/[0-9a-f-]+\.(?:pdf|jpg|png|webp)$/i.test(certificate.url)
+                    );
+
+                    if (safeCertifications.length === 0) {
+                      return <p className="text-muted-foreground">{t('products.noCertifications')}</p>;
+                    }
+
+                    return (
+                      <div className="space-y-8">
+                        {safeCertifications.map(certificate => (
+                          <section key={certificate.id || certificate.url} className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <h3 className="font-semibold text-gray-900 break-all">{certificate.name}</h3>
+                              <a
+                                href={certificate.url}
+                                download={certificate.name}
+                                className="inline-flex items-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-gray-50"
+                              >
+                                {t('products.downloadCertification')}
+                              </a>
+                            </div>
+                            {certificate.mimeType === 'application/pdf' ? (
+                              <iframe
+                                src={certificate.url}
+                                title={certificate.name}
+                                className="h-[520px] w-full rounded-lg border bg-white"
+                              />
+                            ) : certificate.mimeType?.startsWith('image/') ? (
+                              <img
+                                src={certificate.url}
+                                alt={certificate.name}
+                                className="max-h-[520px] max-w-full rounded-lg border object-contain"
+                                loading="lazy"
+                              />
+                            ) : null}
+                          </section>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>

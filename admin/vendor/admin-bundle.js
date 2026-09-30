@@ -10780,6 +10780,18 @@
         uploading: "Uploading...",
         uploadLimits: "Maximum 10 images, 5MB each. Formats: JPG, PNG, GIF, WebP",
         uploadedCount: "({{count}}/10 images uploaded)",
+        certificationsTitle: "Product Certifications",
+        certificationsDesc: "Attach certificates that customers can view and download from the product page.",
+        certificationsUploadClick: "Upload certificate files",
+        certificationsUploading: "Uploading certificates...",
+        certificationsLimits: "PDF, JPG, PNG, or WebP. Maximum 10 files, 10 MB each.",
+        certificationsEmpty: "No certificate files added yet.",
+        certificationsRemove: "Remove",
+        certificationsTypeError: "Use PDF, JPG, PNG, or WebP files.",
+        certificationsSizeError: "Each file must be 10 MB or smaller.",
+        certificationsCountError: "Maximum 10 certificate files per product.",
+        certificationsUploadError: "Could not upload the certificate files.",
+        certificationsRemoveError: "Could not remove the certificate file. Try again.",
         mainBadge: "MAIN",
         setAsMain: "Set as Main",
         inventoryTitle: "Stock & Identification",
@@ -11607,6 +11619,18 @@
         uploading: "Se \xEEncarc\u0103...",
         uploadLimits: "Maxim 10 imagini, 5MB fiecare. Formate: JPG, PNG, GIF, WebP",
         uploadedCount: "({{count}}/10 imagini \xEEnc\u0103rcate)",
+        certificationsTitle: "Certific\u0103ri produs",
+        certificationsDesc: "Adaug\u0103 certificate pe care clien\u021Bii le pot consulta \u0219i desc\u0103rca pe pagina produsului.",
+        certificationsUploadClick: "\xCEncarc\u0103 fi\u0219ierele certificatelor",
+        certificationsUploading: "Se \xEEncarc\u0103 certificatele...",
+        certificationsLimits: "PDF, JPG, PNG sau WebP. Maximum 10 fi\u0219iere, 10 MB fiecare.",
+        certificationsEmpty: "Nu ai ad\u0103ugat \xEEnc\u0103 fi\u0219iere de certificare.",
+        certificationsRemove: "Elimin\u0103",
+        certificationsTypeError: "Folose\u0219te fi\u0219iere PDF, JPG, PNG sau WebP.",
+        certificationsSizeError: "Fiecare fi\u0219ier trebuie s\u0103 aib\u0103 cel mult 10 MB.",
+        certificationsCountError: "Po\u021Bi ad\u0103uga maximum 10 fi\u0219iere de certificare per produs.",
+        certificationsUploadError: "Fi\u0219ierele de certificare nu au putut fi \xEEnc\u0103rcate.",
+        certificationsRemoveError: "Fi\u0219ierul de certificare nu a putut fi eliminat. \xCEncearc\u0103 din nou.",
         mainBadge: "PRINCIPAL\u0102",
         setAsMain: "Seteaz\u0103 ca principal\u0103",
         inventoryTitle: "Stoc \u0219i identificare",
@@ -12434,6 +12458,18 @@
         uploading: "T\xE9l\xE9chargement...",
         uploadLimits: "Maximum 10 images, 5 Mo chacune. Formats : JPG, PNG, GIF, WebP",
         uploadedCount: "({{count}}/10 images t\xE9l\xE9charg\xE9es)",
+        certificationsTitle: "Certifications du produit",
+        certificationsDesc: "Ajoutez les certificats que les clients pourront consulter et t\xE9l\xE9charger sur la page du produit.",
+        certificationsUploadClick: "T\xE9l\xE9verser les certificats",
+        certificationsUploading: "T\xE9l\xE9versement des certificats...",
+        certificationsLimits: "PDF, JPG, PNG ou WebP. Maximum 10 fichiers, 10 Mo chacun.",
+        certificationsEmpty: "Aucun fichier de certification ajout\xE9.",
+        certificationsRemove: "Supprimer",
+        certificationsTypeError: "Utilisez des fichiers PDF, JPG, PNG ou WebP.",
+        certificationsSizeError: "Chaque fichier doit faire 10 Mo maximum.",
+        certificationsCountError: "Maximum 10 fichiers de certification par produit.",
+        certificationsUploadError: "Impossible de t\xE9l\xE9verser les certificats.",
+        certificationsRemoveError: "Impossible de supprimer le certificat. R\xE9essayez.",
         mainBadge: "PRINCIPALE",
         setAsMain: "D\xE9finir comme principale",
         inventoryTitle: "Stock et identification",
@@ -13600,6 +13636,7 @@
           piecesPerPackage: editingProduct.piecesPerPackage?.toString() || "",
           productQuantity: editingProduct.productQuantity || "",
           specs: Array.isArray(editingProduct.specs) ? editingProduct.specs : [],
+          certifications: Array.isArray(editingProduct.certifications) ? editingProduct.certifications : [],
           volumeDiscounts: Array.isArray(editingProduct.volumeDiscounts) ? editingProduct.volumeDiscounts : [],
           priority: editingProduct.priority || 0,
           productType: editingProduct.productType || (editingProduct.isService ? "service" : "standard"),
@@ -22130,6 +22167,7 @@ Cordialement,`
         piecesPerPackage: "",
         productQuantity: "",
         specs: [],
+        certifications: [],
         volumeDiscounts: [],
         priority: 0,
         productType: "standard",
@@ -22139,6 +22177,8 @@ Cordialement,`
         pennylaneAccountingAccountId: ""
       });
       const [uploadedImages, setUploadedImages] = (0, import_react13.useState)([]);
+      const [uploadingCertifications, setUploadingCertifications] = (0, import_react13.useState)(false);
+      const pendingCertificationUploadsRef = import_react13.default.useRef(/* @__PURE__ */ new Map());
       const [componentProducts, setComponentProducts] = (0, import_react13.useState)([]);
       const [componentSearch, setComponentSearch] = (0, import_react13.useState)("");
       const [componentsLoading, setComponentsLoading] = (0, import_react13.useState)(false);
@@ -22443,6 +22483,101 @@ Cordialement,`
           setUploadProgress(0);
         }
       };
+      const uploadCertifications = async (files) => {
+        const selectedFiles = Array.from(files || []);
+        const supportedTypes = [
+          "application/pdf",
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/webp"
+        ];
+        const validFiles = selectedFiles.filter((file) => {
+          if (!supportedTypes.includes(file.type)) {
+            alert(`${file.name}: ${t2("products.modal.certificationsTypeError")}`);
+            return false;
+          }
+          if (file.size <= 0 || file.size > 10 * 1024 * 1024) {
+            alert(`${file.name}: ${t2("products.modal.certificationsSizeError")}`);
+            return false;
+          }
+          return true;
+        });
+        if (validFiles.length === 0) return;
+        const existingCertifications = productFormData.certifications || [];
+        if (existingCertifications.length + validFiles.length > 10) {
+          alert(t2("products.modal.certificationsCountError"));
+          return;
+        }
+        setUploadingCertifications(true);
+        const formData = new FormData();
+        validFiles.forEach((file) => formData.append("certifications", file));
+        try {
+          const response = await fetch("/admin/api/upload-product-certifications", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${localStorage.getItem("adminToken")}`
+            },
+            body: formData
+          });
+          const result = await response.json();
+          if (!response.ok || !result.success) {
+            throw new Error(result.message || t2("products.modal.certificationsUploadError"));
+          }
+          (result.files || []).forEach((file) => {
+            pendingCertificationUploadsRef.current.set(file.id, file);
+          });
+          setProductFormData((prev) => ({
+            ...prev,
+            certifications: [...prev.certifications || [], ...result.files || []]
+          }));
+        } catch (error2) {
+          console.error("Certificate upload error:", error2);
+          alert(error2.message || t2("products.modal.certificationsUploadError"));
+        } finally {
+          setUploadingCertifications(false);
+        }
+      };
+      const discardPendingCertificationUploads = () => {
+        const pendingFiles = Array.from(pendingCertificationUploadsRef.current.values());
+        pendingCertificationUploadsRef.current.clear();
+        pendingFiles.forEach((file) => {
+          fetch("/admin/api/delete-product-certification-file", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${localStorage.getItem("adminToken")}`
+            },
+            body: JSON.stringify({ file })
+          }).catch((error2) => console.warn("Could not clean up an unassociated certificate upload:", error2));
+        });
+      };
+      const removeCertification = async (certificate) => {
+        if (pendingCertificationUploadsRef.current.has(certificate.id)) {
+          try {
+            const response = await fetch("/admin/api/delete-product-certification-file", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("adminToken")}`
+              },
+              body: JSON.stringify({ file: certificate })
+            });
+            if (!response.ok) {
+              const result = await response.json().catch(() => ({}));
+              throw new Error(result.message || t2("products.modal.certificationsRemoveError"));
+            }
+            pendingCertificationUploadsRef.current.delete(certificate.id);
+          } catch (error2) {
+            alert(error2.message || t2("products.modal.certificationsRemoveError"));
+            return;
+          }
+        }
+        setProductFormData((prev) => ({
+          ...prev,
+          certifications: (prev.certifications || []).filter((file) => file.id !== certificate.id)
+        }));
+      };
       const deleteImage = async (image, index) => {
         try {
           let imageUrl = null;
@@ -22518,6 +22653,7 @@ Cordialement,`
       };
       const handleProductSubmit = async (e2) => {
         e2.preventDefault();
+        if (uploadingCertifications) return;
         if (importedData && !usageRightsConfirmed) {
           alert("Te rog confirm\u0103 c\u0103 ai dreptul de utilizare a datelor \u0219i imaginilor importate.");
           return;
@@ -22543,6 +22679,7 @@ Cordialement,`
         console.log("Product form data being submitted:", productData);
         console.log("selectedMarketTab:", selectedMarketTab);
         const resetForm = () => {
+          pendingCertificationUploadsRef.current.clear();
           setShowAddProductModal(false);
           setEditingProduct(null);
           setProductFormData({
@@ -22571,6 +22708,7 @@ Cordialement,`
             piecesPerPackage: "",
             productQuantity: "",
             specs: [],
+            certifications: [],
             volumeDiscounts: [],
             priority: 0,
             productType: "standard",
@@ -22636,6 +22774,7 @@ Cordialement,`
             alert("Eroare la salvare: " + globalResult.message);
             return;
           }
+          pendingCertificationUploadsRef.current.clear();
           try {
             await saveMarketData(editingProduct.id, selectedMarketTab);
           } catch (error2) {
@@ -22655,6 +22794,7 @@ Cordialement,`
         } else if (!editingProduct && selectedMarketTab !== "all") {
           const result = await createProduct({ ...productData, market: selectedMarketTab });
           if (result.success) {
+            pendingCertificationUploadsRef.current.clear();
             if (!result.product?.id || result.productMarket?.market !== selectedMarketTab) {
               alert("Produsul nu a fost confirmat pentru pia\u021Ba " + selectedMarketTab.toUpperCase() + ". Formularul r\u0103m\xE2ne deschis.");
               return;
@@ -22676,6 +22816,7 @@ Cordialement,`
           } = productData;
           const result = editingProduct ? await updateProduct(editingProduct.id, globalProductData) : await createProduct(productData);
           if (result.success) {
+            pendingCertificationUploadsRef.current.clear();
             alert(result.message);
             resetForm();
           } else {
@@ -22893,6 +23034,7 @@ Cordialement,`
                 {
                   type: "button",
                   className: "btn",
+                  disabled: uploadingCertifications,
                   style: { background: "#6c757d" },
                   onClick: () => {
                     setShowAddUserModal(false);
@@ -22909,7 +23051,7 @@ Cordialement,`
                   children: "Cancel"
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "submit", className: "btn", style: { background: "#28a745" }, children: editingUser ? "Update User" : "Create User" })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { type: "submit", className: "btn", disabled: uploadingCertifications, style: { background: "#28a745" }, children: editingUser ? "Update User" : "Create User" })
             ] })
           ] })
         ] }) }),
@@ -23764,6 +23906,99 @@ Cordialement,`
               ] }),
               (productFormData.specs || []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginTop: "8px", fontSize: "12px", color: "#999" }, children: t2("products.modal.specsEmpty") })
             ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("h5", { style: { color: "#333", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }, children: [
+                "\u{1F4C4} ",
+                t2("products.modal.certificationsTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.certificationsDesc") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "input",
+                {
+                  type: "file",
+                  id: "product-certification-upload",
+                  multiple: true,
+                  accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp",
+                  disabled: uploadingCertifications,
+                  onChange: (e2) => {
+                    const files = e2.target.files;
+                    e2.target.value = "";
+                    if (files && files.length > 0) uploadCertifications(files);
+                  },
+                  style: { display: "none" }
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "label",
+                {
+                  htmlFor: "product-certification-upload",
+                  style: {
+                    display: "inline-block",
+                    padding: "8px 12px",
+                    borderRadius: "4px",
+                    backgroundColor: uploadingCertifications ? "#9ca3af" : "#0d6efd",
+                    color: "white",
+                    cursor: uploadingCertifications ? "wait" : "pointer",
+                    fontSize: "13px"
+                  },
+                  children: uploadingCertifications ? t2("products.modal.certificationsUploading") : t2("products.modal.certificationsUploadClick")
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginTop: "8px" }, children: t2("products.modal.certificationsLimits") }),
+              (productFormData.certifications || []).length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { display: "grid", gap: "8px", marginTop: "14px" }, children: productFormData.certifications.map((certificate) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                "div",
+                {
+                  style: {
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    padding: "10px 12px",
+                    backgroundColor: "white",
+                    border: "1px solid #dee2e6",
+                    borderRadius: "5px"
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { minWidth: 0 }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "a",
+                        {
+                          href: certificate.url,
+                          target: "_blank",
+                          rel: "noreferrer",
+                          style: { color: "#0d6efd", overflowWrap: "anywhere" },
+                          children: certificate.name
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "11px", color: "#6c757d", marginTop: "2px" }, children: [
+                        Math.max(1, Math.round(certificate.size / 1024)),
+                        " KB"
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => removeCertification(certificate),
+                        disabled: uploadingCertifications,
+                        "aria-label": `${t2("products.modal.certificationsRemove")}: ${certificate.name}`,
+                        style: {
+                          flexShrink: 0,
+                          padding: "5px 10px",
+                          backgroundColor: "#dc3545",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: "pointer"
+                        },
+                        children: t2("products.modal.certificationsRemove")
+                      }
+                    )
+                  ]
+                },
+                certificate.id
+              )) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "#999", marginTop: "12px" }, children: t2("products.modal.certificationsEmpty") })
+            ] }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "16px", padding: "12px 14px", backgroundColor: "#f0f4ff", borderRadius: "6px", border: "1px solid #c7d2fe" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { htmlFor: "productType", style: { display: "block", marginBottom: "6px", fontSize: "13px", color: "#3730a3", fontWeight: "600" }, children: t2("products.productTypeLabel") }),
               /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
@@ -24193,6 +24428,7 @@ Cordialement,`
                   className: "btn",
                   style: { background: "#6c757d" },
                   onClick: () => {
+                    discardPendingCertificationUploads();
                     setShowAddProductModal(false);
                     setEditingProduct(null);
                     setProductFormData({
@@ -24214,6 +24450,7 @@ Cordialement,`
                       cpvCode: "",
                       status: "active",
                       images: [],
+                      certifications: [],
                       weight: "",
                       length: "",
                       width: "",

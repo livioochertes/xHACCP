@@ -628,6 +628,7 @@ import {
             piecesPerPackage: editingProduct.piecesPerPackage?.toString() || '',
             productQuantity: editingProduct.productQuantity || '',
             specs: Array.isArray(editingProduct.specs) ? editingProduct.specs : [],
+            certifications: Array.isArray(editingProduct.certifications) ? editingProduct.certifications : [],
             volumeDiscounts: Array.isArray(editingProduct.volumeDiscounts) ? editingProduct.volumeDiscounts : [],
             priority: editingProduct.priority || 0,
             productType: editingProduct.productType || (editingProduct.isService ? 'service' : 'standard'),
@@ -8864,6 +8865,7 @@ import {
           piecesPerPackage: '',
           productQuantity: '',
           specs: [],
+          certifications: [],
           volumeDiscounts: [],
           priority: 0,
           productType: 'standard',
@@ -8873,6 +8875,8 @@ import {
           pennylaneAccountingAccountId: ''
         });
         const [uploadedImages, setUploadedImages] = useState([]);
+        const [uploadingCertifications, setUploadingCertifications] = useState(false);
+        const pendingCertificationUploadsRef = React.useRef(new Map());
         const [componentProducts, setComponentProducts] = useState([]);
         const [componentSearch, setComponentSearch] = useState('');
         const [componentsLoading, setComponentsLoading] = useState(false);
@@ -9234,6 +9238,109 @@ import {
           }
         };
 
+        const uploadCertifications = async (files) => {
+          const selectedFiles = Array.from(files || []);
+          const supportedTypes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/webp'
+          ];
+          const validFiles = selectedFiles.filter(file => {
+            if (!supportedTypes.includes(file.type)) {
+              alert(`${file.name}: ${t('products.modal.certificationsTypeError')}`);
+              return false;
+            }
+            if (file.size <= 0 || file.size > 10 * 1024 * 1024) {
+              alert(`${file.name}: ${t('products.modal.certificationsSizeError')}`);
+              return false;
+            }
+            return true;
+          });
+
+          if (validFiles.length === 0) return;
+          const existingCertifications = productFormData.certifications || [];
+          if (existingCertifications.length + validFiles.length > 10) {
+            alert(t('products.modal.certificationsCountError'));
+            return;
+          }
+
+          setUploadingCertifications(true);
+          const formData = new FormData();
+          validFiles.forEach(file => formData.append('certifications', file));
+
+          try {
+            const response = await fetch('/admin/api/upload-product-certifications', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+              },
+              body: formData
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+              throw new Error(result.message || t('products.modal.certificationsUploadError'));
+            }
+
+            (result.files || []).forEach(file => {
+              pendingCertificationUploadsRef.current.set(file.id, file);
+            });
+            setProductFormData(prev => ({
+              ...prev,
+              certifications: [...(prev.certifications || []), ...(result.files || [])]
+            }));
+          } catch (error) {
+            console.error('Certificate upload error:', error);
+            alert(error.message || t('products.modal.certificationsUploadError'));
+          } finally {
+            setUploadingCertifications(false);
+          }
+        };
+
+        const discardPendingCertificationUploads = () => {
+          const pendingFiles = Array.from(pendingCertificationUploadsRef.current.values());
+          pendingCertificationUploadsRef.current.clear();
+          pendingFiles.forEach(file => {
+            fetch('/admin/api/delete-product-certification-file', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+              },
+              body: JSON.stringify({ file })
+            }).catch(error => console.warn('Could not clean up an unassociated certificate upload:', error));
+          });
+        };
+
+        const removeCertification = async (certificate) => {
+          if (pendingCertificationUploadsRef.current.has(certificate.id)) {
+            try {
+              const response = await fetch('/admin/api/delete-product-certification-file', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                },
+                body: JSON.stringify({ file: certificate })
+              });
+              if (!response.ok) {
+                const result = await response.json().catch(() => ({}));
+                throw new Error(result.message || t('products.modal.certificationsRemoveError'));
+              }
+              pendingCertificationUploadsRef.current.delete(certificate.id);
+            } catch (error) {
+              alert(error.message || t('products.modal.certificationsRemoveError'));
+              return;
+            }
+          }
+
+          setProductFormData(prev => ({
+            ...prev,
+            certifications: (prev.certifications || []).filter(file => file.id !== certificate.id)
+          }));
+        };
+
         // Delete image function - handles both string URLs and objects, deletes from R2 storage
         const deleteImage = async (image, index) => {
           try {
@@ -9332,6 +9439,7 @@ import {
         
         const handleProductSubmit = async (e) => {
           e.preventDefault();
+          if (uploadingCertifications) return;
           
           // Check usage rights confirmation if data was imported from URL
           if (importedData && !usageRightsConfirmed) {
@@ -9365,6 +9473,7 @@ import {
 
           // Helper to reset form after save
           const resetForm = () => {
+            pendingCertificationUploadsRef.current.clear();
             setShowAddProductModal(false);
             setEditingProduct(null);
             setProductFormData({
@@ -9373,7 +9482,7 @@ import {
               featured: false, vatValue: '', vatPercentage: '21.00', currency: 'EUR',
               productCode: '', ean: '', ncCode: '', cpvCode: '', status: 'active', images: [],
               weight: '', length: '', width: '', height: '', piecesPerPackage: '',
-              productQuantity: '', specs: [], volumeDiscounts: [], priority: 0, productType: 'standard', isService: false, isComposite: false
+              productQuantity: '', specs: [], certifications: [], volumeDiscounts: [], priority: 0, productType: 'standard', isService: false, isComposite: false
             });
             setUploadedImages([]);
             setImportUrl('');
@@ -9437,6 +9546,7 @@ import {
               alert('Eroare la salvare: ' + globalResult.message);
               return;
             }
+            pendingCertificationUploadsRef.current.clear();
             
             // 2. Save price/currency/stock only to this market's product_markets row
             try {
@@ -9462,6 +9572,7 @@ import {
             // The server creates the shared product and its marketplace row atomically.
             const result = await createProduct({...productData, market: selectedMarketTab});
             if (result.success) {
+              pendingCertificationUploadsRef.current.clear();
               if (!result.product?.id || result.productMarket?.market !== selectedMarketTab) {
                 alert('Produsul nu a fost confirmat pentru piața ' + selectedMarketTab.toUpperCase() + '. Formularul rămâne deschis.');
                 return;
@@ -9489,6 +9600,7 @@ import {
               : await createProduct(productData);
             
             if (result.success) {
+              pendingCertificationUploadsRef.current.clear();
               alert(result.message);
               resetForm();
             } else {
@@ -9714,6 +9826,7 @@ import {
                       <button
                         type="button"
                         className="btn"
+                        disabled={uploadingCertifications}
                         style={{background: '#6c757d'}}
                         onClick={() => {
                           setShowAddUserModal(false);
@@ -9730,7 +9843,7 @@ import {
                       >
                         Cancel
                       </button>
-                      <button type="submit" className="btn" style={{background: '#28a745'}}>
+                      <button type="submit" className="btn" disabled={uploadingCertifications} style={{background: '#28a745'}}>
                         {editingUser ? 'Update User' : 'Create User'}
                       </button>
                     </div>
@@ -10516,6 +10629,103 @@ import {
                       )}
                     </div>
 
+                    {/* Product Certifications Section */}
+                    <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
+                      <h5 style={{color: '#333', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        📄 {t('products.modal.certificationsTitle')}
+                      </h5>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
+                        {t('products.modal.certificationsDesc')}
+                      </div>
+                      <input
+                        type="file"
+                        id="product-certification-upload"
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                        disabled={uploadingCertifications}
+                        onChange={(e) => {
+                          const files = e.target.files;
+                          e.target.value = '';
+                          if (files && files.length > 0) uploadCertifications(files);
+                        }}
+                        style={{display: 'none'}}
+                      />
+                      <label
+                        htmlFor="product-certification-upload"
+                        style={{
+                          display: 'inline-block',
+                          padding: '8px 12px',
+                          borderRadius: '4px',
+                          backgroundColor: uploadingCertifications ? '#9ca3af' : '#0d6efd',
+                          color: 'white',
+                          cursor: uploadingCertifications ? 'wait' : 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        {uploadingCertifications
+                          ? t('products.modal.certificationsUploading')
+                          : t('products.modal.certificationsUploadClick')}
+                      </label>
+                      <div style={{fontSize: '12px', color: '#6c757d', marginTop: '8px'}}>
+                        {t('products.modal.certificationsLimits')}
+                      </div>
+
+                      {(productFormData.certifications || []).length > 0 ? (
+                        <div style={{display: 'grid', gap: '8px', marginTop: '14px'}}>
+                          {productFormData.certifications.map(certificate => (
+                            <div
+                              key={certificate.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '12px',
+                                padding: '10px 12px',
+                                backgroundColor: 'white',
+                                border: '1px solid #dee2e6',
+                                borderRadius: '5px'
+                              }}
+                            >
+                              <div style={{minWidth: 0}}>
+                                <a
+                                  href={certificate.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{color: '#0d6efd', overflowWrap: 'anywhere'}}
+                                >
+                                  {certificate.name}
+                                </a>
+                                <div style={{fontSize: '11px', color: '#6c757d', marginTop: '2px'}}>
+                                  {Math.max(1, Math.round(certificate.size / 1024))} KB
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeCertification(certificate)}
+                                disabled={uploadingCertifications}
+                                aria-label={`${t('products.modal.certificationsRemove')}: ${certificate.name}`}
+                                style={{
+                                  flexShrink: 0,
+                                  padding: '5px 10px',
+                                  backgroundColor: '#dc3545',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {t('products.modal.certificationsRemove')}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{fontSize: '12px', color: '#999', marginTop: '12px'}}>
+                          {t('products.modal.certificationsEmpty')}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Product type */}
                     <div style={{marginTop: '16px', padding: '12px 14px', backgroundColor: '#f0f4ff', borderRadius: '6px', border: '1px solid #c7d2fe'}}>
                       <label htmlFor="productType" style={{display: 'block', marginBottom: '6px', fontSize: '13px', color: '#3730a3', fontWeight: '600'}}>
@@ -10921,6 +11131,7 @@ import {
                         className="btn"
                         style={{background: '#6c757d'}}
                         onClick={() => {
+                          discardPendingCertificationUploads();
                           setShowAddProductModal(false);
                           setEditingProduct(null);
                           setProductFormData({
@@ -10942,6 +11153,7 @@ import {
                             cpvCode: '',
                             status: 'active',
                             images: [],
+                            certifications: [],
                             weight: '',
                             length: '',
                             width: '',

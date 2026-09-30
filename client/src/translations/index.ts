@@ -33,6 +33,9 @@ export interface TranslationKeys {
   'products.details': string;
   'products.description': string;
   'products.specifications': string;
+  'products.certifications': string;
+  'products.noCertifications': string;
+  'products.downloadCertification': string;
   'products.reviews': string;
   'products.writeReview': string;
   'products.reviewRating': string;
@@ -763,6 +766,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'products.details': 'Details',
     'products.description': 'Description',
     'products.specifications': 'Specifications',
+    'products.certifications': 'Certifications',
+    'products.noCertifications': 'No certificates are available for this product.',
+    'products.downloadCertification': 'Download certificate',
     'products.noReviews': 'No reviews yet. Be the first to review this product!',
     'products.noDescription': 'No description available for this product.',
     'products.sku': 'SKU',
@@ -1486,6 +1492,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'products.details': 'Detalles',
     'products.description': 'Descripción',
     'products.specifications': 'Especificaciones',
+    'products.certifications': 'Certificaciones',
+    'products.noCertifications': 'No hay certificados disponibles para este producto.',
+    'products.downloadCertification': 'Descargar certificado',
     'products.noReviews': 'Aún no hay reseñas. ¡Sé el primero en opinar!',
     'products.noDescription': 'No hay descripción disponible para este producto.',
     'products.sku': 'SKU',
@@ -2146,6 +2155,9 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'products.details': 'Détails',
     'products.description': 'Description',
     'products.specifications': 'Spécifications',
+    'products.certifications': 'Certifications',
+    'products.noCertifications': 'Aucun certificat n’est disponible pour ce produit.',
+    'products.downloadCertification': 'Télécharger le certificat',
     'products.noReviews': 'Pas encore d\'avis. Soyez le premier à donner votre avis !',
     'products.noDescription': 'Aucune description disponible pour ce produit.',
     'products.sku': 'SKU',

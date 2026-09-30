@@ -82,6 +82,14 @@ export type CompositeConfiguration = {
 export type ProductType = "standard" | "service" | "subscription";
 
 // Products table
+export type ProductCertification = {
+  id: string;
+  name: string;
+  url: string;
+  mimeType: string;
+  size: number;
+};
+
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -114,6 +122,7 @@ export const products = pgTable("products", {
   piecesPerPackage: integer("pieces_per_package").default(1), // Maximum pieces per package for shipping
   productQuantity: text("product_quantity"), // Net content / quantity e.g. "5L", "500g", "1 set"
   specs: jsonb("specs").default([]), // Flexible product specs: [{label, value}, ...]
+  certifications: jsonb("certifications").$type<ProductCertification[]>().notNull().default([]),
   volumeDiscounts: jsonb("volume_discounts").default([]), // Volume discount tiers: [{minQty, discountPercent}, ...]
   productType: varchar("product_type", { length: 20 }).notNull().default("standard"), // standard | service | subscription
   isService: boolean("is_service").default(false), // Legacy service flag; new products should use productType
@@ -919,7 +928,15 @@ export const insertCategorySchema = createInsertSchema(categories).omit({
   createdAt: true,
 });
 
-export const insertProductSchema = createInsertSchema(products).omit({
+export const insertProductSchema = createInsertSchema(products, {
+  certifications: z.array(z.object({
+    id: z.string().uuid(),
+    name: z.string().min(1).max(255),
+    url: z.string().min(1),
+    mimeType: z.enum(["application/pdf", "image/jpeg", "image/png", "image/webp"]),
+    size: z.number().int().positive().max(10 * 1024 * 1024),
+  })).max(10).optional(),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

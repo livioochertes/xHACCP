@@ -127,6 +127,38 @@ export async function uploadImageToR2(
   }
 }
 
+export async function uploadRawFileToR2(
+  fileBuffer: Buffer,
+  key: string,
+  contentType: string,
+): Promise<boolean> {
+  const client = getR2Client();
+  const config = getR2Config();
+  if (!client || !config.bucketName) return false;
+
+  await client.send(new PutObjectCommand({
+    Bucket: config.bucketName,
+    Key: key,
+    Body: fileBuffer,
+    ContentType: contentType,
+    ContentDisposition: "inline",
+    CacheControl: "public, max-age=31536000, immutable",
+  }));
+  return true;
+}
+
+export async function deleteRawFileFromR2(key: string): Promise<boolean> {
+  const client = getR2Client();
+  const config = getR2Config();
+  if (!client || !config.bucketName) return false;
+
+  await client.send(new DeleteObjectCommand({
+    Bucket: config.bucketName,
+    Key: key,
+  }));
+  return true;
+}
+
 export async function deleteImageFromR2(imageUrl: string): Promise<boolean> {
   const config = getR2Config();
   const client = getR2Client();

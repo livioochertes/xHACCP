@@ -15,6 +15,12 @@ import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
 import { upload, processImages, serveUploads, deleteUploadedFile } from "./upload-middleware";
+import {
+  deleteProductCertification,
+  normalizeProductCertifications,
+  storeProductCertification,
+  uploadProductCertifications,
+} from "./product-certifications";
 import { loadAllDataIntoMemory, refreshMarketCaches, applyVolumeDiscount, applyMarketOverlay, marketSettingsMap } from "./routes";
 import { getMarketFromRequest } from "./market-routing";
 import multer from "multer";
@@ -1082,6 +1088,48 @@ export async function registerAdminRoutes(app: Express) {
       res.status(500).json({ 
         success: false, 
         message: "Error uploading images" 
+      });
+    }
+  });
+
+  app.post(
+    "/admin/api/upload-product-certifications",
+    authenticateAdmin,
+    uploadProductCertifications,
+    async (req: AdminAuthRequest, res: Response) => {
+      const files = Array.isArray(req.files) ? req.files as Express.Multer.File[] : [];
+      if (files.length === 0) {
+        return res.status(400).json({ success: false, message: "No certificate files uploaded." });
+      }
+
+      const savedFiles = [];
+      try {
+        for (const file of files) {
+          savedFiles.push(await storeProductCertification(file));
+        }
+        return res.json({ success: true, files: savedFiles });
+      } catch (error) {
+        await Promise.allSettled(savedFiles.map((file) => deleteProductCertification(file)));
+        const message = error instanceof Error ? error.message : "Could not save certificate files.";
+        const status = message.startsWith("The file content") ? 400 : 500;
+        console.error("Product certificate upload failed:", message);
+        return res.status(status).json({ success: false, message });
+      }
+    },
+  );
+
+  app.post("/admin/api/delete-product-certification-file", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const [file] = normalizeProductCertifications([req.body?.file]);
+      const deleted = await deleteProductCertification(file);
+      if (!deleted) {
+        return res.status(500).json({ success: false, message: "Could not remove the certificate file." });
+      }
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : "Invalid certificate file reference.",
       });
     }
   });
@@ -3154,6 +3202,14 @@ export async function registerAdminRoutes(app: Express) {
       // Process images array to extract clean URLs (handles both objects and strings)
       const cleanImages = processImagesArray(productData.images || []);
       const mainImageUrl = cleanImages.length > 0 ? cleanImages[0] : extractImageUrl(productData.imageUrl);
+      let certifications;
+      try {
+        certifications = normalizeProductCertifications(productData.certifications ?? []);
+      } catch (error) {
+        return res.status(400).json({
+          message: error instanceof Error ? error.message : "Invalid certificate list.",
+        });
+      }
       
       console.log('Creating product with images:', cleanImages);
       console.log('Main image URL:', mainImageUrl);
@@ -3201,6 +3257,7 @@ export async function registerAdminRoutes(app: Express) {
         stockQuantity,
         piecesPerPackage: safeParseInt(productData.piecesPerPackage),
         images: cleanImages,
+        certifications,
         imageUrl: mainImageUrl,
         // Convert logistics fields properly - weight must be minimum 1kg with 1kg increments
         // Handle both string and number types safely
@@ -3267,6 +3324,17 @@ export async function registerAdminRoutes(app: Express) {
     try {
       const productId = parseInt(req.params.id);
       const productData = req.body;
+      const hasCertificationField = Object.prototype.hasOwnProperty.call(productData || {}, "certifications");
+      let nextCertifications;
+      if (hasCertificationField) {
+        try {
+          nextCertifications = normalizeProductCertifications(productData.certifications);
+        } catch (error) {
+          return res.status(400).json({
+            message: error instanceof Error ? error.message : "Invalid certificate list.",
+          });
+        }
+      }
       
       console.log(`Updating product ${productId} with data:`, productData);
       console.log('Currency field:', productData.currency);
@@ -3331,6 +3399,7 @@ export async function registerAdminRoutes(app: Express) {
           ? { categoryId: safeParseInt(productData.categoryId) }
           : {}),
         supplierId: safeParseInt(productData.supplierId),
+        ...(hasCertificationField ? { certifications: nextCertifications } : {}),
         ...(productData.stockQuantity !== undefined
           ? {
               stockQuantity: isComposite && parsedStockQuantity === null
@@ -3362,6 +3431,20 @@ export async function registerAdminRoutes(app: Express) {
       });
       
       console.log('Updated product result:', updatedProduct);
+
+      if (hasCertificationField) {
+        const retainedIds = new Set((nextCertifications || []).map((file) => file.id));
+        const removedFiles = (existingProduct?.certifications || [])
+          .filter((file) => !retainedIds.has(file.id));
+        await Promise.allSettled(removedFiles.map(async (file) => {
+          try {
+            const deleted = await deleteProductCertification(file);
+            if (!deleted) console.warn(`Could not remove detached product certificate ${file.id}`);
+          } catch (error) {
+            console.error(`Could not remove detached product certificate ${file.id}:`, error);
+          }
+        }));
+      }
 
       // Refresh memory cache so site shows updated data immediately
       // Wrapped in try-catch to not fail the main operation if cache refresh fails
