@@ -22,6 +22,7 @@ import { formatPrice } from "@/lib/utils";
 import { getMarketFromHostname, getProductReviewsQueryKey } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
+import { getProductSku } from "@shared/product-sku";
 import { getSortedTiers, getActiveTier, getVolumePrice } from "@/lib/volume-price";
 import { formatProductDescription, stripFormatting } from "@/lib/format-description";
 import { Link } from "wouter";
@@ -52,6 +53,7 @@ export default function ProductDetails() {
     enabled: !!params?.slug,
   });
   const isSubscription = product?.productType === "subscription";
+  const productSku = product ? getProductSku(product) : "";
 
   const { data: shippingSettings } = useQuery<ShippingSettings>({
     queryKey: ["/api/shipping-settings"],
@@ -187,7 +189,7 @@ export default function ProductDetails() {
       "@context": "https://schema.org",
       "@type": "Product",
       "name": translatedName,
-      "sku": `KP-${product.id}`,
+      "sku": getProductSku(product),
       "url": productUrl,
       "brand": { "@type": "Brand", "name": "xHACCP" },
       "offers": offer,
@@ -550,7 +552,7 @@ export default function ProductDetails() {
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Package className="h-4 w-4 flex-shrink-0" />
                       <span className="font-medium text-gray-700">{t('products.reference') || 'Référence'}:</span>
-                      <span className="font-mono text-gray-500">KP-{product.id}</span>
+                      <span className="font-mono text-gray-500">{productSku}</span>
                     </div>
 
                     {!isService && (product.inStock ? (
@@ -862,7 +864,7 @@ export default function ProductDetails() {
                       <dl className="space-y-2">
                         <div className="flex justify-between py-1.5 border-b text-sm">
                           <dt className="text-muted-foreground">{t('products.sku')}:</dt>
-                          <dd className="font-medium font-mono">KP-{product.id}</dd>
+                          <dd className="font-medium font-mono">{productSku}</dd>
                         </div>
                         <div className="flex justify-between py-1.5 border-b text-sm">
                           <dt className="text-muted-foreground">{t('products.category')}:</dt>

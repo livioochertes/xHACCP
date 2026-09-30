@@ -1,6 +1,7 @@
 import { type Express, type Request } from "express";
 import fs from "fs";
 import path from "path";
+import { getProductSku } from "@shared/product-sku";
 import type { IStorage } from "./storage";
 
 export interface MarketHelpers {
@@ -928,7 +929,7 @@ export function registerSeoRoutes(
         "@context": "https://schema.org",
         "@type": "Product",
         "name": seoName,
-        "sku": `KP-${product.id}`,
+        "sku": getProductSku(product),
         "url": `${base}/products/${slug}`,
         "brand": { "@type": "Brand", "name": "xHACCP" },
         "offers": {
