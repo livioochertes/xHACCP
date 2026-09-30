@@ -617,7 +617,7 @@
   "homepageHero": {
     "navLabel": "Cover de la page d'accueil",
     "title": "Cover promotionnel de la page d'accueil",
-    "description": "Configurez jusqu'à 3 slides pour le marché sélectionné.",
+    "description": "Ajoutez jusqu'à 3 slides ; le hero d'origine reste toujours dans le carrousel.",
     "reload": "Actualiser",
     "selectMarket": "Sélectionnez un marché précis dans la barre ci-dessus pour gérer son cover.",
     "displaySettings": "Paramètres d'affichage",
@@ -628,7 +628,7 @@
     "cancelEditing": "Annuler la modification",
     "slideType": "Type de slide",
     "textSlide": "Texte promotionnel",
-    "imageSlide": "Image plein écran",
+    "imageSlide": "Image plein cadre (sans superposition)",
     "titleLabel": "Titre",
     "titlePlaceholder": "Ex. Promotion d'été",
     "subtitleLabel": "Texte secondaire",

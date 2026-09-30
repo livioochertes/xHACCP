@@ -617,7 +617,7 @@
   "homepageHero": {
     "navLabel": "Cover Home",
     "title": "Cover promoțional Home",
-    "description": "Configurează până la 3 slide-uri pentru marketplace-ul selectat.",
+    "description": "Configurează până la 3 slide-uri suplimentare; hero-ul original rămâne în carusel.",
     "reload": "Reîncarcă",
     "selectMarket": "Selectează un marketplace concret din bara de sus pentru a administra cover-ul.",
     "displaySettings": "Setări afișare",
@@ -628,7 +628,7 @@
     "cancelEditing": "Anulează editarea",
     "slideType": "Tip slide",
     "textSlide": "Text promoțional",
-    "imageSlide": "Imagine full cover",
+    "imageSlide": "Imagine full cover (fără suprapuneri)",
     "titleLabel": "Titlu",
     "titlePlaceholder": "Ex: Promoție de vară",
     "subtitleLabel": "Text secundar",

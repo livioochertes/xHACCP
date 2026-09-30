@@ -26,11 +26,13 @@ interface HeroResponse {
   autoplaySeconds?: number;
 }
 
-function isArtworkOnlySlide(slide: HeroSlide): boolean {
-  return Boolean(slide.imageUrl?.trim()) &&
+function isFullCoverSlide(slide: HeroSlide): boolean {
+  if (!slide.imageUrl?.trim()) return false;
+  return slide.slideType === "image" || (
     !slide.title?.trim() &&
     !slide.subtitle?.trim() &&
-    !slide.ctaLabel?.trim();
+    !slide.ctaLabel?.trim()
+  );
 }
 
 function HeroCta({ slide, children }: { slide: HeroSlide; children: React.ReactNode }) {
@@ -69,10 +71,10 @@ export default function HomeHero() {
   });
   const slides = useMemo<HeroSlide[]>(() => {
     const configured = (data?.slides || []).filter((slide) =>
-      isArtworkOnlySlide(slide) ||
+      isFullCoverSlide(slide) ||
       (slide.slideType === "image" ? Boolean(slide.imageUrl) : Boolean(slide.title || slide.subtitle))
     );
-    return configured.length > 0 ? configured : [{
+    return [{
       id: 0,
       slideType: "text",
       title: t("home.hero.title"),
@@ -80,13 +82,13 @@ export default function HomeHero() {
       ctaLabel: t("home.hero.shopNow"),
       ctaUrl: "/products",
       ctaType: "link",
-    }];
+    }, ...configured];
   }, [data?.slides, t]);
-  const artworkOnlyCarousel = slides.every(isArtworkOnlySlide);
   const autoplaySeconds = Math.min(30, Math.max(3, data?.autoplaySeconds || 5));
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
+  const activeSlideIsFullCover = isFullCoverSlide(slides[activeIndex] ?? slides[0]);
 
   useEffect(() => {
     setActiveIndex((index) => Math.min(index, Math.max(0, slides.length - 1)));
@@ -111,7 +113,7 @@ export default function HomeHero() {
   return (
     <section
       ref={heroRef}
-      className={`relative overflow-hidden bg-slate-950 text-white ${artworkOnlyCarousel ? "aspect-[1920/615]" : ""}`}
+      className={`relative overflow-hidden bg-slate-950 text-white ${activeSlideIsFullCover ? "aspect-[1920/615]" : ""}`}
       aria-roledescription="carousel"
       aria-label="Promotional highlights"
       onMouseEnter={() => setPaused(true)}
@@ -121,11 +123,11 @@ export default function HomeHero() {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
       }}
     >
-      <div className={`relative ${artworkOnlyCarousel ? "h-full w-full" : "min-h-[360px] md:min-h-[410px]"}`}>
+      <div className={`relative ${activeSlideIsFullCover ? "h-full w-full" : "min-h-[360px] md:min-h-[410px]"}`}>
         {slides.map((slide, index) => {
           const isActive = index === activeIndex;
-          const artworkOnly = isArtworkOnlySlide(slide);
-          const hasImage = (slide.slideType === "image" || artworkOnly) && Boolean(slide.imageUrl);
+          const fullCover = isFullCoverSlide(slide);
+          const hasImage = fullCover && Boolean(slide.imageUrl);
           const title = slide.title || t("home.hero.title");
           const subtitle = slide.subtitle || t("home.hero.subtitle");
           const label = slide.ctaLabel || (slide.id <= 0 ? t("home.hero.shopNow") : "");
@@ -143,29 +145,29 @@ export default function HomeHero() {
                   {(slide.destinationUrl || (slide.destinationType === "none" && slide.ctaType !== "quote" && slide.ctaUrl)) ? (
                     <HeroDestination
                       href={slide.destinationUrl || slide.ctaUrl as string}
-                      label={slide.imageAlt || (artworkOnly ? "xHACCP France promotion" : title)}
+                      label={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
                     >
                       <img
                         src={slide.imageUrl}
-                        alt={slide.imageAlt || (artworkOnly ? "xHACCP France promotion" : title)}
+                        alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
                         className="absolute inset-0 h-full w-full object-cover"
                       />
                     </HeroDestination>
                   ) : (
                     <img
                       src={slide.imageUrl}
-                      alt={slide.imageAlt || (artworkOnly ? "xHACCP France promotion" : title)}
+                      alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
                       className="absolute inset-0 h-full w-full object-cover"
                     />
                   )}
-                  {!artworkOnly && (
+                  {!fullCover && (
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-slate-950/10" />
                   )}
                 </>
               ) : (
                 <div className="absolute inset-0 hero-gradient" />
               )}
-              {!artworkOnly && (
+              {!fullCover && (
                 <div className="container relative z-10 mx-auto flex min-h-[360px] items-center px-4 py-16 md:min-h-[410px]">
                   <div className="mx-auto max-w-4xl text-center">
                     <h1 className="mb-6 text-4xl font-bold md:text-5xl">{title}</h1>
