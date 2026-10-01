@@ -1,170 +1,323 @@
-const teamPhoto = "/__mockup/images/chef-home/team.jpeg";
-const eventMark = "/__mockup/images/chef-home/event-mark.png";
+const teamPhoto = "/__mockup/images/chef-home-participation-team-original.jpg";
+const qrCode = "/__mockup/images/chef-home/original-qr.png";
 const xhaccpLogo = "/__mockup/images/xhaccp-logo.png";
 
 export function Participation() {
   return (
-    <main className="participation-export" data-export-root aria-label="Visuel xHACCP France — La Pétanque des Toqués">
-      <section className="participation-artboard">
-        <div className="part-sun part-sun-large" aria-hidden="true" />
-        <div className="part-sun part-sun-small" aria-hidden="true" />
-        <div className="part-grain" aria-hidden="true" />
-
+    <main className="part-export" data-export-root aria-label="xHACCP France — La Pétanque des Toqués, offre 2026">
+      <section className="part-artboard">
         <figure className="part-photo">
-          <img src={teamPhoto} alt="L’équipe xHACCP France réunie à La Pétanque des Toqués" />
-          <figcaption>Une belle journée entre passionnés</figcaption>
+          <img src={teamPhoto} alt="Les trois participants à La Pétanque des Toqués, à Antibes" />
         </figure>
 
-        <div className="part-copy">
-          <p className="part-edition">10<sup>e</sup> édition <span /> 2026</p>
-          <h1>La Pétanque<br /><em>des Toqués</em></h1>
-          <p className="part-subtitle">xHACCP France retrouve les chefs.</p>
-
-          <div className="part-offer" aria-label="20 % de remise pendant un an">
-            <strong>−20&nbsp;%</strong>
-            <span>sur les produits xHACCP France<br /><b>pendant 1 an</b></span>
-          </div>
-          <p className="part-deadline">Première commande validée sous 30 jours</p>
-          <a className="part-cta" href="https://xhaccp.fr/chef-event">
-            Découvrir mon avantage <span aria-hidden="true">→</span>
-          </a>
-          <p className="part-eligibility">
-            Participants · personnes qui aiment la page Facebook<br />
-            · personnes qui connaissent un participant
-          </p>
-        </div>
-
-        <aside className="part-event" aria-label="La Pétanque des Toqués, Antibes, 2026">
-          <img src={eventMark} alt="La Pétanque des Toqués — 10e édition" />
-          <div className="part-event-rule" />
-          <p>Le Fort Carré · Antibes</p>
-          <p>Génération Maximin</p>
-          <div className="part-boules" aria-hidden="true"><i /><i /></div>
-        </aside>
-        <div className="part-bottom-note">
+        <header className="part-header">
           <img src={xhaccpLogo} alt="xHACCP France" />
-          <span aria-hidden="true">×</span>
-          <b>les chefs</b>
-        </div>
+          <div className="part-header-rule" />
+          <p>Une rencontre entre chefs<br /><span>Antibes · 10e édition · 2026</span></p>
+        </header>
+
+        <section className="part-copy">
+          <p className="part-eyebrow">La Pétanque des Toqués</p>
+          <h1>Le goût de se<br /><em>retrouver.</em></h1>
+          <p className="part-subtitle">xHACCP France célèbre les chefs de la Riviera.</p>
+
+          <div className="part-offer">
+            <strong>−20<span>%</span></strong>
+            <div>
+              <p>sur les produits xHACCP France</p>
+              <b>pendant 1 an</b>
+            </div>
+          </div>
+
+          <div className="part-terms">
+            <span className="part-terms-mark" aria-hidden="true" />
+            <p>Première commande validée sous 30 jours.<br />
+              <span>Votre code personnel sera envoyé par e-mail.</span></p>
+          </div>
+        </section>
+
+        <aside className="part-qr">
+          <div className="part-qr-topline"><span /> L’OFFRE DES TOQUÉS</div>
+          <div className="part-qr-card">
+            <img src={qrCode} alt="QR code pour accéder à l’offre xHACCP France" />
+            <p>Scannez pour<br /><strong>découvrir l’offre</strong></p>
+            <a href="https://xhaccp.fr/chef-event">xhaccp.fr/chef-event</a>
+          </div>
+          <p className="part-eligibility">Participants, proches et<br />communauté de l’événement</p>
+        </aside>
+
+        <div className="part-edge-mark" aria-hidden="true"><i /><i /><i /></div>
       </section>
 
       <style>{`
-        * { box-sizing: border-box; }
-        html, body, #root { width: 100%; height: 100%; margin: 0; }
-        body { overflow: hidden; font-family: Arial, system-ui, sans-serif; }
-        .participation-export {
-          position: fixed; inset: 0; display: grid; place-items: center;
-          overflow: hidden; background: #f3eedf; color: #102f4d;
-          font-family: Arial, system-ui, sans-serif;
+        .part-export {
+          position: fixed;
+          inset: 0;
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+          background: #e7e5d9;
+          color: #112f43;
+          font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          text-rendering: geometricPrecision;
         }
-        .participation-artboard {
-          position: relative; width: min(100vw, calc(100dvh * 3.121951)); aspect-ratio: 1920 / 615;
-          overflow: hidden; isolation: isolate; container-type: inline-size;
+        .part-export, .part-export * { box-sizing: border-box; }
+        .part-artboard {
+          position: relative;
+          width: min(100vw, calc(100dvh * 3.121951));
+          aspect-ratio: 1920 / 615;
+          overflow: hidden;
+          isolation: isolate;
+          container-type: inline-size;
           background:
-            radial-gradient(ellipse at 58% 48%, rgba(255,255,255,.88) 0 19%, transparent 48%),
-            linear-gradient(112deg, #f5efdf 0%, #f7f3e9 51%, #e9f1eb 100%);
+            radial-gradient(ellipse at 80% 0%, rgba(255,255,255,.72), transparent 38%),
+            linear-gradient(113deg, #f5f1e5 0%, #f0eee3 56%, #e5eee9 100%);
         }
-        .participation-artboard::before {
-          content: ""; position: absolute; z-index: -1; inset: 0;
-          background:
-            linear-gradient(90deg, rgba(12,47,75,.05) 1px, transparent 1px),
-            linear-gradient(rgba(12,47,75,.035) 1px, transparent 1px);
-          background-size: 5.2cqw 5.2cqw; opacity: .24;
-          mask-image: linear-gradient(90deg, #000 0%, transparent 34%, transparent 70%, #000 100%);
-        }
-        .part-grain {
-          position: absolute; inset: 0; pointer-events: none; opacity: .15; z-index: 8;
-          background-image: radial-gradient(rgba(12,47,75,.27) .45px, transparent .7px);
-          background-size: 4px 4px; mix-blend-mode: multiply;
-        }
-        .part-sun { position: absolute; border-radius: 50%; pointer-events: none; }
-        .part-sun-large {
-          width: 35cqw; aspect-ratio: 1; left: 6.5%; top: -30%;
-          background: linear-gradient(135deg, #f3c856, #f5d981 75%);
-          opacity: .73;
-        }
-        .part-sun-small {
-          width: 8.2cqw; aspect-ratio: 1; left: 20%; bottom: -21%;
-          border: 2px solid rgba(11,47,76,.16);
+        .part-artboard::before {
+          content: "";
+          position: absolute;
+          z-index: -1;
+          inset: 0;
+          opacity: .23;
+          background-image:
+            linear-gradient(rgba(17,47,67,.07) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(17,47,67,.07) 1px, transparent 1px);
+          background-size: 4.5cqw 4.5cqw;
+          mask-image: linear-gradient(90deg, transparent 29%, #000 42%, transparent 79%);
         }
         .part-photo {
-          position: absolute; z-index: 2; left: 2.2%; top: 5.3%; width: 25.3%; height: 89%;
-          margin: 0; overflow: hidden; border: .48cqw solid #fffaf0;
-          border-radius: 48% 48% 7% 7% / 35% 35% 7% 7%;
-          background: #d6e9ec; box-shadow: 0 1.1cqw 2.6cqw rgba(19,45,58,.18);
-          transform: rotate(-1.2deg);
+          position: absolute;
+          inset: 0 auto 0 0;
+          width: 28.73%;
+          height: 100%;
+          margin: 0;
+          overflow: hidden;
+          display: grid;
+          place-items: center;
+          background: #d8e5e8;
+          border-right: .28cqw solid #30a8b2;
         }
-        .part-photo::after {
-          content: ""; position: absolute; inset: 55% 0 0;
-          background: linear-gradient(transparent, rgba(8,37,59,.68));
+        .part-photo img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          object-position: center;
         }
-        .part-photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 46%; }
-        .part-photo figcaption {
-          position: absolute; z-index: 1; left: 9%; bottom: 4%; color: #fffaf0;
-          font-size: 1.02cqw; font-weight: 700; letter-spacing: .04em;
+        .part-header {
+          position: absolute;
+          top: 7.6%;
+          left: 32.7%;
+          display: flex;
+          align-items: center;
+          gap: 1.05cqw;
+        }
+        .part-header img {
+          display: block;
+          width: 8.25cqw;
+          height: 3.1cqw;
+          object-fit: contain;
+          object-position: left center;
+        }
+        .part-header-rule {
+          width: 1px;
+          height: 2.2cqw;
+          background: rgba(20,73,88,.22);
+        }
+        .part-header p {
+          margin: 0;
+          color: #164655;
+          font-size: .86cqw;
+          line-height: 1.4;
+          font-weight: 800;
+          letter-spacing: .11em;
+          text-transform: uppercase;
+        }
+        .part-header p span {
+          color: #63818a;
+          font-size: .82em;
+          font-weight: 600;
+          letter-spacing: .08em;
         }
         .part-copy {
-          position: absolute; z-index: 4; left: 30.1%; top: 22.8%; width: 39.8%;
-          text-align: center; color: #102f4d;
+          position: absolute;
+          left: 32.7%;
+          top: 27.2%;
+          width: 44%;
+          color: #122f43;
         }
-        .part-edition {
-          margin: 0; font-size: .93cqw; font-weight: 700; letter-spacing: .2em;
-          text-transform: uppercase; color: #316177;
-        }
-        .part-edition sup { font-size: .64em; letter-spacing: 0; vertical-align: super; }
-        .part-edition span {
-          display: inline-block; width: .34cqw; height: .34cqw; margin: 0 .48cqw .08cqw;
-          border-radius: 50%; background: #e5b841;
+        .part-eyebrow {
+          margin: 0 0 .42cqw;
+          color: #16818b;
+          font-size: .86cqw;
+          font-weight: 800;
+          letter-spacing: .22em;
+          text-transform: uppercase;
         }
         .part-copy h1 {
-          margin: .34cqw 0 .34cqw; font-size: 3.2cqw; line-height: .9;
-          letter-spacing: -.055em; font-weight: 800;
+          margin: 0;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 4.7cqw;
+          line-height: .87;
+          font-weight: 700;
+          letter-spacing: -.065em;
         }
-        .part-copy h1 em { font-style: normal; color: #176083; }
-        .part-subtitle { margin: .34cqw 0 0; font-size: 1.28cqw; font-weight: 600; letter-spacing: -.015em; }
+        .part-copy h1 em {
+          color: #177887;
+          font-style: italic;
+          font-weight: 600;
+        }
+        .part-subtitle {
+          margin: .72cqw 0 0;
+          color: #45616e;
+          font-size: 1.06cqw;
+          line-height: 1.35;
+          font-weight: 600;
+          letter-spacing: -.015em;
+        }
         .part-offer {
-          display: flex; justify-content: center; align-items: center; gap: .76cqw;
-          margin-top: .5cqw; min-height: 2.3cqw;
+          display: flex;
+          align-items: center;
+          gap: .82cqw;
+          margin-top: .85cqw;
         }
-        .part-offer strong { font-size: 2.18cqw; line-height: 1; color: #c78213; letter-spacing: -.055em; }
-        .part-offer span { text-align: left; font-size: 1.02cqw; line-height: 1.22; font-weight: 500; }
-        .part-offer b { color: #176083; }
-        .part-deadline { margin: .18cqw 0 0; font-size: .97cqw; font-weight: 600; color: #31546a; }
-        .part-cta {
-          display: inline-flex; justify-content: center; align-items: center; gap: .7cqw;
-          min-height: 2.05cqw; margin-top: .5cqw; padding: 0 1.5cqw;
-          border-radius: 99px; background: #0d3657; color: #fff8e7; text-decoration: none;
-          font-size: 1.04cqw; font-weight: 700; letter-spacing: .01em;
-          box-shadow: 0 .4cqw .9cqw rgba(13,54,87,.18);
+        .part-offer strong {
+          color: #bf861e;
+          font-size: 3.55cqw;
+          line-height: .9;
+          letter-spacing: -.075em;
         }
-        .part-cta span { color: #f2c653; font-size: 1.3em; line-height: 1; }
-        .part-eligibility { margin: .28cqw 0 0; font-size: .82cqw; line-height: 1.28; color: #4a6474; }
-        .part-event {
-          position: absolute; z-index: 3; left: 77.7%; top: 19.5%; width: 19.2%;
-          text-align: center; color: #173954;
+        .part-offer strong span {
+          margin-left: .04em;
+          font-size: .67em;
         }
-        .part-event img { display: block; width: 100%; height: auto; }
-        .part-event-rule {
-          width: 2.1cqw; height: 2px; margin: 1.05cqw auto .7cqw;
-          background: #dcae32;
+        .part-offer p {
+          margin: 0 0 .12cqw;
+          color: #254554;
+          font-size: .93cqw;
+          line-height: 1.25;
+          font-weight: 700;
         }
-        .part-event p { margin: .28cqw 0; font-size: 1.08cqw; line-height: 1.26; font-weight: 700; }
-        .part-event p:last-of-type { color: #527487; font-size: .94cqw; font-weight: 600; }
-        .part-boules { display: flex; justify-content: center; gap: .6cqw; margin-top: 1.1cqw; }
-        .part-boules i { display: block; width: 1.15cqw; aspect-ratio: 1; border-radius: 50%; background: #d8a82f; box-shadow: inset -.18cqw -.17cqw 0 rgba(122,81,10,.17); }
-        .part-boules i:last-child { background: #3b8eaa; transform: translateY(-.38cqw); }
-        .part-bottom-note {
-          position: absolute; right: 3.1%; bottom: 17.8%; display: flex; align-items: center;
-          gap: .28cqw; color: #23485f; font-size: .86cqw; font-weight: 700;
-          letter-spacing: .12em; text-transform: uppercase;
+        .part-offer b {
+          color: #167b84;
+          font-size: 1.12cqw;
+          line-height: 1.2;
+          font-weight: 800;
         }
-        .part-bottom-note span { padding: 0 .25cqw; color: #d8a82f; }
-        .part-bottom-note img {
-          display: block; width: 8.2cqw; height: 4.1cqw; object-fit: contain;
-          mix-blend-mode: multiply;
+        .part-terms {
+          display: flex;
+          align-items: center;
+          gap: .58cqw;
+          margin-top: .76cqw;
         }
-        @media (max-aspect-ratio: 1920/615) {
-          .participation-artboard { width: min(100vw, calc(100dvh * 3.121951)); }
+        .part-terms-mark {
+          flex: 0 0 auto;
+          width: .36cqw;
+          height: .36cqw;
+          border-radius: 50%;
+          background: #d2a13b;
+          box-shadow: 0 0 0 .22cqw rgba(210,161,59,.15);
+        }
+        .part-terms p {
+          margin: 0;
+          color: #405c68;
+          font-size: .75cqw;
+          line-height: 1.42;
+          font-weight: 700;
+        }
+        .part-terms p span {
+          color: #69808a;
+          font-weight: 500;
+        }
+        .part-qr {
+          position: absolute;
+          top: 13.4%;
+          right: 3.15%;
+          width: 16%;
+          text-align: center;
+        }
+        .part-qr-topline {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: .38cqw;
+          margin-bottom: .55cqw;
+          color: #43717b;
+          font-size: .67cqw;
+          font-weight: 800;
+          letter-spacing: .17em;
+        }
+        .part-qr-topline span {
+          width: .38cqw;
+          height: .38cqw;
+          border-radius: 50%;
+          background: #d3a23f;
+        }
+        .part-qr-card {
+          padding: .86cqw .9cqw .73cqw;
+          border: 1px solid rgba(27,77,88,.13);
+          border-radius: .78cqw;
+          background: rgba(255,255,255,.82);
+          box-shadow: 0 .65cqw 1.8cqw rgba(27,58,66,.1);
+        }
+        .part-qr-card img {
+          display: block;
+          width: 10.7cqw;
+          height: 10.7cqw;
+          margin: 0 auto;
+          object-fit: contain;
+        }
+        .part-qr-card p {
+          margin: .48cqw 0 .34cqw;
+          color: #4f6770;
+          font-size: .72cqw;
+          line-height: 1.3;
+        }
+        .part-qr-card p strong {
+          color: #173849;
+          font-size: 1.05em;
+          font-weight: 800;
+        }
+        .part-qr-card a {
+          color: #147981;
+          font-size: .7cqw;
+          font-weight: 800;
+          letter-spacing: .015em;
+          text-decoration: none;
+        }
+        .part-eligibility {
+          margin: .62cqw 0 0;
+          color: #789099;
+          font-size: .59cqw;
+          font-weight: 600;
+          line-height: 1.35;
+        }
+        .part-edge-mark {
+          position: absolute;
+          right: 21.6%;
+          bottom: 9%;
+          display: flex;
+          gap: .34cqw;
+          align-items: flex-end;
+          opacity: .52;
+        }
+        .part-edge-mark i {
+          display: block;
+          width: .62cqw;
+          height: .62cqw;
+          border: 1px solid #ae832d;
+          border-radius: 50%;
+        }
+        .part-edge-mark i:nth-child(2) {
+          width: .82cqw;
+          height: .82cqw;
+          background: #237a8c;
+          border-color: #237a8c;
+        }
+        @media (max-width: 650px) {
+          .part-qr { right: 2.5%; width: 17%; }
+          .part-copy { width: 45%; }
         }
       `}</style>
     </main>
