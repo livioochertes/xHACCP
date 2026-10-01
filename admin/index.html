@@ -1383,6 +1383,467 @@
         transition-duration: 0.01ms !important;
       }
     }
+
+    /*
+     * Shared Admin design system. These rules intentionally scope to the
+     * authenticated Admin so legacy inline styles across individual views
+     * inherit the same surfaces, controls, tables, and responsive behavior.
+     */
+    #admin-root {
+      --admin-accent: #557765;
+      --admin-accent-soft: #edf3e9;
+      --admin-focus: #789886;
+      --admin-danger: #a95342;
+      color: var(--admin-ink);
+      font-family: "DM Sans", "Avenir Next", sans-serif;
+    }
+
+    #admin-root .admin-app-shell {
+      padding-top: 16px;
+    }
+
+    #admin-root .content-area {
+      min-width: 0;
+      border-color: var(--admin-border);
+      background: var(--admin-surface);
+      color: var(--admin-ink);
+    }
+
+    #admin-root .content-area > div[style*="background"] {
+      padding: 25px !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: var(--admin-surface) !important;
+      box-shadow: none !important;
+      color: var(--admin-ink);
+    }
+
+    #admin-root .content-area h1,
+    #admin-root .content-area h2,
+    #admin-root .content-area h3,
+    #admin-root .content-area h4,
+    #admin-root .content-area h5 {
+      color: var(--admin-ink) !important;
+      font-family: "DM Sans", "Avenir Next", sans-serif;
+      letter-spacing: -0.025em;
+      line-height: 1.3;
+      text-shadow: none !important;
+    }
+
+    #admin-root .content-area h1 { font-size: 25px; }
+    #admin-root .content-area h2 { font-size: 22px; }
+    #admin-root .content-area h3 { font-size: 19px; }
+    #admin-root .content-area h4 { font-size: 15px; }
+    #admin-root .content-area h5 { font-size: 13px; }
+
+    #admin-root .content-area p,
+    #admin-root .content-area li,
+    #admin-root .content-area label,
+    #admin-root .content-area small {
+      line-height: 1.55;
+    }
+
+    #admin-root .content-area p,
+    #admin-root .content-area small {
+      color: var(--admin-ink-soft);
+    }
+
+    #admin-root .content-area label {
+      color: #43594f;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    #admin-root .content-area button:not(.admin-nav-link):not(.admin-nav-group-button),
+    #admin-root .content-area a {
+      font-family: inherit;
+      transition: color 150ms ease, background-color 150ms ease,
+        border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+    }
+
+    #admin-root .content-area button:not(.btn):not(.admin-nav-link):not(.admin-nav-group-button) {
+      border-radius: 8px !important;
+    }
+
+    #admin-root .content-area button:focus-visible,
+    #admin-root .content-area a:focus-visible,
+    #admin-root .content-area input:focus-visible,
+    #admin-root .content-area select:focus-visible,
+    #admin-root .content-area textarea:focus-visible {
+      outline: 2px solid var(--admin-focus);
+      outline-offset: 2px;
+    }
+
+    #admin-root .content-area .btn {
+      min-height: 36px;
+      border: 1px solid var(--admin-sidebar) !important;
+      border-radius: 8px !important;
+      background: var(--admin-sidebar) !important;
+      box-shadow: 0 2px 7px rgba(22, 54, 47, 0.12) !important;
+      color: #f5f8ed !important;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    #admin-root .content-area .btn:hover:not(:disabled) {
+      border-color: #24514d !important;
+      background: #24514d !important;
+      box-shadow: 0 5px 12px rgba(22, 54, 47, 0.15) !important;
+      transform: translateY(-1px);
+    }
+
+    #admin-root .content-area .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    #admin-root .content-area .btn:disabled {
+      border-color: #d6ddd3 !important;
+      background: #e8ece5 !important;
+      box-shadow: none !important;
+      color: #7c8982 !important;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+
+    #admin-root .content-area .btn-secondary {
+      border-color: var(--admin-border) !important;
+      background: #f2f5ee !important;
+      box-shadow: none !important;
+      color: #43594f !important;
+    }
+
+    #admin-root .content-area .btn-secondary:hover:not(:disabled) {
+      border-color: #cfd9cc !important;
+      background: #e9efe5 !important;
+      color: var(--admin-ink) !important;
+      box-shadow: none !important;
+    }
+
+    #admin-root .content-area input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    #admin-root .content-area select,
+    #admin-root .content-area textarea {
+      max-width: 100%;
+      border: 1px solid #d8e1d6 !important;
+      border-radius: 8px !important;
+      background-color: #fffefa !important;
+      color: var(--admin-ink) !important;
+      font-family: inherit;
+      font-size: 13px;
+      box-shadow: none;
+    }
+
+    #admin-root .content-area input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+    #admin-root .content-area select:focus,
+    #admin-root .content-area textarea:focus {
+      border-color: var(--admin-focus) !important;
+      box-shadow: 0 0 0 3px rgba(120, 152, 134, 0.15) !important;
+      outline: none;
+    }
+
+    #admin-root .content-area input[type="checkbox"],
+    #admin-root .content-area input[type="radio"] {
+      accent-color: var(--admin-sidebar);
+    }
+
+    #admin-root .content-area input::placeholder,
+    #admin-root .content-area textarea::placeholder {
+      color: #929e96;
+      opacity: 1;
+    }
+
+    #admin-root .content-area div[style*="border:"],
+    #admin-root .content-area section[style*="border:"] {
+      border-color: var(--admin-border) !important;
+      border-radius: 10px !important;
+    }
+
+    #admin-root .content-area div[style*="background: rgb(248, 249, 250)"],
+    #admin-root .content-area div[style*="background-color: rgb(248, 249, 250)"] {
+      background: #f4f6f1 !important;
+    }
+
+    #admin-root .content-area div[style*="background: rgb(240, 248, 255)"],
+    #admin-root .content-area div[style*="background-color: rgb(240, 248, 255)"],
+    #admin-root .content-area div[style*="background: rgb(240, 247, 255)"],
+    #admin-root .content-area div[style*="background-color: rgb(240, 247, 255)"],
+    #admin-root .content-area div[style*="background: rgb(227, 242, 253)"],
+    #admin-root .content-area div[style*="background-color: rgb(227, 242, 253)"] {
+      background: #edf3ef !important;
+    }
+
+    #admin-root .content-area div[style*="background: rgb(255, 243, 205)"],
+    #admin-root .content-area div[style*="background-color: rgb(255, 243, 205)"],
+    #admin-root .content-area div[style*="background: rgb(255, 248, 225)"],
+    #admin-root .content-area div[style*="background-color: rgb(255, 248, 225)"] {
+      background: #f5f4e6 !important;
+    }
+
+    #admin-root .content-area div[style*="background: rgb(248, 215, 218)"],
+    #admin-root .content-area div[style*="background-color: rgb(248, 215, 218)"] {
+      background: #fbefea !important;
+    }
+
+    #admin-root .content-area div[style*="background: rgb(212, 237, 218)"],
+    #admin-root .content-area div[style*="background-color: rgb(212, 237, 218)"],
+    #admin-root .content-area div[style*="background: rgb(209, 231, 221)"],
+    #admin-root .content-area div[style*="background-color: rgb(209, 231, 221)"] {
+      background: #edf4eb !important;
+    }
+
+    #admin-root .content-area table {
+      min-width: 620px;
+      border-collapse: separate !important;
+      border-spacing: 0;
+      background: transparent !important;
+      color: var(--admin-ink);
+      font-family: inherit;
+      font-size: 12px !important;
+    }
+
+    #admin-root .content-area thead tr,
+    #admin-root .content-area thead th {
+      background: #f3f6ef !important;
+      color: #53685d !important;
+    }
+
+    #admin-root .content-area thead th {
+      padding: 11px 12px !important;
+      border-bottom: 1px solid #dce4d9 !important;
+      font-family: "DM Mono", monospace;
+      font-size: 9px !important;
+      font-weight: 500;
+      letter-spacing: 0.055em;
+      line-height: 1.45;
+      text-align: left;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+
+    #admin-root .content-area tbody td {
+      padding: 10px 12px !important;
+      border-bottom: 1px solid #edf0e9 !important;
+      color: inherit;
+      line-height: 1.45;
+      vertical-align: middle;
+    }
+
+    #admin-root .content-area tbody tr:last-child td {
+      border-bottom-color: transparent !important;
+    }
+
+    #admin-root .content-area tbody tr:hover td {
+      background: #f7f9f4 !important;
+    }
+
+    #admin-root .content-area tbody td > span[style*="background"],
+    #admin-root .content-area tbody td > span[style*="background-color"] {
+      display: inline-flex;
+      min-height: 22px;
+      align-items: center;
+      padding: 3px 8px !important;
+      border: 1px solid rgba(46, 76, 59, 0.08);
+      border-radius: 999px !important;
+      font-size: 10px;
+      font-weight: 650;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    #admin-root .content-area div:has(> table) {
+      max-width: 100%;
+      overflow-x: auto !important;
+      overscroll-behavior-x: contain;
+      scrollbar-color: #cbd6c8 transparent;
+      scrollbar-width: thin;
+    }
+
+    #admin-root .content-area > table {
+      display: block;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    #admin-root .dashboard-grid {
+      grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+      gap: 12px;
+    }
+
+    #admin-root .stat-card {
+      min-width: 0;
+      padding: 21px 22px;
+      text-align: left;
+      transition: border-color 150ms ease, box-shadow 150ms ease,
+        transform 150ms ease;
+    }
+
+    #admin-root .stat-card:hover {
+      border-color: #cfdbcc;
+      transform: translateY(-2px);
+    }
+
+    #admin-root .stat-number {
+      margin-bottom: 5px;
+      color: var(--admin-ink) !important;
+      font-family: "DM Mono", monospace;
+      font-size: clamp(25px, 3vw, 34px);
+      font-weight: 500;
+      line-height: 1.15;
+    }
+
+    #admin-root .stat-label {
+      color: var(--admin-ink-soft);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+    }
+
+    #admin-root .error-message,
+    #admin-root .success-message {
+      border-radius: 9px;
+      font-size: 13px;
+    }
+
+    #admin-root .error-message {
+      border-color: #e6c8bd;
+      background: #fbefea;
+      color: #8a4738;
+    }
+
+    #admin-root .success-message {
+      border-color: #ccddca;
+      background: #eef5eb;
+      color: #41634d;
+    }
+
+    #admin-root .modal-backdrop {
+      position: fixed;
+      z-index: 2000;
+      inset: 0;
+      display: grid;
+      align-items: center;
+      justify-items: center;
+      overflow: auto;
+      padding: 20px;
+      background: rgba(18, 42, 37, 0.48);
+      backdrop-filter: blur(3px);
+    }
+
+    #admin-root .modal-content {
+      width: min(100%, 920px);
+      max-height: min(90dvh, 1000px);
+      overflow: auto;
+      padding: 25px !important;
+      border: 1px solid var(--admin-border) !important;
+      border-radius: 14px !important;
+      background: var(--admin-surface) !important;
+      box-shadow: 0 24px 70px rgba(19, 43, 36, 0.24) !important;
+      color: var(--admin-ink);
+    }
+
+    #admin-root .modal-content input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    #admin-root .modal-content select,
+    #admin-root .modal-content textarea {
+      border: 1px solid #d8e1d6 !important;
+      border-radius: 8px !important;
+      font-family: inherit;
+    }
+
+    @media (max-width: 800px) {
+      #admin-root .admin-app-shell {
+        padding-top: 10px;
+      }
+
+      #admin-root .content-area {
+        min-height: 340px;
+      }
+
+      #admin-root .content-area > div[style*="background"] {
+        padding: 18px !important;
+      }
+
+      #admin-root .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      #admin-root .stat-card {
+        padding: 16px;
+      }
+
+      #admin-root .content-area div[style*="display: flex"],
+      #admin-root .content-area div[style*="justify-content: space-between"] {
+        flex-wrap: wrap !important;
+      }
+
+      #admin-root .modal-backdrop {
+        align-items: start;
+        padding: 12px;
+      }
+
+      #admin-root .modal-content {
+        max-height: calc(100dvh - 24px);
+        padding: 19px !important;
+      }
+    }
+
+    @media (max-width: 520px) {
+      #admin-root .content-area > div[style*="background"] {
+        padding: 15px !important;
+      }
+
+      #admin-root .content-area h1 { font-size: 21px; }
+      #admin-root .content-area h2 { font-size: 19px; }
+      #admin-root .content-area h3 { font-size: 17px; }
+
+      #admin-root .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #admin-root .stat-number {
+        font-size: 25px;
+      }
+
+      #admin-root .stat-card {
+        padding: 14px;
+      }
+
+      #admin-root .content-area .btn {
+        min-height: 35px;
+        padding: 8px 11px;
+        font-size: 11px;
+      }
+
+      #admin-root .content-area div[style*="grid-template-columns: 1fr 1fr"],
+      #admin-root .content-area div[style*="grid-template-columns: repeat(2, 1fr)"] {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+
+      #admin-root .content-area thead th,
+      #admin-root .content-area tbody td {
+        padding: 9px !important;
+      }
+
+      #admin-root .modal-backdrop {
+        padding: 0;
+      }
+
+      #admin-root .modal-content {
+        width: 100%;
+        max-height: 100dvh;
+        min-height: 100dvh;
+        padding: 18px 15px !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #admin-root .content-area *,
+      #admin-root .modal-content * {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
   </style>
 </head>
 <body>
