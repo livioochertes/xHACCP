@@ -5,5 +5,7 @@ export const modules: ModuleMap = {
   "./components/mockups/chef-home/Offer.tsx": () => import("../components/mockups/chef-home/Offer.tsx"),
   "./components/mockups/chef-home/OfferSharp.tsx": () => import("../components/mockups/chef-home/OfferSharp.tsx"),
   "./components/mockups/chef-home/Participation.tsx": () => import("../components/mockups/chef-home/Participation.tsx"),
+  "./components/mockups/fr-chef-event/Current.tsx": () => import("../components/mockups/fr-chef-event/Current.tsx"),
+  "./components/mockups/fr-chef-event/Responsive.tsx": () => import("../components/mockups/fr-chef-event/Responsive.tsx"),
   "./components/mockups/wms-tab/WmsRestructure.tsx": () => import("../components/mockups/wms-tab/WmsRestructure.tsx")
 };
