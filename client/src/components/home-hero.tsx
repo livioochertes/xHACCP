@@ -88,7 +88,6 @@ export default function HomeHero() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
-  const activeSlideIsFullCover = isFullCoverSlide(slides[activeIndex] ?? slides[0]);
 
   useEffect(() => {
     setActiveIndex((index) => Math.min(index, Math.max(0, slides.length - 1)));
@@ -113,7 +112,7 @@ export default function HomeHero() {
   return (
     <section
       ref={heroRef}
-      className={`relative overflow-hidden bg-slate-950 text-white ${activeSlideIsFullCover ? "aspect-[1920/615]" : ""}`}
+      className="relative min-h-[360px] overflow-hidden bg-slate-950 text-white md:min-h-[410px]"
       aria-roledescription="carousel"
       aria-label="Promotional highlights"
       onMouseEnter={() => setPaused(true)}
@@ -123,7 +122,7 @@ export default function HomeHero() {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
       }}
     >
-      <div className={`relative ${activeSlideIsFullCover ? "h-full w-full" : "min-h-[360px] md:min-h-[410px]"}`}>
+      <div className="relative min-h-[360px] md:min-h-[410px]">
         {slides.map((slide, index) => {
           const isActive = index === activeIndex;
           const fullCover = isFullCoverSlide(slide);
@@ -150,14 +149,14 @@ export default function HomeHero() {
                       <img
                         src={slide.imageUrl}
                         alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
-                        className="absolute inset-0 h-full w-full object-cover"
+                        className="absolute inset-0 h-full w-full object-contain"
                       />
                     </HeroDestination>
                   ) : (
                     <img
                       src={slide.imageUrl}
                       alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
-                      className="absolute inset-0 h-full w-full object-cover"
+                      className="absolute inset-0 h-full w-full object-contain"
                     />
                   )}
                   {!fullCover && (
