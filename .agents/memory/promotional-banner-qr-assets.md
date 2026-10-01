@@ -7,6 +7,6 @@ For promotional banners that include exact text or a QR code, use image generati
 
 Store finished homepage banners without passing them through the product-image optimizer. Keep the original file format, dimensions, and bytes on admin upload so vector-rendered text and QR codes are not softened by downscaling and JPEG recompression.
 
-**Why:** Generated raster text can be illegible and AI-drawn QR patterns are not dependable. Product-image compression and an oversized hero frame both undermine a cover that is otherwise sharp and correctly composed.
+**Why:** Generated raster text can be illegible and AI-drawn QR patterns are not dependable. Product-image compression and an oversized hero frame both undermine a cover that is otherwise sharp and correctly composed. A 1920-pixel export displayed around 960 CSS pixels halves its typography too, so microcopy needs to be sized for the rendered width.
 
-**How to apply:** Confirm the QR target from the campaign owner or an existing verified code, compose the QR and readable copy over the design, check the export dimensions and scanability, and use a dedicated original-preserving upload path for homepage banners.
+**How to apply:** Confirm the QR target from the campaign owner or an existing verified code, compose the QR and readable copy over the design, inspect it at the actual homepage width, simplify or enlarge any unreadable microcopy, check export dimensions and scanability, and use a dedicated original-preserving upload path for homepage banners.

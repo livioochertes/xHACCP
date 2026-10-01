@@ -128,7 +128,7 @@ export function Participation() {
         .part-header p {
           margin: 0;
           color: #164655;
-          font-size: .86cqw;
+          font-size: 1.08cqw;
           line-height: 1.4;
           font-weight: 800;
           letter-spacing: .11em;
@@ -136,7 +136,7 @@ export function Participation() {
         }
         .part-header p span {
           color: #63818a;
-          font-size: .82em;
+          font-size: .9em;
           font-weight: 600;
           letter-spacing: .08em;
         }
@@ -150,7 +150,7 @@ export function Participation() {
         .part-eyebrow {
           margin: 0 0 .42cqw;
           color: #16818b;
-          font-size: .86cqw;
+          font-size: 1.12cqw;
           font-weight: 800;
           letter-spacing: .22em;
           text-transform: uppercase;
@@ -171,7 +171,7 @@ export function Participation() {
         .part-subtitle {
           margin: .72cqw 0 0;
           color: #45616e;
-          font-size: 1.06cqw;
+          font-size: 1.25cqw;
           line-height: 1.35;
           font-weight: 600;
           letter-spacing: -.015em;
@@ -195,13 +195,13 @@ export function Participation() {
         .part-offer p {
           margin: 0 0 .12cqw;
           color: #254554;
-          font-size: .93cqw;
+          font-size: 1.15cqw;
           line-height: 1.25;
           font-weight: 700;
         }
         .part-offer b {
           color: #167b84;
-          font-size: 1.12cqw;
+          font-size: 1.28cqw;
           line-height: 1.2;
           font-weight: 800;
         }
@@ -222,7 +222,7 @@ export function Participation() {
         .part-terms p {
           margin: 0;
           color: #405c68;
-          font-size: .75cqw;
+          font-size: 1.1cqw;
           line-height: 1.42;
           font-weight: 700;
         }
@@ -244,7 +244,7 @@ export function Participation() {
           gap: .38cqw;
           margin-bottom: .55cqw;
           color: #43717b;
-          font-size: .67cqw;
+          font-size: 1.05cqw;
           font-weight: 800;
           letter-spacing: .17em;
         }
@@ -271,7 +271,7 @@ export function Participation() {
         .part-qr-card p {
           margin: .48cqw 0 .34cqw;
           color: #4f6770;
-          font-size: .72cqw;
+          font-size: 1cqw;
           line-height: 1.3;
         }
         .part-qr-card p strong {
@@ -281,7 +281,7 @@ export function Participation() {
         }
         .part-qr-card a {
           color: #147981;
-          font-size: .7cqw;
+          font-size: .95cqw;
           font-weight: 800;
           letter-spacing: .015em;
           text-decoration: none;
@@ -289,7 +289,7 @@ export function Participation() {
         .part-eligibility {
           margin: .62cqw 0 0;
           color: #789099;
-          font-size: .59cqw;
+          font-size: .92cqw;
           font-weight: 600;
           line-height: 1.35;
         }

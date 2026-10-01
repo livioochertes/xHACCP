@@ -147,3 +147,31 @@ mtime_ms = 1790814905384
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/035a0e8f-54e9-4538-b419-f4c786dc1f32/a28110f4-2afe-41a1-a04d-bcd1601050ba"
 storage_version_token = "1790814990808496"
 content_type = "image/png"
+
+[[outputs]]
+id = "58V-myxau3BN5ypK0DkW_"
+uri = "file://attached_assets/generated_images/chef-event-cover-light-readable-1920x615.png"
+type = "image"
+title = "Cover clar — text mărit, 1920 × 615"
+description = "PNG exportat la dimensiune completă, cu microtextul mărit pentru lizibilitate la lățimea reală a hero-ului."
+logical_id = "acaebb0b-3bf1-4659-a054-367bc471ca79"
+content_hash = "sha256:16ee4566c3b14a8391a32abf6db5cf164d0d4d70fb380c8cd3481df99f658dbe"
+size = 845871
+mtime_ms = 1790839800255
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/acaebb0b-3bf1-4659-a054-367bc471ca79/b357d356-d032-4ecd-a4a6-7fdc6a138bac"
+storage_version_token = "1790839836791204"
+content_type = "image/png"
+
+[[outputs]]
+id = "VLmQgbK6dkgJ32eDI4v6j"
+uri = "file://attached_assets/generated_images/chef-event-cover-navy-readable-1920x615.png"
+type = "image"
+title = "Cover navy — text mărit, 1920 × 615"
+description = "PNG exportat la dimensiune completă, cu microtextul mărit pentru lizibilitate la lățimea reală a hero-ului."
+logical_id = "7898c68c-1f80-4a6e-acd9-c2bb53f5b00a"
+content_hash = "sha256:712d138695e8b71c6f54d3aadfc864300d09d7a8a49ec0c79ff684420b7eea35"
+size = 936823
+mtime_ms = 1790839800247
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/7898c68c-1f80-4a6e-acd9-c2bb53f5b00a/bc790840-fa56-49aa-bea2-fee7126fc5c2"
+storage_version_token = "1790839837370835"
+content_type = "image/png"

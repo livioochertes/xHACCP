@@ -127,7 +127,7 @@ export function OfferSharp() {
         .offer-sharp-header p {
           margin: 0;
           color: #c6d7de;
-          font-size: .77cqw;
+          font-size: 1.02cqw;
           font-weight: 700;
           letter-spacing: .12em;
           text-transform: uppercase;
@@ -139,7 +139,7 @@ export function OfferSharp() {
           border: 1px solid rgba(112,202,215,.35);
           border-radius: 99px;
           color: #91d7dd;
-          font-size: .64cqw;
+          font-size: .9cqw;
           letter-spacing: .16em;
         }
         .offer-sharp-copy {
@@ -151,7 +151,7 @@ export function OfferSharp() {
         .offer-sharp-eyebrow {
           margin: 0 0 .62cqw;
           color: #80cbd1;
-          font-size: .83cqw;
+          font-size: 1.18cqw;
           font-weight: 800;
           letter-spacing: .21em;
           text-transform: uppercase;
@@ -185,14 +185,14 @@ export function OfferSharp() {
         .offer-sharp-deal > strong span { font-size: .65em; }
         .offer-sharp-deal b {
           color: #f3f7f4;
-          font-size: .97cqw;
+          font-size: 1.25cqw;
           font-weight: 900;
           letter-spacing: .15em;
         }
         .offer-sharp-deal p {
           margin: .3cqw 0 0;
           color: #c0d6de;
-          font-size: .85cqw;
+          font-size: 1.15cqw;
           font-weight: 500;
         }
         .offer-sharp-rule {
@@ -204,7 +204,7 @@ export function OfferSharp() {
         .offer-sharp-condition {
           margin: 0;
           color: #f0f5f3;
-          font-size: .78cqw;
+          font-size: 1.15cqw;
           font-weight: 700;
           line-height: 1.45;
         }
@@ -246,7 +246,7 @@ export function OfferSharp() {
         .offer-sharp-qr-card p {
           margin: 0 0 .38cqw;
           color: #627983;
-          font-size: .67cqw;
+          font-size: 1cqw;
           line-height: 1.25;
           font-weight: 700;
           letter-spacing: .13em;
@@ -258,7 +258,7 @@ export function OfferSharp() {
         }
         .offer-sharp-qr-card a {
           color: #147d85;
-          font-size: .7cqw;
+          font-size: .95cqw;
           font-weight: 800;
           letter-spacing: .015em;
           text-decoration: none;
@@ -266,7 +266,7 @@ export function OfferSharp() {
         .offer-sharp-qr-note {
           margin: .6cqw 0 0;
           color: #a8c6ce;
-          font-size: .63cqw;
+          font-size: .95cqw;
           font-weight: 600;
         }
         .offer-sharp-accent {
