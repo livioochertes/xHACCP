@@ -40,6 +40,36 @@ function createHarness(initialCampaigns: FixtureCampaign[] = []) {
     updated: 0,
     deleted: 0,
   };
+  const marketLockQueues = new Map<string, Promise<void>>();
+  const withMarketLock = async <T>(market: string, save: () => Promise<T>): Promise<T> => {
+    const previous = marketLockQueues.get(market) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    marketLockQueues.set(market, current);
+    await previous;
+    try {
+      return await save();
+    } finally {
+      release();
+      if (marketLockQueues.get(market) === current) marketLockQueues.delete(market);
+    }
+  };
+  const hasOverlap = async (
+    market: "ro" | "fr" | "com",
+    startsAt: Date,
+    endsAt: Date,
+    exceptId?: number,
+  ) => {
+    calls.overlaps.push({ market, exceptId });
+    return campaigns.some((campaign) =>
+      campaign.market === market
+      && campaign.id !== exceptId
+      && campaign.startsAt < endsAt
+      && campaign.endsAt > startsAt,
+    );
+  };
   const catalogByMarket = {
     ro: [{ id: 11, name: "Romania product", slug: "ro-product" }, { id: 12, name: "Romania product 2", slug: "ro-product-2" }],
     fr: [{ id: 21, name: "France product", slug: "fr-product" }, { id: 22, name: "France product 2", slug: "fr-product-2" }],
@@ -66,28 +96,25 @@ function createHarness(initialCampaigns: FixtureCampaign[] = []) {
       return campaigns.filter((campaign) => campaign.market === market);
     },
     findCampaign: async (id) => campaigns.find((campaign) => campaign.id === id),
-    hasOverlappingCampaign: async (market, startsAt, endsAt, exceptId) => {
-      calls.overlaps.push({ market, exceptId });
-      return campaigns.some((campaign) =>
-        campaign.market === market
-        && campaign.id !== exceptId
-        && campaign.startsAt < endsAt
-        && campaign.endsAt > startsAt,
-      );
-    },
-    createCampaign: async (input) => {
+    createCampaignIfNoOverlap: async (input) => withMarketLock(input.market, async () => {
+      if (await hasOverlap(input.market, input.startsAt, input.endsAt)) {
+        return { conflict: true };
+      }
       calls.created++;
       const campaign: FixtureCampaign = { id: nextId++, ...input };
       campaigns.push(campaign);
-      return campaign;
-    },
-    updateCampaign: async (id, input) => {
+      return { conflict: false, campaign };
+    }),
+    updateCampaignIfNoOverlap: async (id, market, input) => withMarketLock(market, async () => {
+      if (await hasOverlap(market, input.startsAt, input.endsAt, id)) {
+        return { conflict: true };
+      }
       calls.updated++;
       const campaign = campaigns.find((item) => item.id === id);
       if (!campaign) throw new Error("Campaign fixture not found");
       Object.assign(campaign, input);
-      return campaign;
-    },
+      return { conflict: false, campaign };
+    }),
     deleteCampaign: async (id) => {
       calls.deleted++;
       const index = campaigns.findIndex((campaign) => campaign.id === id);
@@ -201,6 +228,66 @@ test("allows identical dates in different markets and rejects an overlap in the 
   assert.equal(overlappingFranceCampaign.status, 409);
   assert.deepEqual(harness.campaigns.map((campaign) => campaign.market), ["ro", "fr"]);
   assert.deepEqual(harness.calls.overlaps.map(({ market }) => market), ["ro", "fr", "fr"]);
+});
+
+test("allows only one of two concurrent overlapping campaign creates", async (t) => {
+  const harness = createHarness();
+  t.after(() => harness.close());
+  const body = { market: "fr", productIds: [21, 22], ...sharedDates };
+
+  const responses = await Promise.all([
+    harness.request("POST", campaignUrl, "fr", body),
+    harness.request("POST", campaignUrl, "fr", body),
+  ]);
+
+  assert.deepEqual(responses.map(({ status }) => status).sort(), [201, 409]);
+  assert.equal(harness.campaigns.length, 1);
+  assert.equal(harness.calls.created, 1);
+});
+
+test("serializes overlapping create and edit requests in the same market", async (t) => {
+  const harness = createHarness([
+    fixtureCampaign(1, "fr", "2031-04-20T00:00:00.000Z", "2031-04-30T00:00:00.000Z"),
+  ]);
+  t.after(() => harness.close());
+
+  const responses = await Promise.all([
+    harness.request("POST", campaignUrl, "fr", {
+      market: "fr",
+      productIds: [21, 22],
+      ...sharedDates,
+    }),
+    harness.request("PUT", `${campaignUrl}/1`, "fr", {
+      productIds: [21, 22],
+      ...sharedDates,
+    }),
+  ]);
+
+  assert.equal(responses.filter(({ status }) => status === 409).length, 1);
+  assert.equal(responses.filter(({ status }) => status === 200 || status === 201).length, 1);
+  assert.equal(harness.calls.created + harness.calls.updated, 1);
+});
+
+test("allows only one of two concurrent overlapping campaign edits", async (t) => {
+  const harness = createHarness([
+    fixtureCampaign(1, "fr"),
+    fixtureCampaign(2, "fr", "2031-04-20T00:00:00.000Z", "2031-04-30T00:00:00.000Z"),
+  ]);
+  t.after(() => harness.close());
+  const body = { productIds: [21, 22], ...sharedDates };
+
+  const responses = await Promise.all([
+    harness.request("PUT", `${campaignUrl}/1`, "fr", body),
+    harness.request("PUT", `${campaignUrl}/2`, "fr", body),
+  ]);
+
+  assert.deepEqual(responses.map(({ status }) => status).sort(), [200, 409]);
+  assert.equal(harness.calls.updated, 1);
+  assert.equal(
+    harness.campaigns[0].startsAt < harness.campaigns[1].endsAt
+      && harness.campaigns[0].endsAt > harness.campaigns[1].startsAt,
+    false,
+  );
 });
 
 test("checks update overlaps within the campaign market, excludes itself, and rejects foreign-market products", async (t) => {

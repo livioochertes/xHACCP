@@ -3,7 +3,7 @@ import {
   aiRecommendationCampaigns,
   type MarketingSegmentCriteria,
 } from "@shared/schema";
-import { and, desc, eq, gt, lt, ne } from "drizzle-orm";
+import { and, desc, eq, gt, lt, ne, sql } from "drizzle-orm";
 import { db } from "./db";
 import { storage } from "./storage";
 import { authenticateAdmin, canAccessMarket } from "./admin-routes";
@@ -44,25 +44,28 @@ type NewRecommendationCampaign = {
   createdBy?: number;
 };
 
+type CampaignSaveResult =
+  | { conflict: true }
+  | { conflict: false; campaign: RecommendationCampaign };
+
 export interface AIRecommendationCampaignRouteDependencies {
   authenticateAdmin: RequestHandler;
   canAccessMarket: (req: Request, market: string) => boolean;
   getCatalogForMarket: typeof getAIMarketCatalogForMarket;
   listCampaigns: (market: RecommendationMarket) => Promise<RecommendationCampaign[]>;
   findCampaign: (id: number) => Promise<RecommendationCampaign | undefined>;
-  hasOverlappingCampaign: (
-    market: RecommendationMarket,
-    startsAt: Date,
-    endsAt: Date,
-    exceptId?: number,
-  ) => Promise<boolean>;
-  createCampaign: (campaign: NewRecommendationCampaign) => Promise<RecommendationCampaign>;
-  updateCampaign: (
+  createCampaignIfNoOverlap: (
+    campaign: NewRecommendationCampaign,
+  ) => Promise<CampaignSaveResult>;
+  updateCampaignIfNoOverlap: (
     id: number,
+    market: RecommendationMarket,
     campaign: Pick<NewRecommendationCampaign, "productIds" | "startsAt" | "endsAt">,
-  ) => Promise<RecommendationCampaign>;
+  ) => Promise<CampaignSaveResult>;
   deleteCampaign: (id: number) => Promise<void>;
 }
+
+const AI_RECOMMENDATION_CAMPAIGN_LOCK_NAMESPACE = 1_927_318_462;
 
 const defaultAIRecommendationCampaignDependencies: AIRecommendationCampaignRouteDependencies = {
   authenticateAdmin: authenticateAdmin as RequestHandler,
@@ -78,34 +81,48 @@ const defaultAIRecommendationCampaignDependencies: AIRecommendationCampaignRoute
       .limit(1);
     return campaign;
   },
-  hasOverlappingCampaign: async (market, startsAt, endsAt, exceptId) => {
-    const conditions = [
-      eq(aiRecommendationCampaigns.market, market),
-      lt(aiRecommendationCampaigns.startsAt, endsAt),
-      gt(aiRecommendationCampaigns.endsAt, startsAt),
-    ];
-    if (exceptId !== undefined) {
-      conditions.push(ne(aiRecommendationCampaigns.id, exceptId));
-    }
-    const [overlap] = await db.select({ id: aiRecommendationCampaigns.id })
+  createCampaignIfNoOverlap: async (campaign) => db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(
+      ${AI_RECOMMENDATION_CAMPAIGN_LOCK_NAMESPACE},
+      hashtext(${campaign.market})
+    )`);
+    const [overlap] = await tx.select({ id: aiRecommendationCampaigns.id })
       .from(aiRecommendationCampaigns)
-      .where(and(...conditions))
+      .where(and(
+        eq(aiRecommendationCampaigns.market, campaign.market),
+        lt(aiRecommendationCampaigns.startsAt, campaign.endsAt),
+        gt(aiRecommendationCampaigns.endsAt, campaign.startsAt),
+      ))
       .limit(1);
-    return Boolean(overlap);
-  },
-  createCampaign: async (campaign) => {
-    const [created] = await db.insert(aiRecommendationCampaigns).values(campaign).returning();
+    if (overlap) return { conflict: true };
+
+    const [created] = await tx.insert(aiRecommendationCampaigns).values(campaign).returning();
     if (!created) throw new Error("Campaign insert returned no row");
-    return created;
-  },
-  updateCampaign: async (id, campaign) => {
-    const [updated] = await db.update(aiRecommendationCampaigns)
+    return { conflict: false, campaign: created };
+  }),
+  updateCampaignIfNoOverlap: async (id, market, campaign) => db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(
+      ${AI_RECOMMENDATION_CAMPAIGN_LOCK_NAMESPACE},
+      hashtext(${market})
+    )`);
+    const [overlap] = await tx.select({ id: aiRecommendationCampaigns.id })
+      .from(aiRecommendationCampaigns)
+      .where(and(
+        eq(aiRecommendationCampaigns.market, market),
+        lt(aiRecommendationCampaigns.startsAt, campaign.endsAt),
+        gt(aiRecommendationCampaigns.endsAt, campaign.startsAt),
+        ne(aiRecommendationCampaigns.id, id),
+      ))
+      .limit(1);
+    if (overlap) return { conflict: true };
+
+    const [updated] = await tx.update(aiRecommendationCampaigns)
       .set({ ...campaign, updatedAt: new Date() })
       .where(eq(aiRecommendationCampaigns.id, id))
       .returning();
     if (!updated) throw new Error("Campaign update returned no row");
-    return updated;
-  },
+    return { conflict: false, campaign: updated };
+  }),
   deleteCampaign: async (id) => {
     await db.delete(aiRecommendationCampaigns).where(eq(aiRecommendationCampaigns.id, id));
   },
@@ -172,18 +189,18 @@ export function registerMarketingAdminRoutes(
         return res.status(400).json({ message: "All selected products must be active in this market" });
       }
 
-      if (await campaignDependencies.hasOverlappingCampaign(market, input.startsAt, input.endsAt)) {
-        return res.status(409).json({ message: "Another campaign overlaps this period for the selected market" });
-      }
-
-      const campaign = await campaignDependencies.createCampaign({
+      const result = await campaignDependencies.createCampaignIfNoOverlap({
         market,
         productIds: input.productIds,
         startsAt: input.startsAt,
         endsAt: input.endsAt,
         createdBy: req.adminId,
       });
-      res.status(201).json(campaign);
+      if (result.conflict) {
+        return res.status(409).json({ message: "Another campaign overlaps this period for the selected market" });
+      }
+
+      res.status(201).json(result.campaign);
     } catch (error) {
       console.error("AI recommendation campaign create error:", error);
       res.status(500).json({ message: "Failed to create AI recommendation campaign" });
@@ -218,21 +235,16 @@ export function registerMarketingAdminRoutes(
         return res.status(400).json({ message: "All selected products must be active in this market" });
       }
 
-      if (await campaignDependencies.hasOverlappingCampaign(
-        existing.market,
-        input.startsAt,
-        input.endsAt,
-        id,
-      )) {
-        return res.status(409).json({ message: "Another campaign overlaps this period for the selected market" });
-      }
-
-      const campaign = await campaignDependencies.updateCampaign(id, {
+      const result = await campaignDependencies.updateCampaignIfNoOverlap(id, existing.market, {
         productIds: input.productIds,
         startsAt: input.startsAt,
         endsAt: input.endsAt,
       });
-      res.json(campaign);
+      if (result.conflict) {
+        return res.status(409).json({ message: "Another campaign overlaps this period for the selected market" });
+      }
+
+      res.json(result.campaign);
     } catch (error) {
       console.error("AI recommendation campaign update error:", error);
       res.status(500).json({ message: "Failed to update AI recommendation campaign" });
