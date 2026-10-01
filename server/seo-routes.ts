@@ -841,7 +841,7 @@ export function registerSeoRoutes(
         "articleSection": post.category,
       };
       if (post.excerpt) blogPostingSchema["description"] = post.excerpt.slice(0, 300);
-      const articleImage = publicImageUrl(post.imageUrl, base);
+      const articleImage = publicImageUrl(post.imageUrl ?? undefined, base);
       if (articleImage) blogPostingSchema["image"] = articleImage;
       if (post.publishedAt) blogPostingSchema["datePublished"] = new Date(post.publishedAt).toISOString();
       if (post.updatedAt) blogPostingSchema["dateModified"] = new Date(post.updatedAt).toISOString();
