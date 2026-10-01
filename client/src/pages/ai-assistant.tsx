@@ -11,7 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { useTranslation } from "@/hooks/useTranslation";
-import { useLanguage } from "@/contexts/language-context";
+import { getNoriAiCopy } from "@/lib/nori-ai-copy";
 
 import { Link } from "wouter";
 
@@ -74,7 +74,7 @@ export default function AIAssistant() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { t } = useTranslation();
-  const { language } = useLanguage();
+  const noriAiCopy = getNoriAiCopy();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -131,7 +131,7 @@ export default function AIAssistant() {
         setMessages([
           {
             id: "1",
-            text: t('ai.welcome'),
+            text: noriAiCopy.welcome,
             sender: "assistant",
             timestamp: new Date(),
           },
@@ -142,7 +142,7 @@ export default function AIAssistant() {
       setMessages([
         {
           id: "1",
-          text: t('ai.welcome'),
+          text: noriAiCopy.welcome,
           sender: "assistant",
           timestamp: new Date(),
         },
@@ -165,12 +165,12 @@ export default function AIAssistant() {
       setMessages(prevMessages => [
         {
           ...prevMessages[0],
-          text: t('ai.welcome'),
+          text: noriAiCopy.welcome,
         },
         ...prevMessages.slice(1)
       ]);
     }
-  }, [t]);
+  }, [noriAiCopy.welcome]);
 
   // Save session data whenever it changes
   useEffect(() => {
@@ -227,7 +227,7 @@ export default function AIAssistant() {
     setMessages([
       {
         id: "1",
-        text: t('ai.welcome'),
+      text: noriAiCopy.welcome,
         sender: "assistant",
         timestamp: new Date(),
       },
@@ -239,13 +239,13 @@ export default function AIAssistant() {
     });
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim() || !isConnected || !sessionId) return;
+  const sendMessage = async (messageText: string) => {
+    const text = messageText.trim();
+    if (!text || !isConnected || !sessionId || isTyping) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputMessage,
+      text,
       sender: "user",
       timestamp: new Date(),
     };
@@ -258,7 +258,7 @@ export default function AIAssistant() {
       const response = await apiRequest("POST", "/api/ai/chat", {
         message: userMessage.text,
         sessionId,
-        language: language,
+        language: noriAiCopy.language,
       });
 
       const data = await response.json();
@@ -273,7 +273,7 @@ export default function AIAssistant() {
       setMessages(prev => [...prev, aiMessage]);
       trackEvent("ai_message_sent", {
         message_length: userMessage.text.length,
-        language,
+        language: noriAiCopy.language,
         market: getMarketFromHostname(),
         response_status: "success",
       });
@@ -281,7 +281,7 @@ export default function AIAssistant() {
       console.error("Chat error:", error);
       trackEvent("ai_message_sent", {
         message_length: userMessage.text.length,
-        language,
+        language: noriAiCopy.language,
         market: getMarketFromHostname(),
         response_status: "failed",
       });
@@ -306,14 +306,12 @@ export default function AIAssistant() {
     }
   };
 
-  const suggestedQuestions = [
-    t('ai.suggestions.cleaning'),
-    t('ai.suggestions.thermometer'),
-    t('ai.suggestions.haccp'),
-    t('ai.suggestions.bestsellers'),
-    t('ai.suggestions.orderStatus'),
-    t('ai.suggestions.invoices'),
-  ];
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendMessage(inputMessage);
+  };
+
+  const suggestedQuestions = noriAiCopy.questions;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -407,31 +405,6 @@ export default function AIAssistant() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">{t('ai.quickQuestions')}</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-1">
-                    {suggestedQuestions.map((question, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start text-left h-auto p-2 text-xs leading-normal whitespace-normal min-h-[2rem]"
-                        onClick={() => {
-                          if (isConnected) {
-                            setInputMessage(question);
-                          }
-                        }}
-                        disabled={!isConnected}
-                      >
-                        <span className="block break-words">{question}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Chat Interface */}
@@ -472,6 +445,24 @@ export default function AIAssistant() {
                                   : message.text
                                 }
                               </div>
+                              {message.sender === "assistant" &&
+                                message.id === "1" &&
+                                messages.length === 1 && (
+                                  <div className="mt-3 grid gap-2">
+                                    {suggestedQuestions.map((question) => (
+                                      <Button
+                                        key={question}
+                                        type="button"
+                                        variant="outline"
+                                        className="h-auto justify-start whitespace-normal border-primary/20 bg-background p-2 text-left text-xs leading-normal hover:border-primary/50 hover:bg-primary/5"
+                                        onClick={() => void sendMessage(question)}
+                                        disabled={!isConnected || isTyping}
+                                      >
+                                        {question}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                )}
                               <p className="text-xs opacity-70 mt-1">
                                 {message.timestamp.toLocaleTimeString()}
                               </p>

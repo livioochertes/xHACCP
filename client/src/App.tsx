@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/components/cart-provider";
 import { LanguageProvider } from "@/contexts/language-context";
 import Header from "@/components/header";
+import AiChatWidget from "@/components/ai-chat-widget";
 const Home = lazy(() => import("@/pages/home"));
 const Products = lazy(() => import("@/pages/products"));
 const ProductDetails = lazy(() => import("@/pages/product-details"));
@@ -69,6 +70,7 @@ function Router() {
           <Route component={NotFound} />
         </Switch>
       </Suspense>
+      <AiChatWidget />
     </>
   );
 }
