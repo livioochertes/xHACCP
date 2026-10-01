@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import {
   Activity,
-  ArrowDownRight,
   ArrowRight,
-  ArrowUpRight,
   BadgePercent,
   Bell,
   BookOpenText,
@@ -33,6 +31,7 @@ import {
   RefreshCw,
   Rss,
   Search,
+  ShieldCheck,
   Settings2,
   ShoppingCart,
   SlidersHorizontal,
@@ -60,6 +59,7 @@ type SectionId =
   | "homepage-hero"
   | "google-feed"
   | "users"
+  | "admin-users"
   | "company-settings"
   | "wms";
 
@@ -107,7 +107,8 @@ const sectionItems: AdminSection[] = [
   { id: "blog", label: "Blog AI", icon: BookOpenText, group: "growth" },
   { id: "homepage-hero", label: "Cover Home", icon: ImageIcon, group: "growth" },
   { id: "google-feed", label: "Google Feed", icon: Rss, group: "growth" },
-  { id: "users", label: "Clienți", icon: UsersRound, group: "admin" },
+  { id: "users", label: "Utilizatori", icon: UsersRound, group: "admin" },
+  { id: "admin-users", label: "Utilizatori admin", icon: ShieldCheck, group: "admin", count: "3" },
   { id: "company-settings", label: "Setări firmă", icon: Building2, group: "admin" },
   { id: "wms", label: "WMS", icon: Warehouse, group: "admin" },
 ];
@@ -188,9 +189,14 @@ const pageMeta: Record<SectionId, { title: string; description: string; action: 
     action: "Sincronizează",
   },
   users: {
-    title: "Clienți",
-    description: "Conturi, activitate și suport, cu contextul fiecărei piețe.",
+    title: "Utilizatori",
+    description: "Conturi ale clienților, activitate și suport, cu contextul fiecărei piețe.",
     action: "Client nou",
+  },
+  "admin-users": {
+    title: "Utilizatori admin",
+    description: "Conturile cu acces la Panoul xHACCP și protecția lor prin autentificare 2FA.",
+    action: "Adaugă administrator",
   },
   "company-settings": {
     title: "Setări firmă",
@@ -276,6 +282,48 @@ const resourceRows: Partial<Record<SectionId, ResourceRow[]>> = {
 
 const chartValues = [35, 49, 43, 62, 55, 71, 47, 58, 77, 64, 82, 69, 93, 74, 88, 68, 96, 79, 85, 100, 72, 91, 77, 87];
 const chartLabels = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "Azi"];
+
+const dashboardMetricValues: Record<MarketId, {
+  salesToday: string;
+  salesMonth: string;
+  ordersToday: string;
+  ordersMonth: string;
+  usersToday: string;
+  usersMonth: string;
+}> = {
+  ALL: {
+    salesToday: "8.420 lei + 1.840 €",
+    salesMonth: "142.800 lei + 42.260 €",
+    ordersToday: "38",
+    ordersMonth: "482",
+    usersToday: "7",
+    usersMonth: "96",
+  },
+  RO: {
+    salesToday: "8.420 lei",
+    salesMonth: "142.800 lei",
+    ordersToday: "24",
+    ordersMonth: "301",
+    usersToday: "5",
+    usersMonth: "52",
+  },
+  FR: {
+    salesToday: "1.240 €",
+    salesMonth: "24.800 €",
+    ordersToday: "9",
+    ordersMonth: "118",
+    usersToday: "2",
+    usersMonth: "31",
+  },
+  COM: {
+    salesToday: "600 €",
+    salesMonth: "8.240 €",
+    ordersToday: "5",
+    ordersMonth: "63",
+    usersToday: "0",
+    usersMonth: "13",
+  },
+};
 
 const reportPeriods: Record<ReportRange, {
   label: string;
@@ -391,31 +439,34 @@ function OrderTable({
   );
 }
 
-function StatCard({
+function MetricPairCard({
   label,
-  value,
-  detail,
-  change,
+  today,
+  month,
   icon: Icon,
   highlight = false,
 }: {
   label: string;
-  value: string;
-  detail: string;
-  change: string;
+  today: string;
+  month: string;
   icon: LucideIcon;
   highlight?: boolean;
 }) {
   return (
-    <article className={`admin-stat-card${highlight ? " is-highlight" : ""}`}>
+    <article className={`admin-stat-card admin-metric-card${highlight ? " is-highlight" : ""}`}>
       <div className="admin-stat-heading">
         <span>{label}</span>
         <Icon size={15} aria-hidden="true" />
       </div>
-      <strong className="admin-stat-value">{value}</strong>
-      <div className="admin-stat-foot">
-        <strong><ArrowUpRight size={11} /> {change}</strong>
-        <span>{detail}</span>
+      <div className="admin-metric-values">
+        <div className="admin-metric-row">
+          <span>Azi</span>
+          <strong>{today}</strong>
+        </div>
+        <div className="admin-metric-row">
+          <span>Total luna</span>
+          <strong>{month}</strong>
+        </div>
       </div>
     </article>
   );
@@ -424,11 +475,13 @@ function StatCard({
 function DashboardWorkspace({
   market,
   onOpenOrder,
+  onNavigate,
   orders,
   onNotify,
 }: {
   market: MarketId;
   onOpenOrder: (order: OrderRow) => void;
+  onNavigate: (id: SectionId) => void;
   orders: OrderRow[];
   onNotify: (message: string) => void;
 }) {
@@ -442,6 +495,7 @@ function DashboardWorkspace({
 
       <ReportsWorkspace
         market={market}
+        onNavigate={onNavigate}
         orders={orders}
         onOpenOrder={onOpenOrder}
         onNotify={onNotify}
@@ -469,15 +523,18 @@ function ReportsWorkspace({
   market,
   orders,
   onOpenOrder,
+  onNavigate,
   onNotify,
 }: {
   market: MarketId;
   orders: OrderRow[];
   onOpenOrder: (order: OrderRow) => void;
+  onNavigate: (id: SectionId) => void;
   onNotify: (message: string) => void;
 }) {
   const [range, setRange] = useState<ReportRange>("7d");
   const report = reportPeriods[range];
+  const metrics = dashboardMetricValues[market];
   const currentMarket = marketOptions.find((option) => option.id === market);
   const marketCounts = [
     { id: "RO" as const, label: "România", count: orders.filter((order) => order.market === "RO").length },
@@ -489,8 +546,51 @@ function ReportsWorkspace({
 
   return (
     <>
+      <div className="admin-dashboard-grid admin-dashboard-metrics" aria-label="Indicatori azi și lunari">
+        <MetricPairCard
+          label="Valoare vânzări"
+          today={metrics.salesToday}
+          month={metrics.salesMonth}
+          icon={Activity}
+          highlight
+        />
+        <MetricPairCard
+          label="Număr comenzi"
+          today={metrics.ordersToday}
+          month={metrics.ordersMonth}
+          icon={ShoppingCart}
+        />
+        <MetricPairCard
+          label="Utilizatori noi"
+          today={metrics.usersToday}
+          month={metrics.usersMonth}
+          icon={UsersRound}
+        />
+      </div>
+
+      <nav className="admin-dashboard-shortcuts" aria-label="Scurtături rapide">
+        <span className="admin-dashboard-shortcuts-label">Acces rapid</span>
+        <div className="admin-dashboard-shortcut-list">
+          <button type="button" onClick={() => onNavigate("orders")}>
+            <ShoppingCart size={14} aria-hidden="true" />
+            <span>Comenzi</span>
+            <ArrowRight size={12} aria-hidden="true" />
+          </button>
+          <button type="button" onClick={() => onNavigate("users")}>
+            <UsersRound size={14} aria-hidden="true" />
+            <span>Utilizatori</span>
+            <ArrowRight size={12} aria-hidden="true" />
+          </button>
+          <button type="button" onClick={() => onNavigate("products")}>
+            <Package size={14} aria-hidden="true" />
+            <span>Produse</span>
+            <ArrowRight size={12} aria-hidden="true" />
+          </button>
+        </div>
+      </nav>
+
       <div className="admin-content-toolbar admin-report-toolbar">
-        <div className="admin-report-range" role="group" aria-label="Perioada raportului">
+        <div className="admin-report-range" role="group" aria-label="Perioada graficului">
           {(["24h", "7d", "30d"] as const).map((periodId) => (
             <button
               className={range === periodId ? "is-active" : ""}
@@ -507,38 +607,6 @@ function ReportsWorkspace({
           <Globe2 size={13} aria-hidden="true" />
           {currentMarket?.name ?? "Toate piețele"}
         </span>
-      </div>
-
-      <div className="admin-dashboard-grid admin-report-stat-grid">
-        <StatCard
-          label="Vânzări nete"
-          value={report.sales}
-          detail={report.comparison}
-          change={report.salesChange}
-          icon={Activity}
-          highlight
-        />
-        <StatCard
-          label="Comenzi active"
-          value={report.orders}
-          detail={`în ${report.label.toLowerCase()}`}
-          change={report.orderChange}
-          icon={ShoppingCart}
-        />
-        <StatCard
-          label="Valoare medie"
-          value={report.average}
-          detail={`în ${report.label.toLowerCase()}`}
-          change={report.averageChange}
-          icon={ArrowDownRight}
-        />
-        <StatCard
-          label="Produse active"
-          value="2.184"
-          detail="catalog sincronizat"
-          change={report.productChange}
-          icon={Package}
-        />
       </div>
 
       <div className="admin-report-grid">
@@ -806,6 +874,75 @@ function GenericWorkspace({
         </div>
       </section>
     </>
+  );
+}
+
+function AdminUsersWorkspace({ onNotify }: { onNotify: (message: string) => void }) {
+  const administrators = [
+    { id: "admin-1", initials: "AM", name: "Ana Marinescu", email: "ana.marinescu@xhaccp.com", role: "Superadmin", market: "Toate piețele", twoFactor: true },
+    { id: "admin-2", initials: "VL", name: "Victor Laurent", email: "victor.laurent@xhaccp.com", role: "Administrator", market: "Franța", twoFactor: true },
+    { id: "admin-3", initials: "IR", name: "Irina Radu", email: "irina.radu@xhaccp.com", role: "Administrator", market: "România", twoFactor: false },
+  ];
+  const [twoFactorByAdmin, setTwoFactorByAdmin] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(administrators.map((admin) => [admin.id, admin.twoFactor])),
+  );
+  const protectedCount = administrators.filter((admin) => twoFactorByAdmin[admin.id]).length;
+
+  return (
+    <div className="admin-admin-users-workspace">
+      <section className="admin-security-summary">
+        <span className="admin-security-summary-icon"><ShieldCheck size={19} aria-hidden="true" /></span>
+        <div className="admin-security-summary-copy">
+          <span>SECURITATE ADMIN</span>
+          <strong>Autentificare în doi pași</strong>
+          <p>Verifică și gestionează 2FA pentru fiecare cont cu acces la panou.</p>
+        </div>
+        <span className="admin-security-summary-count">{protectedCount} din {administrators.length} protejați</span>
+      </section>
+
+      <section className="admin-panel admin-admin-users-panel">
+        <header className="admin-panel-heading">
+          <div>
+            <h2>Conturi de administrare</h2>
+            <p>Accesul și setarea 2FA pentru fiecare administrator</p>
+          </div>
+          <span className="admin-report-table-count">{administrators.length} conturi</span>
+        </header>
+        <div className="admin-admin-user-list">
+          {administrators.map((admin) => {
+            const isTwoFactorEnabled = Boolean(twoFactorByAdmin[admin.id]);
+            return (
+              <article className="admin-admin-user-row" key={admin.id}>
+                <span className="admin-admin-avatar" aria-hidden="true">{admin.initials}</span>
+                <div className="admin-admin-identity">
+                  <strong>{admin.name}</strong>
+                  <span>{admin.email}</span>
+                  <small>{admin.role} · {admin.market}</small>
+                </div>
+                <div className="admin-admin-user-controls">
+                  <StatusPill
+                    label={isTwoFactorEnabled ? "2FA activă" : "Configurează 2FA"}
+                    tone={isTwoFactorEnabled ? "good" : "pending"}
+                  />
+                  <button
+                    className="admin-admin-user-action"
+                    type="button"
+                    aria-pressed={isTwoFactorEnabled}
+                    onClick={() => {
+                      const nextEnabled = !isTwoFactorEnabled;
+                      setTwoFactorByAdmin((previous) => ({ ...previous, [admin.id]: nextEnabled }));
+                      onNotify(`2FA pentru ${admin.name} a fost ${nextEnabled ? "activată" : "dezactivată"} în previzualizare.`);
+                    }}
+                  >
+                    {isTwoFactorEnabled ? "Dezactivează" : "Activează"} 2FA
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -1125,6 +1262,7 @@ export function Grouped() {
               <DashboardWorkspace
                 market={market}
                 onOpenOrder={openOrder}
+                onNavigate={navigateTo}
                 orders={filteredOrders}
                 onNotify={notify}
               />
@@ -1163,8 +1301,9 @@ export function Grouped() {
 
             {activeId === "products" && <ProductsWorkspace market={market} search={searchTerm} onNotify={notify} />}
             {activeId === "categories" && <CategoriesWorkspace onCreate={() => setModal("create")} onNotify={notify} />}
+            {activeId === "admin-users" && <AdminUsersWorkspace onNotify={notify} />}
             {activeId === "wms" && <WmsWorkspace onNotify={notify} />}
-            {activeId !== "dashboard" && activeId !== "orders" && activeId !== "products" && activeId !== "categories" && activeId !== "wms" && (
+            {activeId !== "dashboard" && activeId !== "orders" && activeId !== "products" && activeId !== "categories" && activeId !== "admin-users" && activeId !== "wms" && (
               <GenericWorkspace activeId={activeId} onNotify={notify} />
             )}
           </div>
