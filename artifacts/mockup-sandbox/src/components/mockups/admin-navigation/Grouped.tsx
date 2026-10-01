@@ -11,6 +11,7 @@ import {
   Boxes,
   Building2,
   CalendarDays,
+  ChartNoAxesCombined,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -48,6 +49,7 @@ import "./Grouped.css";
 
 type SectionId =
   | "dashboard"
+  | "reports"
   | "orders"
   | "products"
   | "categories"
@@ -65,6 +67,7 @@ type SectionId =
 
 type GroupId = "overview" | "operations" | "catalog" | "growth" | "admin";
 type MarketId = "ALL" | "RO" | "FR" | "COM";
+type ReportRange = "24h" | "7d" | "30d";
 
 type AdminSection = {
   id: SectionId;
@@ -95,6 +98,7 @@ type ResourceRow = {
 
 const sectionItems: AdminSection[] = [
   { id: "dashboard", label: "Panou", icon: LayoutDashboard, group: "overview" },
+  { id: "reports", label: "Rapoarte", icon: ChartNoAxesCombined, group: "overview" },
   { id: "orders", label: "Comenzi", icon: ShoppingCart, group: "operations", count: "12" },
   { id: "invoices", label: "Facturi", icon: ReceiptText, group: "operations" },
   { id: "products", label: "Produse", icon: Package, group: "catalog" },
@@ -130,6 +134,11 @@ const pageMeta: Record<SectionId, { title: string; description: string; action: 
     title: "Bună dimineața, Admin.",
     description: "O privire limpede asupra comenzilor, piețelor și activității xHACCP.",
     action: "Comandă nouă",
+  },
+  reports: {
+    title: "Rapoarte",
+    description: "Vânzări, comenzi și ritmul activității în perioada și piața selectate.",
+    action: "Generează raport",
   },
   orders: {
     title: "Comenzi",
@@ -275,6 +284,60 @@ const resourceRows: Partial<Record<SectionId, ResourceRow[]>> = {
 
 const chartValues = [35, 49, 43, 62, 55, 71, 47, 58, 77, 64, 82, 69, 93, 74, 88, 68, 96, 79, 85, 100, 72, 91, 77, 87];
 const chartLabels = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "Azi"];
+
+const reportPeriods: Record<ReportRange, {
+  label: string;
+  sales: string;
+  orders: string;
+  average: string;
+  salesChange: string;
+  orderChange: string;
+  averageChange: string;
+  productChange: string;
+  comparison: string;
+  values: number[];
+  labels: string[];
+}> = {
+  "24h": {
+    label: "24 ore",
+    sales: "12.840 lei",
+    orders: "38",
+    average: "338 lei",
+    salesChange: "+4,2%",
+    orderChange: "+6,1%",
+    averageChange: "+2,8%",
+    productChange: "+24",
+    comparison: "față de ultimele 24 h",
+    values: chartValues,
+    labels: chartLabels,
+  },
+  "7d": {
+    label: "7 zile",
+    sales: "48.392 lei",
+    orders: "126",
+    average: "384 lei",
+    salesChange: "+8,4%",
+    orderChange: "+12,1%",
+    averageChange: "+3,7%",
+    productChange: "+24",
+    comparison: "față de săptămâna trecută",
+    values: [43, 55, 49, 72, 67, 83, 78],
+    labels: ["Lun", "Mar", "Mie", "Joi", "Vin", "Sâm", "Dum"],
+  },
+  "30d": {
+    label: "30 zile",
+    sales: "184.620 lei",
+    orders: "482",
+    average: "383 lei",
+    salesChange: "+6,2%",
+    orderChange: "+9,4%",
+    averageChange: "+2,1%",
+    productChange: "+24",
+    comparison: "față de cele 30 de zile anterioare",
+    values: [53, 38, 61, 44, 76, 49, 65, 82, 57, 92, 70, 100],
+    labels: ["01", "04", "07", "10", "13", "16", "19", "22", "25", "28", "30", "Azi"],
+  },
+};
 
 function StatusPill({ label, tone }: { label: string; tone: ResourceRow["tone"] | OrderRow["tone"] }) {
   const toneClass = tone === "good" ? "" : ` is-${tone}`;
@@ -458,6 +521,168 @@ function DashboardWorkspace({
           </button>
         </header>
         <OrderTable rows={orders.slice(0, 3)} onOpenOrder={onOpenOrder} />
+      </section>
+    </>
+  );
+}
+
+function ReportsWorkspace({
+  market,
+  orders,
+  onOpenOrder,
+  onNotify,
+}: {
+  market: MarketId;
+  orders: OrderRow[];
+  onOpenOrder: (order: OrderRow) => void;
+  onNotify: (message: string) => void;
+}) {
+  const [range, setRange] = useState<ReportRange>("7d");
+  const report = reportPeriods[range];
+  const currentMarket = marketOptions.find((option) => option.id === market);
+  const marketCounts = [
+    { id: "RO" as const, label: "România", count: orders.filter((order) => order.market === "RO").length },
+    { id: "FR" as const, label: "Franța", count: orders.filter((order) => order.market === "FR").length },
+    { id: "COM" as const, label: "Internațional", count: orders.filter((order) => order.market === "COM").length },
+  ].filter((item) => item.count > 0);
+  const orderTotal = marketCounts.reduce((total, item) => total + item.count, 0);
+  const labelEvery = Math.max(1, Math.ceil(report.labels.length / 6));
+
+  return (
+    <>
+      <div className="admin-content-toolbar admin-report-toolbar">
+        <div className="admin-report-range" role="group" aria-label="Perioada raportului">
+          {(["24h", "7d", "30d"] as const).map((periodId) => (
+            <button
+              className={range === periodId ? "is-active" : ""}
+              type="button"
+              aria-pressed={range === periodId}
+              key={periodId}
+              onClick={() => setRange(periodId)}
+            >
+              {reportPeriods[periodId].label}
+            </button>
+          ))}
+        </div>
+        <span className="admin-report-scope">
+          <Globe2 size={13} aria-hidden="true" />
+          {currentMarket?.name ?? "Toate piețele"}
+        </span>
+      </div>
+
+      <div className="admin-dashboard-grid admin-report-stat-grid">
+        <StatCard
+          label="Vânzări nete"
+          value={report.sales}
+          detail={report.comparison}
+          change={report.salesChange}
+          icon={Activity}
+          highlight
+        />
+        <StatCard
+          label="Comenzi active"
+          value={report.orders}
+          detail={`în ${report.label.toLowerCase()}`}
+          change={report.orderChange}
+          icon={ShoppingCart}
+        />
+        <StatCard
+          label="Valoare medie"
+          value={report.average}
+          detail={`în ${report.label.toLowerCase()}`}
+          change={report.averageChange}
+          icon={ArrowDownRight}
+        />
+        <StatCard
+          label="Produse active"
+          value="2.184"
+          detail="catalog sincronizat"
+          change={report.productChange}
+          icon={Package}
+        />
+      </div>
+
+      <div className="admin-report-grid">
+        <section className="admin-panel admin-report-chart-panel">
+          <header className="admin-panel-heading">
+            <div>
+              <h2>Ritmul comenzilor</h2>
+              <p>Comenzi înregistrate · {report.label}</p>
+            </div>
+            <span className="admin-report-period-label">
+              <CalendarDays size={12} aria-hidden="true" />
+              {report.label}
+            </span>
+          </header>
+          <div className="admin-chart-wrap">
+            <div className="admin-chart-summary">
+              <strong>{report.sales}</strong>
+              <span>vânzări nete · {currentMarket?.label ?? "ALL"}</span>
+            </div>
+            <div className="admin-chart" role="img" aria-label={`Evoluția comenzilor pe ${report.label}`}>
+              {report.values.map((value, index) => (
+                <div
+                  className={`admin-chart-bar${index === report.values.length - 1 ? " is-current" : ""}`}
+                  key={`${report.labels[index]}-${index}`}
+                  title={`${value} comenzi`}
+                >
+                  <span style={{ height: `${value}%` }} />
+                  {index % labelEvery === 0 || index === report.labels.length - 1
+                    ? <label>{report.labels[index]}</label>
+                    : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="admin-panel admin-report-market-panel">
+          <header className="admin-panel-heading">
+            <div>
+              <h2>Distribuția comenzilor</h2>
+              <p>Din comenzile afișate</p>
+            </div>
+            <span className="admin-report-market-total">{orderTotal}</span>
+          </header>
+          <div className="admin-report-market-list">
+            {marketCounts.length ? marketCounts.map((item) => {
+              const share = orderTotal ? Math.round((item.count / orderTotal) * 100) : 0;
+              return (
+                <div className="admin-report-market-row" key={item.id}>
+                  <div className="admin-report-market-copy">
+                    <span className="admin-market-code">{item.id === "COM" ? ".COM" : item.id}</span>
+                    <strong>{item.label}</strong>
+                    <span>{item.count} {item.count === 1 ? "comandă" : "comenzi"} · {share}%</span>
+                  </div>
+                  <div className="admin-report-market-track" role="img" aria-label={`${share}% din comenzile afișate`}>
+                    <span style={{ width: `${share}%` }} />
+                  </div>
+                </div>
+              );
+            }) : (
+              <div className="admin-table-empty">Nu există comenzi în piața selectată pentru perioada afișată.</div>
+            )}
+          </div>
+          <div className="admin-report-market-foot">
+            <span>Piața activă</span>
+            <strong>{currentMarket?.name ?? "Toate piețele"}</strong>
+          </div>
+        </section>
+      </div>
+
+      <section className="admin-panel admin-table-panel admin-report-orders">
+        <header className="admin-panel-heading">
+          <div>
+            <h2>Comenzi în perioada selectată</h2>
+            <p>Detalii pe client, piață, valoare și status</p>
+          </div>
+          <span className="admin-report-table-count">{orders.length} rezultate</span>
+        </header>
+        <OrderTable rows={orders} onOpenOrder={onOpenOrder} />
+        <DataFoot
+          count={`Se afișează ${orders.length} comenzi pentru piața selectată`}
+          onNotify={onNotify}
+        />
       </section>
     </>
   );
@@ -661,9 +886,13 @@ function DataFoot({ count, onNotify }: { count: string; onNotify: (message: stri
 }
 
 export function Grouped() {
+  const requestedSection = typeof window === "undefined"
+    ? null
+    : new URLSearchParams(window.location.search).get("section");
+  const initialSection = sectionItems.find((item) => item.id === requestedSection)?.id ?? "dashboard";
   const [collapsed, setCollapsed] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeId, setActiveId] = useState<SectionId>("dashboard");
+  const [activeId, setActiveId] = useState<SectionId>(initialSection);
   const [openGroups, setOpenGroups] = useState<Record<Exclude<GroupId, "overview">, boolean>>({
     operations: true,
     catalog: true,
@@ -750,6 +979,10 @@ export function Grouped() {
   const handlePrimaryAction = () => {
     if (activeId === "google-feed") {
       notify("Sincronizarea catalogului Google a fost pornită în previzualizare.");
+      return;
+    }
+    if (activeId === "reports") {
+      notify("Raportul cu indicatorii perioadei selectate este pregătit în previzualizare.");
       return;
     }
     setModal("create");
@@ -962,6 +1195,15 @@ export function Grouped() {
               />
             )}
 
+            {activeId === "reports" && (
+              <ReportsWorkspace
+                market={market}
+                orders={filteredOrders}
+                onOpenOrder={openOrder}
+                onNotify={notify}
+              />
+            )}
+
             {activeId === "orders" && (
               <>
                 <div className="admin-content-toolbar">
@@ -996,7 +1238,7 @@ export function Grouped() {
             {activeId === "products" && <ProductsWorkspace market={market} search={searchTerm} onNotify={notify} />}
             {activeId === "categories" && <CategoriesWorkspace onCreate={() => setModal("create")} onNotify={notify} />}
             {activeId === "wms" && <WmsWorkspace onNotify={notify} />}
-            {activeId !== "dashboard" && activeId !== "orders" && activeId !== "products" && activeId !== "categories" && activeId !== "wms" && (
+            {activeId !== "dashboard" && activeId !== "reports" && activeId !== "orders" && activeId !== "products" && activeId !== "categories" && activeId !== "wms" && (
               <GenericWorkspace activeId={activeId} onNotify={notify} />
             )}
           </div>

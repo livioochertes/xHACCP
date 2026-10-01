@@ -41,3 +41,4 @@
 - [Billing schema rollout](billing-schema-rollout.md) — billing provider and Pennylane mapping columns must be present before the app loads marketplace caches.
 - [SmartBill product synchronization](smartbill-product-sync.md) — use V1 invoice/v2 saveToDb drafts for product writes; V3 product listing is read-only and needs a separate Bearer token.
 - [No startup market backfills](startup-market-backfills.md) — startup must never recreate product-market rows; market membership is explicit and deletion must persist.
+- [Drizzle grouped SQL expressions](drizzle-group-by-parameters.md) — repeated parameterized SQL fragments can render distinct placeholders; group by a selected ordinal or derived column.

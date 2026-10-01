@@ -5,6 +5,7 @@ import i18n from "./i18n.js";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
 import AdminNavigation from "./AdminNavigation.jsx";
 import AIRecommendationCampaigns from "./AIRecommendationCampaigns.jsx";
+import AdminReports from "./AdminReports.jsx";
 import {
   broadcastCategoryTranslationUpdate,
   subscribeToCategoryTranslationUpdates,
@@ -360,6 +361,12 @@ import {
       const [stats, setStats] = useState(null);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState('');
+      const [reportsPeriod, setReportsPeriod] = useState('7d');
+      const [reportsPage, setReportsPage] = useState(1);
+      const [reportsRefresh, setReportsRefresh] = useState(0);
+      const [reportsData, setReportsData] = useState(null);
+      const [reportsLoading, setReportsLoading] = useState(false);
+      const [reportsError, setReportsError] = useState('');
       const [showTwoFactor, setShowTwoFactor] = useState(false);
       const [activeView, setActiveView] = useState('dashboard');
       const [navigationCollapsed, setNavigationCollapsed] = useState(false);
@@ -789,6 +796,54 @@ import {
         }
       }, [marketFilter, activeView]);
 
+      useEffect(() => {
+        if (activeView !== 'reports') return undefined;
+
+        const controller = new AbortController();
+        const params = new URLSearchParams({
+          range: reportsPeriod,
+          market: selectedMarketTab,
+          page: String(reportsPage),
+        });
+        setReportsLoading(true);
+        setReportsError('');
+        setReportsData(null);
+
+        fetch(`/admin/api/reports?${params.toString()}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: controller.signal,
+        })
+          .then(async (response) => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              throw new Error(data.message || t('reports.loadFailed'));
+            }
+            setReportsData(data);
+            setReportsPage((currentPage) => data.page && data.page !== currentPage
+              ? data.page
+              : currentPage);
+          })
+          .catch((requestError) => {
+            if (requestError.name !== 'AbortError') {
+              setReportsError(requestError.message || t('reports.loadFailed'));
+            }
+          })
+          .finally(() => {
+            if (!controller.signal.aborted) {
+              setReportsLoading(false);
+            }
+          });
+
+        return () => controller.abort();
+      }, [
+        activeView,
+        reportsPeriod,
+        reportsPage,
+        reportsRefresh,
+        selectedMarketTab,
+        token,
+      ]);
+
       // Filter orders based on search, status and market
       useEffect(() => {
         let filtered = orders;
@@ -917,6 +972,23 @@ import {
           }
         } catch (err) {
           console.error('Network error fetching orders:', err);
+        }
+      };
+
+      const openReportedOrder = async (orderSummary) => {
+        try {
+          const response = await fetch(`/admin/api/orders/${orderSummary.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (response.ok && data.order) {
+            setSelectedOrder(data.order);
+            setShowOrderDetails(true);
+          } else {
+            setReportsError(data.message || t('reports.loadFailed'));
+          }
+        } catch (err) {
+          setReportsError(t('reports.loadFailed'));
         }
       };
 
@@ -3233,6 +3305,29 @@ import {
       
       const renderContent = () => {
         switch (activeView) {
+          case 'reports':
+            return (
+              <AdminReports
+                data={reportsData}
+                loading={reportsLoading}
+                error={reportsError}
+                period={reportsPeriod}
+                page={reportsPage}
+                market={selectedMarketTab}
+                locale={i18n.language}
+                t={t}
+                formatOrderAmount={formatOrderAmount}
+                onPeriodChange={(period) => {
+                  setReportsPage(1);
+                  setReportsPeriod(period);
+                }}
+                onPageChange={setReportsPage}
+                onRefresh={() => setReportsRefresh((value) => value + 1)}
+                onRetry={() => setReportsRefresh((value) => value + 1)}
+                onOpenOrder={openReportedOrder}
+                onNavigateToOrders={() => handleViewChange('orders')}
+              />
+            );
           case 'wms': {
             const visibleMarkets = adminIsSuperAdmin ? ['ro', 'fr', 'com'] : (admin?.adminMarkets || []);
             const activeWmsRoute = wmsOverview.routing.find(route => route.market === wmsFocusedMarket);

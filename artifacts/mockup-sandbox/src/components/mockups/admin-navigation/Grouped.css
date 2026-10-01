@@ -805,6 +805,192 @@
   margin-top: 14px;
 }
 
+.admin-report-toolbar {
+  flex-wrap: wrap;
+}
+
+.admin-report-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: #f7f8f2;
+}
+
+.admin-report-range button {
+  min-height: 27px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #718078;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.admin-report-range button:hover:not(.is-active) {
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--admin-ink);
+}
+
+.admin-report-range button.is-active {
+  background: var(--admin-sidebar);
+  color: #f5f8ed;
+}
+
+.admin-report-range button:focus-visible {
+  outline: 2px solid var(--admin-lime);
+  outline-offset: 2px;
+}
+
+.admin-report-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #6f8077;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+}
+
+.admin-report-scope svg {
+  color: #82968a;
+}
+
+.admin-report-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(265px, 0.85fr);
+  gap: 13px;
+  margin-top: 13px;
+}
+
+.admin-report-chart-panel,
+.admin-report-market-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.admin-report-period-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: 7px;
+  background: #f8f9f4;
+  color: #6f7f77;
+  font-family: "DM Mono", monospace;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.admin-report-period-label svg {
+  color: #7d9183;
+}
+
+.admin-report-market-total {
+  display: grid;
+  min-width: 28px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid #e1e9db;
+  border-radius: 7px;
+  background: #f2f6eb;
+  color: #526a56;
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+}
+
+.admin-report-market-list {
+  display: grid;
+  gap: 15px;
+  padding: 17px 16px 14px;
+}
+
+.admin-report-market-row {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-report-market-copy {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-report-market-copy .admin-market-code {
+  min-width: 34px;
+}
+
+.admin-report-market-copy strong {
+  overflow: hidden;
+  color: #43594e;
+  font-size: 9px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-report-market-copy > span:last-child {
+  color: #849188;
+  font-family: "DM Mono", monospace;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.admin-report-market-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eff2ea;
+}
+
+.admin-report-market-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #8eaa91;
+}
+
+.admin-report-market-row:nth-child(2) .admin-report-market-track span {
+  background: #b4c894;
+}
+
+.admin-report-market-row:nth-child(3) .admin-report-market-track span {
+  background: #d29a78;
+}
+
+.admin-report-market-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 16px;
+  border-top: 1px solid #edf0e9;
+  color: #89968f;
+  font-size: 8px;
+}
+
+.admin-report-market-foot strong {
+  color: #506458;
+  font-weight: 650;
+}
+
+.admin-report-orders {
+  margin-top: 13px;
+}
+
+.admin-report-table-count {
+  color: #87948d;
+  font-family: "DM Mono", monospace;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
 .admin-panel {
   min-width: 0;
   border: 1px solid var(--admin-border);
@@ -1627,6 +1813,10 @@
     grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
   }
 
+  .admin-report-grid {
+    grid-template-columns: 1fr;
+  }
+
   .admin-category-grid,
   .admin-resource-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1815,6 +2005,10 @@
 
   .admin-dashboard-lower {
     grid-template-columns: 1fr;
+  }
+
+  .admin-report-toolbar {
+    align-items: flex-start;
   }
 
   .admin-content-toolbar {

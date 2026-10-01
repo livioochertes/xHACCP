@@ -55,6 +55,11 @@ import {
   normalizeRomanianVatCode,
   toRomanianOrderCustomerSuggestion,
 } from "./order-customer-lookup";
+import {
+  getAdminReportData,
+  resolveAdminReportMarketScope,
+  resolveAdminReportPeriod,
+} from "./admin-report-data";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -1564,6 +1569,47 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("Get admin stats error:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/admin/api/reports", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const period = resolveAdminReportPeriod(req.query.range);
+      if (!period) {
+        return res.status(400).json({ message: "Invalid report range" });
+      }
+
+      const scope = resolveAdminReportMarketScope(
+        req.query.market,
+        req.isSuperAdmin === true,
+        req.adminMarkets || [],
+      );
+      if (!scope.ok) {
+        return res.status(scope.status).json({ message: scope.message });
+      }
+
+      const rawPage = req.query.page;
+      let page = 1;
+      if (rawPage !== undefined) {
+        if (typeof rawPage !== "string" || !/^\d+$/.test(rawPage)) {
+          return res.status(400).json({ message: "Invalid report page" });
+        }
+        page = Number(rawPage);
+        if (!Number.isSafeInteger(page) || page < 1 || page > 100_000) {
+          return res.status(400).json({ message: "Invalid report page" });
+        }
+      }
+
+      const report = await getAdminReportData({
+        period,
+        markets: scope.markets,
+        page,
+      });
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json(report);
+    } catch (error) {
+      console.error("Get admin reports error:", error);
+      res.status(500).json({ message: "Failed to fetch reports" });
     }
   });
 
