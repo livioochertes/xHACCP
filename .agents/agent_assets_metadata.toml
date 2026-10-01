@@ -217,3 +217,17 @@ mtime_ms = 1790844589171
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/0d9ecfca-8c1b-4b2c-a64c-9812051661ab/2b6a8ff0-b9cb-4109-b803-5e13b25941d5"
 storage_version_token = "1790846132743278"
 content_type = "image/png"
+
+[[outputs]]
+id = "T4tm9nH9B93tyqiW9h-fi"
+uri = "file://artifacts/mockup-sandbox/public/images/fr-chef-event/cover-navy-desktop-extended.png"
+type = "image"
+title = "FR Hero bleu marine — desktop 1920×410"
+description = "Fichier PNG correct du Hero bleu marine, avec le visuel et le QR d’origine."
+logical_id = "f063f298-4bb9-453d-b117-8045882a6a22"
+content_hash = "sha256:72cb8971a07ea1c2da4c5829950d97705bd2676a5dc4a18a6e748e094c8c89cb"
+size = 581583
+mtime_ms = 1790844590751
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/f063f298-4bb9-453d-b117-8045882a6a22/21334614-2184-40f1-b842-1e4b72adbf88"
+storage_version_token = "1790846194205490"
+content_type = "image/png"
