@@ -215,6 +215,7 @@ export default function Products() {
                       name="search"
                       type="text"
                       placeholder={t('search.placeholder')}
+                      aria-label={t('search.label')}
                       defaultValue={searchQuery}
                       className="pl-10"
                     />
@@ -303,6 +304,8 @@ export default function Products() {
                   variant={viewMode === "grid" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setViewMode("grid")}
+                  aria-label={t('products.gridView')}
+                  aria-pressed={viewMode === "grid"}
                 >
                   <Grid className="h-4 w-4" />
                 </Button>
@@ -310,6 +313,8 @@ export default function Products() {
                   variant={viewMode === "list" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setViewMode("list")}
+                  aria-label={t('products.listView')}
+                  aria-pressed={viewMode === "list"}
                 >
                   <List className="h-4 w-4" />
                 </Button>

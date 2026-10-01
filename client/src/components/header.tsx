@@ -4,7 +4,7 @@ import { Search, ShoppingCart, User, Menu, X, LogOut, MessageSquare } from "luci
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useCart } from "@/hooks/use-cart";
 import { useQuery } from "@tanstack/react-query";
@@ -108,6 +108,7 @@ export default function Header() {
               <Input
                 type="text"
                 placeholder={t('search.placeholder')}
+                aria-label={t('search.label')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10"
@@ -162,8 +163,8 @@ export default function Header() {
                 {user?.firstName || t('nav.login')}
               </Button>
             )}
-            <Link href="/cart">
-              <Button variant="ghost" size="sm" className="relative">
+            <Button asChild variant="ghost" size="sm" className="relative">
+              <Link href="/cart" aria-label={t('nav.cart')}>
                 <ShoppingCart className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">{t('nav.cart')}</span>
                 {cartItemCount > 0 && (
@@ -171,23 +172,25 @@ export default function Header() {
                     {cartItemCount}
                   </Badge>
                 )}
-              </Button>
-            </Link>
+              </Link>
+            </Button>
 
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="md:hidden">
+                <Button variant="ghost" size="sm" className="md:hidden" aria-label={t('nav.openMenu')}>
                   <Menu className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left">
+              <SheetContent side="left" aria-describedby={undefined}>
+                <SheetTitle className="sr-only">{t('nav.mainNavigation')}</SheetTitle>
                 <div className="flex flex-col space-y-4 mt-4">
                   <form onSubmit={handleSearch} className="flex">
                     <div className="relative w-full">
                       <Input
                         type="text"
                         placeholder={t('search.placeholder')}
+                        aria-label={t('search.label')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-10"

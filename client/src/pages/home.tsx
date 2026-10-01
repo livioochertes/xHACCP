@@ -367,6 +367,7 @@ export default function Home() {
                 className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3 hover:bg-gray-100 transition-colors border border-gray-200"
                 style={{ marginLeft: '-20px' }}
                 data-testid="carousel-prev-button"
+                aria-label={t('home.previousProducts')}
               >
                 <ChevronLeft className="h-6 w-6 text-primary" />
               </button>
@@ -391,6 +392,7 @@ export default function Home() {
                 className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3 hover:bg-gray-100 transition-colors border border-gray-200"
                 style={{ marginRight: '-20px' }}
                 data-testid="carousel-next-button"
+                aria-label={t('home.nextProducts')}
               >
                 <ChevronRight className="h-6 w-6 text-primary" />
               </button>
@@ -615,6 +617,7 @@ export default function Home() {
               <Input
                 type="email"
                 placeholder={t('home.newsletter.placeholder')}
+                aria-label={t('home.newsletter.emailLabel')}
                 className="flex-1 bg-white"
               />
               <Button className="bg-white text-secondary hover:bg-slate-100">

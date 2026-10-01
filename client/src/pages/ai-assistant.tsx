@@ -497,6 +497,7 @@ export default function AIAssistant() {
                     <form onSubmit={handleSendMessage} className="flex gap-2 flex-shrink-0 pb-6">
                       <Input
                         value={inputMessage}
+                        aria-label={t('ai.messageLabel')}
                         onChange={(e) => setInputMessage(e.target.value)}
                         placeholder={
                           isConnected
@@ -506,7 +507,7 @@ export default function AIAssistant() {
                         disabled={!isConnected}
                         className="flex-1"
                       />
-                      <Button type="submit" disabled={!isConnected || !inputMessage.trim()}>
+                      <Button type="submit" aria-label={t('ai.send')} disabled={!isConnected || !inputMessage.trim()}>
                         <Send className="h-4 w-4" />
                       </Button>
                     </form>

@@ -634,7 +634,7 @@ export default function ProductDetails() {
                     <tbody>
                       {validSpecs.map((spec, i) => (
                         <tr key={i} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                          <td className="px-3 py-2 font-medium text-gray-700 w-1/2 border-r border-gray-200">{spec.label}</td>
+                          <th scope="row" className="px-3 py-2 text-left font-medium text-gray-700 w-1/2 border-r border-gray-200">{spec.label}</th>
                           <td className="px-3 py-2 text-gray-600">{spec.value}</td>
                         </tr>
                       ))}

@@ -173,6 +173,8 @@ export default function HomeHero() {
               key={slide.id}
               className={`absolute inset-0 transition-opacity duration-500 ${isActive ? "z-10 opacity-100" : "z-0 opacity-0"}`}
               aria-hidden={!isActive}
+              // React 18 needs the empty-string form of this native boolean attribute.
+              {...(!isActive ? { inert: "" } : {})}
               role="group"
               aria-roledescription="slide"
               aria-label={`${index + 1} of ${slides.length}`}

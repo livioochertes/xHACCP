@@ -1,6 +1,16 @@
 import { Language } from '../contexts/language-context';
 
 export interface TranslationKeys {
+  // Accessible names for shared storefront controls and fields
+  'nav.mainNavigation': string;
+  'nav.openMenu': string;
+  'search.label': string;
+  'products.gridView': string;
+  'products.listView': string;
+  'home.previousProducts': string;
+  'home.nextProducts': string;
+  'home.newsletter.emailLabel': string;
+  'ai.messageLabel': string;
   // Navigation
   'nav.home': string;
   'nav.products': string;
@@ -734,6 +744,15 @@ export interface TranslationKeys {
 
 const translations: Record<Language, Partial<TranslationKeys>> = {
   en: {
+    'nav.mainNavigation': 'Main navigation',
+    'nav.openMenu': 'Open navigation menu',
+    'search.label': 'Search products',
+    'products.gridView': 'Grid view',
+    'products.listView': 'List view',
+    'home.previousProducts': 'Previous featured products',
+    'home.nextProducts': 'Next featured products',
+    'home.newsletter.emailLabel': 'Email address for the newsletter',
+    'ai.messageLabel': 'Message to the AI assistant',
     // Navigation
     'nav.home': 'Home',
     'nav.products': 'Products',
@@ -1460,6 +1479,15 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
   },
   
   es: {
+    'nav.mainNavigation': 'Navegación principal',
+    'nav.openMenu': 'Abrir menú de navegación',
+    'search.label': 'Buscar productos',
+    'products.gridView': 'Vista de cuadrícula',
+    'products.listView': 'Vista de lista',
+    'home.previousProducts': 'Productos destacados anteriores',
+    'home.nextProducts': 'Productos destacados siguientes',
+    'home.newsletter.emailLabel': 'Correo electrónico para el boletín',
+    'ai.messageLabel': 'Mensaje al asistente de IA',
     // Navigation
     'nav.home': 'Inicio',
     'nav.products': 'Productos',
@@ -2123,6 +2151,15 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
   },
   
   fr: {
+    'nav.mainNavigation': 'Navigation principale',
+    'nav.openMenu': 'Ouvrir le menu de navigation',
+    'search.label': 'Rechercher des produits',
+    'products.gridView': 'Vue en grille',
+    'products.listView': 'Vue en liste',
+    'home.previousProducts': 'Produits à la une précédents',
+    'home.nextProducts': 'Produits à la une suivants',
+    'home.newsletter.emailLabel': 'Adresse e-mail pour la newsletter',
+    'ai.messageLabel': 'Message à l’assistant IA',
     // Navigation
     'nav.home': 'Accueil',
     'nav.products': 'Produits',
@@ -2832,6 +2869,15 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
   
   // Adding placeholders for other languages - these would be fully translated in a real app
   de: {
+    'nav.mainNavigation': 'Hauptnavigation',
+    'nav.openMenu': 'Navigationsmenü öffnen',
+    'search.label': 'Produkte suchen',
+    'products.gridView': 'Rasteransicht',
+    'products.listView': 'Listenansicht',
+    'home.previousProducts': 'Vorherige empfohlene Produkte',
+    'home.nextProducts': 'Nächste empfohlene Produkte',
+    'home.newsletter.emailLabel': 'E-Mail-Adresse für den Newsletter',
+    'ai.messageLabel': 'Nachricht an den KI-Assistenten',
     'nav.home': 'Startseite',
     'nav.products': 'Produkte',
     'nav.categories': 'Kategorien',
@@ -3331,6 +3377,15 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
   
   // Romanian translations
   ro: {
+    'nav.mainNavigation': 'Navigare principală',
+    'nav.openMenu': 'Deschide meniul de navigare',
+    'search.label': 'Caută produse',
+    'products.gridView': 'Vizualizare grilă',
+    'products.listView': 'Vizualizare listă',
+    'home.previousProducts': 'Produsele recomandate anterioare',
+    'home.nextProducts': 'Următoarele produse recomandate',
+    'home.newsletter.emailLabel': 'Adresă de e-mail pentru newsletter',
+    'ai.messageLabel': 'Mesaj către asistentul AI',
     // Navigation
     'nav.home': 'Acasă',
     'nav.products': 'Produse',
@@ -4025,6 +4080,15 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
   
   // Placeholder for other languages
   it: {
+    'nav.mainNavigation': 'Navigazione principale',
+    'nav.openMenu': 'Apri il menu di navigazione',
+    'search.label': 'Cerca prodotti',
+    'products.gridView': 'Vista a griglia',
+    'products.listView': 'Vista elenco',
+    'home.previousProducts': 'Prodotti in evidenza precedenti',
+    'home.nextProducts': 'Prodotti in evidenza successivi',
+    'home.newsletter.emailLabel': 'Indirizzo e-mail per la newsletter',
+    'ai.messageLabel': 'Messaggio all’assistente IA',
     'nav.home': 'Home',
     'nav.products': 'Prodotti',
     'nav.categories': 'Categorie',
@@ -4343,6 +4407,15 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.voucher': 'Buono',
   } as TranslationKeys,
   pt: {
+    'nav.mainNavigation': 'Navegação principal',
+    'nav.openMenu': 'Abrir menu de navegação',
+    'search.label': 'Pesquisar produtos',
+    'products.gridView': 'Vista em grelha',
+    'products.listView': 'Vista em lista',
+    'home.previousProducts': 'Produtos em destaque anteriores',
+    'home.nextProducts': 'Próximos produtos em destaque',
+    'home.newsletter.emailLabel': 'Endereço de e-mail para a newsletter',
+    'ai.messageLabel': 'Mensagem para o assistente de IA',
     'nav.home': 'Início',
     'nav.products': 'Produtos',
     'nav.categories': 'Categorias',
@@ -4661,6 +4734,15 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.voucher': 'Cupom',
   } as TranslationKeys,
   zh: {
+    'nav.mainNavigation': '主导航',
+    'nav.openMenu': '打开导航菜单',
+    'search.label': '搜索产品',
+    'products.gridView': '网格视图',
+    'products.listView': '列表视图',
+    'home.previousProducts': '上一组精选产品',
+    'home.nextProducts': '下一组精选产品',
+    'home.newsletter.emailLabel': '订阅通讯的电子邮箱',
+    'ai.messageLabel': '发送给人工智能助手的消息',
     'nav.home': '首页',
     'nav.products': '产品',
     'nav.categories': '分类',
@@ -4979,6 +5061,15 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.voucher': '优惠券',
   } as TranslationKeys,
   ja: {
+    'nav.mainNavigation': 'メインナビゲーション',
+    'nav.openMenu': 'ナビゲーションメニューを開く',
+    'search.label': '商品を検索',
+    'products.gridView': 'グリッド表示',
+    'products.listView': 'リスト表示',
+    'home.previousProducts': '前のおすすめ商品',
+    'home.nextProducts': '次のおすすめ商品',
+    'home.newsletter.emailLabel': 'ニュースレター用メールアドレス',
+    'ai.messageLabel': 'AIアシスタントへのメッセージ',
     'nav.home': 'ホーム',
     'nav.products': '製品',
     'nav.categories': 'カテゴリー',
@@ -5297,6 +5388,15 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.voucher': 'クーポン',
   } as TranslationKeys,
   ko: {
+    'nav.mainNavigation': '주 탐색',
+    'nav.openMenu': '탐색 메뉴 열기',
+    'search.label': '제품 검색',
+    'products.gridView': '격자 보기',
+    'products.listView': '목록 보기',
+    'home.previousProducts': '이전 추천 제품',
+    'home.nextProducts': '다음 추천 제품',
+    'home.newsletter.emailLabel': '뉴스레터 이메일 주소',
+    'ai.messageLabel': 'AI 도우미에게 보낼 메시지',
     'nav.home': '홈',
     'nav.products': '제품',
     'nav.categories': '카테고리',
@@ -5617,6 +5717,15 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.voucher': '쿠폰',
   } as TranslationKeys,
   ar: {
+    'nav.mainNavigation': 'التنقل الرئيسي',
+    'nav.openMenu': 'فتح قائمة التنقل',
+    'search.label': 'البحث عن المنتجات',
+    'products.gridView': 'عرض شبكي',
+    'products.listView': 'عرض قائمة',
+    'home.previousProducts': 'المنتجات المميزة السابقة',
+    'home.nextProducts': 'المنتجات المميزة التالية',
+    'home.newsletter.emailLabel': 'عنوان البريد الإلكتروني للنشرة الإخبارية',
+    'ai.messageLabel': 'رسالة إلى مساعد الذكاء الاصطناعي',
     'nav.home': 'الرئيسية',
     'nav.products': 'المنتجات',
     'nav.categories': 'الفئات',
