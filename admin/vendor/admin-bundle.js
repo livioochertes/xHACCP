@@ -14043,6 +14043,17 @@
     const [marketsData, setMarketsData] = (0, import_react14.useState)({ ro: null, fr: null, com: null });
     const [marketsLoading, setMarketsLoading] = (0, import_react14.useState)(false);
     const [marketFilter, setMarketFilter] = (0, import_react14.useState)("all");
+    const getOrderCurrency = (order) => {
+      const market = typeof order?.market === "string" ? order.market.trim().toLowerCase() : "ro";
+      const currency = marketsData[market]?.currency || getMarketCurrency(market) || order?.currency;
+      return typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "\u2014";
+    };
+    const formatOrderAmount = (order, amount = order?.totalAmount) => {
+      if (amount === null || amount === void 0 || amount === "" || !Number.isFinite(Number(amount))) {
+        return "\u2014";
+      }
+      return `${Number(amount).toFixed(2)} ${getOrderCurrency(order)}`;
+    };
     const [marketingSegments, setMarketingSegments] = (0, import_react14.useState)([]);
     const [marketingCampaigns, setMarketingCampaigns] = (0, import_react14.useState)([]);
     const [marketingLoading, setMarketingLoading] = (0, import_react14.useState)(false);
@@ -17026,10 +17037,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                     return name || `#${order.userId}`;
                   })() }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("td", { style: { padding: "8px 12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "280px" }, title: order.billingAddress?.companyName || "", children: order.billingAddress?.companyName || "" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("td", { style: { padding: "8px 12px", color: "#28a745", fontWeight: "bold", whiteSpace: "nowrap" }, children: [
-                    parseFloat(order.totalAmount).toFixed(2),
-                    " lei"
-                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("td", { style: { padding: "8px 12px", color: "#28a745", fontWeight: "bold", whiteSpace: "nowrap" }, children: formatOrderAmount(order) }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
                       padding: "4px 8px",
@@ -25200,13 +25208,12 @@ Cordialement,`
                 const sc = parseFloat(selectedOrder.shippingCost || "0");
                 const total = parseFloat(selectedOrder.totalAmount || "0");
                 const discount = parseFloat(selectedOrder.discountAmount || "0");
-                const subtotal = (total - sc + discount).toFixed(2);
+                const subtotal = total - sc + discount;
                 return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { marginTop: "8px", paddingTop: "8px", borderTop: "1px dashed #dee2e6" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("p", { style: { margin: "4px 0" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("strong", { children: "Subtotal:" }),
                     " ",
-                    subtotal,
-                    " lei"
+                    formatOrderAmount(selectedOrder, subtotal)
                   ] }),
                   discount > 0 && selectedOrder.voucherCode && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("p", { style: { margin: "4px 0", color: "#28a745" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("strong", { children: [
@@ -25215,19 +25222,17 @@ Cordialement,`
                       ":"
                     ] }),
                     " -",
-                    discount.toFixed(2),
-                    " lei"
+                    formatOrderAmount(selectedOrder, discount)
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("p", { style: { margin: "4px 0" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("strong", { children: "Transport:" }),
                     " ",
-                    sc > 0 ? sc.toFixed(2) + " lei" : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { color: "#28a745" }, children: "Gratuit" })
+                    sc > 0 ? formatOrderAmount(selectedOrder, sc) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { color: "#28a745" }, children: "Gratuit" })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("p", { style: { margin: "6px 0 0", fontSize: "15px", fontWeight: "bold", borderTop: "1px solid #dee2e6", paddingTop: "6px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("strong", { children: "Total:" }),
                     " ",
-                    total.toFixed(2),
-                    " lei"
+                    formatOrderAmount(selectedOrder, total)
                   ] })
                 ] });
               })(),
@@ -25365,14 +25370,8 @@ Cordialement,`
                   ] })
                 ] }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("td", { style: { padding: "10px" }, children: item.quantity }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("td", { style: { padding: "10px" }, children: [
-                  parseFloat(item.price).toFixed(2),
-                  " lei"
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("td", { style: { padding: "10px", fontWeight: "bold" }, children: [
-                  parseFloat(item.totalPrice).toFixed(2),
-                  " lei"
-                ] })
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("td", { style: { padding: "10px" }, children: formatOrderAmount(selectedOrder, item.price) }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("td", { style: { padding: "10px", fontWeight: "bold" }, children: formatOrderAmount(selectedOrder, item.totalPrice) })
               ] }, index)) })
             ] }) })
           ] }),
@@ -25453,8 +25452,8 @@ Cordialement,`
                   className: "btn",
                   style: { background: "#28a745", padding: "10px", display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" },
                   onClick: () => {
-                    const csvContent = `Order ID,Customer,Status,Amount (lei),Date
-${selectedOrder.id},${selectedOrder.shippingAddress.firstName} ${selectedOrder.shippingAddress.lastName},${selectedOrder.status},${selectedOrder.totalAmount},${new Date(selectedOrder.createdAt).toLocaleDateString()}`;
+                    const csvContent = `Order ID,Customer,Status,Amount,Currency,Date
+${selectedOrder.id},${selectedOrder.shippingAddress.firstName} ${selectedOrder.shippingAddress.lastName},${selectedOrder.status},${selectedOrder.totalAmount},${getOrderCurrency(selectedOrder)},${new Date(selectedOrder.createdAt).toLocaleDateString()}`;
                     const blob = new Blob([csvContent], { type: "text/csv" });
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement("a");
@@ -25519,9 +25518,9 @@ ${selectedOrder.billingAddress.city}${selectedOrder.billingAddress.county ? ", "
 ${selectedOrder.billingAddress.country}
 
 ITEMS:
-${selectedOrder.items ? selectedOrder.items.map((item) => `${item.quantity}x ${item.product ? item.product.name : "Product ID: " + item.productId} - ${parseFloat(item.price).toFixed(2)} lei x${item.quantity} = ${parseFloat(item.totalPrice).toFixed(2)} lei`).join("\n") : "No items"}
-${selectedOrder.discountAmount && parseFloat(selectedOrder.discountAmount) > 0 && selectedOrder.voucherCode ? "\nDiscount voucher " + selectedOrder.voucherCode + ": -" + parseFloat(selectedOrder.discountAmount).toFixed(2) + " lei" : ""}${selectedOrder.shippingCost && parseFloat(selectedOrder.shippingCost) > 0 ? "\nTransport: " + parseFloat(selectedOrder.shippingCost).toFixed(2) + " lei" : ""}
-TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
+${selectedOrder.items ? selectedOrder.items.map((item) => `${item.quantity}x ${item.product ? item.product.name : "Product ID: " + item.productId} - ${formatOrderAmount(selectedOrder, item.price)} x${item.quantity} = ${formatOrderAmount(selectedOrder, item.totalPrice)}`).join("\n") : "No items"}
+${selectedOrder.discountAmount && parseFloat(selectedOrder.discountAmount) > 0 && selectedOrder.voucherCode ? "\nDiscount voucher " + selectedOrder.voucherCode + ": -" + formatOrderAmount(selectedOrder, selectedOrder.discountAmount) : ""}${selectedOrder.shippingCost && parseFloat(selectedOrder.shippingCost) > 0 ? "\nTransport: " + formatOrderAmount(selectedOrder, selectedOrder.shippingCost) : ""}
+TOTAL: ${formatOrderAmount(selectedOrder, selectedOrder.totalAmount)}
 ========================================
                           `;
                     const blob = new Blob([invoice], { type: "text/plain" });
@@ -25668,7 +25667,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                 style: { background: "#28a745", padding: "15px", display: "flex", alignItems: "center", gap: "10px" },
                 onClick: () => {
                   const escCsv = (v) => `"${String(v || "").replace(/"/g, '""')}"`;
-                  const csvContent = `Order ID,Customer Name,Customer Email,Shipping Address,Payment Method,Status,Amount,Voucher Code,Discount Amount,Date
+                  const csvContent = `Order ID,Customer Name,Customer Email,Shipping Address,Payment Method,Status,Amount,Currency,Market,Voucher Code,Discount Amount,Date
 ${selectedOrders.map((id) => {
                     const order = filteredOrders.find((o) => o.id === id);
                     const sa = order.shippingAddress || {};
@@ -25678,7 +25677,7 @@ ${selectedOrders.map((id) => {
                     const paymentMethod = order.paymentMethod || "";
                     const voucherCode = order.voucherCode || "";
                     const discountAmount = order.discountAmount ? parseFloat(order.discountAmount).toFixed(2) : "0.00";
-                    return `${order.id},${escCsv(customerName)},${escCsv(customerEmail)},${escCsv(shippingAddress)},${escCsv(paymentMethod)},${escCsv(order.status)},${order.totalAmount},${escCsv(voucherCode)},${discountAmount},${new Date(order.createdAt).toLocaleDateString()}`;
+                    return `${order.id},${escCsv(customerName)},${escCsv(customerEmail)},${escCsv(shippingAddress)},${escCsv(paymentMethod)},${escCsv(order.status)},${order.totalAmount},${escCsv(getOrderCurrency(order))},${escCsv(order.market || "ro")},${escCsv(voucherCode)},${discountAmount},${new Date(order.createdAt).toLocaleDateString()}`;
                   }).join("\n")}`;
                   const blob = new Blob([csvContent], { type: "text/csv" });
                   const url = window.URL.createObjectURL(blob);

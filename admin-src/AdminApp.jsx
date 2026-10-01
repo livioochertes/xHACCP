@@ -11491,8 +11491,8 @@ import {
                                 </div>
                               </td>
                               <td style={{padding: '10px'}}>{item.quantity}</td>
-                              <td style={{padding: '10px'}}>{parseFloat(item.price).toFixed(2)} lei</td>
-                              <td style={{padding: '10px', fontWeight: 'bold'}}>{parseFloat(item.totalPrice).toFixed(2)} lei</td>
+                              <td style={{padding: '10px'}}>{formatOrderAmount(selectedOrder, item.price)}</td>
+                              <td style={{padding: '10px', fontWeight: 'bold'}}>{formatOrderAmount(selectedOrder, item.totalPrice)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -11604,7 +11604,6 @@ import {
                         onClick={() => {
                           const pm = selectedOrder.paymentMethod;
                           const isCOD = pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash';
-                          const orderCurrency = getOrderCurrency(selectedOrder);
                           const invoice = `
 INVOICE - Order #${selectedOrder.id}
 ========================================
