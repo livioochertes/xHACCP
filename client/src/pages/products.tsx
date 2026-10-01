@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { usePublicPageReady } from "@/lib/public-page-ready";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Filter, Grid, List, Search, ChevronLeft, ChevronRight } from "lucide-react";
@@ -30,9 +31,10 @@ export default function Products() {
     description: toSeoText(t('home.hero.subtitle')),
   });
   
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const initialParams = new URLSearchParams(window.location.search);
+  const [searchQuery, setSearchQuery] = useState(initialParams.get("search") || "");
+  const [selectedCategory, setSelectedCategory] = useState(initialParams.get("category") || "");
+  const [currentPage, setCurrentPage] = useState(Math.max(1, Number(initialParams.get("page")) || 1));
   const [urlChangeCounter, setUrlChangeCounter] = useState(0);
   
   useEffect(() => {
@@ -139,6 +141,7 @@ export default function Products() {
     enabled: true,
   });
 
+  usePublicPageReady(!isLoading);
   const sortedAll = useMemo(() => {
     if (!allProducts.length) return allProducts;
     const sorted = [...allProducts];

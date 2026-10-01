@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { usePublicPageReady } from "@/lib/public-page-ready";
 import { useQuery } from "@tanstack/react-query";
 import { getMarketFromHostname } from "@/lib/queryClient";
 import { useParams, Link } from "wouter";
@@ -86,6 +87,7 @@ export default function BlogPostPage() {
     enabled: !!slug,
   });
 
+  usePublicPageReady(!isLoading);
   // Use translation that matches user's UI language when available
   const displayPost = useMemo((): BlogPostWithTranslations | null => {
     if (!post) return null;

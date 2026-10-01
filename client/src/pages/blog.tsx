@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { usePublicPageReady } from "@/lib/public-page-ready";
 import { useQuery } from "@tanstack/react-query";
 import { getMarketFromHostname } from "@/lib/queryClient";
 import { Link } from "wouter";
@@ -130,6 +131,7 @@ export default function Blog() {
     },
   });
 
+  usePublicPageReady(!isLoading);
   const publishedPosts = posts?.filter((p) => p.published) ?? [];
 
   const blogSchema = useMemo(() => {

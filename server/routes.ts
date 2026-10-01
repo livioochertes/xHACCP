@@ -23,7 +23,8 @@ import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails, sendEventVoucherEmail } from './email-service.js';
 import { getMarketFromRequest, marketMatches } from "./market-routing.js";
 import { EVENT_VOUCHER_ACTIVATION_DAYS, getVoucherValidityError } from "./voucher-validity.js";
-import { registerSeoRoutes, build404Html, getBaseUrl } from './seo-routes.js';
+import { registerSeoRoutes } from './seo-routes.js';
+import { canonicalBaseUrl } from "@shared/canonical-url";
 import {
   buildAIMarketCatalog,
   formatAIMarketCatalog,
@@ -823,8 +824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sitemap.xml - dynamic, includes all products
   app.get('/sitemap.xml', async (req, res) => {
     try {
-      const host = req.get('host') || 'xhaccp.ro';
-      const BASE_URL = `https://${host.replace(/^www\./, '')}`;
+      const BASE_URL = canonicalBaseUrl(req);
       const staticPages = [
         { url: '/', priority: '1.0', changefreq: 'weekly' },
         { url: '/products', priority: '0.9', changefreq: 'daily' },
@@ -835,30 +835,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { url: '/terms', priority: '0.4', changefreq: 'yearly' },
         { url: '/privacy', priority: '0.4', changefreq: 'yearly' },
       ];
-      const allRawProducts = await storage.getProducts({ limit: 10000 });
       const market = getMarketFromRequest(req);
-      const products = allRawProducts.filter(p => {
+      if (market === "fr") {
+        staticPages.push({ url: '/chef-event', priority: '0.7', changefreq: 'monthly' });
+      }
+      const allRawProducts = await storage.getProducts({ limit: 10000 });
+      const products = (await Promise.all(allRawProducts.map(async p => {
         if (!p.slug) return false;
         if (p.status?.toLowerCase() !== 'active') return false;
         const overlaid = applyMarketOverlay(p, market);
-        return overlaid !== null;
-      });
+        if (!overlaid) return false;
+        const language = market === "fr" ? "fr" : market === "com" ? "en" : null;
+        const translation = language
+          ? await storage.getProductTranslation(overlaid.id, language)
+          : null;
+        return { product: overlaid, slug: translation?.slug || overlaid.slug };
+      }))).filter((product): product is { product: any; slug: string } => product !== false);
       const now = new Date().toISOString().split('T')[0];
-      const publishedBlogPosts = await storage.getBlogPosts({ published: true });
+      const publishedBlogPosts = await storage.getBlogPosts({ published: true, marketCode: market });
+      const escapeXml = (value: string) => value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
       const urlEntries = [
         ...staticPages.map(p => `
   <url>
-    <loc>${BASE_URL}${p.url}</loc>
+    <loc>${escapeXml(`${BASE_URL}${p.url}`)}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`),
-        ...products.map(p => {
+        ...products.map(({ product: p, slug }) => {
           const seoTitle = (p.name || '').replace(/xHACCP/gi, 'HACCP');
-          const escapedTitle = seoTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const escapedTitle = escapeXml(seoTitle);
 
           const makeAbsolute = (url: string) =>
-            url.startsWith('http') ? url : `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+            escapeXml(url.startsWith('http') ? url : `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`);
 
           // Collect all images: primary + gallery
           const allImageUrls: string[] = [];
@@ -878,7 +892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           return `
   <url>
-    <loc>${BASE_URL}/products/${p.slug}</loc>
+    <loc>${escapeXml(`${BASE_URL}/products/${encodeURIComponent(slug)}`)}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>${imageBlocks}
@@ -886,7 +900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }),
         ...publishedBlogPosts.map(b => `
   <url>
-    <loc>${BASE_URL}/blog/${b.slug}</loc>
+    <loc>${escapeXml(`${BASE_URL}/blog/${encodeURIComponent(b.slug)}`)}</loc>
     <lastmod>${b.publishedAt ? new Date(b.publishedAt).toISOString().split('T')[0] : now}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -898,6 +912,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 ${urlEntries.join('')}
 </urlset>`;
       res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('Vary', 'Host, X-Market');
+      res.setHeader('Cache-Control', 'public, max-age=300');
       res.send(xml);
     } catch (error) {
       console.error('Sitemap generation error:', error);
@@ -907,8 +923,7 @@ ${urlEntries.join('')}
 
   // robots.txt - points crawlers to sitemap (dynamic per domain)
   app.get('/robots.txt', (req, res) => {
-    const host = req.get('host') || 'xhaccp.ro';
-    const domain = host.replace(/^www\./, '');
+    const baseUrl = canonicalBaseUrl(req);
     res.setHeader('Content-Type', 'text/plain');
     res.send(`User-agent: *
 Disallow: /admin
@@ -918,7 +933,7 @@ Disallow: /cart
 Disallow: /account
 Disallow: /api/
 
-Sitemap: https://${domain}/sitemap.xml
+Sitemap: ${baseUrl}/sitemap.xml
 `);
   });
 
@@ -5438,47 +5453,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     });
   });
 
-  // ─── Unknown-route 404 handler ────────────────────────────────────────────
-  // Runs BEFORE Vite's blanket "app.use('*')" which always returns 200.
-  // Serves a real HTTP 404 for paths that don't match any known SPA route or
-  // API endpoint, so crawlers receive the correct status immediately.
-  const KNOWN_SPA_EXACT = new Set([
-    '/cart', '/checkout', '/merci', '/login', '/account',
-    '/products', '/blog', '/about', '/b2b', '/terms', '/privacy',
-    '/ai-assistant', '/chef-event', '/',
-  ]);
-  const KNOWN_SPA_PREFIXES = [
-    '/account/', '/invoice/', '/pay/', '/auth/',
-    '/api/', '/r2/', '/uploads/', '/attached_assets/', '/assets/',
-    '/admin', '/admin/vendor', '/@', '/__', '/_vite',
-    '/products/', '/blog/', '/about', '/b2b', '/terms', '/privacy',
-    '/ai-assistant', '/chef-event', '/cart', '/checkout', '/merci', '/login',
-  ];
-
-  app.get('*', (req, res, next) => {
-    const p = req.path;
-    // Pass static files (have a file extension) to Vite / static middleware
-    const lastSegment = p.split('/').pop() || '';
-    if (lastSegment.includes('.')) return next();
-    // Pass known private SPA routes to Vite
-    if (KNOWN_SPA_EXACT.has(p)) return next();
-    if (KNOWN_SPA_PREFIXES.some((prefix) => p.startsWith(prefix))) return next();
-    // Only intercept HTML-accepting requests; let non-HTML fall through
-    const accept = req.headers.accept || '';
-    if (accept && !accept.includes('text/html') && !accept.includes('*/*')) {
-      return next();
-    }
-    // Truly unknown route → real 404
-    try {
-      const html = build404Html(req);
-      res.status(404)
-        .setHeader('Content-Type', 'text/html; charset=utf-8')
-        .setHeader('Cache-Control', 'no-store')
-        .send(html);
-    } catch (err) {
-      next(err);
-    }
-  });
+  // Unknown HTML routes are validated by the dev/production fallback AFTER
+  // actual static resources have had a chance to be served.
 
   const httpServer = createServer(app);
   

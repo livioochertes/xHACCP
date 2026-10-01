@@ -1,4 +1,11 @@
-import { type Express, type Request } from "express";
+import { type Express, type Request, type Response } from "express";
+import React from "react";
+import { renderToString } from "react-dom/server";
+import { PublicPage } from "@shared/public-page";
+import { canonicalBaseUrl } from "@shared/canonical-url";
+import { isPublicSpaPath } from "@shared/public-routing";
+import { renderArticleContent, renderProductContent } from "./public-content";
+import { buildCatalogBody } from "./public-catalog";
 import fs from "fs";
 import path from "path";
 import { getProductSku } from "@shared/product-sku";
@@ -101,10 +108,10 @@ function injectMeta(html: string, meta: MetaTags, lang: string, bodyHtml?: strin
   const title = escapeHtml(meta.title);
   // Apply keyword normalization to description and body copy (not to page title/brand identifiers)
   const description = escapeHtml(seoNormalize(meta.description));
-  const canonical = meta.canonical;
+  const canonical = escapeHtml(meta.canonical);
   const ogType = meta.ogType || "website";
   const ogLocale = getOgLocale(lang);
-  const imageUrl = meta.image || DEFAULT_OG_IMAGE;
+  const imageUrl = escapeHtml(meta.image || DEFAULT_OG_IMAGE);
   const imageAlt = escapeHtml(meta.imageAlt || meta.title || DEFAULT_OG_IMAGE_ALT);
   let result = html;
 
@@ -156,17 +163,28 @@ function injectMeta(html: string, meta: MetaTags, lang: string, bodyHtml?: strin
   if (bodyHtml) {
     result = result.replace(
       '<div id="root"></div>',
-      `<div aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">${seoNormalize(bodyHtml)}</div><div id="root"></div>`
+      `<div id="public-root">${renderToString(React.createElement(PublicPage, { html: bodyHtml }))}</div><div id="root" hidden></div>`
     );
+    result = result.replace("</head>", `<style>
+      .public-content{font-family:system-ui,sans-serif;max-width:1100px;margin:auto;padding:2rem;line-height:1.65}
+      .public-content h1{font-size:2rem;font-weight:700}.public-content h2{font-size:1.5rem;font-weight:600}
+      .public-content a{color:#075985;text-decoration:underline}.public-content ul{list-style:disc;padding-left:1.5rem}
+      .public-content ol{list-style:decimal;padding-left:1.5rem}.public-content p{margin:1rem 0}
+      .public-content img{max-width:100%;height:auto}.public-content th,.public-content td{padding:.5rem;border:1px solid #ddd}
+      #root[hidden]{display:none}
+    </style></head>`);
   }
 
   return result;
 }
 
 export function getBaseUrl(req: any): string {
-  const proto = req.headers["x-forwarded-proto"] || "https";
-  const host = req.headers["x-forwarded-host"] || req.headers.host || "xhaccp.ro";
-  return `${proto}://${host}`;
+  return canonicalBaseUrl(req);
+}
+
+async function sendPublicHtml(req: Request, res: Response, html: string) {
+  const transform = req.app.locals.transformPublicHtml;
+  return res.send(transform ? await transform(req.originalUrl, html) : html);
 }
 
 // ---------------------------------------------------------------------------
@@ -554,6 +572,7 @@ function buildStaticBodyHtml(route: string, base: string, lang: string): string 
 
 /** Returns true when the Accept header indicates an HTML response is acceptable. */
 function wantsHtml(req: Request): boolean {
+  if (!isPublicSpaPath(req.path)) return false;
   const accept = req.headers.accept || "";
   if (!accept) return true;
   if (accept.includes("text/html")) return true;
@@ -564,7 +583,7 @@ function wantsHtml(req: Request): boolean {
 /** Build a 404 HTML page to send to crawlers for unknown routes. */
 export function build404Html(req: Request): string {
   const base = getBaseUrl(req);
-  const canonical = base + req.path;
+  const canonical = base + new URL(req.originalUrl || req.url, "http://local").pathname;
   const market = (req as any).market ?? "ro";
   const lang = getLangFromMarket(market);
 
@@ -605,15 +624,10 @@ export function registerSeoRoutes(
   storage: IStorage,
   marketHelpers?: MarketHelpers
 ) {
-  // In development, Vite handles all HTML requests (it injects React Refresh preamble).
-  // SEO meta-tag injection only makes sense in production for crawlers.
-  const isDev = process.env.NODE_ENV !== "production";
-
   const routes = ["/", "/products", "/about", "/b2b", "/terms", "/privacy", "/ai-assistant"];
 
   for (const route of routes) {
-    app.get(route, (req, res, next) => {
-      if (isDev) return next();
+    app.get(route, async (req, res, next) => {
       if (!wantsHtml(req)) return next();
       try {
         const base = getBaseUrl(req);
@@ -622,19 +636,45 @@ export function registerSeoRoutes(
         const metaFn = getStaticMeta(route, base, lang);
         if (!metaFn) return next();
         const meta = metaFn(base);
-        const bodyHtml = buildStaticBodyHtml(route, base, lang);
+        const catalog = route === "/products" ? await buildCatalogBody(req, storage, marketHelpers, base, market, lang) : null;
+        const bodyHtml = catalog?.html ?? buildStaticBodyHtml(route, base, lang);
+        if (catalog) meta.canonical = catalog.canonical;
         const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml);
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         setMarketAwareCacheHeaders(res, "public, max-age=300");
-        res.send(html);
+        await sendPublicHtml(req, res, html);
       } catch (err) {
         next(err);
       }
     });
   }
 
+  app.get("/chef-event", async (req, res, next) => {
+    if (!wantsHtml(req)) return next();
+    try {
+      const base = getBaseUrl(req);
+      const market = marketHelpers?.getMarket(req) ?? (req as any).market ?? "ro";
+      const meta: MetaTags = {
+        title: "Offre spéciale chefs : 20 % de réduction | xHACCP France",
+        description: "Inscrivez-vous et recevez par email votre code personnel de réduction de 20 % sur xHACCP France. Offre valable 12 mois, à activer sous 30 jours.",
+        canonical: `${base}/chef-event`,
+        image: `${base}/attached_assets/logo_xHACCP-S1_1772812623761.png`,
+        imageAlt: "xHACCP France – Équipements et consommables HACCP",
+        ...(market !== "fr" ? { robots: "noindex,follow" } : {}),
+      };
+      const body = `<main><h1>L'équipement HACCP pensé pour votre cuisine.</h1>
+        <p>Offre spéciale événement</p><p>Inscrivez-vous et recevez par email votre code personnel de réduction de 20 % sur xHACCP France.</p>
+        <ul><li>20 % de réduction</li><li>Code envoyé par email</li><li>Offre valable 12 mois</li></ul>
+        <h2>Activez votre offre sous 30 jours</h2>
+        <p>Effectuez votre première commande dans les 30 jours pour conserver votre réduction pendant les 12 mois de validité.</p>
+        <p><a href="/products">Découvrez les produits HACCP</a></p></main>`;
+      res.type("html");
+      setMarketAwareCacheHeaders(res, "public, max-age=300");
+      await sendPublicHtml(req, res, injectMeta(getIndexHtml(), meta, "fr", body));
+    } catch (error) { next(error); }
+  });
+
   app.get("/blog", async (req, res, next) => {
-    if (isDev) return next();
     if (!wantsHtml(req)) return next();
     try {
       const base = getBaseUrl(req);
@@ -651,10 +691,7 @@ export function registerSeoRoutes(
             ogType: "website",
           };
 
-      let publishedPosts: any[] = [];
-      try {
-        publishedPosts = await storage.getBlogPosts({ published: true, marketCode: market, limit: 100 });
-      } catch (_) {}
+      const publishedPosts = await storage.getBlogPosts({ published: true, marketCode: market });
 
       const blogJsonLd: object[] = [
         {
@@ -679,18 +716,21 @@ export function registerSeoRoutes(
         },
       ];
 
-      const bodyHtml = buildStaticBodyHtml("/blog", base, lang);
+      const entries = publishedPosts.map(post => `<li><article>
+        <h2><a href="/blog/${encodeURIComponent(post.slug)}">${escapeHtml(post.title)}</a></h2>
+        ${post.excerpt ? `<p>${escapeHtml(post.excerpt)}</p>` : ""}
+        </article></li>`).join("");
+      const bodyHtml = buildStaticBodyHtml("/blog", base, lang).replace("</main>", `<ul>${entries}</ul></main>`);
       const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml, blogJsonLd);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       setMarketAwareCacheHeaders(res, "public, max-age=300");
-      res.send(html);
+      await sendPublicHtml(req, res, html);
     } catch (err) {
       next(err);
     }
   });
 
   app.get("/blog/:slug", async (req, res, next) => {
-    if (isDev) return next();
     if (!wantsHtml(req)) return next();
     try {
       const base = getBaseUrl(req);
@@ -698,12 +738,9 @@ export function registerSeoRoutes(
       const market = (req as any).market ?? "ro";
       const lang = getLangFromMarket(market);
 
-      let post: any = null;
-      try {
-        post = await storage.getBlogPostBySlug(slug, market);
-      } catch (_) {}
+      let post = await storage.getBlogPostBySlug(slug, market);
 
-      if (!post || !post.published) {
+      if (!post || !post.published || (post.marketCode ?? "ro") !== market) {
         const notFoundTitles: Record<string, string> = {
           ro: "Articol negăsit | xHACCP",
           fr: "Article non trouvé | xHACCP",
@@ -735,7 +772,14 @@ export function registerSeoRoutes(
         const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml);
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         res.setHeader("Cache-Control", "no-store");
-        return res.status(404).send(html);
+        res.status(404);
+        return await sendPublicHtml(req, res, html);
+      }
+
+      if ((post.language || "ro") !== lang) {
+        const translations = await storage.getBlogPostTranslations(post.id);
+        const translation = translations.find(t => t.language === lang);
+        if (translation) post = { ...post, title: translation.title, excerpt: translation.excerpt, content: translation.content };
       }
 
       const meta: MetaTags = {
@@ -760,15 +804,14 @@ export function registerSeoRoutes(
       const backLabels: Record<string, string> = { ro: "Înapoi la blog", fr: "Retour au blog", en: "Back to blog" };
       const backLabel = backLabels[lang] ?? backLabels["ro"];
 
-      const bodyContent = post.content
-        ? post.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 600)
-        : "";
+      const bodyContent = renderArticleContent(post.content || "");
       const bodyHtml = `
 <main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
   <article>
     <h1>${escapeHtml(post.title)}</h1>
-    ${post.excerpt ? `<p><strong>${escapeHtml(post.excerpt.slice(0, 200))}</strong></p>` : ""}
-    ${bodyContent ? `<p>${escapeHtml(bodyContent)}</p>` : ""}
+    ${post.excerpt ? `<p><strong>${escapeHtml(post.excerpt)}</strong></p>` : ""}
+    ${post.imageUrl ? `<img src="${escapeHtml(post.imageUrl)}" alt="${escapeHtml(post.title)}" />` : ""}
+    ${bodyContent}
     <p><a href="${base}/blog">${backLabel}</a></p>
   </article>
 </main>`;
@@ -792,14 +835,13 @@ export function registerSeoRoutes(
       const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml, blogPostingSchema);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       setMarketAwareCacheHeaders(res, "public, max-age=300");
-      res.send(html);
+      await sendPublicHtml(req, res, html);
     } catch (err) {
       next(err);
     }
   });
 
   app.get("/products/:slug", async (req, res, next) => {
-    if (isDev) return next();
     if (!wantsHtml(req)) return next();
     try {
       const base = getBaseUrl(req);
@@ -808,13 +850,11 @@ export function registerSeoRoutes(
       const lang = getLangFromMarket(market);
 
       let product: any = null;
-      try {
         const allProducts = await storage.getProducts({ limit: 10000 });
         for (const candidate of allProducts) {
           if (candidate.status?.toLowerCase() !== "active") continue;
-          const translation = lang !== "ro"
-            ? await storage.getProductTranslation(candidate.id, lang)
-            : null;
+          const translation = candidate.slug === slug ? null
+            : await storage.getProductTranslation(candidate.id, lang);
           if (candidate.slug !== slug && translation?.slug !== slug) continue;
           const overlaid = marketHelpers
             ? marketHelpers.applyOverlay(candidate, market)
@@ -824,7 +864,6 @@ export function registerSeoRoutes(
             break;
           }
         }
-      } catch (_) {}
 
       if (!product) {
         const notFoundTitles: Record<string, string> = {
@@ -858,22 +897,23 @@ export function registerSeoRoutes(
         const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml);
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         setMarketAwareCacheHeaders(res, "no-store");
-        return res.status(404).send(html);
+        res.status(404);
+        return await sendPublicHtml(req, res, html);
       }
 
-      // Attempt to fetch a server-side translation for non-English markets
+      // Use the same localized description and slug as the public product page.
       let translatedName: string = product.name;
       let translatedDesc: string =
-        (product as any).shortDescription || (product as any).description || "";
+        product.descriptionHtml || product.description || "";
+      let canonicalSlug = product.slug;
 
-      if (lang !== "en" && product.id) {
-        try {
-          const translation = await storage.getProductTranslation(product.id, lang);
-          if (translation) {
-            if (translation.name) translatedName = translation.name;
-            if (translation.description) translatedDesc = translation.description;
-          }
-        } catch (_) {}
+      if (product.id) {
+        const translation = await storage.getProductTranslation(product.id, lang);
+        if (translation) {
+          if (translation.name) translatedName = translation.name;
+          if (translation.description) translatedDesc = translation.description;
+          if (translation.slug) canonicalSlug = translation.slug;
+        }
       }
 
       // Strip the leading "x" from "xHACCP" in product names for SEO keywords
@@ -902,15 +942,14 @@ export function registerSeoRoutes(
       const meta: MetaTags = {
         title: `${seoName} | xHACCP`,
         description: desc,
-        canonical: `${base}/products/${slug}`,
+        canonical: `${base}/products/${encodeURIComponent(canonicalSlug)}`,
         ogType: "product",
         image: productImage,
         imageAlt: seoName,
       };
+      const productUrl = meta.canonical;
 
-      const descFull = translatedDesc
-        ? translatedDesc.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").replace(/xHACCP/gi, "HACCP").trim().slice(0, 500)
-        : "";
+      const descFull = renderProductContent(translatedDesc, translatedName);
       const price = product.price
         ? `<p><strong>${lang === "fr" ? "Prix" : lang === "en" ? "Price" : "Preț"}: ${product.price} ${product.currency || "RON"}</strong></p>`
         : "";
@@ -921,23 +960,23 @@ export function registerSeoRoutes(
       ];
       if (product.category?.slug) {
         breadcrumbItems.push({ "@type": "ListItem", "position": 3, "name": product.category.name, "item": `${base}/products?category=${product.category.slug}` });
-        breadcrumbItems.push({ "@type": "ListItem", "position": 4, "name": seoName, "item": `${base}/products/${slug}` });
+        breadcrumbItems.push({ "@type": "ListItem", "position": 4, "name": seoName, "item": productUrl });
       } else {
-        breadcrumbItems.push({ "@type": "ListItem", "position": 3, "name": seoName, "item": `${base}/products/${slug}` });
+        breadcrumbItems.push({ "@type": "ListItem", "position": 3, "name": seoName, "item": productUrl });
       }
       const productObj: Record<string, unknown> = {
         "@context": "https://schema.org",
         "@type": "Product",
         "name": seoName,
         "sku": getProductSku(product),
-        "url": `${base}/products/${slug}`,
+        "url": productUrl,
         "brand": { "@type": "Brand", "name": "xHACCP" },
         "offers": {
           "@type": "Offer",
           "price": product.price,
           "priceCurrency": product.currency || "RON",
           "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-          "url": `${base}/products/${slug}`,
+          "url": productUrl,
         },
       };
       if (desc) productObj["description"] = desc;
@@ -958,7 +997,18 @@ export function registerSeoRoutes(
   <article itemscope itemtype="https://schema.org/Product">
     <h1 itemprop="name">${escapeHtml(translatedName)}</h1>
     ${price}
-    ${descFull ? `<p itemprop="description">${escapeHtml(descFull)}</p>` : ""}
+    ${productImage ? `<img src="${escapeHtml(productImage)}" alt="${escapeHtml(translatedName)}" />` : ""}
+    <div itemprop="description">${descFull}</div>
+    ${Array.isArray(product.specs) ? `<dl>${product.specs.filter((s: any) => s.label && s.value).map((s: any) => `<dt>${escapeHtml(s.label)}</dt><dd>${escapeHtml(s.value)}</dd>`).join("")}</dl>` : ""}
+    <dl>${["weight", "length", "width", "height", "piecesPerPackage", "productQuantity"].filter(key => product[key]).map(key => {
+      const labels: Record<string, string[]> = {
+        weight: ["Greutate (kg)", "Poids (kg)", "Weight (kg)"], length: ["Lungime (cm)", "Longueur (cm)", "Length (cm)"],
+        width: ["Lățime (cm)", "Largeur (cm)", "Width (cm)"], height: ["Înălțime (cm)", "Hauteur (cm)", "Height (cm)"],
+        piecesPerPackage: ["Bucăți per pachet", "Pièces par colis", "Pieces per package"], productQuantity: ["Conținut net", "Contenu net", "Net content"],
+      };
+      return `<dt>${escapeHtml(labels[key][lang === "fr" ? 1 : lang === "en" ? 2 : 0])}</dt><dd>${escapeHtml(String(product[key]))}</dd>`;
+    }).join("")}</dl>
+    ${product.category?.slug ? `<p><a href="/products?category=${encodeURIComponent(market === "fr" && product.category.slug === "food-labels" ? "etiquettes-alimentaires" : product.category.slug)}">${escapeHtml(product.category.name)}</a></p>` : ""}
     <p><a href="${base}/products">${backLabel}</a></p>
   </article>
 </main>`;
@@ -966,7 +1016,7 @@ export function registerSeoRoutes(
       const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml, productJsonLd);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       setMarketAwareCacheHeaders(res, "public, max-age=300");
-      res.send(html);
+      await sendPublicHtml(req, res, html);
     } catch (err) {
       next(err);
     }

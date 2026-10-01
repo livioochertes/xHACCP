@@ -32,9 +32,24 @@ function useCanonical() {
   useEffect(() => {
     const canonical = document.getElementById('canonical-url') as HTMLLinkElement | null;
     if (canonical) {
-      canonical.href = `${window.location.origin}${location === '/' ? '' : location}`;
+      const url = new URL(window.location.href);
+      url.hostname = url.hostname.replace(/^www\./, "");
+      url.pathname = location;
+      url.hash = "";
+      canonical.href = url.toString();
     }
   }, [location]);
+}
+
+function PublicPageMounted() {
+  const [location] = useLocation();
+  useEffect(() => {
+    // Data-backed pages keep the public HTML until their request settles.
+    if (!/^\/(products|blog)(\/[^/]+)?$/.test(location)) {
+      window.dispatchEvent(new Event("public-page-ready"));
+    }
+  }, [location]);
+  return null;
 }
 
 function Router() {
@@ -69,6 +84,7 @@ function Router() {
           <Route path="/chef-event" component={ChefEvent} />
           <Route component={NotFound} />
         </Switch>
+        <PublicPageMounted />
       </Suspense>
       <AiChatWidget />
     </>

@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import { usePageSeo } from "@/lib/use-page-seo";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,12 @@ const emptyForm: FormData = {
 };
 
 export default function ChefEvent() {
+  usePageSeo({
+    title: "Offre spéciale chefs : 20 % de réduction | xHACCP France",
+    description: "Inscrivez-vous et recevez par email votre code personnel de réduction de 20 % sur xHACCP France. Offre valable 12 mois, à activer sous 30 jours.",
+    image: `${window.location.origin}/attached_assets/logo_xHACCP-S1_1772812623761.png`,
+    url: `${window.location.origin.replace("://www.", "://")}/chef-event`,
+  });
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
   const [loading, setLoading] = useState(true);

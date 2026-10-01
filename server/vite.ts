@@ -5,6 +5,12 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import { build404Html } from "./seo-routes";
+import {
+  isAssetPath,
+  isPrivateSpaPath,
+  isPublicSpaPath,
+} from "@shared/public-routing";
 
 const viteLogger = createLogger();
 
@@ -40,11 +46,21 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
+  app.locals.transformPublicHtml = (url: string, html: string) =>
+    vite.transformIndexHtml(url, html);
+
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
+    // app.use("*") strips the mounted path from req.path; originalUrl retains it.
+    const pathname = new URL(req.originalUrl, "http://local").pathname;
     const url = req.originalUrl;
 
     try {
+      if (isAssetPath(pathname)) return res.status(404).type("text/plain").send("Not found");
+      if (!isPublicSpaPath(pathname) && !isPrivateSpaPath(pathname)) {
+        const page = await vite.transformIndexHtml(url, build404Html(req));
+        return res.status(404).set({ "Content-Type": "text/html", "Cache-Control": "no-store" }).end(page);
+      }
       const clientTemplate = path.resolve(
         import.meta.dirname,
         "..",
@@ -67,9 +83,7 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
-export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
-
+export function serveStatic(app: Express, distPath = path.resolve(import.meta.dirname, "public")) {
   if (!fs.existsSync(distPath)) {
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
@@ -78,8 +92,16 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // Only known client routes may use the SPA entrypoint. Missing assets and
+  // malformed public URLs must retain a real 404 instead of returning HTML.
+  app.use("*", (req, res, next) => {
+    const pathname = new URL(req.originalUrl, "http://local").pathname;
+    if (isAssetPath(pathname)) return res.status(404).type("text/plain").send("Not found");
+    if (!isPublicSpaPath(pathname) && !isPrivateSpaPath(pathname)) {
+      return res.status(404).set("Cache-Control", "no-store").type("html").send(build404Html(req));
+    }
+    res.sendFile(path.resolve(distPath, "index.html"), (error) => {
+      if (error) next(error);
+    });
   });
 }
