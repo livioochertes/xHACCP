@@ -34,7 +34,6 @@ const sectionItems: AdminSection[] = [
   { id: "suppliers", label: "Furnizori", icon: ShoppingBasket, group: "catalog" },
   { id: "orders", label: "Comenzi", icon: ShoppingBasket, group: "operations" },
   { id: "invoices", label: "Facturi", icon: ReceiptText, group: "operations" },
-  { id: "wms", label: "WMS", icon: Truck, group: "operations" },
   { id: "marketing", label: "Marketing", icon: Megaphone, group: "growth" },
   { id: "ai-recommendations", label: "Recomandări AI", icon: Sparkles, group: "growth" },
   { id: "vouchers", label: "Vouchere", icon: BadgePercent, group: "growth" },
@@ -43,6 +42,7 @@ const sectionItems: AdminSection[] = [
   { id: "google-feed", label: "Google Feed", icon: Rss, group: "growth" },
   { id: "users", label: "Clienți", icon: UsersRound, group: "admin" },
   { id: "company-settings", label: "Setări firmă", icon: Settings2, group: "admin" },
+  { id: "wms", label: "WMS", icon: Truck, group: "admin" },
 ];
 
 const navGroups = [
@@ -200,8 +200,8 @@ function PreviewHeader() {
 }
 
 export function Grouped({ initialMobileOpen = false }: { initialMobileOpen?: boolean }) {
-  const [activeId, setActiveId] = useState("ai-recommendations");
-  const [openGroup, setOpenGroup] = useState("growth");
+  const [activeId, setActiveId] = useState("wms");
+  const [openGroup, setOpenGroup] = useState("admin");
   const [mobileOpen, setMobileOpen] = useState(initialMobileOpen);
   const activeItem = sectionItems.find((item) => item.id === activeId) ?? sectionItems[0];
   const activeGroup = navGroups.find((group) => group.id === activeItem.group);
@@ -300,25 +300,45 @@ export function Grouped({ initialMobileOpen = false }: { initialMobileOpen?: boo
               </div>
               <span className="grouped-section-label">Piața .ro</span>
             </div>
-            <h1>{activeItem.id === "ai-recommendations" ? "Recomandări de produse AI" : activeItem.label}</h1>
+            <h1>
+              {activeItem.id === "ai-recommendations"
+                ? "Recomandări de produse AI"
+                : activeItem.id === "wms"
+                  ? "Setări de integrare WMS"
+                  : activeItem.label}
+            </h1>
             <p className="grouped-content-intro">
               {activeItem.id === "ai-recommendations"
                 ? "Programează separat pentru fiecare piață două sau trei produse promovate."
-                : `Previzualizare de navigare pentru secțiunea ${activeItem.label}.`}
+                : activeItem.id === "wms"
+                  ? "Configurează integrările PAI cu sistemele WMS; operațiunile de vânzări și comenzi rămân grupate separat."
+                  : `Previzualizare de navigare pentru secțiunea ${activeItem.label}.`}
             </p>
 
             <div className="grouped-feature-card">
               <div className="grouped-feature-copy">
-                <span className="grouped-feature-eyebrow">Marketing și promovare</span>
-                <strong>{activeItem.id === "ai-recommendations" ? "Campanii de recomandări programate" : activeItem.label}</strong>
+                <span className="grouped-feature-eyebrow">{activeGroup?.title ?? "Spațiul tău de lucru"}</span>
+                <strong>
+                  {activeItem.id === "ai-recommendations"
+                    ? "Campanii de recomandări programate"
+                    : activeItem.id === "wms"
+                      ? "Integrări PAI cu partenerii WMS"
+                      : activeItem.label}
+                </strong>
                 <p>
                   {activeItem.id === "ai-recommendations"
                     ? "Produsele, piața și intervalul campaniei rămân în aceeași pagină. Navigarea doar le organizează mai clar."
-                    : "Conținutul și funcțiile existente rămân neschimbate; se modifică doar felul în care ajungi aici."}
+                    : activeItem.id === "wms"
+                      ? "Această zonă este dedicată setărilor de integrare PAI cu sistemele WMS, nu operațiunilor de depozit."
+                      : "Conținutul și funcțiile existente rămân neschimbate; se modifică doar felul în care ajungi aici."}
                 </p>
               </div>
               <button className="grouped-primary-action" type="button">
-                {activeItem.id === "ai-recommendations" ? "+ Campanie nouă" : `Deschide ${activeItem.label}`}
+                {activeItem.id === "ai-recommendations"
+                  ? "+ Campanie nouă"
+                  : activeItem.id === "wms"
+                    ? "Configurează integrări"
+                    : `Deschide ${activeItem.label}`}
               </button>
             </div>
 
