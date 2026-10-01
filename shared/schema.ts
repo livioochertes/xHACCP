@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name", { length: 100 }),
   isAdmin: boolean("is_admin").default(false),
   adminMarkets: text("admin_markets").array().default([]),
+  isSuspended: boolean("is_suspended").notNull().default(false),
   // 2FA fields
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
   twoFactorSecret: text("two_factor_secret"),

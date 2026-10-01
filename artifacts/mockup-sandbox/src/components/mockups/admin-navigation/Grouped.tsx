@@ -195,8 +195,8 @@ const pageMeta: Record<SectionId, { title: string; description: string; action: 
   },
   "admin-users": {
     title: "Conturi de administrator și 2FA",
-    description: "Conturile cu acces la Panoul xHACCP și protecția lor prin autentificare 2FA.",
-    action: "Adaugă administrator",
+    description: "Administrează conturile de administrator și securitatea accesului la Panoul xHACCP.",
+    action: "Gestionează conturile",
   },
   "company-settings": {
     title: "Setări firmă",
@@ -878,70 +878,257 @@ function GenericWorkspace({
 }
 
 function AdminUsersWorkspace({ onNotify }: { onNotify: (message: string) => void }) {
-  const administrators = [
-    { id: "admin-1", initials: "AM", name: "Ana Marinescu", email: "ana.marinescu@xhaccp.com", role: "Superadmin", market: "Toate piețele", twoFactor: true },
-    { id: "admin-2", initials: "VL", name: "Victor Laurent", email: "victor.laurent@xhaccp.com", role: "Administrator", market: "Franța", twoFactor: true },
-    { id: "admin-3", initials: "IR", name: "Irina Radu", email: "irina.radu@xhaccp.com", role: "Administrator", market: "România", twoFactor: false },
-  ];
+  const [administrators, setAdministrators] = useState([
+    { id: "admin-1", initials: "AM", name: "Ana Marinescu", email: "ana.marinescu@xhaccp.com", role: "Superadmin", market: "Toate piețele", markets: [], twoFactor: true },
+    { id: "admin-2", initials: "VL", name: "Victor Laurent", email: "victor.laurent@xhaccp.com", role: "Administrator", market: "Franța", markets: ["FR"], twoFactor: true },
+    { id: "admin-3", initials: "IR", name: "Irina Radu", email: "irina.radu@xhaccp.com", role: "Administrator", market: "România", markets: ["RO"], twoFactor: false },
+  ]);
+  const [roleView, setRoleView] = useState<"superadmin" | "admin">("superadmin");
   const [twoFactorByAdmin, setTwoFactorByAdmin] = useState<Record<string, boolean>>(
     () => Object.fromEntries(administrators.map((admin) => [admin.id, admin.twoFactor])),
   );
-  const protectedCount = administrators.filter((admin) => twoFactorByAdmin[admin.id]).length;
+  const [suspendedByAdmin, setSuspendedByAdmin] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(administrators.map((admin) => [admin.id, false])),
+  );
+  const [editingAdmin, setEditingAdmin] = useState<(typeof administrators)[number] | null>(null);
+  const [editDraft, setEditDraft] = useState({ name: "", email: "", markets: [] as string[] });
+  const [profileEditing, setProfileEditing] = useState(false);
+  const currentAdminId = roleView === "superadmin" ? "admin-1" : "admin-2";
+  const visibleAdministrators = roleView === "superadmin"
+    ? administrators
+    : administrators.filter((admin) => admin.id === currentAdminId);
+  const protectedCount = visibleAdministrators.filter((admin) => twoFactorByAdmin[admin.id]).length;
+  const activeSuperadminCount = administrators.filter((admin) =>
+    admin.role === "Superadmin" && !suspendedByAdmin[admin.id],
+  ).length;
+  const openEditor = (account: (typeof administrators)[number]) => {
+    setEditingAdmin(account);
+    setEditDraft({ name: account.name, email: account.email, markets: [...account.markets] });
+  };
+
+  const saveEditor = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (editingAdmin?.role === "Administrator" && editDraft.markets.length === 0) {
+      onNotify("Selectați cel puțin o piață pentru administrator.");
+      return;
+    }
+    if (editingAdmin) {
+      setAdministrators((previous) => previous.map((account) => account.id === editingAdmin.id
+        ? {
+          ...account,
+          name: editDraft.name,
+          email: editDraft.email,
+          markets: editDraft.markets,
+          market: editDraft.markets.length ? editDraft.markets.join(", ") : "Toate piețele",
+        }
+        : account));
+      onNotify(`Datele pentru ${editDraft.email} au fost actualizate în previzualizare.`);
+      setEditingAdmin(null);
+    }
+  };
 
   return (
     <div className="admin-admin-users-workspace">
+      <div className="admin-role-preview" role="group" aria-label="Previzualizează nivelul de acces">
+        <span>Previzualizare rol</span>
+        <button
+          className={roleView === "superadmin" ? "is-active" : ""}
+          type="button"
+          aria-pressed={roleView === "superadmin"}
+          onClick={() => { setRoleView("superadmin"); setProfileEditing(false); setEditingAdmin(null); }}
+        >
+          Superadmin · toate conturile
+        </button>
+        <button
+          className={roleView === "admin" ? "is-active" : ""}
+          type="button"
+          aria-pressed={roleView === "admin"}
+          onClick={() => {
+            const profileAccount = administrators.find((admin) => admin.id === "admin-2");
+            setRoleView("admin");
+            setProfileEditing(false);
+            setEditingAdmin(null);
+            setEditDraft({
+              name: profileAccount?.name || "",
+              email: profileAccount?.email || "",
+              markets: profileAccount?.markets || [],
+            });
+          }}
+        >
+          Administrator · cont propriu
+        </button>
+      </div>
+
       <section className="admin-security-summary">
         <span className="admin-security-summary-icon"><ShieldCheck size={19} aria-hidden="true" /></span>
         <div className="admin-security-summary-copy">
-          <span>SECURITATE ADMIN</span>
-          <strong>Autentificare în doi pași</strong>
-          <p>Verifică și gestionează 2FA pentru fiecare cont cu acces la panou.</p>
+          <span>{roleView === "superadmin" ? "ADMINISTRARE SUPERADMIN" : "CONT ADMINISTRATOR"}</span>
+          <strong>{roleView === "superadmin" ? "Toate conturile admin" : "Detaliile și securitatea contului tău"}</strong>
+          <p>{roleView === "superadmin"
+            ? "Superadminul poate edita, suspenda sau reseta parola conturilor. 2FA se configurează de fiecare utilizator."
+            : "Administratorii văd doar propriile date și își pot actualiza datele de conectare sau activa 2FA."}</p>
         </div>
-        <span className="admin-security-summary-count">{protectedCount} din {administrators.length} protejați</span>
+        <span className="admin-security-summary-count">
+          {roleView === "superadmin"
+            ? `${protectedCount} din ${visibleAdministrators.length} cu 2FA`
+            : suspendedByAdmin[currentAdminId] ? "Cont suspendat" : "Doar contul propriu"}
+        </span>
       </section>
 
       <section className="admin-panel admin-admin-users-panel">
         <header className="admin-panel-heading">
           <div>
-            <h2>Conturi de administrare</h2>
-            <p>Accesul și setarea 2FA pentru fiecare administrator</p>
+            <h2>{roleView === "superadmin" ? "Conturi de administrare" : "Contul meu"}</h2>
+            <p>{roleView === "superadmin"
+              ? "Starea conturilor și acțiunile disponibile superadminului."
+              : "Numai administratorii superadmin pot vedea celelalte conturi."}</p>
           </div>
-          <span className="admin-report-table-count">{administrators.length} conturi</span>
+          <span className="admin-report-table-count">
+            {roleView === "superadmin" ? `${visibleAdministrators.length} conturi` : "1 cont"}
+          </span>
         </header>
         <div className="admin-admin-user-list">
-          {administrators.map((admin) => {
-            const isTwoFactorEnabled = Boolean(twoFactorByAdmin[admin.id]);
+          {visibleAdministrators.map((account) => {
+            const isTwoFactorEnabled = Boolean(twoFactorByAdmin[account.id]);
+            const isSuspended = Boolean(suspendedByAdmin[account.id]);
+            const isCurrentAdmin = account.id === currentAdminId;
+            const cannotSuspend = isCurrentAdmin
+              || (account.role === "Superadmin" && !isSuspended && activeSuperadminCount <= 1);
             return (
-              <article className="admin-admin-user-row" key={admin.id}>
-                <span className="admin-admin-avatar" aria-hidden="true">{admin.initials}</span>
+              <article className="admin-admin-user-row" key={account.id}>
+                <span className="admin-admin-avatar" aria-hidden="true">{account.initials}</span>
                 <div className="admin-admin-identity">
-                  <strong>{admin.name}</strong>
-                  <span>{admin.email}</span>
-                  <small>{admin.role} · {admin.market}</small>
+                  <strong>{account.name}</strong>
+                  <span>{account.email}</span>
+                  <small>{account.role} · {account.market}{isCurrentAdmin ? " · Contul tău" : ""}</small>
                 </div>
                 <div className="admin-admin-user-controls">
-                  <StatusPill
-                    label={isTwoFactorEnabled ? "2FA activă" : "Configurează 2FA"}
-                    tone={isTwoFactorEnabled ? "good" : "pending"}
-                  />
-                  <button
-                    className="admin-admin-user-action"
-                    type="button"
-                    aria-pressed={isTwoFactorEnabled}
-                    onClick={() => {
-                      const nextEnabled = !isTwoFactorEnabled;
-                      setTwoFactorByAdmin((previous) => ({ ...previous, [admin.id]: nextEnabled }));
-                      onNotify(`2FA pentru ${admin.name} a fost ${nextEnabled ? "activată" : "dezactivată"} în previzualizare.`);
-                    }}
-                  >
-                    {isTwoFactorEnabled ? "Dezactivează" : "Activează"} 2FA
-                  </button>
+                  <div className="admin-admin-statuses">
+                    <StatusPill label={isTwoFactorEnabled ? "2FA activă" : "2FA dezactivată"} tone={isTwoFactorEnabled ? "good" : "pending"} />
+                    <StatusPill label={isSuspended ? "Suspendat" : "Activ"} tone={isSuspended ? "archived" : "good"} />
+                  </div>
+
+                  {roleView === "superadmin" ? (
+                    <div className="admin-admin-actions">
+                      <button className="admin-admin-user-action" type="button" onClick={() => openEditor(account)}>Editează</button>
+                      <button
+                        className="admin-admin-user-action"
+                        type="button"
+                        disabled={cannotSuspend}
+                        title={isCurrentAdmin ? "Nu îți poți suspenda propriul cont" : undefined}
+                        onClick={() => {
+                          const nextSuspended = !isSuspended;
+                          const confirmation = nextSuspended
+                            ? `Suspendi contul ${account.email}? Accesul se blochează până la reactivare.`
+                            : `Reactivezi contul ${account.email}?`;
+                          if (!window.confirm(confirmation)) return;
+                          setSuspendedByAdmin((previous) => ({ ...previous, [account.id]: nextSuspended }));
+                          onNotify(`Contul ${account.email} a fost ${nextSuspended ? "suspendat" : "reactivat"} în previzualizare.`);
+                        }}
+                      >
+                        {isSuspended ? "Reactivează" : "Suspendă"}
+                      </button>
+                      <button
+                        className="admin-admin-user-action"
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Trimiți o parolă temporară la ${account.email}?`)) {
+                            onNotify(`În aplicație, parola temporară ar fi trimisă la ${account.email}.`);
+                          }
+                        }}
+                      >
+                        Resetează parola
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="admin-admin-actions">
+                      <button
+                        className="admin-admin-user-action"
+                        type="button"
+                        onClick={() => setProfileEditing((open) => !open)}
+                      >
+                        {profileEditing ? "Închide editarea" : "Modifică datele"}
+                      </button>
+                      <button
+                        className="admin-admin-user-action"
+                        type="button"
+                        aria-pressed={isTwoFactorEnabled}
+                        onClick={() => {
+                          const nextEnabled = !isTwoFactorEnabled;
+                          setTwoFactorByAdmin((previous) => ({ ...previous, [account.id]: nextEnabled }));
+                          onNotify(`2FA pentru contul propriu a fost ${nextEnabled ? "activată" : "dezactivată"} în previzualizare.`);
+                        }}
+                      >
+                        {isTwoFactorEnabled ? "Dezactivează 2FA" : "Activează 2FA"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </article>
             );
           })}
         </div>
       </section>
+
+      {roleView === "admin" && profileEditing && (
+        <form
+          className="admin-panel admin-admin-profile-preview"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setAdministrators((previous) => previous.map((account) => account.id === currentAdminId
+              ? { ...account, name: editDraft.name, email: editDraft.email }
+              : account));
+            onNotify("Datele contului propriu au fost actualizate în previzualizare.");
+            setProfileEditing(false);
+          }}
+        >
+          <h3>Modifică datele de conectare</h3>
+          <p>Administratorul poate schimba doar propriul nume și email; parola se modifică prin confirmarea parolei actuale.</p>
+          <div className="admin-admin-profile-fields">
+            <label>Nume<input value={editDraft.name} onChange={(event) => setEditDraft((previous) => ({ ...previous, name: event.target.value }))} /></label>
+            <label>Email<input type="email" value={editDraft.email} onChange={(event) => setEditDraft((previous) => ({ ...previous, email: event.target.value }))} /></label>
+            <label>Parola actuală<input type="password" autoComplete="current-password" /></label>
+            <label>Parola nouă<input type="password" autoComplete="new-password" /></label>
+          </div>
+          <button className="admin-admin-user-action is-primary" type="submit">Salvează datele</button>
+        </form>
+      )}
+
+      {roleView === "superadmin" && editingAdmin && (
+        <form className="admin-panel admin-admin-profile-preview" onSubmit={saveEditor}>
+          <h3>Editează contul · {editingAdmin.email}</h3>
+          <div className="admin-admin-profile-fields">
+            <label>Nume<input value={editDraft.name} onChange={(event) => setEditDraft((previous) => ({ ...previous, name: event.target.value }))} /></label>
+            <label>Email<input type="email" value={editDraft.email} onChange={(event) => setEditDraft((previous) => ({ ...previous, email: event.target.value }))} /></label>
+          </div>
+          {editingAdmin.role === "Superadmin" ? (
+            <p>Rolul și accesul la toate piețele sunt păstrate.</p>
+          ) : (
+            <fieldset className="admin-admin-market-options">
+              <legend>Piețe alocate</legend>
+              {["RO", "FR", "COM"].map((market) => (
+                <label key={market}>
+                  <input
+                    checked={editDraft.markets.includes(market)}
+                    onChange={() => setEditDraft((previous) => ({
+                      ...previous,
+                      markets: previous.markets.includes(market)
+                        ? previous.markets.filter((item) => item !== market)
+                        : [...previous.markets, market],
+                    }))}
+                    type="checkbox"
+                  />
+                  {market}
+                </label>
+              ))}
+            </fieldset>
+          )}
+          <div className="admin-admin-actions">
+            <button className="admin-admin-user-action is-primary" type="submit">Salvează modificările</button>
+            <button className="admin-admin-user-action" type="button" onClick={() => setEditingAdmin(null)}>Anulează</button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
@@ -1053,6 +1240,10 @@ export function Grouped() {
 
   const createLabel = pageMeta[activeId].action;
   const handlePrimaryAction = () => {
+    if (activeId === "admin-users") {
+      notify("Alegeți o acțiune din lista conturilor de administrator.");
+      return;
+    }
     if (activeId === "google-feed") {
       notify("Sincronizarea catalogului Google a fost pornită în previzualizare.");
       return;

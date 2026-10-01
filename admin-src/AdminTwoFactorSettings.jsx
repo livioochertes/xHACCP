@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { KeyRound, RefreshCw, ShieldCheck, ShieldOff } from "lucide-react";
+import AdminAccountManager from "./AdminAccountManager.jsx";
+import AdminAccountProfile from "./AdminAccountProfile.jsx";
 
 const panelStyle = {
   background: "#fff",
@@ -33,7 +35,7 @@ async function readResponse(response, fallback) {
   return data;
 }
 
-export default function AdminTwoFactorSettings({ token, admin, market, t }) {
+export default function AdminTwoFactorSettings({ token, admin, market, t, onAdminUpdated }) {
   const [accounts, setAccounts] = useState([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [accountsError, setAccountsError] = useState("");
@@ -130,7 +132,8 @@ export default function AdminTwoFactorSettings({ token, admin, market, t }) {
         body: JSON.stringify({ code }),
       });
       const data = await readResponse(response, t("dashboard.twoFactorActionFailed"));
-      setTwoFactorEnabled(true);
+        setTwoFactorEnabled(true);
+        onAdminUpdated?.({ ...admin, twoFactorEnabled: true });
       setSetup(null);
       setVerificationCode("");
       setBackupCodes(Array.isArray(data.backupCodes) ? data.backupCodes : []);
@@ -169,6 +172,7 @@ export default function AdminTwoFactorSettings({ token, admin, market, t }) {
       });
       await readResponse(response, t("dashboard.twoFactorActionFailed"));
       setTwoFactorEnabled(false);
+      onAdminUpdated?.({ ...admin, twoFactorEnabled: false });
       setVerificationCode("");
       setSetup(null);
       setBackupCodes([]);
@@ -181,7 +185,7 @@ export default function AdminTwoFactorSettings({ token, admin, market, t }) {
     }
   };
 
-  const currentAdminId = String(admin?.id ?? "");
+  const isSuperAdmin = !Array.isArray(admin?.adminMarkets) || admin.adminMarkets.length === 0;
 
   return (
     <section style={panelStyle} aria-busy={loadingAccounts || busy}>
@@ -191,7 +195,9 @@ export default function AdminTwoFactorSettings({ token, admin, market, t }) {
             {t("dashboard.adminAccounts")}
           </h2>
           <p style={{ color: "#64748b", fontSize: "14px", margin: 0 }}>
-            {t("dashboard.adminAccountsDescription")}
+            {isSuperAdmin
+              ? t("dashboard.adminAccountsDescriptionSuperadmin")
+              : t("dashboard.adminAccountsDescriptionAdmin")}
           </p>
         </div>
         <button
@@ -346,57 +352,30 @@ export default function AdminTwoFactorSettings({ token, admin, market, t }) {
         )}
       </div>
 
+      <AdminAccountProfile
+        token={token}
+        admin={admin}
+        t={t}
+        onAdminUpdated={(updatedAdmin) => {
+          onAdminUpdated?.(updatedAdmin);
+          setAccounts((previous) => previous.map((account) =>
+            String(account.id) === String(updatedAdmin?.id) ? { ...account, ...updatedAdmin } : account,
+          ));
+        }}
+      />
+
       {accountsError && <p role="alert" style={{ color: "#b91c1c", fontSize: "14px", margin: "14px 0 0" }}>{accountsError}</p>}
       {loadingAccounts ? (
         <p role="status" style={{ color: "#64748b", fontSize: "14px", margin: "16px 0 0" }}>{t("dashboard.loadingAdminAccounts")}</p>
-      ) : accounts.length === 0 ? (
-        <p style={{ color: "#64748b", fontSize: "14px", margin: "16px 0 0" }}>{t("dashboard.noAdminAccounts")}</p>
       ) : (
-        <div style={{ marginTop: "16px", overflowX: "auto" }}>
-          <table style={{ borderCollapse: "collapse", fontSize: "14px", minWidth: "520px", width: "100%" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid #cbd5e1", color: "#64748b", textAlign: "left" }}>
-                <th scope="col" style={{ padding: "10px 12px" }}>{t("dashboard.adminAccount")}</th>
-                <th scope="col" style={{ padding: "10px 12px" }}>{t("dashboard.adminMarkets")}</th>
-                <th scope="col" style={{ padding: "10px 12px" }}>{t("dashboard.twoFactorStatus")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {accounts.map((account) => {
-                const isCurrentAdmin = String(account.id) === currentAdminId;
-                const accountName = [account.firstName, account.lastName].filter(Boolean).join(" ").trim();
-                const accountMarkets = Array.isArray(account.adminMarkets) ? account.adminMarkets : [];
-                return (
-                  <tr key={account.id} style={{ borderBottom: "1px solid #edf2f7", background: isCurrentAdmin ? "#f8fafc" : "#fff" }}>
-                    <td style={{ padding: "11px 12px" }}>
-                      <strong style={{ color: "#1e293b", display: "block", fontWeight: 600 }}>{accountName || account.email}</strong>
-                      {accountName && <span style={{ color: "#64748b", fontSize: "12px" }}>{account.email}</span>}
-                      {isCurrentAdmin && <span style={{ color: "#2563eb", display: "block", fontSize: "12px", marginTop: "2px" }}>{t("dashboard.currentAdmin")}</span>}
-                    </td>
-                    <td style={{ color: "#475569", padding: "11px 12px" }}>
-                      {accountMarkets.length ? accountMarkets.map((item) => item.toUpperCase()).join(", ") : t("dashboard.allMarkets")}
-                    </td>
-                    <td style={{ padding: "11px 12px" }}>
-                      <span style={{
-                        background: account.twoFactorEnabled ? "#dcfce7" : "#fef3c7",
-                        borderRadius: "999px",
-                        color: account.twoFactorEnabled ? "#166534" : "#92400e",
-                        display: "inline-block",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        padding: "4px 9px",
-                      }}>
-                        {account.twoFactorEnabled
-                          ? t("dashboard.twoFactorEnabled")
-                          : t("dashboard.twoFactorDisabled")}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <AdminAccountManager
+          accounts={accounts}
+          admin={admin}
+          isSuperAdmin={isSuperAdmin}
+          token={token}
+          t={t}
+          onRefresh={refreshAccounts}
+        />
       )}
     </section>
   );

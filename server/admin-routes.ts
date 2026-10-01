@@ -60,6 +60,11 @@ import {
   resolveAdminReportMarketScope,
   resolveAdminReportPeriod,
 } from "./admin-report-data";
+import {
+  getAdminSuspensionError,
+  normalizeAdminEmail,
+  normalizeAdminMarketAssignments,
+} from "./admin-account-management";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -456,7 +461,7 @@ export const authenticateAdmin = async (req: AdminAuthRequest, res: Response, ne
 
     const admin = await storage.getUser(userId);
     
-    if (!admin || !admin.isAdmin) {
+    if (!admin || !admin.isAdmin || admin.isSuspended) {
       return res.status(401).json({ message: "Admin access denied" });
     }
 
@@ -1214,7 +1219,7 @@ export async function registerAdminRoutes(app: Express) {
 
       // Find admin user
       const admin = await storage.getUserByEmail(email);
-      if (!admin || !admin.isAdmin) {
+      if (!admin || !admin.isAdmin || admin.isSuspended) {
         return res.status(401).json({ message: "Invalid admin credentials" });
       }
 
@@ -1275,7 +1280,7 @@ export async function registerAdminRoutes(app: Express) {
 
       // Always return success to avoid email enumeration
       const admin = await storage.getUserByEmail(email);
-      if (!admin || !admin.isAdmin) {
+      if (!admin || !admin.isAdmin || admin.isSuspended) {
         return res.json({ message: "Dacă adresa există, veți primi un email cu parola temporară." });
       }
 
@@ -1336,7 +1341,7 @@ export async function registerAdminRoutes(app: Express) {
       }
 
       const admin = await storage.getUser(decoded.adminId);
-      if (!admin || !admin.isAdmin || !admin.twoFactorEnabled) {
+      if (!admin || !admin.isAdmin || admin.isSuspended || !admin.twoFactorEnabled) {
         return res.status(401).json({ message: "Invalid admin or 2FA not enabled" });
       }
 
@@ -1526,12 +1531,15 @@ export async function registerAdminRoutes(app: Express) {
         return res.status(401).json({ message: "Admin authentication required" });
       }
 
+      res.setHeader("Cache-Control", "private, no-store");
       res.json({
         id: req.admin.id,
         email: req.admin.email,
         firstName: req.admin.firstName,
         lastName: req.admin.lastName,
-        twoFactorEnabled: req.admin.twoFactorEnabled
+        twoFactorEnabled: req.admin.twoFactorEnabled,
+        adminMarkets: req.admin.adminMarkets || [],
+        isSuspended: Boolean(req.admin.isSuspended),
       });
     } catch (error) {
       console.error("Get admin profile error:", error);
@@ -1539,19 +1547,102 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
-  // Return only the fields needed for the admin 2FA overview. In particular,
-  // never send passwords, TOTP secrets, or backup codes to the browser.
-  app.get("/admin/api/admin-users", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+  app.put("/admin/api/profile", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const scope = resolveAdminReportMarketScope(
-        req.query.market,
-        req.isSuperAdmin === true,
-        req.adminMarkets || [],
-      );
-      if (!scope.ok) {
-        return res.status(scope.status).json({ message: scope.message });
+      if (!req.admin) {
+        return res.status(401).json({ message: "Admin authentication required" });
       }
 
+      const body = req.body || {};
+      const updateData: Record<string, unknown> = {};
+      for (const field of ["firstName", "lastName"] as const) {
+        if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
+        const value = body[field];
+        if (value !== null && typeof value !== "string") {
+          return res.status(400).json({ message: `${field} must be text` });
+        }
+        const normalized = typeof value === "string" ? value.trim() : "";
+        if (normalized.length > 100) {
+          return res.status(400).json({ message: `${field} is too long` });
+        }
+        updateData[field] = normalized || null;
+      }
+
+      let emailChanged = false;
+      if (body.email !== undefined) {
+        const email = normalizeAdminEmail(body.email);
+        if (!email) {
+          return res.status(400).json({ message: "Enter a valid email address" });
+        }
+        emailChanged = email !== String(req.admin.email || "").toLowerCase();
+        updateData.email = email;
+      }
+
+      const hasNewPassword = typeof body.newPassword === "string" && body.newPassword.length > 0;
+      if (body.newPassword !== undefined && body.newPassword !== null
+        && typeof body.newPassword !== "string") {
+        return res.status(400).json({ message: "New password must be text" });
+      }
+      if (hasNewPassword && (body.newPassword.length < 12 || body.newPassword.length > 200)) {
+        return res.status(400).json({ message: "New password must be between 12 and 200 characters" });
+      }
+
+      if (emailChanged || hasNewPassword) {
+        if (typeof body.currentPassword !== "string" || !body.currentPassword) {
+          return res.status(400).json({ message: "Enter your current password to change your email or password" });
+        }
+        const currentPasswordIsValid = await bcrypt.compare(body.currentPassword, req.admin.password);
+        if (!currentPasswordIsValid) {
+          return res.status(400).json({ message: "Current password is incorrect" });
+        }
+      }
+
+      if (emailChanged) {
+        const [existingAccount] = await db
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(sql`lower(${usersTable.email}) = ${updateData.email}`)
+          .limit(1);
+        if (existingAccount && existingAccount.id !== req.admin.id) {
+          return res.status(409).json({ message: "An account already uses this email address" });
+        }
+      }
+
+      if (hasNewPassword) {
+        updateData.password = await bcrypt.hash(body.newPassword, 12);
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: "No profile changes were provided" });
+      }
+
+      const updatedAdmin = await storage.updateUser(req.admin.id, updateData as any);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json({
+        message: "Profile updated successfully",
+        admin: {
+          id: updatedAdmin.id,
+          email: updatedAdmin.email,
+          firstName: updatedAdmin.firstName,
+          lastName: updatedAdmin.lastName,
+          twoFactorEnabled: Boolean(updatedAdmin.twoFactorEnabled),
+          adminMarkets: updatedAdmin.adminMarkets || [],
+          isSuspended: Boolean(updatedAdmin.isSuspended),
+        },
+      });
+    } catch (error) {
+      if ((error as { code?: string })?.code === "23505") {
+        return res.status(409).json({ message: "An account already uses this email address" });
+      }
+      console.error("Update admin profile error:", error);
+      res.status(500).json({ message: "Failed to update admin profile" });
+    }
+  });
+
+  // Return safe account details only. Regular admins can see their own account;
+  // superadmins can see every admin account. Passwords and 2FA secrets stay private.
+  app.get("/admin/api/admin-users", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
       const adminAccounts = await db
         .select({
           id: usersTable.id,
@@ -1560,31 +1651,275 @@ export async function registerAdminRoutes(app: Express) {
           lastName: usersTable.lastName,
           adminMarkets: usersTable.adminMarkets,
           twoFactorEnabled: usersTable.twoFactorEnabled,
+          isSuspended: usersTable.isSuspended,
         })
         .from(usersTable)
-        .where(eq(usersTable.isAdmin, true))
+        .where(req.isSuperAdmin === true
+          ? eq(usersTable.isAdmin, true)
+          : and(
+            eq(usersTable.isAdmin, true),
+            eq(usersTable.id, req.adminId ?? -1),
+          ))
         .orderBy(usersTable.email);
-
-      const allowedMarkets = scope.markets ? new Set(scope.markets) : null;
-      const visibleAdmins = allowedMarkets
-        ? adminAccounts.filter((account) => {
-            const accountMarkets = account.adminMarkets || [];
-            return (req.isSuperAdmin === true && accountMarkets.length === 0)
-              || accountMarkets.some((market) => allowedMarkets.has(market));
-          })
-        : adminAccounts;
 
       res.setHeader("Cache-Control", "private, no-store");
       res.json({
-        admins: visibleAdmins.map((account) => ({
+        admins: adminAccounts.map((account) => ({
           ...account,
           adminMarkets: account.adminMarkets || [],
           twoFactorEnabled: Boolean(account.twoFactorEnabled),
+          isSuspended: Boolean(account.isSuspended),
+          isSuperAdmin: (account.adminMarkets || []).length === 0,
         })),
       });
     } catch (error) {
       console.error("Get admin accounts error:", error);
       res.status(500).json({ message: "Failed to fetch admin accounts" });
+    }
+  });
+
+  app.put("/admin/api/admin-users/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ message: "Only superadmins can edit other admin accounts" });
+      }
+
+      const userId = Number.parseInt(req.params.id, 10);
+      if (!Number.isSafeInteger(userId) || userId <= 0) {
+        return res.status(400).json({ message: "Invalid admin account ID" });
+      }
+
+      const target = await storage.getUser(userId);
+      if (!target || !target.isAdmin) {
+        return res.status(404).json({ message: "Admin account not found" });
+      }
+
+      const body = req.body || {};
+      const updateData: Record<string, unknown> = {};
+      for (const field of ["firstName", "lastName"] as const) {
+        if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
+        const value = body[field];
+        if (value !== null && typeof value !== "string") {
+          return res.status(400).json({ message: `${field} must be text` });
+        }
+        const normalized = typeof value === "string" ? value.trim() : "";
+        if (normalized.length > 100) {
+          return res.status(400).json({ message: `${field} is too long` });
+        }
+        updateData[field] = normalized || null;
+      }
+
+      if (body.email !== undefined) {
+        const email = normalizeAdminEmail(body.email);
+        if (!email) {
+          return res.status(400).json({ message: "Enter a valid email address" });
+        }
+        const [existingAccount] = await db
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(sql`lower(${usersTable.email}) = ${email}`)
+          .limit(1);
+        if (existingAccount && existingAccount.id !== target.id) {
+          return res.status(409).json({ message: "An account already uses this email address" });
+        }
+        updateData.email = email;
+      }
+
+      if (body.adminMarkets !== undefined) {
+        const currentMarkets = (target.adminMarkets as string[] | null) || [];
+        if (currentMarkets.length === 0) {
+          return res.status(400).json({ message: "Superadmin market access cannot be changed here" });
+        }
+        const adminMarkets = normalizeAdminMarketAssignments(body.adminMarkets);
+        if (!adminMarkets) {
+          return res.status(400).json({ message: "Select at least one valid market" });
+        }
+        updateData.adminMarkets = adminMarkets;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: "No account changes were provided" });
+      }
+
+      const updatedAccount = await storage.updateUser(userId, updateData as any);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json({
+        message: "Admin account updated successfully",
+        admin: {
+          id: updatedAccount.id,
+          email: updatedAccount.email,
+          firstName: updatedAccount.firstName,
+          lastName: updatedAccount.lastName,
+          adminMarkets: updatedAccount.adminMarkets || [],
+          twoFactorEnabled: Boolean(updatedAccount.twoFactorEnabled),
+          isSuspended: Boolean(updatedAccount.isSuspended),
+          isSuperAdmin: (updatedAccount.adminMarkets || []).length === 0,
+        },
+      });
+    } catch (error) {
+      if ((error as { code?: string })?.code === "23505") {
+        return res.status(409).json({ message: "An account already uses this email address" });
+      }
+      console.error("Update admin account error:", error);
+      res.status(500).json({ message: "Failed to update admin account" });
+    }
+  });
+
+  app.patch("/admin/api/admin-users/:id/suspension", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ message: "Only superadmins can suspend admin accounts" });
+      }
+      const userId = Number.parseInt(req.params.id, 10);
+      const nextSuspended = req.body?.isSuspended;
+      if (!Number.isSafeInteger(userId) || userId <= 0
+        || typeof nextSuspended !== "boolean") {
+        return res.status(400).json({ message: "A valid account ID and suspension state are required" });
+      }
+
+      const result = await db.transaction(async (tx) => {
+        const adminAccounts = await tx
+          .select({
+            id: usersTable.id,
+            email: usersTable.email,
+            firstName: usersTable.firstName,
+            lastName: usersTable.lastName,
+            adminMarkets: usersTable.adminMarkets,
+            twoFactorEnabled: usersTable.twoFactorEnabled,
+            isSuspended: usersTable.isSuspended,
+          })
+          .from(usersTable)
+          .where(eq(usersTable.isAdmin, true))
+          .orderBy(usersTable.id)
+          .for("update");
+
+        const target = adminAccounts.find((account) => account.id === userId);
+        if (!target) {
+          return { status: 404 as const, message: "Admin account not found" };
+        }
+        if (Boolean(target.isSuspended) === nextSuspended) {
+          return { status: 200 as const, account: target };
+        }
+
+        const targetMarkets = (target.adminMarkets as string[] | null) || [];
+        const activeSuperAdminCount = adminAccounts.filter((account) =>
+          !account.isSuspended && ((account.adminMarkets as string[] | null) || []).length === 0,
+        ).length;
+        const suspensionError = getAdminSuspensionError({
+          targetId: target.id,
+          callerId: req.adminId ?? -1,
+          targetMarkets,
+          activeSuperAdminCount,
+          nextSuspended,
+        });
+        if (suspensionError === "cannot_suspend_self") {
+          return { status: 400 as const, message: "You cannot suspend your own account" };
+        }
+        if (suspensionError === "cannot_suspend_last_superadmin") {
+          return { status: 409 as const, message: "The last active superadmin cannot be suspended" };
+        }
+
+        const [updated] = await tx
+          .update(usersTable)
+          .set({ isSuspended: nextSuspended, updatedAt: new Date() })
+          .where(eq(usersTable.id, userId))
+          .returning({
+            id: usersTable.id,
+            email: usersTable.email,
+            firstName: usersTable.firstName,
+            lastName: usersTable.lastName,
+            adminMarkets: usersTable.adminMarkets,
+            twoFactorEnabled: usersTable.twoFactorEnabled,
+            isSuspended: usersTable.isSuspended,
+          });
+        return { status: 200 as const, account: updated };
+      });
+
+      if (result.status !== 200) {
+        return res.status(result.status).json({ message: result.message });
+      }
+
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.json({
+        message: result.account.isSuspended ? "Admin account suspended" : "Admin account reactivated",
+        admin: {
+          ...result.account,
+          adminMarkets: result.account.adminMarkets || [],
+          twoFactorEnabled: Boolean(result.account.twoFactorEnabled),
+          isSuspended: Boolean(result.account.isSuspended),
+          isSuperAdmin: (result.account.adminMarkets || []).length === 0,
+        },
+      });
+    } catch (error) {
+      console.error("Change admin suspension error:", error);
+      res.status(500).json({ message: "Failed to change admin account status" });
+    }
+  });
+
+  app.post("/admin/api/admin-users/:id/reset-password", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ message: "Only superadmins can reset admin passwords" });
+      }
+      const userId = Number.parseInt(req.params.id, 10);
+      if (!Number.isSafeInteger(userId) || userId <= 0) {
+        return res.status(400).json({ message: "Invalid admin account ID" });
+      }
+
+      const target = await storage.getUser(userId);
+      if (!target || !target.isAdmin) {
+        return res.status(404).json({ message: "Admin account not found" });
+      }
+
+      const temporaryPassword = crypto.randomBytes(24).toString("base64url");
+      const temporaryPasswordHash = await bcrypt.hash(temporaryPassword, 12);
+      const [updated] = await db
+        .update(usersTable)
+        .set({ password: temporaryPasswordHash, updatedAt: new Date() })
+        .where(and(
+          eq(usersTable.id, target.id),
+          eq(usersTable.password, target.password),
+        ))
+        .returning({ id: usersTable.id });
+      if (!updated) {
+        return res.status(409).json({ message: "The account changed. Refresh and try again." });
+      }
+
+      const emailSent = await sendEmail({
+        to: target.email,
+        from: getSenderForMarket(getMarketFromRequest(req)),
+        subject: "xHACCP Admin — Parolă temporară",
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#f9f9f9;border-radius:12px;">
+            <h2 style="color:#334155;margin-top:0;">Resetarea parolei de administrator</h2>
+            <p>Un superadmin a inițiat resetarea parolei pentru contul tău xHACCP.</p>
+            <p>Folosește această parolă temporară pentru autentificare:</p>
+            <div style="background:#fff;border:2px solid #64748b;border-radius:8px;padding:16px;text-align:center;font-size:18px;font-weight:bold;letter-spacing:2px;color:#1e293b;margin:16px 0;overflow-wrap:anywhere;">
+              ${temporaryPassword}
+            </div>
+            <p>După autentificare, schimbă parola din Administrare → Conturi de administrator și 2FA.</p>
+            <p style="color:#64748b;font-size:12px;">Dacă nu te așteptai la această resetare, contactează un superadmin.</p>
+          </div>
+        `,
+        text: `Un superadmin a inițiat resetarea parolei contului tău xHACCP.\n\nParolă temporară: ${temporaryPassword}\n\nDupă autentificare, schimbă parola din Administrare → Conturi de administrator și 2FA.`,
+      });
+
+      if (!emailSent) {
+        await db
+          .update(usersTable)
+          .set({ password: target.password, updatedAt: new Date() })
+          .where(and(
+            eq(usersTable.id, target.id),
+            eq(usersTable.password, temporaryPasswordHash),
+          ));
+        return res.status(502).json({ message: "The temporary password could not be emailed; the previous password remains active" });
+      }
+
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.json({ message: "A temporary password was sent to the admin's email address" });
+    } catch (error) {
+      console.error("Reset admin password error:", error);
+      res.status(500).json({ message: "Failed to reset admin password" });
     }
   });
 

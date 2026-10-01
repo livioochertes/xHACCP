@@ -322,7 +322,7 @@ import {
     }
     
     // Admin Dashboard Component
-    function AdminDashboard({ token, admin, onLogout }) {
+    function AdminDashboard({ token, admin, onLogout, onAdminUpdated }) {
       const { t } = useTranslation();
       const getCategoryName = (category) => category?.localizedName || category?.name || 'N/A';
       const marketCurrencies = { ro: 'RON', fr: 'EUR', com: 'EUR' };
@@ -3312,6 +3312,7 @@ import {
                 admin={admin}
                 market={selectedMarketTab}
                 t={t}
+                onAdminUpdated={onAdminUpdated}
               />
             );
           case 'wms': {
@@ -14195,6 +14196,11 @@ TOTAL: ${formatOrderAmount(selectedOrder, selectedOrder.totalAmount)}
         setAdmin(admin);
         setIsAuthenticated(true);
       };
+
+      const handleAdminUpdated = (updatedAdmin) => {
+        setAdmin(updatedAdmin);
+        localStorage.setItem('adminUser', JSON.stringify(updatedAdmin));
+      };
       
       const handleLogout = () => {
         // Clear localStorage
@@ -14212,7 +14218,7 @@ TOTAL: ${formatOrderAmount(selectedOrder, selectedOrder.totalAmount)}
         return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
       }
       
-      return <AdminDashboard token={token} admin={admin} onLogout={handleLogout} />;
+      return <AdminDashboard token={token} admin={admin} onLogout={handleLogout} onAdminUpdated={handleAdminUpdated} />;
     }
     
     // Hide initial loading overlay after a short delay and render app
