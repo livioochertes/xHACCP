@@ -72,7 +72,7 @@
     "@types/speakeasy": "^2.0.10",
     "axios": "^1.20.0",
     "bcrypt": "^6.0.0",
-    "cheerio": "^1.1.2",
+    "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -80,7 +80,7 @@
     "connect-pg-simple": "^10.0.0",
     "crypto": "^1.0.1",
     "date-fns": "^3.6.0",
-    "drizzle-orm": "^0.39.1",
+    "drizzle-orm": "^0.45.3",
     "drizzle-zod": "^0.7.0",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
@@ -99,7 +99,7 @@
     "memoizee": "^0.4.17",
     "memorystore": "^1.6.7",
     "minimatch": "^9.0.7",
-    "multer": "^2.1.1",
+    "multer": "^2.4.0",
     "next-themes": "^0.4.6",
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
@@ -153,15 +153,17 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
-    "vite": "^5.4.19"
+    "vite": "^6.4.3"
   },
   "overrides": {
+    "undici": "^7.30.0",
     "brace-expansion@^1.0.0": "1.1.21",
     "brace-expansion@^2.0.0": "2.1.7",
     "brace-expansion@^5.0.0": "5.0.12"
   },
   "pnpm": {
     "overrides": {
+      "undici": "^7.30.0",
       "brace-expansion@^1.0.0": "1.1.21",
       "brace-expansion@^2.0.0": "2.1.7",
       "brace-expansion@^5.0.0": "5.0.12"
