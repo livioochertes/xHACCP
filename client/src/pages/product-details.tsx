@@ -65,9 +65,13 @@ export default function ProductDetails() {
 
   useEffect(() => {
     if (product && (product as any)._redirected && product.slug) {
+      queryClient.setQueryData(
+        [`/api/products/slug/${product.slug}`],
+        product,
+      );
       window.history.replaceState(null, '', `/products/${product.slug}`);
     }
-  }, [product]);
+  }, [product, queryClient]);
 
   useEffect(() => {
     if (!product || trackedProductIdRef.current === product.id) return;
@@ -120,12 +124,18 @@ export default function ProductDetails() {
     if (currentSlug && localizedSlug !== currentSlug && !currentSlug.startsWith('_')) {
       // Use setTimeout to avoid triggering wouter's location listener during render
       const timer = setTimeout(() => {
+        // Wouter updates the route when replaceState runs; seed its new query
+        // key so canonicalizing the URL does not fetch the same product again.
+        queryClient.setQueryData(
+          [`/api/products/slug/${localizedSlug}`],
+          product,
+        );
         window.history.replaceState(null, '', `/products/${localizedSlug}`);
       }, 0);
       return () => clearTimeout(timer);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.id, localizedSlug]);
+  }, [product?.id, localizedSlug, queryClient]);
 
   const { getCategoryName } = useCategoryTranslations(
     product?.category ? [product.category.id] : [],
