@@ -23,7 +23,7 @@ function readSavedMessages(welcome: string): ChatMessage[] {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
+        const restored = parsed
           .filter(
             (message): message is ChatMessage =>
               typeof message?.id === "string" &&
@@ -34,6 +34,14 @@ function readSavedMessages(welcome: string): ChatMessage[] {
             ...message,
             timestamp: new Date(message.timestamp),
           }));
+
+        if (
+          restored[0]?.id === WELCOME_MESSAGE_ID &&
+          restored[0]?.sender === "assistant"
+        ) {
+          restored[0] = { ...restored[0], text: welcome };
+        }
+        if (restored.length > 0) return restored;
       }
     }
   } catch {
