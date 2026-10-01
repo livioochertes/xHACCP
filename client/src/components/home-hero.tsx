@@ -149,14 +149,14 @@ export default function HomeHero() {
                       <img
                         src={slide.imageUrl}
                         alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
-                        className="absolute inset-0 h-full w-full object-contain"
+                        className={`absolute inset-0 h-full w-full ${fullCover ? "object-contain" : "object-cover"}`}
                       />
                     </HeroDestination>
                   ) : (
                     <img
                       src={slide.imageUrl}
                       alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
-                      className="absolute inset-0 h-full w-full object-contain"
+                      className={`absolute inset-0 h-full w-full ${fullCover ? "object-contain" : "object-cover"}`}
                     />
                   )}
                   {!fullCover && (
