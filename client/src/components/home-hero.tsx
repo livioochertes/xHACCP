@@ -35,6 +35,35 @@ function isFullCoverSlide(slide: HeroSlide): boolean {
   );
 }
 
+function sampleHeroBackdropColor(image: HTMLImageElement): string | null {
+  if (!image.naturalWidth || !image.naturalHeight) return null;
+
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return null;
+
+    const edgeWidth = Math.max(1, Math.round(image.naturalWidth * 0.02));
+    context.drawImage(
+      image,
+      image.naturalWidth - edgeWidth,
+      0,
+      edgeWidth,
+      image.naturalHeight,
+      0,
+      0,
+      1,
+      1,
+    );
+    const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
+    return `rgb(${red}, ${green}, ${blue})`;
+  } catch {
+    return null;
+  }
+}
+
 function HeroCta({ slide, children }: { slide: HeroSlide; children: React.ReactNode }) {
   if (slide.ctaType === "quote") {
     return <ContactModal>{children}</ContactModal>;
@@ -87,6 +116,7 @@ export default function HomeHero() {
   const autoplaySeconds = Math.min(30, Math.max(3, data?.autoplaySeconds || 5));
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [coverBackdropColors, setCoverBackdropColors] = useState<Record<number, string>>({});
   const heroRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -107,6 +137,14 @@ export default function HomeHero() {
 
   const moveSlide = (direction: number) => {
     selectSlide(activeIndex + direction);
+  };
+
+  const rememberCoverBackdrop = (slideId: number, image: HTMLImageElement) => {
+    const color = sampleHeroBackdropColor(image);
+    if (!color) return;
+    setCoverBackdropColors((current) =>
+      current[slideId] === color ? current : { ...current, [slideId]: color }
+    );
   };
 
   return (
@@ -138,18 +176,10 @@ export default function HomeHero() {
               role="group"
               aria-roledescription="slide"
               aria-label={`${index + 1} of ${slides.length}`}
+              style={fullCover && hasImage ? { backgroundColor: coverBackdropColors[slide.id] || "#f1efe5" } : undefined}
             >
               {hasImage && slide.imageUrl ? (
                 <>
-                  {fullCover && (
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-                      <img
-                        src={slide.imageUrl}
-                        alt=""
-                        className="h-full w-full scale-110 object-cover blur-2xl"
-                      />
-                    </div>
-                  )}
                   {(slide.destinationUrl || (slide.destinationType === "none" && slide.ctaType !== "quote" && slide.ctaUrl)) ? (
                     <HeroDestination
                       href={slide.destinationUrl || slide.ctaUrl as string}
@@ -159,6 +189,7 @@ export default function HomeHero() {
                         src={slide.imageUrl}
                         alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
                         className={`absolute inset-0 h-full w-full ${fullCover ? "object-contain" : "object-cover"}`}
+                        onLoad={(event) => rememberCoverBackdrop(slide.id, event.currentTarget)}
                       />
                     </HeroDestination>
                   ) : (
@@ -166,6 +197,7 @@ export default function HomeHero() {
                       src={slide.imageUrl}
                       alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
                       className={`absolute inset-0 h-full w-full ${fullCover ? "object-contain" : "object-cover"}`}
+                      onLoad={(event) => rememberCoverBackdrop(slide.id, event.currentTarget)}
                     />
                   )}
                   {!fullCover && (
