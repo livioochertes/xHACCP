@@ -203,3 +203,17 @@ mtime_ms = 1790840747875
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/15a0640b-1557-4415-b2d0-91a04c0afb3c/01361301-8f1e-4f69-b085-2575868121e7"
 storage_version_token = "1790840878423472"
 content_type = "image/png"
+
+[[outputs]]
+id = "sMsfHcmVkLhVGQbLQUF8s"
+uri = "file://artifacts/mockup-sandbox/public/images/fr-chef-event/cover-light-desktop-extended.png"
+type = "image"
+title = "FR Hero clair — desktop 1920×410"
+description = "Fichier PNG corrigé du Hero clair, prêt à télécharger."
+logical_id = "0d9ecfca-8c1b-4b2c-a64c-9812051661ab"
+content_hash = "sha256:7c303c4ec7bf2fa1bbd356d58c9ddc5b3392577f83a29eea66044d64ea887c98"
+size = 557164
+mtime_ms = 1790844589171
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/0d9ecfca-8c1b-4b2c-a64c-9812051661ab/2b6a8ff0-b9cb-4109-b803-5e13b25941d5"
+storage_version_token = "1790846132743278"
+content_type = "image/png"
