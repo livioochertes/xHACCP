@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, ShoppingCart, User, Menu, X, Bot, LogOut, MessageSquare } from "lucide-react";
+import { Search, ShoppingCart, User, Menu, X, LogOut, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -130,12 +130,6 @@ export default function Header() {
                 {t('contact.title')}
               </Button>
             </ContactModal>
-            <Link href="/ai-assistant">
-              <Button variant="ghost" size="sm" className="hidden md:flex">
-                <Bot className="h-4 w-4 mr-2" />
-                {t('nav.aiAssistant')}
-              </Button>
-            </Link>
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -229,14 +223,6 @@ export default function Header() {
                     <MessageSquare className="h-4 w-4 mr-2" />
                     {t('contact.title')}
                   </Button>
-                  <Link
-                    href="/ai-assistant"
-                    className="w-full justify-start inline-flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
-                    onClick={() => { setMobileMenuOpen(false); window.scrollTo(0, 0); }}
-                  >
-                    <Bot className="h-4 w-4 mr-2" />
-                    {t('nav.aiAssistant')}
-                  </Link>
                   {isAuthenticated ? (
                     <Link
                       href="/account"
