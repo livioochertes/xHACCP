@@ -68,7 +68,7 @@
     "@types/qrcode": "^1.5.5",
     "@types/sharp": "^0.31.1",
     "@types/speakeasy": "^2.0.10",
-    "axios": "^1.13.5",
+    "axios": "^1.20.0",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
@@ -152,6 +152,18 @@
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
     "vite": "^5.4.19"
+  },
+  "overrides": {
+    "brace-expansion@^1.0.0": "1.1.21",
+    "brace-expansion@^2.0.0": "2.1.7",
+    "brace-expansion@^5.0.0": "5.0.12"
+  },
+  "pnpm": {
+    "overrides": {
+      "brace-expansion@^1.0.0": "1.1.21",
+      "brace-expansion@^2.0.0": "2.1.7",
+      "brace-expansion@^5.0.0": "5.0.12"
+    }
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
