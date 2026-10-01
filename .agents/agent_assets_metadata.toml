@@ -231,3 +231,31 @@ mtime_ms = 1790844590751
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/f063f298-4bb9-453d-b117-8045882a6a22/21334614-2184-40f1-b842-1e4b72adbf88"
 storage_version_token = "1790846194205490"
 content_type = "image/png"
+
+[[outputs]]
+id = "Iqb54RSr7O8ICR0FWGCBC"
+uri = "file://artifacts/mockup-sandbox/public/images/fr-chef-event/cover-light-desktop-hero-1683x410.png"
+type = "image"
+title = "FR Hero clair — 1683×410 px"
+description = "PNG ajusté au Hero desktop de la capture. Artwork, texte et QR d’origine conservés; seule la marge de fond latérale a été réduite."
+logical_id = "80640890-0c28-417f-ae4e-bf4c70364dd3"
+content_hash = "sha256:e642f219509c247cb45a8575a3af7f3640f20a78e0f8bafdc4a57850894e8248"
+size = 554801
+mtime_ms = 1790846979351
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/80640890-0c28-417f-ae4e-bf4c70364dd3/92dfaa6b-6b22-4d88-a6aa-1634cb4ea567"
+storage_version_token = "1790847292075496"
+content_type = "image/png"
+
+[[outputs]]
+id = "1rqqdt4EVTqDTK5WrjMNf"
+uri = "file://artifacts/mockup-sandbox/public/images/fr-chef-event/cover-navy-desktop-hero-1683x410.png"
+type = "image"
+title = "FR Hero bleu marine — 1683×410 px"
+description = "PNG ajusté au Hero desktop de la capture. Artwork, texte et QR d’origine conservés; seule la marge de fond latérale a été réduite."
+logical_id = "a2c2377f-3dcd-4629-abbe-bf0abd8e7d33"
+content_hash = "sha256:3d8917902aace1de970e918c16959d3d39f86d8262eb8741e1789f7fee86c37b"
+size = 579159
+mtime_ms = 1790846979715
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/a2c2377f-3dcd-4629-abbe-bf0abd8e7d33/d91b1783-e7f2-46ce-a392-7249fb0259df"
+storage_version_token = "1790847292792552"
+content_type = "image/png"
