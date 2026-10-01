@@ -1539,6 +1539,55 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Return only the fields needed for the admin 2FA overview. In particular,
+  // never send passwords, TOTP secrets, or backup codes to the browser.
+  app.get("/admin/api/admin-users", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const scope = resolveAdminReportMarketScope(
+        req.query.market,
+        req.isSuperAdmin === true,
+        req.adminMarkets || [],
+      );
+      if (!scope.ok) {
+        return res.status(scope.status).json({ message: scope.message });
+      }
+
+      const adminAccounts = await db
+        .select({
+          id: usersTable.id,
+          email: usersTable.email,
+          firstName: usersTable.firstName,
+          lastName: usersTable.lastName,
+          adminMarkets: usersTable.adminMarkets,
+          twoFactorEnabled: usersTable.twoFactorEnabled,
+        })
+        .from(usersTable)
+        .where(eq(usersTable.isAdmin, true))
+        .orderBy(usersTable.email);
+
+      const allowedMarkets = scope.markets ? new Set(scope.markets) : null;
+      const visibleAdmins = allowedMarkets
+        ? adminAccounts.filter((account) => {
+            const accountMarkets = account.adminMarkets || [];
+            return (req.isSuperAdmin === true && accountMarkets.length === 0)
+              || accountMarkets.some((market) => allowedMarkets.has(market));
+          })
+        : adminAccounts;
+
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json({
+        admins: visibleAdmins.map((account) => ({
+          ...account,
+          adminMarkets: account.adminMarkets || [],
+          twoFactorEnabled: Boolean(account.twoFactorEnabled),
+        })),
+      });
+    } catch (error) {
+      console.error("Get admin accounts error:", error);
+      res.status(500).json({ message: "Failed to fetch admin accounts" });
+    }
+  });
+
   // Admin dashboard stats
   app.get("/admin/api/stats", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {

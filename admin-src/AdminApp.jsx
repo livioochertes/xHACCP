@@ -6,6 +6,7 @@ import LanguageSwitcher from "./LanguageSwitcher.jsx";
 import AdminNavigation from "./AdminNavigation.jsx";
 import AIRecommendationCampaigns from "./AIRecommendationCampaigns.jsx";
 import AdminReports from "./AdminReports.jsx";
+import AdminTwoFactorSettings from "./AdminTwoFactorSettings.jsx";
 import {
   broadcastCategoryTranslationUpdate,
   subscribeToCategoryTranslationUpdates,
@@ -367,7 +368,6 @@ import {
       const [reportsData, setReportsData] = useState(null);
       const [reportsLoading, setReportsLoading] = useState(false);
       const [reportsError, setReportsError] = useState('');
-      const [showTwoFactor, setShowTwoFactor] = useState(false);
       const [activeView, setActiveView] = useState('dashboard');
       const [navigationCollapsed, setNavigationCollapsed] = useState(false);
       const adminIsSuperAdmin = !admin?.adminMarkets || admin.adminMarkets.length === 0;
@@ -7339,103 +7339,6 @@ import {
           default:
             return (
               <>
-                <div className="dashboard-grid">
-                  <div className="stat-card">
-                    <div className="stat-number">{stats?.totalUsers || '0'}</div>
-                    <div className="stat-label">Total Users</div>
-                  </div>
-                  
-                  <div className="stat-card">
-                    <div className="stat-number">{stats?.totalOrders || '0'}</div>
-                    <div className="stat-label">Total Orders</div>
-                  </div>
-                  
-                  <div className="stat-card">
-                    <div className="stat-number">{stats?.totalProducts || '0'}</div>
-                    <div className="stat-label">{t('stats.totalProducts')}</div>
-                  </div>
-                  
-                  <div className="stat-card">
-                    <div className="stat-number">{stats?.recentOrders?.length || '0'}</div>
-                    <div className="stat-label">{t('stats.recentOrders')}</div>
-                  </div>
-                </div>
-                
-                <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
-                  <div style={{marginTop: '0', padding: '20px', background: '#f8f9ff', borderRadius: '6px'}}>
-                    <h4 style={{color: '#333', marginBottom: '10px'}}>{t('dashboard.quickStats')}</h4>
-                    <ul style={{listStyle: 'none', padding: 0}}>
-                      <li style={{marginBottom: '5px'}}>📊 {stats?.totalUsers || '0'} {t('dashboard.registeredUsers')}</li>
-                      <li style={{marginBottom: '5px'}}>🛒 {stats?.totalOrders || '0'} {t('dashboard.ordersProcessed')}</li>
-                      <li style={{marginBottom: '5px'}}>📦 {stats?.totalProducts || '0'} {t('dashboard.productsInCatalog')}</li>
-                      <li style={{marginBottom: '5px'}}>🔄 {stats?.recentOrders?.length || '0'} {t('dashboard.recentOrdersLabel')}</li>
-                    </ul>
-                  </div>
-                  
-                  <div style={{marginTop: '30px', padding: '20px', background: '#fff8e1', borderRadius: '6px'}}>
-                    <h4 style={{color: '#333', marginBottom: '10px'}}>{t('dashboard.adminActions')}</h4>
-                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '15px'}}>
-                      <button 
-                        className="btn" 
-                        style={{background: activeView === 'orders' ? '#2E7D32' : '#4CAF50', width: 'auto', padding: '10px 16px'}}
-                        onClick={() => handleViewChange('orders')}
-                      >
-                        📋 {t('dashboard.manageOrders')}
-                      </button>
-                      <button 
-                        className="btn" 
-                        style={{background: activeView === 'users' ? '#1565C0' : '#2196F3', width: 'auto', padding: '10px 16px'}}
-                        onClick={() => handleViewChange('users')}
-                      >
-                        👥 {t('dashboard.manageUsers')}
-                      </button>
-                      <button 
-                        className="btn" 
-                        style={{background: activeView === 'products' ? '#F57C00' : '#FF9800', width: 'auto', padding: '10px 16px'}}
-                        onClick={() => handleViewChange('products')}
-                      >
-                        📦 {t('dashboard.manageProducts')}
-                      </button>
-                      <button 
-                        className="btn" 
-                        style={{background: '#9C27B0', width: 'auto', padding: '10px 16px'}}
-                        onClick={() => setShowTwoFactor(!showTwoFactor)}
-                      >
-                        🔐 {t('dashboard.twoFactorAuth')}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {showTwoFactor && (
-                    <div style={{marginTop: '30px', padding: '20px', background: '#e8f5e8', borderRadius: '6px', border: '2px solid #4CAF50'}}>
-                      <h4 style={{color: '#333', marginBottom: '10px'}}>🔐 {t('dashboard.twoFactorAuthentication')}</h4>
-                      <p style={{color: '#666', marginBottom: '15px'}}>
-                        Status: {admin?.twoFactorEnabled ? 
-                          <span style={{color: '#4CAF50', fontWeight: 'bold'}}>✅ {t('common.enabled')}</span> : 
-                          <span style={{color: '#f44336', fontWeight: 'bold'}}>❌ {t('common.disabled')}</span>
-                        }
-                      </p>
-                      <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                        <button 
-                          className="btn" 
-                          style={{background: admin?.twoFactorEnabled ? '#f44336' : '#4CAF50', width: 'auto', padding: '8px 16px'}}
-                          onClick={() => alert('2FA management functionality will be implemented')}
-                        >
-                          {admin?.twoFactorEnabled ? `🔓 ${t('dashboard.disable2fa')}` : `🔒 ${t('dashboard.enable2fa')}`}
-                        </button>
-                        {admin?.twoFactorEnabled && (
-                          <button 
-                            className="btn" 
-                            style={{background: '#FF9800', width: 'auto', padding: '8px 16px'}}
-                            onClick={() => alert('Backup codes regeneration will be implemented')}
-                          >
-                            🔄 Regenerate Backup Codes
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
                 <AdminReports
                   embedded
                   data={reportsData}
@@ -7456,6 +7359,14 @@ import {
                   onRetry={() => setReportsRefresh((value) => value + 1)}
                   onOpenOrder={openReportedOrder}
                   onNavigateToOrders={() => handleViewChange('orders')}
+                  onNavigateToUsers={() => handleViewChange('users')}
+                  onNavigateToProducts={() => handleViewChange('products')}
+                />
+                <AdminTwoFactorSettings
+                  token={token}
+                  admin={admin}
+                  market={selectedMarketTab}
+                  t={t}
                 />
               </>
             );

@@ -13,6 +13,7 @@ import {
   Package,
   RefreshCw,
   ShoppingCart,
+  Users,
 } from "lucide-react";
 
 const RANGE_KEYS = {
@@ -103,6 +104,39 @@ function StatCard({ label, value, detail, change, icon: Icon, highlight = false 
           </strong>
         ) : null}
         <span>{detail}</span>
+      </div>
+    </article>
+  );
+}
+
+function DashboardPeriodCard({ label, today, month, icon: Icon }) {
+  const renderValue = (value) => String(value).split("\n").map((line, index) => (
+    <span key={`${line}-${index}`} style={{ display: "block", whiteSpace: "nowrap" }}>{line}</span>
+  ));
+
+  return (
+    <article className="admin-stat-card admin-dashboard-period-card">
+      <div className="admin-stat-heading">
+        <span>{label}</span>
+        <Icon size={15} aria-hidden="true" />
+      </div>
+      <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", marginTop: "16px" }}>
+        <div style={{ minWidth: 0 }}>
+          <span style={{ color: "#64748b", display: "block", fontSize: "12px", marginBottom: "4px" }}>
+            {today.label}
+          </span>
+          <strong style={{ color: "#172033", display: "block", fontSize: "18px", lineHeight: 1.35 }}>
+            {renderValue(today.value)}
+          </strong>
+        </div>
+        <div style={{ borderLeft: "1px solid #e2e8f0", minWidth: 0, paddingLeft: "12px" }}>
+          <span style={{ color: "#64748b", display: "block", fontSize: "12px", marginBottom: "4px" }}>
+            {month.label}
+          </span>
+          <strong style={{ color: "#172033", display: "block", fontSize: "18px", lineHeight: 1.35 }}>
+            {renderValue(month.value)}
+          </strong>
+        </div>
       </div>
     </article>
   );
@@ -302,6 +336,8 @@ export default function AdminReports({
   onRetry,
   onOpenOrder,
   onNavigateToOrders,
+  onNavigateToUsers,
+  onNavigateToProducts,
 }) {
   const locale = localeFor(language);
   const periodLabel = t(RANGE_KEYS[period] || RANGE_KEYS["7d"]);
@@ -383,6 +419,18 @@ export default function AdminReports({
       ? t("reports.noPreviousData")
       : t("reports.noPaidSales");
   const chartBuckets = data?.chartBuckets || [];
+  const dashboardSummary = data?.dashboardSummary;
+  const dashboardCurrencies = [...new Set([
+    ...defaultCurrencies,
+    ...(dashboardSummary?.currencies || []).map((row) => String(row.currency || "").toUpperCase()).filter(Boolean),
+  ])];
+  const summarySalesValue = (field) => dashboardCurrencies
+    .map((currency) => {
+      const row = dashboardSummary?.currencies?.find((item) => item.currency === currency);
+      return formatMoney(row?.[field] ?? "0", currency, locale);
+    })
+    .join("\n");
+  const dashboardNumber = (value) => formatNumber(value, locale);
   const maximumOrders = Math.max(1, ...chartBuckets.map((bucket) => numberValue(bucket.orderCount)));
   const labelEvery = period === "7d" ? 1 : Math.max(1, Math.ceil(chartBuckets.length / 6));
   const marketBreakdown = (data?.marketBreakdown || []).filter((item) => numberValue(item.orderCount) > 0);
@@ -397,6 +445,45 @@ export default function AdminReports({
 
   return (
     <div className={`admin-reports-page${embedded ? " is-embedded" : ""}`} aria-busy={loading}>
+      {dashboardSummary ? (
+        <>
+          <div className="admin-dashboard-grid admin-report-stat-grid">
+            <DashboardPeriodCard
+              label={t("dashboard.salesTitle")}
+              icon={Activity}
+              today={{ label: t("dashboard.today"), value: summarySalesValue("todaySalesAmount") }}
+              month={{ label: t("dashboard.thisMonth"), value: summarySalesValue("monthSalesAmount") }}
+            />
+            <DashboardPeriodCard
+              label={t("dashboard.ordersTitle")}
+              icon={ShoppingCart}
+              today={{ label: t("dashboard.today"), value: dashboardNumber(dashboardSummary.todayOrderCount) }}
+              month={{ label: t("dashboard.thisMonth"), value: dashboardNumber(dashboardSummary.monthOrderCount) }}
+            />
+            <DashboardPeriodCard
+              label={t("dashboard.newUsersTitle")}
+              icon={Users}
+              today={{ label: t("dashboard.today"), value: dashboardNumber(dashboardSummary.todayNewUserCount) }}
+              month={{ label: t("dashboard.thisMonth"), value: dashboardNumber(dashboardSummary.monthNewUserCount) }}
+            />
+          </div>
+          <nav
+            aria-label={t("dashboard.quickShortcuts")}
+            style={{ display: "flex", flexWrap: "wrap", gap: "10px", margin: "12px 0 24px" }}
+          >
+            <button type="button" className="admin-report-text-button" onClick={onNavigateToOrders}>
+              <ShoppingCart size={14} aria-hidden="true" /> {t("dashboard.manageOrders")}
+            </button>
+            <button type="button" className="admin-report-text-button" onClick={onNavigateToUsers}>
+              <Users size={14} aria-hidden="true" /> {t("dashboard.manageUsers")}
+            </button>
+            <button type="button" className="admin-report-text-button" onClick={onNavigateToProducts}>
+              <Package size={14} aria-hidden="true" /> {t("dashboard.manageProducts")}
+            </button>
+          </nav>
+        </>
+      ) : null}
+
       <div className={`admin-reports-page-heading${embedded ? " is-embedded" : ""}`}>
         <div>
           <div className="admin-reports-eyebrow">{t("reports.marketScope")}</div>

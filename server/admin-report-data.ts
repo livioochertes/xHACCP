@@ -15,6 +15,7 @@ import {
   orders,
   productMarkets,
   products,
+  users,
 } from "@shared/schema";
 
 export const ADMIN_REPORT_PERIODS = {
@@ -120,6 +121,127 @@ function periodCondition(start: Date, end: Date, markets?: string[]) {
     lt(orders.createdAt, end),
     marketCondition(markets),
   );
+}
+
+export function getAdminDashboardDateWindow(now: Date) {
+  const todayStart = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  ));
+  const monthStart = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    1,
+  ));
+
+  return { todayStart, monthStart, end: new Date(now) };
+}
+
+export function buildAdminDashboardSummary(
+  currencyRows: Array<{
+    currency: string;
+    todayOrderCount: number;
+    monthOrderCount: number;
+    todaySalesAmount: string;
+    monthSalesAmount: string;
+  }>,
+  newUserCounts: { todayNewUserCount: number; monthNewUserCount: number },
+) {
+  return {
+    currencies: currencyRows
+      .map((row) => ({
+        currency: row.currency.toUpperCase(),
+        todaySalesAmount: row.todaySalesAmount,
+        monthSalesAmount: row.monthSalesAmount,
+      }))
+      .sort((a, b) => a.currency.localeCompare(b.currency)),
+    todayOrderCount: currencyRows.reduce((total, row) => total + row.todayOrderCount, 0),
+    monthOrderCount: currencyRows.reduce((total, row) => total + row.monthOrderCount, 0),
+    todayNewUserCount: newUserCounts.todayNewUserCount,
+    monthNewUserCount: newUserCounts.monthNewUserCount,
+  };
+}
+
+export async function getAdminDashboardSummary(options: {
+  markets?: string[];
+  now?: Date;
+}) {
+  const { todayStart, monthStart, end } = getAdminDashboardDateWindow(options.now ?? new Date());
+  const todayExpression = sql`
+    ${orders.createdAt} >= ${todayStart}
+    AND ${orders.createdAt} < ${end}
+  `;
+  const monthExpression = sql`
+    ${orders.createdAt} >= ${monthStart}
+    AND ${orders.createdAt} < ${end}
+  `;
+  const paidOrderExpression = sql`
+    LOWER(${orders.paymentStatus}) = 'paid'
+    AND LOWER(${orders.status}) NOT IN ('cancelled', 'refunded')
+  `;
+  const currencyExpression = sql<string>`UPPER(COALESCE(
+    ${orders.currency},
+    CASE
+      WHEN COALESCE(${orders.market}, 'ro') = 'ro' THEN 'RON'
+      ELSE 'EUR'
+    END
+  ))`;
+
+  const scopedUserIds = options.markets
+    ? db.selectDistinct({ userId: orders.userId })
+      .from(orders)
+      .where(and(
+        marketCondition(options.markets),
+        sql`${orders.userId} IS NOT NULL`,
+      ))
+    : undefined;
+  const userMarketCondition = scopedUserIds
+    ? inArray(users.id, scopedUserIds)
+    : undefined;
+
+  const [currencyRows, [newUserCounts]] = await Promise.all([
+    db
+      .select({
+        currency: currencyExpression,
+        todayOrderCount: sql<number>`COUNT(*) FILTER (WHERE ${todayExpression})`.mapWith(Number),
+        monthOrderCount: sql<number>`COUNT(*) FILTER (WHERE ${monthExpression})`.mapWith(Number),
+        todaySalesAmount: sql<string>`
+          COALESCE(
+            SUM(${orders.totalAmount}::numeric)
+              FILTER (WHERE ${todayExpression} AND ${paidOrderExpression}),
+            0
+          )::text
+        `,
+        monthSalesAmount: sql<string>`
+          COALESCE(
+            SUM(${orders.totalAmount}::numeric)
+              FILTER (WHERE ${monthExpression} AND ${paidOrderExpression}),
+            0
+          )::text
+        `,
+      })
+      .from(orders)
+      .where(periodCondition(monthStart, end, options.markets))
+      .groupBy(currencyExpression),
+    db
+      .select({
+        todayNewUserCount: sql<number>`COUNT(*) FILTER (WHERE ${users.createdAt} >= ${todayStart})`.mapWith(Number),
+        monthNewUserCount: sql<number>`COUNT(*)`.mapWith(Number),
+      })
+      .from(users)
+      .where(and(
+        gte(users.createdAt, monthStart),
+        lt(users.createdAt, end),
+        or(isNull(users.isAdmin), eq(users.isAdmin, false)),
+        userMarketCondition,
+      )),
+  ]);
+
+  return buildAdminDashboardSummary(currencyRows, newUserCounts ?? {
+    todayNewUserCount: 0,
+    monthNewUserCount: 0,
+  });
 }
 
 export async function getAdminReportData(options: {
@@ -281,6 +403,10 @@ export async function getAdminReportData(options: {
       eq(products.status, "active"),
       productScope,
     ));
+  const dashboardSummary = await getAdminDashboardSummary({
+    markets: options.markets,
+    now,
+  });
 
   return {
     period: options.period,
@@ -293,6 +419,7 @@ export async function getAdminReportData(options: {
     pageCount,
     orderCount,
     activeProductCount: productCountRow?.activeProductCount ?? 0,
+    dashboardSummary,
     currencies: currencyRows.map((row) => ({
       ...row,
       currency: row.currency || "RON",

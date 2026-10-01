@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildAdminDashboardSummary,
+  getAdminDashboardDateWindow,
   resolveAdminReportMarketScope,
   resolveAdminReportPeriod,
 } from "./admin-report-data";
@@ -55,4 +57,45 @@ test("invalid markets and admins without assigned markets are rejected", () => {
     status: 403,
     message: "No markets are assigned to this admin",
   });
+});
+
+test("dashboard calendar windows use UTC day and month boundaries", () => {
+  const { todayStart, monthStart, end } = getAdminDashboardDateWindow(
+    new Date("2026-10-01T09:45:00.000Z"),
+  );
+
+  assert.equal(todayStart.toISOString(), "2026-10-01T00:00:00.000Z");
+  assert.equal(monthStart.toISOString(), "2026-10-01T00:00:00.000Z");
+  assert.equal(end.toISOString(), "2026-10-01T09:45:00.000Z");
+});
+
+test("dashboard sales stay separated by currency while order counts are combined", () => {
+  const summary = buildAdminDashboardSummary(
+    [
+      {
+        currency: "EUR",
+        todayOrderCount: 2,
+        monthOrderCount: 8,
+        todaySalesAmount: "150.00",
+        monthSalesAmount: "720.00",
+      },
+      {
+        currency: "RON",
+        todayOrderCount: 1,
+        monthOrderCount: 4,
+        todaySalesAmount: "300.00",
+        monthSalesAmount: "1100.00",
+      },
+    ],
+    { todayNewUserCount: 3, monthNewUserCount: 12 },
+  );
+
+  assert.deepEqual(summary.currencies, [
+    { currency: "EUR", todaySalesAmount: "150.00", monthSalesAmount: "720.00" },
+    { currency: "RON", todaySalesAmount: "300.00", monthSalesAmount: "1100.00" },
+  ]);
+  assert.equal(summary.todayOrderCount, 3);
+  assert.equal(summary.monthOrderCount, 12);
+  assert.equal(summary.todayNewUserCount, 3);
+  assert.equal(summary.monthNewUserCount, 12);
 });
