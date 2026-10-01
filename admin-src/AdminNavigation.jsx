@@ -12,6 +12,7 @@ import {
   Package,
   ReceiptText,
   Rss,
+  ShieldCheck,
   Settings2,
   ShoppingBasket,
   Sparkles,
@@ -66,6 +67,7 @@ const navGroups = [
     icon: Settings2,
     items: [
       { id: 'users', labelKey: 'nav.users', icon: UsersRound },
+      { id: 'admin-accounts', labelKey: 'nav.adminAccounts', icon: ShieldCheck },
       { id: 'company-settings', labelKey: 'nav.companySettings', icon: Settings2 },
       { id: 'wms', labelKey: 'nav.wms', icon: Truck },
     ],

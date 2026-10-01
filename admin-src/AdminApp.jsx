@@ -3305,6 +3305,15 @@ import {
       
       const renderContent = () => {
         switch (activeView) {
+          case 'admin-accounts':
+            return (
+              <AdminTwoFactorSettings
+                token={token}
+                admin={admin}
+                market={selectedMarketTab}
+                t={t}
+              />
+            );
           case 'wms': {
             const visibleMarkets = adminIsSuperAdmin ? ['ro', 'fr', 'com'] : (admin?.adminMarkets || []);
             const activeWmsRoute = wmsOverview.routing.find(route => route.market === wmsFocusedMarket);
@@ -7338,37 +7347,29 @@ import {
 
           default:
             return (
-              <>
-                <AdminReports
-                  embedded
-                  data={reportsData}
-                  loading={reportsLoading}
-                  error={reportsError}
-                  period={reportsPeriod}
-                  page={reportsPage}
-                  market={selectedMarketTab}
-                  locale={i18n.language}
-                  t={t}
-                  formatOrderAmount={formatOrderAmount}
-                  onPeriodChange={(period) => {
-                    setReportsPage(1);
-                    setReportsPeriod(period);
-                  }}
-                  onPageChange={setReportsPage}
-                  onRefresh={() => setReportsRefresh((value) => value + 1)}
-                  onRetry={() => setReportsRefresh((value) => value + 1)}
-                  onOpenOrder={openReportedOrder}
-                  onNavigateToOrders={() => handleViewChange('orders')}
-                  onNavigateToUsers={() => handleViewChange('users')}
-                  onNavigateToProducts={() => handleViewChange('products')}
-                />
-                <AdminTwoFactorSettings
-                  token={token}
-                  admin={admin}
-                  market={selectedMarketTab}
-                  t={t}
-                />
-              </>
+              <AdminReports
+                embedded
+                data={reportsData}
+                loading={reportsLoading}
+                error={reportsError}
+                period={reportsPeriod}
+                page={reportsPage}
+                market={selectedMarketTab}
+                locale={i18n.language}
+                t={t}
+                formatOrderAmount={formatOrderAmount}
+                onPeriodChange={(period) => {
+                  setReportsPage(1);
+                  setReportsPeriod(period);
+                }}
+                onPageChange={setReportsPage}
+                onRefresh={() => setReportsRefresh((value) => value + 1)}
+                onRetry={() => setReportsRefresh((value) => value + 1)}
+                onOpenOrder={openReportedOrder}
+                onNavigateToOrders={() => handleViewChange('orders')}
+                onNavigateToUsers={() => handleViewChange('users')}
+                onNavigateToProducts={() => handleViewChange('products')}
+              />
             );
         }
       };

@@ -108,7 +108,7 @@ const sectionItems: AdminSection[] = [
   { id: "homepage-hero", label: "Cover Home", icon: ImageIcon, group: "growth" },
   { id: "google-feed", label: "Google Feed", icon: Rss, group: "growth" },
   { id: "users", label: "Utilizatori", icon: UsersRound, group: "admin" },
-  { id: "admin-users", label: "Utilizatori admin", icon: ShieldCheck, group: "admin", count: "3" },
+  { id: "admin-users", label: "Conturi admin și 2FA", icon: ShieldCheck, group: "admin", count: "3" },
   { id: "company-settings", label: "Setări firmă", icon: Building2, group: "admin" },
   { id: "wms", label: "WMS", icon: Warehouse, group: "admin" },
 ];
@@ -194,7 +194,7 @@ const pageMeta: Record<SectionId, { title: string; description: string; action: 
     action: "Client nou",
   },
   "admin-users": {
-    title: "Utilizatori admin",
+    title: "Conturi de administrator și 2FA",
     description: "Conturile cu acces la Panoul xHACCP și protecția lor prin autentificare 2FA.",
     action: "Adaugă administrator",
   },

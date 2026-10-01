@@ -10431,6 +10431,7 @@
       reports: "Reports",
       orders: "Orders",
       users: "Customers",
+      adminAccounts: "Admin accounts & 2FA",
       products: "Products",
       categories: "Categories",
       suppliers: "Suppliers",
@@ -11427,6 +11428,7 @@
       reports: "Rapoarte",
       orders: "Comenzi",
       users: "Clien\u021Bi",
+      adminAccounts: "Conturi admin \u0219i 2FA",
       products: "Produse",
       categories: "Categorii",
       suppliers: "Furnizori",
@@ -12423,6 +12425,7 @@
       reports: "Rapports",
       orders: "Commandes",
       users: "Clients",
+      adminAccounts: "Comptes admin et 2FA",
       products: "Produits",
       categories: "Cat\xE9gories",
       suppliers: "Fournisseurs",
@@ -14071,6 +14074,7 @@
       icon: Settings2,
       items: [
         { id: "users", labelKey: "nav.users", icon: UsersRound },
+        { id: "admin-accounts", labelKey: "nav.adminAccounts", icon: ShieldCheck },
         { id: "company-settings", labelKey: "nav.companySettings", icon: Settings2 },
         { id: "wms", labelKey: "nav.wms", icon: Truck }
       ]
@@ -18517,6 +18521,16 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
     }
     const renderContent = () => {
       switch (activeView) {
+        case "admin-accounts":
+          return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            AdminTwoFactorSettings,
+            {
+              token,
+              admin,
+              market: selectedMarketTab,
+              t: t2
+            }
+          );
         case "wms": {
           const visibleMarkets = adminIsSuperAdmin ? ["ro", "fr", "com"] : admin?.adminMarkets || [];
           const activeWmsRoute = wmsOverview.routing.find((route) => route.market === wmsFocusedMarket);
@@ -22949,43 +22963,32 @@ This action cannot be undone.`)) {
             ] }) })
           ] });
         default:
-          return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-              AdminReports,
-              {
-                embedded: true,
-                data: reportsData,
-                loading: reportsLoading,
-                error: reportsError,
-                period: reportsPeriod,
-                page: reportsPage,
-                market: selectedMarketTab,
-                locale: i18n_default.language,
-                t: t2,
-                formatOrderAmount,
-                onPeriodChange: (period) => {
-                  setReportsPage(1);
-                  setReportsPeriod(period);
-                },
-                onPageChange: setReportsPage,
-                onRefresh: () => setReportsRefresh((value) => value + 1),
-                onRetry: () => setReportsRefresh((value) => value + 1),
-                onOpenOrder: openReportedOrder,
-                onNavigateToOrders: () => handleViewChange("orders"),
-                onNavigateToUsers: () => handleViewChange("users"),
-                onNavigateToProducts: () => handleViewChange("products")
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-              AdminTwoFactorSettings,
-              {
-                token,
-                admin,
-                market: selectedMarketTab,
-                t: t2
-              }
-            )
-          ] });
+          return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+            AdminReports,
+            {
+              embedded: true,
+              data: reportsData,
+              loading: reportsLoading,
+              error: reportsError,
+              period: reportsPeriod,
+              page: reportsPage,
+              market: selectedMarketTab,
+              locale: i18n_default.language,
+              t: t2,
+              formatOrderAmount,
+              onPeriodChange: (period) => {
+                setReportsPage(1);
+                setReportsPeriod(period);
+              },
+              onPageChange: setReportsPage,
+              onRefresh: () => setReportsRefresh((value) => value + 1),
+              onRetry: () => setReportsRefresh((value) => value + 1),
+              onOpenOrder: openReportedOrder,
+              onNavigateToOrders: () => handleViewChange("orders"),
+              onNavigateToUsers: () => handleViewChange("users"),
+              onNavigateToProducts: () => handleViewChange("products")
+            }
+          );
       }
     };
     const BulkStatusComponent = () => {
