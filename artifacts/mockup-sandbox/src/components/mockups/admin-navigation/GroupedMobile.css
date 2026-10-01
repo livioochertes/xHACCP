@@ -1,0 +1,38 @@
+.grouped-mobile-frame {
+  min-height: 100dvh;
+  width: 100%;
+  overflow-x: clip;
+  background: #f2f4ed;
+}
+
+.grouped-mobile-frame > .admin-nav-prototype {
+  width: 100%;
+  min-height: 100dvh;
+}
+
+.grouped-mobile-frame .admin-mobile-menu:focus-visible {
+  outline: 2px solid #d8e990;
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .grouped-mobile-frame .admin-sidebar {
+    z-index: 14;
+  }
+
+  .grouped-mobile-frame .admin-sidebar-scrim {
+    z-index: 13;
+  }
+
+  .grouped-mobile-frame .admin-mobile-menu {
+    touch-action: manipulation;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grouped-mobile-frame .admin-sidebar,
+  .grouped-mobile-frame .admin-sidebar-scrim,
+  .grouped-mobile-frame .admin-mobile-menu {
+    transition: none;
+  }
+}
