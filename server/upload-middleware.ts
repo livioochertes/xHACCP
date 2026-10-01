@@ -1,5 +1,5 @@
 import multer from 'multer';
-import sharp from 'sharp';
+import sharp, { type Metadata } from 'sharp';
 import path from 'path';
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
@@ -181,7 +181,7 @@ export const processImages = async (req: Request, res: Response, next: NextFunct
 };
 
 export async function uploadOriginalHomepageHeroImage(file: Express.Multer.File) {
-  let metadata: sharp.Metadata;
+  let metadata: Metadata;
   try {
     metadata = await sharp(file.buffer).metadata();
   } catch {

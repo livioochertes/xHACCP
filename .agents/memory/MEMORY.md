@@ -43,3 +43,4 @@
 - [No startup market backfills](startup-market-backfills.md) — startup must never recreate product-market rows; market membership is explicit and deletion must persist.
 - [Drizzle grouped SQL expressions](drizzle-group-by-parameters.md) — repeated parameterized SQL fragments can render distinct placeholders; group by a selected ordinal or derived column.
 - [Admin dashboard date windows](admin-dashboard-date-windows.md) — daily and monthly dashboard counts use explicit UTC calendar boundaries to avoid host-timezone drift.
+- [Dependency override verification](dependency-override-verification.md) — a successful npm install can retain an old nested version after adding an override; check the resolved tree and both lockfiles.
