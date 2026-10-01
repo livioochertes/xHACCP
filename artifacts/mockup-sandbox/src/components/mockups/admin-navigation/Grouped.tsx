@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BadgePercent,
   BookOpenText,
@@ -14,7 +14,6 @@ import {
   UsersRound,
   Image,
   Rss,
-  Tags,
   Menu,
   Boxes,
 } from "lucide-react";
@@ -53,7 +52,42 @@ const navGroups = [
   { id: "admin", title: "Administrare", icon: Settings2 },
 ];
 
+const languageOptions = [
+  { code: "RO", label: "Română", flag: "🇷🇴" },
+  { code: "EN", label: "English", flag: "🇬🇧" },
+  { code: "FR", label: "Français", flag: "🇫🇷" },
+];
+
 function PreviewHeader() {
+  const [languageCode, setLanguageCode] = useState("RO");
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const languagePickerRef = useRef<HTMLDivElement>(null);
+  const languageTriggerRef = useRef<HTMLButtonElement>(null);
+  const selectedLanguage = languageOptions.find((language) => language.code === languageCode) || languageOptions[0];
+
+  useEffect(() => {
+    if (!languageMenuOpen) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !languagePickerRef.current?.contains(event.target)) {
+        setLanguageMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setLanguageMenuOpen(false);
+        languageTriggerRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [languageMenuOpen]);
+
   return (
     <>
       <header className="admin-preview-header">
@@ -64,8 +98,91 @@ function PreviewHeader() {
         <div className="admin-preview-account">
           <span>Bun venit, Admin</span>
           <span className="admin-preview-superadmin">Superadmin</span>
-          <div className="admin-preview-languages" aria-label="Limba panoului">
-            <span>RO</span><span>EN</span><span>FR</span>
+          <div ref={languagePickerRef} style={{ position: "relative" }}>
+            <button
+              ref={languageTriggerRef}
+              type="button"
+              aria-label={`Limba panoului: ${selectedLanguage.label}`}
+              aria-haspopup="menu"
+              aria-expanded={languageMenuOpen}
+              onClick={() => setLanguageMenuOpen((open) => !open)}
+              style={{
+                display: "inline-flex",
+                minHeight: "34px",
+                alignItems: "center",
+                gap: "7px",
+                padding: "6px 9px",
+                border: "1px solid #e1e5ed",
+                borderRadius: "8px",
+                background: "#fff",
+                color: "#46536a",
+                cursor: "pointer",
+                fontSize: "11px",
+                fontWeight: 750,
+              }}
+            >
+              <span aria-hidden="true" style={{ fontSize: "15px", lineHeight: 1 }}>{selectedLanguage.flag}</span>
+              <span>{selectedLanguage.code}</span>
+              <ChevronDown
+                size={12}
+                aria-hidden="true"
+                style={{
+                  color: "#8993a3",
+                  transform: languageMenuOpen ? "rotate(180deg)" : "none",
+                  transition: "transform 150ms ease",
+                }}
+              />
+            </button>
+            {languageMenuOpen && (
+              <div
+                role="menu"
+                aria-label="Alege limba interfeței"
+                style={{
+                  position: "absolute",
+                  zIndex: 20,
+                  top: "calc(100% + 6px)",
+                  right: 0,
+                  minWidth: "156px",
+                  padding: "5px",
+                  border: "1px solid #e5e9f0",
+                  borderRadius: "10px",
+                  background: "#fff",
+                  boxShadow: "0 12px 30px rgba(32, 46, 69, 0.16)",
+                }}
+              >
+                {languageOptions.map((language) => (
+                  <button
+                    key={language.code}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={languageCode === language.code}
+                    onClick={() => {
+                      setLanguageCode(language.code);
+                      setLanguageMenuOpen(false);
+                    }}
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      alignItems: "center",
+                      gap: "9px",
+                      padding: "8px 9px",
+                      border: 0,
+                      borderRadius: "7px",
+                      background: languageCode === language.code ? "#f0f2ff" : "transparent",
+                      color: languageCode === language.code ? "#4f61cf" : "#4b586d",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: languageCode === language.code ? 700 : 550,
+                      textAlign: "left",
+                    }}
+                  >
+                    <span aria-hidden="true" style={{ fontSize: "15px", lineHeight: 1 }}>{language.flag}</span>
+                    <span style={{ flex: 1 }}>{language.label}</span>
+                    <span style={{ color: "#8791a1", fontSize: "10px", fontWeight: 750 }}>{language.code}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button className="admin-preview-logout" type="button">Deconectare</button>
         </div>
