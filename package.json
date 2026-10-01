@@ -127,7 +127,7 @@
     "tw-animate-css": "^1.2.5",
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
-    "ws": "^8.18.0",
+    "ws": "^8.22.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0"
   },
@@ -163,7 +163,14 @@
     "undici": "^7.30.0",
     "brace-expansion@^1.0.0": "1.1.21",
     "brace-expansion@^2.0.0": "2.1.7",
-    "brace-expansion@^5.0.0": "5.0.12"
+    "brace-expansion@^5.0.0": "5.0.12",
+    "shell-quote": "^1.11.0",
+    "picomatch@^2.0.0": "^2.3.2",
+    "lodash": "^4.18.1",
+    "tmp": "^0.2.7",
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   },
   "pnpm": {
     "overrides": {
@@ -171,7 +178,12 @@
       "undici": "^7.30.0",
       "brace-expansion@^1.0.0": "1.1.21",
       "brace-expansion@^2.0.0": "2.1.7",
-      "brace-expansion@^5.0.0": "5.0.12"
+      "brace-expansion@^5.0.0": "5.0.12",
+      "shell-quote": "^1.11.0",
+      "picomatch@^2.0.0": "^2.3.2",
+      "lodash": "^4.18.1",
+      "tmp": "^0.2.7",
+      "exceljs>uuid": "^11.1.1"
     }
   },
   "optionalDependencies": {
