@@ -1,4 +1,4 @@
-import coverNavyDesktop from "@/assets/fr-chef-event/cover-navy-desktop-hero-1683x410.png?inline";
+import coverNavyDesktop from "@/assets/fr-chef-event/cover-navy-desktop-hero-1710x410.png?inline";
 import "./_group.css";
 
 export function ExtendedNavy() {

@@ -259,3 +259,31 @@ mtime_ms = 1790846979715
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/a2c2377f-3dcd-4629-abbe-bf0abd8e7d33/d91b1783-e7f2-46ce-a392-7249fb0259df"
 storage_version_token = "1790847292792552"
 content_type = "image/png"
+
+[[outputs]]
+id = "Pb6UQG7dPEybJuNmyeJQA"
+uri = "file://artifacts/mockup-sandbox/public/images/fr-chef-event/cover-light-desktop-hero-1710x410.png"
+type = "image"
+title = "Copertă Hero deschisă — 1710×410 px"
+description = "Versiune potrivită pentru captura actuală a homepage-ului. Fundalul a fost extins doar cu 14 px la stânga și 13 px la dreapta; pixelii artwork-ului, textului și QR-ului din sursă sunt neschimbați."
+logical_id = "649fe172-49fa-4613-a287-1ac7e84653ee"
+content_hash = "sha256:ac3b7718f31d670f2ace1506f7a7b69a06c0918d782a0576f0c364b9f60ce0f0"
+size = 555171
+mtime_ms = 1790848656752
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/649fe172-49fa-4613-a287-1ac7e84653ee/a420f4e7-3f93-41ad-88f1-b3ba665fc96d"
+storage_version_token = "1790848823503356"
+content_type = "image/png"
+
+[[outputs]]
+id = "j3chO-rqVNRtMn2mHXN8R"
+uri = "file://artifacts/mockup-sandbox/public/images/fr-chef-event/cover-navy-desktop-hero-1710x410.png"
+type = "image"
+title = "Copertă Hero bleumarin — 1710×410 px"
+description = "Versiune potrivită pentru captura actuală a homepage-ului. Fundalul a fost extins doar cu 14 px la stânga și 13 px la dreapta; pixelii artwork-ului, textului și QR-ului din sursă sunt neschimbați."
+logical_id = "ea2d5a46-9618-4631-937a-245a5e8436df"
+content_hash = "sha256:e4c1245e9ac8faaf64e2bbbbf85faed8c99c815da22b764e4929fb0956123962"
+size = 579565
+mtime_ms = 1790848658028
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/ea2d5a46-9618-4631-937a-245a5e8436df/7ccbd595-f395-4c17-b977-0efca1d90265"
+storage_version_token = "1790848824305570"
+content_type = "image/png"

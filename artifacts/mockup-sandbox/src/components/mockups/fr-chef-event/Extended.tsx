@@ -1,4 +1,4 @@
-import coverLightDesktop from "@/assets/fr-chef-event/cover-light-desktop-hero-1683x410.png?inline";
+import coverLightDesktop from "@/assets/fr-chef-event/cover-light-desktop-hero-1710x410.png?inline";
 import "./_group.css";
 
 export function Extended() {
