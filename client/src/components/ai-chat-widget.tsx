@@ -1,6 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { Bot, Loader2, MessageCircle, Send, X } from "lucide-react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,6 +28,54 @@ interface Message {
 interface SavedSession {
   isConnected: boolean;
   sessionId: string | null;
+}
+
+function renderMessageWithLinks(text: string): ReactNode {
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+
+    const linkText = match[1];
+    const linkUrl = match[2].trim();
+    const className =
+      "font-medium text-blue-600 underline hover:text-blue-800";
+
+    if (linkUrl.startsWith("/") && !linkUrl.startsWith("//")) {
+      parts.push(
+        <Link key={match.index} href={linkUrl} className={className}>
+          {linkText}
+        </Link>,
+      );
+    } else if (/^https?:\/\//i.test(linkUrl)) {
+      parts.push(
+        <a
+          key={match.index}
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={className}
+        >
+          {linkText}
+        </a>,
+      );
+    } else {
+      parts.push(linkText);
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return parts.length ? parts : text;
 }
 
 function welcomeMessage(text: string): Message {
@@ -391,7 +445,11 @@ export default function AiChatWidget() {
                     : "bg-muted"
                 }`}
               >
-                <p className="whitespace-pre-wrap text-sm">{message.text}</p>
+                <p className="whitespace-pre-wrap text-sm">
+                  {message.sender === "assistant"
+                    ? renderMessageWithLinks(message.text)
+                    : message.text}
+                </p>
                 {message.sender === "assistant" &&
                   message.id === "1" &&
                   messages.length === 1 && (
