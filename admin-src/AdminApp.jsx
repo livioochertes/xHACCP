@@ -797,7 +797,7 @@ import {
       }, [marketFilter, activeView]);
 
       useEffect(() => {
-        if (activeView !== 'reports') return undefined;
+        if (activeView !== 'dashboard') return undefined;
 
         const controller = new AbortController();
         const params = new URLSearchParams({
@@ -3305,29 +3305,6 @@ import {
       
       const renderContent = () => {
         switch (activeView) {
-          case 'reports':
-            return (
-              <AdminReports
-                data={reportsData}
-                loading={reportsLoading}
-                error={reportsError}
-                period={reportsPeriod}
-                page={reportsPage}
-                market={selectedMarketTab}
-                locale={i18n.language}
-                t={t}
-                formatOrderAmount={formatOrderAmount}
-                onPeriodChange={(period) => {
-                  setReportsPage(1);
-                  setReportsPeriod(period);
-                }}
-                onPageChange={setReportsPage}
-                onRefresh={() => setReportsRefresh((value) => value + 1)}
-                onRetry={() => setReportsRefresh((value) => value + 1)}
-                onOpenOrder={openReportedOrder}
-                onNavigateToOrders={() => handleViewChange('orders')}
-              />
-            );
           case 'wms': {
             const visibleMarkets = adminIsSuperAdmin ? ['ro', 'fr', 'com'] : (admin?.adminMarkets || []);
             const activeWmsRoute = wmsOverview.routing.find(route => route.market === wmsFocusedMarket);
@@ -7488,6 +7465,27 @@ import {
                     )}
                   </div>
                 </div>
+                <AdminReports
+                  embedded
+                  data={reportsData}
+                  loading={reportsLoading}
+                  error={reportsError}
+                  period={reportsPeriod}
+                  page={reportsPage}
+                  market={selectedMarketTab}
+                  locale={i18n.language}
+                  t={t}
+                  formatOrderAmount={formatOrderAmount}
+                  onPeriodChange={(period) => {
+                    setReportsPage(1);
+                    setReportsPeriod(period);
+                  }}
+                  onPageChange={setReportsPage}
+                  onRefresh={() => setReportsRefresh((value) => value + 1)}
+                  onRetry={() => setReportsRefresh((value) => value + 1)}
+                  onOpenOrder={openReportedOrder}
+                  onNavigateToOrders={() => handleViewChange('orders')}
+                />
               </>
             );
         }

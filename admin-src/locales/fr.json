@@ -32,6 +32,7 @@
   },
   "reports": {
     "title": "Rapports",
+    "dashboardHeading": "Ventes et performance",
     "description": "Suivez les commandes et les paiements pour le marché sélectionné.",
     "periodGroup": "Période du rapport",
     "period24h": "24 heures",

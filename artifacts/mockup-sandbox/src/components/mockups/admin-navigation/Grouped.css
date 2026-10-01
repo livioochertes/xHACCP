@@ -2134,79 +2134,105 @@
   font-size: 13px;
 }
 
-.admin-page.is-reports-page .admin-page-context {
+.admin-page.is-dashboard-page .admin-page-context {
   font-size: 10px;
 }
 
-.admin-page.is-reports-page .admin-page-heading-copy > p {
+.admin-page.is-dashboard-page .admin-page-heading-copy > p {
   font-size: 13px;
   line-height: 1.5;
 }
 
-.admin-page.is-reports-page .admin-report-range button {
+.admin-page.is-dashboard-page .admin-report-range button {
   font-size: 11px;
 }
 
-.admin-page.is-reports-page .admin-report-scope {
+.admin-page.is-dashboard-page .admin-report-scope {
   font-size: 12px;
 }
 
-.admin-page.is-reports-page .admin-stat-heading {
+.admin-page.is-dashboard-page .admin-stat-heading {
   font-size: 12px;
 }
 
-.admin-page.is-reports-page .admin-stat-foot,
-.admin-page.is-reports-page .admin-stat-foot strong {
+.admin-page.is-dashboard-page .admin-stat-foot,
+.admin-page.is-dashboard-page .admin-stat-foot strong {
   font-size: 11px;
 }
 
-.admin-page.is-reports-page .admin-report-period-label {
+.admin-page.is-dashboard-page .admin-report-period-label {
   font-size: 11px;
 }
 
-.admin-page.is-reports-page .admin-report-market-copy strong {
+.admin-page.is-dashboard-page .admin-report-market-copy strong {
   font-size: 12px;
 }
 
-.admin-page.is-reports-page .admin-report-market-copy > span:last-child,
-.admin-page.is-reports-page .admin-report-market-foot,
-.admin-page.is-reports-page .admin-report-table-count {
+.admin-page.is-dashboard-page .admin-report-market-copy > span:last-child,
+.admin-page.is-dashboard-page .admin-report-market-foot,
+.admin-page.is-dashboard-page .admin-report-table-count {
   font-size: 11px;
 }
 
-.admin-page.is-reports-page .admin-panel-heading h2 {
+.admin-page.is-dashboard-page .admin-panel-heading h2 {
   font-size: 13px;
 }
 
-.admin-page.is-reports-page .admin-panel-heading p {
+.admin-page.is-dashboard-page .admin-panel-heading p {
   font-size: 11px;
 }
 
-.admin-page.is-reports-page .admin-panel-heading button {
+.admin-page.is-dashboard-page .admin-panel-heading button {
   font-size: 11px;
 }
 
-.admin-page.is-reports-page .admin-chart-summary span {
+.admin-page.is-dashboard-page .admin-chart-summary span {
   font-size: 11px;
 }
 
-.admin-page.is-reports-page .admin-chart-bar label {
+.admin-page.is-dashboard-page .admin-chart-bar label {
   font-size: 10px;
 }
 
-.admin-page.is-reports-page .admin-report-data-table th {
+.admin-page.is-dashboard-page .admin-report-data-table th {
   font-size: 10px;
 }
 
-.admin-page.is-reports-page .admin-report-data-table td {
+.admin-page.is-dashboard-page .admin-report-data-table td {
   font-size: 13px;
 }
 
-.admin-page.is-reports-page .admin-report-data-table .admin-table-secondary {
+.admin-page.is-dashboard-page .admin-report-data-table .admin-table-secondary {
   font-size: 11px;
 }
 
-.admin-page.is-reports-page .admin-report-data-table .admin-status,
-.admin-page.is-reports-page .admin-report-data-table .admin-market-code {
+.admin-page.is-dashboard-page .admin-report-data-table .admin-status,
+.admin-page.is-dashboard-page .admin-report-data-table .admin-market-code {
   font-size: 11px;
+}
+
+.admin-dashboard-section-heading {
+  margin: 4px 0 13px;
+}
+
+.admin-dashboard-section-heading > span {
+  color: var(--admin-ink-faint);
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-dashboard-section-heading h2 {
+  margin: 3px 0 0;
+  color: var(--admin-ink);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.admin-dashboard-section-heading p {
+  margin: 4px 0 0;
+  color: var(--admin-ink-soft);
+  font-size: 12px;
 }

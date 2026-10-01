@@ -289,6 +289,7 @@ export default function AdminReports({
   data,
   loading,
   error,
+  embedded = false,
   period,
   page,
   market,
@@ -395,11 +396,13 @@ export default function AdminReports({
   const currencyTotalCount = marketBreakdown.reduce((sum, item) => sum + numberValue(item.orderCount), 0);
 
   return (
-    <div className="admin-reports-page" aria-busy={loading}>
-      <div className="admin-reports-page-heading">
+    <div className={`admin-reports-page${embedded ? " is-embedded" : ""}`} aria-busy={loading}>
+      <div className={`admin-reports-page-heading${embedded ? " is-embedded" : ""}`}>
         <div>
           <div className="admin-reports-eyebrow">{t("reports.marketScope")}</div>
-          <h1>{t("reports.title")}</h1>
+          {embedded
+            ? <h2>{t("reports.dashboardHeading")}</h2>
+            : <h1>{t("reports.title")}</h1>}
           <p>{t("reports.description")}</p>
         </div>
         <div className="admin-reports-page-actions">

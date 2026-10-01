@@ -10459,6 +10459,7 @@
     },
     reports: {
       title: "Reports",
+      dashboardHeading: "Sales and performance",
       description: "Track orders and paid totals for the selected market.",
       periodGroup: "Report period",
       period24h: "24 hours",
@@ -11421,6 +11422,7 @@
     },
     reports: {
       title: "Rapoarte",
+      dashboardHeading: "V\xE2nz\u0103ri \u0219i performan\u021B\u0103",
       description: "Urm\u0103re\u0219te comenzile \u0219i \xEEncas\u0103rile pe pia\u021Ba selectat\u0103.",
       periodGroup: "Perioada raportului",
       period24h: "24 ore",
@@ -12383,6 +12385,7 @@
     },
     reports: {
       title: "Rapports",
+      dashboardHeading: "Ventes et performance",
       description: "Suivez les commandes et les paiements pour le march\xE9 s\xE9lectionn\xE9.",
       periodGroup: "P\xE9riode du rapport",
       period24h: "24 heures",
@@ -13511,14 +13514,6 @@
     ["path", { d: "M16 18h.01", key: "kzsmim" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/chart-column.js
-  var ChartColumn = createLucideIcon("ChartColumn", [
-    ["path", { d: "M3 3v16a2 2 0 0 0 2 2h16", key: "c24i48" }],
-    ["path", { d: "M18 17V9", key: "2bz60n" }],
-    ["path", { d: "M13 17V5", key: "1frdt8" }],
-    ["path", { d: "M8 17v-3", key: "17ska0" }]
-  ]);
-
   // node_modules/lucide-react/dist/esm/icons/chevron-down.js
   var ChevronDown = createLucideIcon("ChevronDown", [
     ["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]
@@ -13887,11 +13882,6 @@
     labelKey: "nav.dashboard",
     icon: LayoutDashboard
   };
-  var reportsItem = {
-    id: "reports",
-    labelKey: "nav.reports",
-    icon: ChartColumn
-  };
   var navGroups = [
     {
       id: "catalog",
@@ -14067,7 +14057,6 @@
               )
             ] }),
             renderLink(dashboardItem, ""),
-            renderLink(reportsItem, ""),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "admin-nav-divider" }),
             navGroups.map((group) => {
               const GroupIcon = group.icon;
@@ -14740,6 +14729,7 @@
     data,
     loading,
     error,
+    embedded = false,
     period,
     page,
     market,
@@ -14807,11 +14797,11 @@
       timeStyle: period === "24h" ? "short" : void 0
     });
     const currencyTotalCount = marketBreakdown.reduce((sum, item) => sum + numberValue(item.orderCount), 0);
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "admin-reports-page", "aria-busy": loading, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "admin-reports-page-heading", children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: `admin-reports-page${embedded ? " is-embedded" : ""}`, "aria-busy": loading, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: `admin-reports-page-heading${embedded ? " is-embedded" : ""}`, children: [
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "admin-reports-eyebrow", children: t2("reports.marketScope") }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h1", { children: t2("reports.title") }),
+          embedded ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h2", { children: t2("reports.dashboardHeading") }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h1", { children: t2("reports.title") }),
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { children: t2("reports.description") })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "admin-reports-page-actions", children: [
@@ -15717,7 +15707,7 @@
       }
     }, [marketFilter, activeView]);
     (0, import_react18.useEffect)(() => {
-      if (activeView !== "reports") return void 0;
+      if (activeView !== "dashboard") return void 0;
       const controller = new AbortController();
       const params = new URLSearchParams({
         range: reportsPeriod,
@@ -17960,30 +17950,6 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
     }
     const renderContent = () => {
       switch (activeView) {
-        case "reports":
-          return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
-            AdminReports,
-            {
-              data: reportsData,
-              loading: reportsLoading,
-              error: reportsError,
-              period: reportsPeriod,
-              page: reportsPage,
-              market: selectedMarketTab,
-              locale: i18n_default.language,
-              t: t2,
-              formatOrderAmount,
-              onPeriodChange: (period) => {
-                setReportsPage(1);
-                setReportsPeriod(period);
-              },
-              onPageChange: setReportsPage,
-              onRefresh: () => setReportsRefresh((value) => value + 1),
-              onRetry: () => setReportsRefresh((value) => value + 1),
-              onOpenOrder: openReportedOrder,
-              onNavigateToOrders: () => handleViewChange("orders")
-            }
-          );
         case "wms": {
           const visibleMarkets = adminIsSuperAdmin ? ["ro", "fr", "com"] : admin?.adminMarkets || [];
           const activeWmsRoute = wmsOverview.routing.find((route) => route.market === wmsFocusedMarket);
@@ -22577,7 +22543,31 @@ This action cannot be undone.`)) {
                   ] })
                 ] }, index)) }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { style: { color: "#666", fontStyle: "italic" }, children: "No recent orders" })
               ] })
-            ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              AdminReports,
+              {
+                embedded: true,
+                data: reportsData,
+                loading: reportsLoading,
+                error: reportsError,
+                period: reportsPeriod,
+                page: reportsPage,
+                market: selectedMarketTab,
+                locale: i18n_default.language,
+                t: t2,
+                formatOrderAmount,
+                onPeriodChange: (period) => {
+                  setReportsPage(1);
+                  setReportsPeriod(period);
+                },
+                onPageChange: setReportsPage,
+                onRefresh: () => setReportsRefresh((value) => value + 1),
+                onRetry: () => setReportsRefresh((value) => value + 1),
+                onOpenOrder: openReportedOrder,
+                onNavigateToOrders: () => handleViewChange("orders")
+              }
+            )
           ] });
       }
     };
@@ -29905,14 +29895,6 @@ lucide-react/dist/esm/icons/boxes.js:
    *)
 
 lucide-react/dist/esm/icons/calendar-days.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
-lucide-react/dist/esm/icons/chart-column.js:
   (**
    * @license lucide-react v0.453.0 - ISC
    *

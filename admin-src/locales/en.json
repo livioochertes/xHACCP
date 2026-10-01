@@ -32,6 +32,7 @@
   },
   "reports": {
     "title": "Reports",
+    "dashboardHeading": "Sales and performance",
     "description": "Track orders and paid totals for the selected market.",
     "periodGroup": "Report period",
     "period24h": "24 hours",

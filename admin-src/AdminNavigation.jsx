@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   BadgePercent,
-  BarChart3,
   BookOpenText,
   Boxes,
   ChevronDown,
@@ -26,12 +25,6 @@ const dashboardItem = {
   id: 'dashboard',
   labelKey: 'nav.dashboard',
   icon: LayoutDashboard,
-};
-
-const reportsItem = {
-  id: 'reports',
-  labelKey: 'nav.reports',
-  icon: BarChart3,
 };
 
 const navGroups = [
@@ -222,7 +215,6 @@ export default function AdminNavigation({
           </button>
         </div>
         {renderLink(dashboardItem, '')}
-        {renderLink(reportsItem, '')}
         <div className="admin-nav-divider" />
 
         {navGroups.map((group) => {

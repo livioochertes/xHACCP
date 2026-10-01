@@ -32,6 +32,7 @@
   },
   "reports": {
     "title": "Rapoarte",
+    "dashboardHeading": "Vânzări și performanță",
     "description": "Urmărește comenzile și încasările pe piața selectată.",
     "periodGroup": "Perioada raportului",
     "period24h": "24 ore",

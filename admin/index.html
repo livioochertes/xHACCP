@@ -1854,6 +1854,12 @@
       color: var(--admin-ink);
     }
 
+    #admin-root .admin-reports-page.is-embedded {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--admin-border);
+    }
+
     #admin-root .admin-reports-page *,
     #admin-root .admin-reports-page *::before,
     #admin-root .admin-reports-page *::after {
@@ -1875,6 +1881,15 @@
       font-weight: 700;
       letter-spacing: -0.055em;
       line-height: 1.08;
+    }
+
+    #admin-root .admin-reports-page-heading.is-embedded h2 {
+      margin: 3px 0 0;
+      color: var(--admin-ink);
+      font-size: clamp(20px, 2vw, 26px);
+      font-weight: 700;
+      letter-spacing: -0.045em;
+      line-height: 1.15;
     }
 
     #admin-root .admin-reports-page-heading p {
@@ -2796,6 +2811,6 @@
       }
     }, 20000);
   </script>
-  <script src="/admin/vendor/admin-bundle.js?v=20261001-admin-reports-typography-v2"></script>
+  <script src="/admin/vendor/admin-bundle.js?v=20261001-admin-dashboard-report-merge-v1"></script>
 </body>
 </html>

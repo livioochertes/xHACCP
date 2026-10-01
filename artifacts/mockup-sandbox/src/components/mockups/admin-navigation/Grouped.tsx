@@ -11,7 +11,6 @@ import {
   Boxes,
   Building2,
   CalendarDays,
-  ChartNoAxesCombined,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -49,7 +48,6 @@ import "./Grouped.css";
 
 type SectionId =
   | "dashboard"
-  | "reports"
   | "orders"
   | "products"
   | "categories"
@@ -98,7 +96,6 @@ type ResourceRow = {
 
 const sectionItems: AdminSection[] = [
   { id: "dashboard", label: "Panou", icon: LayoutDashboard, group: "overview" },
-  { id: "reports", label: "Rapoarte", icon: ChartNoAxesCombined, group: "overview" },
   { id: "orders", label: "Comenzi", icon: ShoppingCart, group: "operations", count: "12" },
   { id: "invoices", label: "Facturi", icon: ReceiptText, group: "operations" },
   { id: "products", label: "Produse", icon: Package, group: "catalog" },
@@ -134,11 +131,6 @@ const pageMeta: Record<SectionId, { title: string; description: string; action: 
     title: "Bună dimineața, Admin.",
     description: "O privire limpede asupra comenzilor, piețelor și activității xHACCP.",
     action: "Comandă nouă",
-  },
-  reports: {
-    title: "Rapoarte",
-    description: "Vânzări, comenzi și ritmul activității în perioada și piața selectate.",
-    action: "Generează raport",
   },
   orders: {
     title: "Comenzi",
@@ -430,11 +422,13 @@ function StatCard({
 }
 
 function DashboardWorkspace({
+  market,
   onNavigate,
   onOpenOrder,
   orders,
   onNotify,
 }: {
+  market: MarketId;
   onNavigate: (id: SectionId) => void;
   onOpenOrder: (order: OrderRow) => void;
   orders: OrderRow[];
@@ -442,44 +436,20 @@ function DashboardWorkspace({
 }) {
   return (
     <>
-      <div className="admin-dashboard-grid">
-        <StatCard label="Vânzări nete" value="48.392 lei" detail="față de săptămâna trecută" change="+8,4%" icon={Activity} highlight />
-        <StatCard label="Comenzi active" value="126" detail="în toate piețele" change="+12,1%" icon={ShoppingCart} />
-        <StatCard label="Valoare medie" value="386 lei" detail="în ultimele 7 zile" change="+3,7%" icon={ArrowDownRight} />
-        <StatCard label="Produse active" value="2.184" detail="catalog sincronizat" change="+24" icon={Package} />
+      <div className="admin-dashboard-section-heading">
+        <span>ACTIVITATE COMERCIALĂ</span>
+        <h2>Vânzări și performanță</h2>
+        <p>Indicatorii, distribuția pe piețe și comenzile sunt reunite aici.</p>
       </div>
 
-      <div className="admin-dashboard-lower">
-        <section className="admin-panel">
-          <header className="admin-panel-heading">
-            <div>
-              <h2>Ritmul comenzilor</h2>
-              <p>Activitate în ultimele 24 de ore</p>
-            </div>
-            <button type="button" onClick={() => onNotify("Intervalul graficului este actualizat la ultimele 24 de ore.")}>
-              <CalendarDays size={12} /> 24 ore <ChevronDown size={11} />
-            </button>
-          </header>
-          <div className="admin-chart-wrap">
-            <div className="admin-chart-summary">
-              <strong>€ 12.840</strong>
-              <span>venit net · toate piețele</span>
-            </div>
-            <div className="admin-chart" aria-label="Graficul comenzilor din ultimele 24 de ore">
-              {chartValues.map((value, index) => (
-                <div
-                  className={`admin-chart-bar${index === chartValues.length - 1 ? " is-current" : ""}`}
-                  key={`${chartLabels[index]}-${index}`}
-                  title={`${value} comenzi`}
-                >
-                  <span style={{ height: `${value}%` }} />
-                  {index % 4 === 0 || index === chartValues.length - 1 ? <label>{chartLabels[index]}</label> : null}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+      <ReportsWorkspace
+        market={market}
+        orders={orders}
+        onOpenOrder={onOpenOrder}
+        onNotify={onNotify}
+      />
 
+      <div className="admin-dashboard-lower">
         <section className="admin-panel">
           <header className="admin-panel-heading">
             <div>
@@ -508,20 +478,20 @@ function DashboardWorkspace({
             ))}
           </div>
         </section>
-      </div>
 
-      <section className="admin-panel admin-orders-preview">
-        <header className="admin-panel-heading">
-          <div>
-            <h2>Comenzi de verificat</h2>
-            <p>Acțiune necesară în următoarele ore</p>
-          </div>
-          <button type="button" onClick={() => onNotify("Lista de comenzi este actualizată.")}>
-            <RefreshCw size={12} /> Actualizează
-          </button>
-        </header>
-        <OrderTable rows={orders.slice(0, 3)} onOpenOrder={onOpenOrder} />
-      </section>
+        <section className="admin-panel">
+          <header className="admin-panel-heading">
+            <div>
+              <h2>Comenzi de verificat</h2>
+              <p>Acțiune necesară în următoarele ore</p>
+            </div>
+            <button type="button" onClick={() => onNotify("Lista de comenzi este actualizată.")}>
+              <RefreshCw size={12} /> Actualizează
+            </button>
+          </header>
+          <OrderTable rows={orders.slice(0, 3)} onOpenOrder={onOpenOrder} />
+        </section>
+      </div>
     </>
   );
 }
@@ -981,10 +951,6 @@ export function Grouped() {
       notify("Sincronizarea catalogului Google a fost pornită în previzualizare.");
       return;
     }
-    if (activeId === "reports") {
-      notify("Raportul cu indicatorii perioadei selectate este pregătit în previzualizare.");
-      return;
-    }
     setModal("create");
   };
 
@@ -1167,7 +1133,7 @@ export function Grouped() {
         {mobileOpen && <button className="admin-sidebar-scrim" type="button" aria-label="Închide meniul" onClick={() => setMobileOpen(false)} />}
 
         <main className="admin-main">
-          <div className={`admin-page${activeId === "reports" ? " is-reports-page" : ""}`}>
+          <div className={`admin-page${activeId === "dashboard" ? " is-dashboard-page" : ""}`}>
             <div className="admin-page-context">
               <span>ADMIN</span><ChevronRight size={10} /><strong>{activeGroup}</strong><ChevronRight size={10} /><strong>{activeItem.label}</strong>
             </div>
@@ -1188,18 +1154,10 @@ export function Grouped() {
 
             {activeId === "dashboard" && (
               <DashboardWorkspace
+                market={market}
                 onNavigate={navigateTo}
                 onOpenOrder={openOrder}
-                orders={filteredOrders.slice(0, 4)}
-                onNotify={notify}
-              />
-            )}
-
-            {activeId === "reports" && (
-              <ReportsWorkspace
-                market={market}
                 orders={filteredOrders}
-                onOpenOrder={openOrder}
                 onNotify={notify}
               />
             )}
@@ -1238,7 +1196,7 @@ export function Grouped() {
             {activeId === "products" && <ProductsWorkspace market={market} search={searchTerm} onNotify={notify} />}
             {activeId === "categories" && <CategoriesWorkspace onCreate={() => setModal("create")} onNotify={notify} />}
             {activeId === "wms" && <WmsWorkspace onNotify={notify} />}
-            {activeId !== "dashboard" && activeId !== "reports" && activeId !== "orders" && activeId !== "products" && activeId !== "categories" && activeId !== "wms" && (
+            {activeId !== "dashboard" && activeId !== "orders" && activeId !== "products" && activeId !== "categories" && activeId !== "wms" && (
               <GenericWorkspace activeId={activeId} onNotify={notify} />
             )}
           </div>
