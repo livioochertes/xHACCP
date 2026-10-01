@@ -1,5 +1,26 @@
 const validAdminMarkets = new Set(["ro", "fr", "com"]);
 
+export function isActiveAdminAccount(
+  account: { isAdmin?: unknown; isSuspended?: unknown } | null | undefined,
+): boolean {
+  return Boolean(account?.isAdmin) && !Boolean(account?.isSuspended);
+}
+
+export async function deliverTemporaryPasswordWithRollback(
+  sendEmail: () => Promise<boolean>,
+  restorePreviousPassword: () => Promise<void>,
+): Promise<boolean> {
+  let emailSent = false;
+  try {
+    emailSent = await sendEmail();
+  } catch {
+    emailSent = false;
+  }
+  if (emailSent) return true;
+  await restorePreviousPassword();
+  return false;
+}
+
 export function normalizeAdminEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
 
