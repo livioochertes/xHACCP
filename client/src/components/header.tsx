@@ -277,12 +277,6 @@ export default function Header() {
                 </Link>
               ))}
             </div>
-            <div className="hidden lg:flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">{t('footer.needHelp')}</span>
-              <Link href="/ai-assistant" className="text-sm text-secondary font-medium">
-                Support Chat
-              </Link>
-            </div>
           </div>
         </div>
       </nav>
