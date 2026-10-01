@@ -523,6 +523,17 @@ import {
       const [marketsData, setMarketsData] = useState({ro: null, fr: null, com: null});
       const [marketsLoading, setMarketsLoading] = useState(false);
       const [marketFilter, setMarketFilter] = useState('all');
+      const getOrderCurrency = (order) => {
+        const market = typeof order?.market === 'string' ? order.market.trim().toLowerCase() : 'ro';
+        const currency = marketsData[market]?.currency || getMarketCurrency(market) || order?.currency;
+        return typeof currency === 'string' && currency.trim() ? currency.trim().toUpperCase() : '—';
+      };
+      const formatOrderAmount = (order, amount = order?.totalAmount) => {
+        if (amount === null || amount === undefined || amount === '' || !Number.isFinite(Number(amount))) {
+          return '—';
+        }
+        return `${Number(amount).toFixed(2)} ${getOrderCurrency(order)}`;
+      };
       const [marketingSegments, setMarketingSegments] = useState([]);
       const [marketingCampaigns, setMarketingCampaigns] = useState([]);
       const [marketingLoading, setMarketingLoading] = useState(false);
@@ -3710,7 +3721,7 @@ import {
                             </td>
                             <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={(() => { const sa = order.shippingAddress; const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(' '); return name || `#${order.userId}`; })()}>{(() => { const sa = order.shippingAddress; const name = [sa?.firstName, sa?.lastName].filter(Boolean).join(' '); return name || `#${order.userId}`; })()}</td>
                             <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px'}} title={order.billingAddress?.companyName || ''}>{order.billingAddress?.companyName || ''}</td>
-                            <td style={{padding: '8px 12px', color: '#28a745', fontWeight: 'bold', whiteSpace: 'nowrap'}}>{parseFloat(order.totalAmount).toFixed(2)} lei</td>
+                            <td style={{padding: '8px 12px', color: '#28a745', fontWeight: 'bold', whiteSpace: 'nowrap'}}>{formatOrderAmount(order)}</td>
                             <td style={{padding: '8px 12px', whiteSpace: 'nowrap'}}>
                               <span style={{
                                 padding: '4px 8px', 
@@ -11381,15 +11392,15 @@ import {
                         const sc = parseFloat(selectedOrder.shippingCost || '0');
                         const total = parseFloat(selectedOrder.totalAmount || '0');
                         const discount = parseFloat(selectedOrder.discountAmount || '0');
-                        const subtotal = (total - sc + discount).toFixed(2);
+                        const subtotal = total - sc + discount;
                         return (
                           <div style={{marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #dee2e6'}}>
-                            <p style={{margin: '4px 0'}}><strong>Subtotal:</strong> {subtotal} lei</p>
+                            <p style={{margin: '4px 0'}}><strong>Subtotal:</strong> {formatOrderAmount(selectedOrder, subtotal)}</p>
                             {discount > 0 && selectedOrder.voucherCode && (
-                              <p style={{margin: '4px 0', color: '#28a745'}}><strong>Discount voucher {selectedOrder.voucherCode}:</strong> -{discount.toFixed(2)} lei</p>
+                              <p style={{margin: '4px 0', color: '#28a745'}}><strong>Discount voucher {selectedOrder.voucherCode}:</strong> -{formatOrderAmount(selectedOrder, discount)}</p>
                             )}
-                            <p style={{margin: '4px 0'}}><strong>Transport:</strong> {sc > 0 ? sc.toFixed(2) + ' lei' : <span style={{color: '#28a745'}}>Gratuit</span>}</p>
-                            <p style={{margin: '6px 0 0', fontSize: '15px', fontWeight: 'bold', borderTop: '1px solid #dee2e6', paddingTop: '6px'}}><strong>Total:</strong> {total.toFixed(2)} lei</p>
+                            <p style={{margin: '4px 0'}}><strong>Transport:</strong> {sc > 0 ? formatOrderAmount(selectedOrder, sc) : <span style={{color: '#28a745'}}>Gratuit</span>}</p>
+                            <p style={{margin: '6px 0 0', fontSize: '15px', fontWeight: 'bold', borderTop: '1px solid #dee2e6', paddingTop: '6px'}}><strong>Total:</strong> {formatOrderAmount(selectedOrder, total)}</p>
                           </div>
                         );
                       })()}
@@ -11558,7 +11569,7 @@ import {
                         className="btn"
                         style={{background: '#28a745', padding: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px'}}
                         onClick={() => {
-                          const csvContent = `Order ID,Customer,Status,Amount (lei),Date\n${selectedOrder.id},${selectedOrder.shippingAddress.firstName} ${selectedOrder.shippingAddress.lastName},${selectedOrder.status},${selectedOrder.totalAmount},${new Date(selectedOrder.createdAt).toLocaleDateString()}`;
+                          const csvContent = `Order ID,Customer,Status,Amount,Currency,Date\n${selectedOrder.id},${selectedOrder.shippingAddress.firstName} ${selectedOrder.shippingAddress.lastName},${selectedOrder.status},${selectedOrder.totalAmount},${getOrderCurrency(selectedOrder)},${new Date(selectedOrder.createdAt).toLocaleDateString()}`;
                           
                           const blob = new Blob([csvContent], { type: 'text/csv' });
                           const url = window.URL.createObjectURL(blob);
@@ -11593,6 +11604,7 @@ import {
                         onClick={() => {
                           const pm = selectedOrder.paymentMethod;
                           const isCOD = pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash';
+                          const orderCurrency = getOrderCurrency(selectedOrder);
                           const invoice = `
 INVOICE - Order #${selectedOrder.id}
 ========================================
@@ -11619,9 +11631,9 @@ ${selectedOrder.billingAddress.city}${selectedOrder.billingAddress.county ? ', '
 ${selectedOrder.billingAddress.country}
 
 ITEMS:
-${selectedOrder.items ? selectedOrder.items.map(item => `${item.quantity}x ${item.product ? item.product.name : 'Product ID: ' + item.productId} - ${parseFloat(item.price).toFixed(2)} lei x${item.quantity} = ${parseFloat(item.totalPrice).toFixed(2)} lei`).join('\n') : 'No items'}
-${selectedOrder.discountAmount && parseFloat(selectedOrder.discountAmount) > 0 && selectedOrder.voucherCode ? '\nDiscount voucher ' + selectedOrder.voucherCode + ': -' + parseFloat(selectedOrder.discountAmount).toFixed(2) + ' lei' : ''}${selectedOrder.shippingCost && parseFloat(selectedOrder.shippingCost) > 0 ? '\nTransport: ' + parseFloat(selectedOrder.shippingCost).toFixed(2) + ' lei' : ''}
-TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
+${selectedOrder.items ? selectedOrder.items.map(item => `${item.quantity}x ${item.product ? item.product.name : 'Product ID: ' + item.productId} - ${formatOrderAmount(selectedOrder, item.price)} x${item.quantity} = ${formatOrderAmount(selectedOrder, item.totalPrice)}`).join('\n') : 'No items'}
+${selectedOrder.discountAmount && parseFloat(selectedOrder.discountAmount) > 0 && selectedOrder.voucherCode ? '\nDiscount voucher ' + selectedOrder.voucherCode + ': -' + formatOrderAmount(selectedOrder, selectedOrder.discountAmount) : ''}${selectedOrder.shippingCost && parseFloat(selectedOrder.shippingCost) > 0 ? '\nTransport: ' + formatOrderAmount(selectedOrder, selectedOrder.shippingCost) : ''}
+TOTAL: ${formatOrderAmount(selectedOrder, selectedOrder.totalAmount)}
 ========================================
                           `;
                           
@@ -11765,7 +11777,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                       style={{background: '#28a745', padding: '15px', display: 'flex', alignItems: 'center', gap: '10px'}}
                       onClick={() => {
                         const escCsv = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
-                        const csvContent = `Order ID,Customer Name,Customer Email,Shipping Address,Payment Method,Status,Amount,Voucher Code,Discount Amount,Date\n${selectedOrders.map(id => {
+                        const csvContent = `Order ID,Customer Name,Customer Email,Shipping Address,Payment Method,Status,Amount,Currency,Market,Voucher Code,Discount Amount,Date\n${selectedOrders.map(id => {
                           const order = filteredOrders.find(o => o.id === id);
                           const sa = order.shippingAddress || {};
                           const customerName = [sa.firstName, sa.lastName].filter(Boolean).join(' ') || sa.name || '';
@@ -11774,7 +11786,7 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
                           const paymentMethod = order.paymentMethod || '';
                           const voucherCode = order.voucherCode || '';
                           const discountAmount = order.discountAmount ? parseFloat(order.discountAmount).toFixed(2) : '0.00';
-                          return `${order.id},${escCsv(customerName)},${escCsv(customerEmail)},${escCsv(shippingAddress)},${escCsv(paymentMethod)},${escCsv(order.status)},${order.totalAmount},${escCsv(voucherCode)},${discountAmount},${new Date(order.createdAt).toLocaleDateString()}`;
+                          return `${order.id},${escCsv(customerName)},${escCsv(customerEmail)},${escCsv(shippingAddress)},${escCsv(paymentMethod)},${escCsv(order.status)},${order.totalAmount},${escCsv(getOrderCurrency(order))},${escCsv(order.market || 'ro')},${escCsv(voucherCode)},${discountAmount},${new Date(order.createdAt).toLocaleDateString()}`;
                         }).join('\n')}`;
                         
                         const blob = new Blob([csvContent], { type: 'text/csv' });

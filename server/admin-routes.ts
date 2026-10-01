@@ -2511,6 +2511,7 @@ export async function registerAdminRoutes(app: Express) {
       const orderData: any = {
         userId: null,
         market: orderMarket,
+        currency: marketSettingsMap.get(orderMarket)?.currency ?? (orderMarket === 'ro' ? 'RON' : 'EUR'),
         status: 'pending',
         totalAmount: totalAmount.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
