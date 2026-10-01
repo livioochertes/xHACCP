@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildAIMarketCatalog,
   formatAIMarketCatalog,
+  rankAIPromotionProducts,
   type AIMarketProduct,
 } from "./ai-catalog";
 
@@ -81,4 +82,38 @@ test("supports all configured markets and preserves a product currency when no o
     assert.equal(catalog.length, 1);
     assert.equal(formatAIMarketCatalog(catalog, "RON").includes("EUR"), true);
   }
+});
+
+test("ranks selected AI campaign products by featured flag, then display priority, then selection order", () => {
+  const catalog: AIMarketProduct[] = [
+    { id: 1, name: "Default selected first", featured: false, priority: 0 },
+    { id: 2, name: "Priority 2", featured: false, priority: 2 },
+    { id: 3, name: "Featured", featured: true, priority: 8 },
+    { id: 4, name: "Priority 1", featured: false, priority: 1 },
+    { id: 5, name: "Not selected", featured: true, priority: 1 },
+  ];
+
+  assert.deepEqual(
+    rankAIPromotionProducts(catalog, [1, 2, 3, 4]).map((product) => product.id),
+    [3, 4, 2],
+  );
+});
+
+test("limits scheduled promotion output to three available campaign products", () => {
+  const catalog: AIMarketProduct[] = [
+    { id: 1, featured: false, priority: 1 },
+    { id: 2, featured: false, priority: 2 },
+    { id: 3, featured: true, priority: 3 },
+    { id: 4, featured: true, priority: 1 },
+  ];
+
+  assert.deepEqual(
+    rankAIPromotionProducts(catalog, [1, 2, 3, 4]).map((product) => product.id),
+    [4, 3, 1],
+  );
+  assert.deepEqual(
+    rankAIPromotionProducts(catalog.filter((product) => product.id !== 4), [1, 2, 3, 4])
+      .map((product) => product.id),
+    [3, 1, 2],
+  );
 });

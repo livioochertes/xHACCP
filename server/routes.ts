@@ -7,8 +7,8 @@ import {
   optionalAuth,
   type AuthRequest,
 } from "./authentication";
-import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users, invoiceItems, invoices, orders, wmsOriginAddresses, type CompositeConfiguration, type InsertCartItem } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { insertUserSchema, insertCategorySchema, insertProductSchema, insertOrderSchema, insertCartItemSchema, insertReviewSchema, insertInvoiceSchema, insertInvoiceItemSchema, users, invoiceItems, invoices, orders, wmsOriginAddresses, aiRecommendationCampaigns, type CompositeConfiguration, type InsertCartItem } from "@shared/schema";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "./db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -24,7 +24,7 @@ import { sendNotificationPreferencesEmail, sendContactFormEmails, sendEventVouch
 import { getMarketFromRequest, marketMatches } from "./market-routing.js";
 import { EVENT_VOUCHER_ACTIVATION_DAYS, getVoucherValidityError } from "./voucher-validity.js";
 import { registerSeoRoutes, build404Html, getBaseUrl } from './seo-routes.js';
-import { buildAIMarketCatalog, formatAIMarketCatalog } from './ai-catalog';
+import { buildAIMarketCatalog, formatAIMarketCatalog, rankAIPromotionProducts } from './ai-catalog';
 import {
   collectContactRecipients,
   isValidEmailAddress,
@@ -243,6 +243,10 @@ let productsBySlug = new Map<string, any>();
 let stringifiedProductsData: string = '';
 let stringifiedCategoriesData: string = '';
 let dataVersion = 0;
+
+export function getAIMarketCatalogForMarket(market: string) {
+  return buildAIMarketCatalog(allProductsData, market, applyMarketOverlay);
+}
 
 function bumpDataVersion() {
   dataVersion += 1;
@@ -3774,8 +3778,26 @@ ${product.description}`;
       // and availability applied before it is sent to the model. Do not truncate
       // this list: products are sorted by priority in allProductsData, but every
       // active product must be available for recommendations.
-      const products = buildAIMarketCatalog(allProductsData, market, applyMarketOverlay);
+      const products = getAIMarketCatalogForMarket(market);
       const productList = formatAIMarketCatalog(products, marketCurrency);
+      const now = new Date();
+      const [activeAIPromotion] = await db.select({
+        productIds: aiRecommendationCampaigns.productIds,
+      })
+        .from(aiRecommendationCampaigns)
+        .where(and(
+          eq(aiRecommendationCampaigns.market, market),
+          sql`${aiRecommendationCampaigns.startsAt} <= ${now}`,
+          sql`${aiRecommendationCampaigns.endsAt} > ${now}`,
+        ))
+        .orderBy(desc(aiRecommendationCampaigns.startsAt))
+        .limit(1);
+      const promotedProducts = activeAIPromotion
+        ? rankAIPromotionProducts(products, activeAIPromotion.productIds || [])
+        : [];
+      const promotionContext = promotedProducts.length > 0
+        ? `\n\nSCHEDULED AI RECOMMENDATIONS FOR THIS MARKET:\n${formatAIMarketCatalog(promotedProducts, marketCurrency)}\nWhen a customer asks for a relevant product recommendation, consider these campaign products first, in the order shown. Do not force them into unrelated answers. They are subject to the same availability, price, currency, and linking rules as the complete catalog.`
+        : "";
 
       // Extract user ID from JWT token if present (optional authentication)
       let userId = null;
@@ -3841,6 +3863,8 @@ When user asks about orders, invoices, or order status, provide specific informa
 5. Order status and invoice information (for signed-in users)
 
 The customer is browsing the ${market.toUpperCase()} market site.
+
+${promotionContext}
 
 Our complete active product catalog for this market is below. Every listed product is available for recommendations, and the price/currency shown on its line is the current price for this market:
 ${productList}${userContext}

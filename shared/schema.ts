@@ -216,6 +216,20 @@ export const marketingCampaigns = pgTable("marketing_campaigns", {
   marketingCampaignMarketIdx: index("marketing_campaigns_market_idx").on(table.market),
 }));
 
+export const aiRecommendationCampaigns = pgTable("ai_recommendation_campaigns", {
+  id: serial("id").primaryKey(),
+  market: varchar("market", { length: 10 }).notNull(),
+  productIds: jsonb("product_ids").$type<number[]>().notNull(),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  aiRecommendationCampaignMarketDatesIdx: index("ai_recommendation_campaign_market_dates_idx")
+    .on(table.market, table.startsAt, table.endsAt),
+}));
+
 // Product markets table — which products are available in which markets + optional overrides
 export const productMarkets = pgTable("product_markets", {
   id: serial("id").primaryKey(),

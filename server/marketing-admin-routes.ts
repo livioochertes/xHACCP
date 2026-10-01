@@ -1,8 +1,15 @@
 import type { Express, Request, Response } from "express";
-import type { MarketingSegmentCriteria } from "@shared/schema";
+import {
+  aiRecommendationCampaigns,
+  type MarketingSegmentCriteria,
+} from "@shared/schema";
+import { and, desc, eq, gt, lt, ne } from "drizzle-orm";
+import { db } from "./db";
 import { storage } from "./storage";
 import { authenticateAdmin, canAccessMarket } from "./admin-routes";
 import { getSenderForMarket, sendEmail } from "./email-service";
+import { getAIMarketCatalogForMarket } from "./routes";
+import { parseAIRecommendationCampaignInput } from "./ai-recommendation-campaign-validation";
 
 type MarketingAdminRequest = Request & {
   adminId?: number;
@@ -14,7 +21,168 @@ function isSupportedMarket(value: unknown): value is "all" | "ro" | "fr" | "com"
   return value === "all" || value === "ro" || value === "fr" || value === "com";
 }
 
+type RecommendationMarket = "ro" | "fr" | "com";
+
+function isRecommendationMarket(value: unknown): value is RecommendationMarket {
+  return value === "ro" || value === "fr" || value === "com";
+}
+
+async function recommendationProductsBelongToMarket(
+  productIds: number[],
+  market: RecommendationMarket,
+): Promise<boolean> {
+  const availableProductIds = new Set(
+    getAIMarketCatalogForMarket(market).map((product) => String(product.id)),
+  );
+  return productIds.every((id) => availableProductIds.has(String(id)));
+}
+
 export function registerMarketingAdminRoutes(app: Express): void {
+  app.get("/admin/api/ai-recommendation-campaigns", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    try {
+      const market = String(req.query.market || "");
+      if (!isRecommendationMarket(market)) {
+        return res.status(400).json({ message: "Choose a valid market: ro, fr or com" });
+      }
+      if (!canAccessMarket(req as any, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
+      const campaigns = await db.select()
+        .from(aiRecommendationCampaigns)
+        .where(eq(aiRecommendationCampaigns.market, market))
+        .orderBy(desc(aiRecommendationCampaigns.startsAt));
+      const products = getAIMarketCatalogForMarket(market).map((product) => ({
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        featured: product.featured,
+        priority: product.priority,
+      }));
+
+      res.json({ market, campaigns, products });
+    } catch (error) {
+      console.error("AI recommendation campaign list error:", error);
+      res.status(500).json({ message: "Failed to fetch AI recommendation campaigns" });
+    }
+  });
+
+  app.post("/admin/api/ai-recommendation-campaigns", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    try {
+      const market = req.body?.market;
+      if (!isRecommendationMarket(market)) {
+        return res.status(400).json({ message: "Choose a valid market: ro, fr or com" });
+      }
+      if (!canAccessMarket(req as any, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
+      const input = parseAIRecommendationCampaignInput(req.body);
+      if ("error" in input) return res.status(400).json({ message: input.error });
+      if (!(await recommendationProductsBelongToMarket(input.productIds, market))) {
+        return res.status(400).json({ message: "All selected products must be active in this market" });
+      }
+
+      const [overlap] = await db.select({ id: aiRecommendationCampaigns.id })
+        .from(aiRecommendationCampaigns)
+        .where(and(
+          eq(aiRecommendationCampaigns.market, market),
+          lt(aiRecommendationCampaigns.startsAt, input.endsAt),
+          gt(aiRecommendationCampaigns.endsAt, input.startsAt),
+        ))
+        .limit(1);
+      if (overlap) {
+        return res.status(409).json({ message: "Another campaign overlaps this period for the selected market" });
+      }
+
+      const [campaign] = await db.insert(aiRecommendationCampaigns).values({
+        market,
+        productIds: input.productIds,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        createdBy: req.adminId,
+      }).returning();
+      res.status(201).json(campaign);
+    } catch (error) {
+      console.error("AI recommendation campaign create error:", error);
+      res.status(500).json({ message: "Failed to create AI recommendation campaign" });
+    }
+  });
+
+  app.put("/admin/api/ai-recommendation-campaigns/:id", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        return res.status(400).json({ message: "Invalid campaign ID" });
+      }
+      const [existing] = await db.select().from(aiRecommendationCampaigns)
+        .where(eq(aiRecommendationCampaigns.id, id))
+        .limit(1);
+      if (!existing) return res.status(404).json({ message: "Campaign not found" });
+      if (!canAccessMarket(req as any, existing.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (req.body?.market !== undefined && req.body.market !== existing.market) {
+        return res.status(400).json({ message: "A campaign's market cannot be changed" });
+      }
+
+      const input = parseAIRecommendationCampaignInput(req.body);
+      if ("error" in input) return res.status(400).json({ message: input.error });
+      if (!(await recommendationProductsBelongToMarket(input.productIds, existing.market as RecommendationMarket))) {
+        return res.status(400).json({ message: "All selected products must be active in this market" });
+      }
+
+      const [overlap] = await db.select({ id: aiRecommendationCampaigns.id })
+        .from(aiRecommendationCampaigns)
+        .where(and(
+          eq(aiRecommendationCampaigns.market, existing.market),
+          ne(aiRecommendationCampaigns.id, id),
+          lt(aiRecommendationCampaigns.startsAt, input.endsAt),
+          gt(aiRecommendationCampaigns.endsAt, input.startsAt),
+        ))
+        .limit(1);
+      if (overlap) {
+        return res.status(409).json({ message: "Another campaign overlaps this period for the selected market" });
+      }
+
+      const [campaign] = await db.update(aiRecommendationCampaigns)
+        .set({
+          productIds: input.productIds,
+          startsAt: input.startsAt,
+          endsAt: input.endsAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(aiRecommendationCampaigns.id, id))
+        .returning();
+      res.json(campaign);
+    } catch (error) {
+      console.error("AI recommendation campaign update error:", error);
+      res.status(500).json({ message: "Failed to update AI recommendation campaign" });
+    }
+  });
+
+  app.delete("/admin/api/ai-recommendation-campaigns/:id", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        return res.status(400).json({ message: "Invalid campaign ID" });
+      }
+      const [existing] = await db.select().from(aiRecommendationCampaigns)
+        .where(eq(aiRecommendationCampaigns.id, id))
+        .limit(1);
+      if (!existing) return res.status(404).json({ message: "Campaign not found" });
+      if (!canAccessMarket(req as any, existing.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
+      await db.delete(aiRecommendationCampaigns).where(eq(aiRecommendationCampaigns.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("AI recommendation campaign delete error:", error);
+      res.status(500).json({ message: "Failed to delete AI recommendation campaign" });
+    }
+  });
+
   app.get("/admin/api/marketing/event-voucher-contacts", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
     try {
       if (!canAccessMarket(req as any, "fr")) {

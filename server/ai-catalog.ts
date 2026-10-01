@@ -42,3 +42,30 @@ export function formatAIMarketCatalog(
     )
     .join("\n");
 }
+
+/**
+ * Keeps only campaign products that are already present in the active,
+ * market-filtered catalog. Featured products rank first, followed by positive
+ * display priorities (1 is highest); selection order breaks remaining ties.
+ */
+export function rankAIPromotionProducts(
+  products: AIMarketProduct[],
+  selectedProductIds: Array<number | string>,
+): AIMarketProduct[] {
+  const selectionOrder = new Map(
+    selectedProductIds.map((id, index) => [String(id), index]),
+  );
+  const displayPriority = (product: AIMarketProduct): number => {
+    const priority = Number(product.priority);
+    return Number.isFinite(priority) && priority > 0 ? priority : Number.POSITIVE_INFINITY;
+  };
+
+  return products
+    .filter((product) => selectionOrder.has(String(product.id)))
+    .sort((a, b) =>
+      Number(Boolean(b.featured)) - Number(Boolean(a.featured))
+      || displayPriority(a) - displayPriority(b)
+      || (selectionOrder.get(String(a.id)) ?? 0) - (selectionOrder.get(String(b.id)) ?? 0),
+    )
+    .slice(0, 3);
+}

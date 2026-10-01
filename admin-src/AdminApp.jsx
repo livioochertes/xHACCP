@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { useTranslation, I18nextProvider } from "react-i18next";
 import i18n from "./i18n.js";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
+import AIRecommendationCampaigns from "./AIRecommendationCampaigns.jsx";
 import {
   broadcastCategoryTranslationUpdate,
   subscribeToCategoryTranslationUpdates,
@@ -5761,6 +5762,14 @@ import {
               </div>
             );
 
+          case 'ai-recommendations':
+            return (
+              <AIRecommendationCampaigns
+                t={t}
+                selectedMarketTab={selectedMarketTab}
+                allowedMarkets={adminIsSuperAdmin ? ['ro', 'fr', 'com'] : (admin?.adminMarkets || [])}
+              />
+            );
           case 'marketing':
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
@@ -14143,6 +14152,13 @@ TOTAL: ${parseFloat(selectedOrder.totalAmount).toFixed(2)} lei
             >
               <span style={{fontSize: '18px'}}>📣</span>
               <span style={{fontSize: '12px'}}>{t('nav.marketing')}</span>
+            </button>
+            <button
+              className={`nav-tab ${activeView === 'ai-recommendations' ? 'active' : ''}`}
+              onClick={() => handleViewChange('ai-recommendations')}
+            >
+              <span style={{fontSize: '18px'}}>✨</span>
+              <span style={{fontSize: '12px'}}>{t('nav.aiRecommendations')}</span>
             </button>
             <button
               className={`nav-tab ${activeView === 'wms' ? 'active' : ''}`}
