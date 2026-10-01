@@ -31,11 +31,7 @@ interface ShippingSettings {
   currency: string;
   vatPercentage: string;
 }
-import xhaccpLogo from "@assets/logo_xHACCP-S1_1772812623761.png";
-import suppliesEquipmentImg from "@assets/generated_images/chef_checking_kitchen_inventory.png";
-import businessConsultingImg from "@assets/generated_images/business_consulting_meeting_chef.png";
-import kitchenManagementImg from "@assets/generated_images/chef_using_tablet_management.png";
-import personalizedSupportImg from "@assets/generated_images/support_representative_video_call.png";
+import { publicLogo, featureImage } from "@/lib/public-images";
 
 export default function Home() {
   const { t } = useTranslation();
@@ -445,7 +441,7 @@ export default function Home() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="relative rounded-lg overflow-hidden shadow-md group">
                   <img
-                    src={suppliesEquipmentImg}
+                    {...featureImage("chef_checking_kitchen_inventory")}
                     alt="Supplies & Equipment"
                     className="w-full h-40 object-cover transition-transform group-hover:scale-105"
                   />
@@ -455,7 +451,7 @@ export default function Home() {
                 </div>
                 <div className="relative rounded-lg overflow-hidden shadow-md group">
                   <img
-                    src={businessConsultingImg}
+                    {...featureImage("business_consulting_meeting_chef")}
                     alt="Business Consulting"
                     className="w-full h-40 object-cover transition-transform group-hover:scale-105"
                   />
@@ -465,7 +461,7 @@ export default function Home() {
                 </div>
                 <div className="relative rounded-lg overflow-hidden shadow-md group">
                   <img
-                    src={kitchenManagementImg}
+                    {...featureImage("chef_using_tablet_management")}
                     alt="Kitchen Management"
                     className="w-full h-40 object-cover transition-transform group-hover:scale-105"
                   />
@@ -475,7 +471,7 @@ export default function Home() {
                 </div>
                 <div className="relative rounded-lg overflow-hidden shadow-md group">
                   <img
-                    src={personalizedSupportImg}
+                    {...featureImage("support_representative_video_call")}
                     alt="Personalized Support"
                     className="w-full h-40 object-cover transition-transform group-hover:scale-105"
                   />
@@ -637,7 +633,10 @@ export default function Home() {
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-16 h-16 bg-white rounded-lg p-1 flex items-center justify-center">
                   <img 
-                    src={xhaccpLogo} 
+                    {...publicLogo}
+                    sizes="56px"
+                    loading="lazy"
+                    decoding="async"
                     alt="xHACCP Logo" 
                     className="w-14 h-14 object-contain"
                   />

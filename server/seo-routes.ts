@@ -101,8 +101,19 @@ function getOgLocale(lang: string): string {
   return map[lang] ?? "en_US";
 }
 
-const DEFAULT_OG_IMAGE = "https://xhaccp.ro/og-image.png";
+const DEFAULT_OG_IMAGE = "/og-image.jpg";
 const DEFAULT_OG_IMAGE_ALT = "xHACCP – Echipamente și consumabile profesionale HACCP";
+
+/** Resolve local, protocol-relative and remote images to crawler-safe URLs. */
+function publicImageUrl(image: string | undefined, canonical: string): string | undefined {
+  if (!image?.trim()) return undefined;
+  try {
+    const url = new URL(image, new URL(canonical).origin);
+    return ["https:", "http:"].includes(url.protocol) ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function injectMeta(html: string, meta: MetaTags, lang: string, bodyHtml?: string, jsonLd?: object | object[]): string {
   const title = escapeHtml(meta.title);
@@ -111,9 +122,11 @@ function injectMeta(html: string, meta: MetaTags, lang: string, bodyHtml?: strin
   const canonical = escapeHtml(meta.canonical);
   const ogType = meta.ogType || "website";
   const ogLocale = getOgLocale(lang);
-  const imageUrl = escapeHtml(meta.image || DEFAULT_OG_IMAGE);
+  const routeImage = publicImageUrl(meta.image, meta.canonical);
+  const imageUrl = escapeHtml(routeImage || new URL(DEFAULT_OG_IMAGE, meta.canonical).href);
   const imageAlt = escapeHtml(meta.imageAlt || meta.title || DEFAULT_OG_IMAGE_ALT);
-  let result = html;
+  // Replace template social tags instead of leaving duplicate, conflicting tags.
+  let result = html.replace(/<meta\b[^>]*(?:property="og:[^"]+"|name="twitter:(?:card|title|description|image(?::alt)?)")[^>]*>/gi, "");
 
   // Set the correct lang attribute on <html>
   result = result.replace(/(<html\b[^>]*)\blang="[^"]*"/, `$1lang="${lang}"`);
@@ -147,6 +160,11 @@ function injectMeta(html: string, meta: MetaTags, lang: string, bodyHtml?: strin
     `<meta property="og:locale" content="${ogLocale}" />`,
     `<meta property="og:image" content="${imageUrl}" />`,
     `<meta property="og:image:alt" content="${imageAlt}" />`,
+    ...(!routeImage ? [
+      `<meta property="og:image:type" content="image/jpeg" />`,
+      `<meta property="og:image:width" content="1200" />`,
+      `<meta property="og:image:height" content="630" />`,
+    ] : []),
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${title}" />`,
     `<meta name="twitter:description" content="${description}" />`,
@@ -793,11 +811,7 @@ export function registerSeoRoutes(
               : "Articol despre siguranța alimentară și HACCP pentru industria HoReCa din România.",
         canonical: `${base}/blog/${slug}`,
         ogType: "article",
-        image: post.imageUrl
-          ? post.imageUrl.startsWith("http")
-            ? post.imageUrl
-            : `${base}${post.imageUrl.startsWith("/") ? "" : "/"}${post.imageUrl}`
-          : undefined,
+        image: post.imageUrl || undefined,
         imageAlt: post.title,
       };
 
@@ -827,7 +841,8 @@ export function registerSeoRoutes(
         "articleSection": post.category,
       };
       if (post.excerpt) blogPostingSchema["description"] = post.excerpt.slice(0, 300);
-      if (post.imageUrl) blogPostingSchema["image"] = post.imageUrl;
+      const articleImage = publicImageUrl(post.imageUrl, base);
+      if (articleImage) blogPostingSchema["image"] = articleImage;
       if (post.publishedAt) blogPostingSchema["datePublished"] = new Date(post.publishedAt).toISOString();
       if (post.updatedAt) blogPostingSchema["dateModified"] = new Date(post.updatedAt).toISOString();
       if (post.tags?.length) blogPostingSchema["keywords"] = post.tags.join(", ");
@@ -933,11 +948,7 @@ export function registerSeoRoutes(
 
       const rawProductImage: string | undefined =
         product.imageUrl || (Array.isArray(product.images) && product.images[0]) || undefined;
-      const productImage = rawProductImage
-        ? rawProductImage.startsWith("http")
-          ? rawProductImage
-          : `${base}${rawProductImage.startsWith("/") ? "" : "/"}${rawProductImage}`
-        : undefined;
+      const productImage = publicImageUrl(rawProductImage, base);
 
       const meta: MetaTags = {
         title: `${seoName} | xHACCP`,

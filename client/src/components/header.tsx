@@ -15,7 +15,7 @@ import { trackEvent } from "@/lib/analytics";
 import LanguageSwitcher from "@/components/language-switcher";
 import ContactModal from "@/components/contact-modal";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
-import xhaccpLogo from "@assets/logo_xHACCP-S1_1772812623761.png";
+import { publicLogo } from "@/lib/public-images";
 
 interface ShippingSettings {
   freeShippingThreshold: string;
@@ -96,7 +96,8 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 flex-shrink-0">
             <img 
-              src={xhaccpLogo} 
+              {...publicLogo}
+              sizes="100px"
               alt="xHACCP Logo" 
               className="w-[100px] h-[100px] object-contain -my-4"
             />
