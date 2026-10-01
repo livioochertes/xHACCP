@@ -164,6 +164,8 @@ async function waitForPageState(client, isReady = (state) => Boolean(state?.titl
           cartStorage: localStorage.getItem("guestCart:ro"),
           legacyCartStorage: localStorage.getItem("guestCart"),
           summaryText: document.querySelector("h2")?.textContent?.trim() || "",
+          contactEmail: document.querySelector('main a[href^="mailto:"]')?.textContent?.trim() || null,
+          contactPhone: document.querySelector('main a[href^="tel:"]')?.textContent?.trim() || null,
           actionHref: document.querySelector("main a")?.getAttribute("href") || null,
           actionText: document.querySelector("main a")?.textContent?.trim() || "",
           analytics: window.__thankYouAnalytics || [],
@@ -256,6 +258,8 @@ async function openThankYouPage(t, paymentResult, { authToken = null, seedGuestC
   const orderSummary = {
     orderId: 184,
     buyerName: "Browser Test",
+    email: "buyer@example.test",
+    phone: "+40 700 000 123",
     subtotal: 50,
     discountAmount: 0,
     voucherCode: null,
@@ -421,6 +425,8 @@ test("successful payment clears the cart and tracks one purchase across reloads"
 
   assert.equal(state.title, "Order placed successfully!");
   assert.match(state.summaryText, /Order summary/i);
+  assert.equal(state.contactEmail, "buyer@example.test");
+  assert.equal(state.contactPhone, "+40 700 000 123");
   assert.equal(state.cartStorage, null);
   assert.equal(state.legacyCartStorage, null);
   assert.equal(state.cartBadgeText, null);

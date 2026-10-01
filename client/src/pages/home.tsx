@@ -23,6 +23,7 @@ import { getPublicCategorySlug } from "@/lib/category-slugs";
 import type { Category, ProductWithCategory, BlogPost } from "@shared/schema";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { getMarketFromHostname } from "@/lib/queryClient";
+import OrderContactDetails from "@/components/order-contact-details";
 
 interface ShippingSettings {
   freeShippingThreshold: string;
@@ -50,6 +51,8 @@ export default function Home() {
 
   const [vivaConfirmedOrder, setVivaConfirmedOrder] = useState<{
     orderId?: number | null;
+    email?: string;
+    phone?: string;
     subtotal: number;
     discountAmount: number;
     voucherCode: string | null;
@@ -257,6 +260,7 @@ export default function Home() {
                 </div>
                 <div className="border rounded-lg p-4 text-left space-y-2">
                   <h3 className="font-semibold text-sm mb-3">{t('checkout.orderSummary')}</h3>
+                  <OrderContactDetails email={vivaConfirmedOrder.email} phone={vivaConfirmedOrder.phone} />
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{t('checkout.subtotal')}:</span>
                     <span>{vivaConfirmedOrder.subtotal.toFixed(2)} {vivaConfirmedOrder.currencySymbol}</span>

@@ -11,10 +11,13 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { usePageSeo } from "@/lib/use-page-seo";
 import { getMarketFromHostname } from "@/lib/queryClient";
 import { getPaymentEventName, getPaymentStatus, trackEvent } from "@/lib/analytics";
+import OrderContactDetails from "@/components/order-contact-details";
 
 interface OrderSummary {
   orderId: number | null;
   buyerName?: string;
+  email?: string;
+  phone?: string;
   items?: OrderSummaryItem[];
   subtotal: number;
   discountAmount: number;
@@ -165,6 +168,7 @@ export default function ThankYou() {
                   <span className="font-medium">{summary.buyerName}</span>
                 </div>
               )}
+              <OrderContactDetails email={summary.email} phone={summary.phone} />
               {summary.items && summary.items.length > 0 && (
                 <div className="border-t pt-3 mt-3">
                   <h3 className="font-semibold text-sm mb-3">{t("checkout.purchasedProducts")}</h3>

@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/hooks/useTranslation";
 import type { TranslationKeys } from "@/translations";
 import Header from "@/components/header";
+import OrderContactDetails from "@/components/order-contact-details";
 
 import VivaPayment from "@/components/viva-payment";
 import PayPalPayment from "@/components/paypal-payment";
@@ -209,6 +210,8 @@ export default function Checkout() {
   const [confirmedOrder, setConfirmedOrder] = useState<{
     orderId: number | null;
     buyerName: string;
+    email: string;
+    phone: string;
     items: OrderSummaryItem[];
     subtotal: number;
     discountAmount: number;
@@ -221,6 +224,8 @@ export default function Checkout() {
   // Ref to always hold the latest order summary (used by mutation onSuccess & Viva localStorage)
   const currentOrderSummaryRef = useRef<{
     buyerName: string;
+    email: string;
+    phone: string;
     items: OrderSummaryItem[];
     subtotal: number;
     discountAmount: number;
@@ -228,7 +233,7 @@ export default function Checkout() {
     shipping: number;
     total: number;
     currencySymbol: string;
-  }>({ buyerName: '', items: [], subtotal: 0, discountAmount: 0, voucherCode: null, shipping: 0, total: 0, currencySymbol: '' });
+  }>({ buyerName: '', email: '', phone: '', items: [], subtotal: 0, discountAmount: 0, voucherCode: null, shipping: 0, total: 0, currencySymbol: '' });
   const checkoutStartedRef = useRef(false);
 
   // Fetch shipping settings (includes VAT percentage)
@@ -365,6 +370,9 @@ export default function Checkout() {
   }, [step]);
 
   const sameAsBilling = form.watch("sameAsBilling");
+  const watchedEmail = form.watch("email");
+  const watchedPhone = form.watch("phone");
+  const watchedShippingPhone = form.watch("shippingAddress.phone");
   const clientType = form.watch("billingAddress.clientType");
   const createAccount = form.watch("createAccount");
   const saveDetailsToAccount = form.watch("saveDetailsToAccount");
@@ -414,7 +422,12 @@ export default function Checkout() {
     },
     onSuccess: async (order: { id?: number; [key: string]: any }, variables: CheckoutFormData) => {
       const orderId = order?.id ?? null;
-      const summary = { ...currentOrderSummaryRef.current, orderId };
+      const summary = {
+        ...currentOrderSummaryRef.current,
+        orderId,
+        email: variables.email?.trim() || currentOrderSummaryRef.current.email,
+        phone: variables.phone?.trim() || currentOrderSummaryRef.current.phone,
+      };
       trackEvent("purchase_completed", {
         value: Number(summary.total.toFixed(2)),
         currency: summary.currencySymbol,
@@ -496,6 +509,8 @@ export default function Checkout() {
         .map(value => value?.trim())
         .filter(Boolean)
         .join(" "),
+      email: watchedEmail?.trim() || "",
+      phone: watchedPhone?.trim() || watchedShippingPhone?.trim() || "",
       items,
       subtotal,
       discountAmount: voucherDiscount,
@@ -510,7 +525,7 @@ export default function Checkout() {
     if (step === 3) {
       localStorage.setItem('xhaccp_pending_order_summary', JSON.stringify(summary));
     }
-  }, [cart, subtotal, voucherDiscount, appliedVoucher, shipping, finalTotal, currencySymbol, step]);
+  }, [cart, subtotal, voucherDiscount, appliedVoucher, shipping, finalTotal, currencySymbol, step, watchedEmail, watchedPhone, watchedShippingPhone]);
 
   useEffect(() => {
     if (step !== 3 || checkoutStartedRef.current) return;
@@ -819,6 +834,7 @@ export default function Checkout() {
               </div>
               <div className="border rounded-lg p-4 text-left space-y-2">
                 <h3 className="font-semibold text-sm mb-3">{t('checkout.orderSummary')}</h3>
+                <OrderContactDetails email={confirmedOrder.email} phone={confirmedOrder.phone} />
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{t('checkout.subtotal')}:</span>
                   <span>{confirmedOrder.subtotal.toFixed(2)} {confirmedOrder.currencySymbol}</span>
