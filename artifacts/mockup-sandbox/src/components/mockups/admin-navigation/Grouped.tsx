@@ -1167,7 +1167,7 @@ export function Grouped() {
         {mobileOpen && <button className="admin-sidebar-scrim" type="button" aria-label="Închide meniul" onClick={() => setMobileOpen(false)} />}
 
         <main className="admin-main">
-          <div className="admin-page">
+          <div className={`admin-page${activeId === "reports" ? " is-reports-page" : ""}`}>
             <div className="admin-page-context">
               <span>ADMIN</span><ChevronRight size={10} /><strong>{activeGroup}</strong><ChevronRight size={10} /><strong>{activeItem.label}</strong>
             </div>

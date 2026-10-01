@@ -2113,3 +2113,100 @@
     bottom: 12px;
   }
 }
+
+/* Keep the navigation and Reports labels comfortable to read at normal zoom. */
+.admin-nav-prototype .admin-sidebar-caption,
+.admin-nav-prototype .admin-nav-group-heading span,
+.admin-nav-prototype .admin-nav-count {
+  font-size: 11px;
+}
+
+.admin-nav-prototype .admin-sidebar-workspace-copy strong {
+  font-size: 12px;
+}
+
+.admin-nav-prototype .admin-sidebar-workspace-copy span {
+  font-size: 10px;
+}
+
+.admin-nav-prototype .admin-nav-item {
+  min-height: 36px;
+  font-size: 13px;
+}
+
+.admin-page.is-reports-page .admin-page-context {
+  font-size: 10px;
+}
+
+.admin-page.is-reports-page .admin-page-heading-copy > p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-page.is-reports-page .admin-report-range button {
+  font-size: 11px;
+}
+
+.admin-page.is-reports-page .admin-report-scope {
+  font-size: 12px;
+}
+
+.admin-page.is-reports-page .admin-stat-heading {
+  font-size: 12px;
+}
+
+.admin-page.is-reports-page .admin-stat-foot,
+.admin-page.is-reports-page .admin-stat-foot strong {
+  font-size: 11px;
+}
+
+.admin-page.is-reports-page .admin-report-period-label {
+  font-size: 11px;
+}
+
+.admin-page.is-reports-page .admin-report-market-copy strong {
+  font-size: 12px;
+}
+
+.admin-page.is-reports-page .admin-report-market-copy > span:last-child,
+.admin-page.is-reports-page .admin-report-market-foot,
+.admin-page.is-reports-page .admin-report-table-count {
+  font-size: 11px;
+}
+
+.admin-page.is-reports-page .admin-panel-heading h2 {
+  font-size: 13px;
+}
+
+.admin-page.is-reports-page .admin-panel-heading p {
+  font-size: 11px;
+}
+
+.admin-page.is-reports-page .admin-panel-heading button {
+  font-size: 11px;
+}
+
+.admin-page.is-reports-page .admin-chart-summary span {
+  font-size: 11px;
+}
+
+.admin-page.is-reports-page .admin-chart-bar label {
+  font-size: 10px;
+}
+
+.admin-page.is-reports-page .admin-report-data-table th {
+  font-size: 10px;
+}
+
+.admin-page.is-reports-page .admin-report-data-table td {
+  font-size: 13px;
+}
+
+.admin-page.is-reports-page .admin-report-data-table .admin-table-secondary {
+  font-size: 11px;
+}
+
+.admin-page.is-reports-page .admin-report-data-table .admin-status,
+.admin-page.is-reports-page .admin-report-data-table .admin-market-code {
+  font-size: 11px;
+}

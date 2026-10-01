@@ -948,7 +948,7 @@
       margin: 0 5px;
       color: #96b0a4;
       font-family: "DM Mono", monospace;
-      font-size: 8px;
+      font-size: 10px;
       font-weight: 500;
       letter-spacing: 0.14em;
       text-transform: uppercase;
@@ -987,7 +987,7 @@
       padding: 7px 9px;
       border-radius: 8px;
       color: #c4d2c8;
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 550;
       transition: background 150ms ease, color 150ms ease;
     }
@@ -1021,7 +1021,7 @@
       min-height: 31px;
       color: #9bb3a7;
       font-family: "DM Mono", monospace;
-      font-size: 8px;
+      font-size: 10px;
       font-weight: 500;
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -1043,7 +1043,7 @@
 
     #admin-root .admin-nav-children .admin-nav-link {
       min-height: 33px;
-      font-size: 10px;
+      font-size: 13px;
     }
 
     #admin-root .admin-nav-divider {
@@ -2639,6 +2639,103 @@
         text-overflow: ellipsis;
       }
     }
+
+    /* Reports typography: raise small supporting text without changing layout. */
+    #admin-root .admin-reports-page-heading p {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    #admin-root .admin-reports-eyebrow {
+      font-size: 10px;
+    }
+
+    #admin-root .admin-reports-page .admin-report-scope {
+      font-size: 11px;
+    }
+
+    #admin-root .admin-report-refresh,
+    #admin-root .admin-report-text-button {
+      font-size: 12px;
+    }
+
+    #admin-root .admin-report-range button {
+      font-size: 11px;
+    }
+
+    #admin-root .admin-reports-page .admin-stat-heading {
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    #admin-root .admin-reports-page .admin-stat-value.is-multiline {
+      font-size: 18px;
+    }
+
+    #admin-root .admin-reports-page .admin-stat-foot,
+    #admin-root .admin-reports-page .admin-stat-foot strong {
+      font-size: 11px;
+    }
+
+    #admin-root .admin-report-error {
+      font-size: 13px;
+    }
+
+    #admin-root .admin-report-error button,
+    #admin-root .admin-report-loading {
+      font-size: 12px;
+    }
+
+    #admin-root .admin-reports-page .admin-panel-heading h2 {
+      font-size: 14px;
+    }
+
+    #admin-root .admin-reports-page .admin-panel-heading p {
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    #admin-root .admin-report-period-label,
+    #admin-root .admin-report-market-copy > span:last-child,
+    #admin-root .admin-report-market-foot,
+    #admin-root .admin-report-table-count,
+    #admin-root .admin-report-pagination {
+      font-size: 11px;
+    }
+
+    #admin-root .admin-report-market-copy strong {
+      font-size: 13px;
+    }
+
+    #admin-root .admin-report-market-foot {
+      line-height: 1.4;
+    }
+
+    #admin-root .admin-chart-summary span {
+      font-size: 11px;
+    }
+
+    #admin-root .admin-chart-bar label {
+      font-size: 10px;
+    }
+
+    #admin-root .admin-report-data-table th {
+      font-size: 10px;
+    }
+
+    #admin-root .admin-report-data-table td {
+      font-size: 13px;
+    }
+
+    #admin-root .admin-report-data-table .admin-table-secondary,
+    #admin-root .admin-report-data-table .admin-status,
+    #admin-root .admin-report-data-table .admin-market-code {
+      font-size: 11px;
+    }
+
+    #admin-root .admin-table-empty {
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -2699,6 +2796,6 @@
       }
     }, 20000);
   </script>
-  <script src="/admin/vendor/admin-bundle.js?v=20261001-admin-reports-v1"></script>
+  <script src="/admin/vendor/admin-bundle.js?v=20261001-admin-reports-typography-v2"></script>
 </body>
 </html>
