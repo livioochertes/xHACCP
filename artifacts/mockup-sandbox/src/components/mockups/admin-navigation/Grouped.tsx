@@ -423,13 +423,11 @@ function StatCard({
 
 function DashboardWorkspace({
   market,
-  onNavigate,
   onOpenOrder,
   orders,
   onNotify,
 }: {
   market: MarketId;
-  onNavigate: (id: SectionId) => void;
   onOpenOrder: (order: OrderRow) => void;
   orders: OrderRow[];
   onNotify: (message: string) => void;
@@ -449,36 +447,7 @@ function DashboardWorkspace({
         onNotify={onNotify}
       />
 
-      <div className="admin-dashboard-lower">
-        <section className="admin-panel">
-          <header className="admin-panel-heading">
-            <div>
-              <h2>Ultimele comenzi</h2>
-              <p>Activitate recentă în platformă</p>
-            </div>
-            <button type="button" onClick={() => onNavigate("orders")}>
-              Toate <ArrowRight size={12} />
-            </button>
-          </header>
-          <div className="admin-mini-feed">
-            {orders.slice(0, 4).map((order, index) => (
-              <button
-                className="admin-feed-item admin-feed-button"
-                key={order.id}
-                type="button"
-                onClick={() => onOpenOrder(order)}
-              >
-                <span className={`admin-feed-symbol${index === 1 ? " is-coral" : ""}`}><ShoppingCart size={14} /></span>
-                <span className="admin-feed-copy">
-                  <strong>{order.customer}</strong>
-                  <span>{order.id} · {order.market} · {order.time}</span>
-                </span>
-                <span className="admin-feed-price">{order.amount.split(" ")[0]}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
+      <div className="admin-dashboard-lower admin-dashboard-lower-single">
         <section className="admin-panel">
           <header className="admin-panel-heading">
             <div>
@@ -1155,7 +1124,6 @@ export function Grouped() {
             {activeId === "dashboard" && (
               <DashboardWorkspace
                 market={market}
-                onNavigate={navigateTo}
                 onOpenOrder={openOrder}
                 orders={filteredOrders}
                 onNotify={notify}

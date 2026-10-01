@@ -805,6 +805,10 @@
   margin-top: 14px;
 }
 
+.admin-dashboard-lower-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .admin-report-toolbar {
   flex-wrap: wrap;
 }

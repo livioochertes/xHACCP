@@ -22402,9 +22402,7 @@ This action cannot be undone.`)) {
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("h3", { style: { marginBottom: "20px", color: "#333" }, children: t2("dashboard.systemOverview") }),
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { style: { color: "#666", lineHeight: "1.6" }, children: t2("dashboard.welcomeText") }),
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { marginTop: "30px", padding: "20px", background: "#f8f9ff", borderRadius: "6px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { marginTop: "0", padding: "20px", background: "#f8f9ff", borderRadius: "6px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: t2("dashboard.quickStats") }),
                 /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("ul", { style: { listStyle: "none", padding: 0 }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("li", { style: { marginBottom: "5px" }, children: [
@@ -22521,27 +22519,6 @@ This action cannot be undone.`)) {
                     }
                   )
                 ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { marginTop: "30px", padding: "20px", background: "#f0f8ff", borderRadius: "6px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("h4", { style: { color: "#333", marginBottom: "10px" }, children: "Recent Activity" }),
-                stats?.recentOrders?.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { maxHeight: "200px", overflowY: "auto" }, children: stats.recentOrders.map((order, index) => /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: {
-                  padding: "10px",
-                  marginBottom: "10px",
-                  background: "white",
-                  borderRadius: "4px",
-                  borderLeft: "4px solid #2196F3"
-                }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { fontWeight: "bold" }, children: [
-                    "Order #",
-                    order.id
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { fontSize: "14px", color: "#666" }, children: [
-                    "Amount: $",
-                    order.totalAmount,
-                    " | Status: ",
-                    order.status
-                  ] })
-                ] }, index)) }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { style: { color: "#666", fontStyle: "italic" }, children: "No recent orders" })
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(

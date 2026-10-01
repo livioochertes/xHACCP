@@ -7362,12 +7362,7 @@ import {
                 </div>
                 
                 <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
-                  <h3 style={{marginBottom: '20px', color: '#333'}}>{t('dashboard.systemOverview')}</h3>
-                  <p style={{color: '#666', lineHeight: '1.6'}}>
-                    {t('dashboard.welcomeText')}
-                  </p>
-                  
-                  <div style={{marginTop: '30px', padding: '20px', background: '#f8f9ff', borderRadius: '6px'}}>
+                  <div style={{marginTop: '0', padding: '20px', background: '#f8f9ff', borderRadius: '6px'}}>
                     <h4 style={{color: '#333', marginBottom: '10px'}}>{t('dashboard.quickStats')}</h4>
                     <ul style={{listStyle: 'none', padding: 0}}>
                       <li style={{marginBottom: '5px'}}>📊 {stats?.totalUsers || '0'} {t('dashboard.registeredUsers')}</li>
@@ -7440,30 +7435,6 @@ import {
                       </div>
                     </div>
                   )}
-                  
-                  <div style={{marginTop: '30px', padding: '20px', background: '#f0f8ff', borderRadius: '6px'}}>
-                    <h4 style={{color: '#333', marginBottom: '10px'}}>Recent Activity</h4>
-                    {stats?.recentOrders?.length > 0 ? (
-                      <div style={{maxHeight: '200px', overflowY: 'auto'}}>
-                        {stats.recentOrders.map((order, index) => (
-                          <div key={index} style={{
-                            padding: '10px',
-                            marginBottom: '10px',
-                            background: 'white',
-                            borderRadius: '4px',
-                            borderLeft: '4px solid #2196F3'
-                          }}>
-                            <div style={{fontWeight: 'bold'}}>Order #{order.id}</div>
-                            <div style={{fontSize: '14px', color: '#666'}}>
-                              Amount: ${order.totalAmount} | Status: {order.status}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p style={{color: '#666', fontStyle: 'italic'}}>No recent orders</p>
-                    )}
-                  </div>
                 </div>
                 <AdminReports
                   embedded
