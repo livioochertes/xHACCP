@@ -13,7 +13,19 @@
     "markets": "Piețe",
     "logistics": "Logistică",
     "marketing": "Marketing",
-    "aiRecommendations": "Recomandări AI"
+    "aiRecommendations": "Recomandări AI",
+    "googleFeed": "Google Feed",
+    "wms": "WMS",
+    "navigation": "Navigarea Admin",
+    "workspace": "Spațiul tău de lucru",
+    "openMenu": "Meniu Admin",
+    "closeMenu": "Închide meniul"
+  },
+  "navGroups": {
+    "catalog": "Catalog",
+    "operations": "Vânzări și operațiuni",
+    "growth": "Marketing și promovare",
+    "administration": "Administrare"
   },
   "aiRecommendations": {
     "title": "Recomandări de produse AI",
@@ -57,7 +69,9 @@
     "logout": "Deconectare",
     "marketplace": "Piață",
     "all": "Toate",
-    "superadmin": "Superadmin"
+    "superadmin": "Superadmin",
+    "languageSwitcher": "Limba interfeței: {{language}}",
+    "chooseLanguage": "Alege limba interfeței"
   },
   "login": {
     "title": "Autentificare Admin",

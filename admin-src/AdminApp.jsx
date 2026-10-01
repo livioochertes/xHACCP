@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { useTranslation, I18nextProvider } from "react-i18next";
 import i18n from "./i18n.js";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
+import AdminNavigation from "./AdminNavigation.jsx";
 import AIRecommendationCampaigns from "./AIRecommendationCampaigns.jsx";
 import {
   broadcastCategoryTranslationUpdate,
@@ -14025,8 +14026,8 @@ TOTAL: ${formatOrderAmount(selectedOrder, selectedOrder.totalAmount)}
               <img src="/attached_assets/logo_xHACCP-S1_1772812623761.png" alt="xHACCP Logo" />
               <span>xHACCP Admin</span>
             </div>
-            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-              <span style={{fontSize: '14px', color: '#666'}}>
+            <div className="admin-header-controls">
+              <span className="admin-account-summary">
                 {t('header.welcome')}, {admin?.firstName || 'Admin'}
                 {adminIsSuperAdmin
                   ? <span style={{marginLeft:'6px',background:'#667eea',color:'white',fontSize:'11px',padding:'2px 7px',borderRadius:'10px',fontWeight:'600'}}>Superadmin</span>
@@ -14034,7 +14035,7 @@ TOTAL: ${formatOrderAmount(selectedOrder, selectedOrder.totalAmount)}
                 }
               </span>
               <LanguageSwitcher />
-              <button onClick={handleLogout} className="btn btn-secondary" style={{padding: '8px 16px', fontSize: '14px', width: 'auto'}}>
+              <button onClick={handleLogout} className="btn btn-secondary admin-logout-button" style={{padding: '8px 16px', fontSize: '14px', width: 'auto'}}>
                 {t('header.logout')}
               </button>
             </div>
@@ -14072,116 +14073,21 @@ TOTAL: ${formatOrderAmount(selectedOrder, selectedOrder.totalAmount)}
             })}
           </div>
           
-          <div className="nav-tabs">
-            <button
-              className={`nav-tab ${activeView === 'dashboard' ? 'active' : ''}`}
-              onClick={() => handleViewChange('dashboard')}
-            >
-              <span style={{fontSize: '18px'}}>📊</span>
-              <span style={{fontSize: '12px'}}>{t('nav.dashboard')}</span>
-            </button>
-            <button 
-              className={`nav-tab ${activeView === 'orders' ? 'active' : ''}`}
-              onClick={() => handleViewChange('orders')}
-            >
-              <span style={{fontSize: '18px'}}>📋</span>
-              <span style={{fontSize: '12px'}}>{t('nav.orders')}</span>
-            </button>
-            <button 
-              className={`nav-tab ${activeView === 'products' ? 'active' : ''}`}
-              onClick={() => handleViewChange('products')}
-            >
-              <span style={{fontSize: '18px'}}>📦</span>
-              <span style={{fontSize: '12px'}}>{t('nav.products')}</span>
-            </button>
-            <button 
-              className={`nav-tab ${activeView === 'categories' ? 'active' : ''}`}
-              onClick={() => handleViewChange('categories')}
-            >
-              <span style={{fontSize: '18px'}}>📁</span>
-              <span style={{fontSize: '12px'}}>{t('nav.categories')}</span>
-            </button>
-            <button 
-              className={`nav-tab ${activeView === 'suppliers' ? 'active' : ''}`}
-              onClick={() => handleViewChange('suppliers')}
-            >
-              <span style={{fontSize: '18px'}}>🏢</span>
-              <span style={{fontSize: '12px'}}>{t('nav.suppliers')}</span>
-            </button>
-            <button 
-              className={`nav-tab ${activeView === 'vouchers' ? 'active' : ''}`}
-              onClick={() => handleViewChange('vouchers')}
-            >
-              <span style={{fontSize: '18px'}}>🎟️</span>
-              <span style={{fontSize: '12px'}}>{t('nav.vouchers')}</span>
-            </button>
-            <button 
-              className={`nav-tab ${activeView === 'blog' ? 'active' : ''}`}
-              onClick={() => handleViewChange('blog')}
-            >
-              <span style={{fontSize: '18px'}}>📝</span>
-              <span style={{fontSize: '12px'}}>{t('nav.blog')}</span>
-            </button>
-            <button
-              className={`nav-tab ${activeView === 'homepage-hero' ? 'active' : ''}`}
-              onClick={() => handleViewChange('homepage-hero')}
-            >
-              <span style={{fontSize: '18px'}}>🖼️</span>
-              <span style={{fontSize: '12px'}}>{t('homepageHero.navLabel')}</span>
-            </button>
-            <button 
-              className={`nav-tab ${activeView === 'google-feed' ? 'active' : ''}`}
-              onClick={() => handleViewChange('google-feed')}
-            >
-              <span style={{fontSize: '18px'}}>🛍️</span>
-              <span style={{fontSize: '12px'}}>Google Feed</span>
-            </button>
-            <button
-              className={`nav-tab ${activeView === 'invoices' ? 'active' : ''}`}
-              onClick={() => { handleViewChange('invoices'); fetchInvoices(); fetchInvoiceCounters(); }}
-            >
-              <span style={{fontSize: '18px'}}>🧾</span>
-              <span style={{fontSize: '12px'}}>{t('nav.invoices')}</span>
-            </button>
-            <button 
-              className={`nav-tab ${activeView === 'users' ? 'active' : ''}`}
-              onClick={() => handleViewChange('users')}
-            >
-              <span style={{fontSize: '18px'}}>👥</span>
-              <span style={{fontSize: '12px'}}>{t('nav.users')}</span>
-            </button>
-            <button 
-              className={`nav-tab ${activeView === 'company-settings' ? 'active' : ''}`}
-              onClick={() => handleViewChange('company-settings')}
-            >
-              <span style={{fontSize: '18px'}}>⚙️</span>
-              <span style={{fontSize: '12px'}}>{t('nav.companySettings')}</span>
-            </button>
-            <button
-              className={`nav-tab ${activeView === 'marketing' ? 'active' : ''}`}
-              onClick={() => handleViewChange('marketing')}
-            >
-              <span style={{fontSize: '18px'}}>📣</span>
-              <span style={{fontSize: '12px'}}>{t('nav.marketing')}</span>
-            </button>
-            <button
-              className={`nav-tab ${activeView === 'ai-recommendations' ? 'active' : ''}`}
-              onClick={() => handleViewChange('ai-recommendations')}
-            >
-              <span style={{fontSize: '18px'}}>✨</span>
-              <span style={{fontSize: '12px'}}>{t('nav.aiRecommendations')}</span>
-            </button>
-            <button
-              className={`nav-tab ${activeView === 'wms' ? 'active' : ''}`}
-              onClick={() => handleViewChange('wms')}
-            >
-              <span style={{fontSize: '18px'}}>🚚</span>
-              <span style={{fontSize: '12px'}}>WMS</span>
-            </button>
-          </div>
-          
-          <div className="content-area">
-            {renderContent()}
+          <div className="admin-workspace">
+            <AdminNavigation
+              activeView={activeView}
+              onSelect={(view) => {
+                handleViewChange(view);
+                if (view === 'invoices') {
+                  fetchInvoices();
+                  fetchInvoiceCounters();
+                }
+              }}
+              t={t}
+            />
+            <main className="content-area">
+              {renderContent()}
+            </main>
           </div>
           <ModalsComponent key={modalKey} />
           {showAddOrderModal && <AddOrderModal />}

@@ -13,7 +13,19 @@
     "markets": "Marchés",
     "logistics": "Logistique",
     "marketing": "Marketing",
-    "aiRecommendations": "Recommandations IA"
+    "aiRecommendations": "Recommandations IA",
+    "googleFeed": "Google Feed",
+    "wms": "WMS",
+    "navigation": "Navigation Admin",
+    "workspace": "Votre espace de travail",
+    "openMenu": "Menu Admin",
+    "closeMenu": "Fermer le menu"
+  },
+  "navGroups": {
+    "catalog": "Catalogue",
+    "operations": "Ventes et opérations",
+    "growth": "Marketing et promotions",
+    "administration": "Administration"
   },
   "aiRecommendations": {
     "title": "Recommandations de produits par IA",
@@ -57,7 +69,9 @@
     "logout": "Déconnexion",
     "marketplace": "Marché",
     "all": "Tous",
-    "superadmin": "Superadmin"
+    "superadmin": "Superadmin",
+    "languageSwitcher": "Langue de l’interface : {{language}}",
+    "chooseLanguage": "Choisir la langue de l’interface"
   },
   "login": {
     "title": "Connexion Admin",
