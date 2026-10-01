@@ -82,10 +82,10 @@ function PreviewHeader() {
   );
 }
 
-export function Grouped() {
+export function Grouped({ initialMobileOpen = false }: { initialMobileOpen?: boolean }) {
   const [activeId, setActiveId] = useState("ai-recommendations");
   const [openGroup, setOpenGroup] = useState("growth");
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(initialMobileOpen);
   const activeItem = sectionItems.find((item) => item.id === activeId) ?? sectionItems[0];
   const activeGroup = navGroups.find((group) => group.id === activeItem.group);
 
