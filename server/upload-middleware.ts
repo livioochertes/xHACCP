@@ -1,9 +1,10 @@
 import multer from 'multer';
 import sharp from 'sharp';
 import path from 'path';
+import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { promises as fs } from 'fs';
-import { isR2Configured, uploadImageToR2, deleteImageFromR2 } from './r2-storage';
+import { isR2Configured, uploadImageToR2, uploadRawFileToR2, deleteImageFromR2 } from './r2-storage';
 
 // Extend Express Request interface to include processed files
 declare global {
@@ -178,6 +179,51 @@ export const processImages = async (req: Request, res: Response, next: NextFunct
     res.status(500).json({ success: false, message: 'Error processing images' });
   }
 };
+
+export async function uploadOriginalHomepageHeroImage(file: Express.Multer.File) {
+  let metadata: sharp.Metadata;
+  try {
+    metadata = await sharp(file.buffer).metadata();
+  } catch {
+    throw new Error('Homepage hero images must be valid JPEG, PNG, or WebP files.');
+  }
+  const formats: Record<string, { extension: string; contentType: string }> = {
+    jpeg: { extension: 'jpg', contentType: 'image/jpeg' },
+    png: { extension: 'png', contentType: 'image/png' },
+    webp: { extension: 'webp', contentType: 'image/webp' },
+  };
+  const imageFormat = metadata.format ? formats[metadata.format] : undefined;
+  if (!imageFormat || !metadata.width || !metadata.height) {
+    throw new Error('Homepage hero images must be valid JPEG, PNG, or WebP files.');
+  }
+
+  const filename = `homepage-hero-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${imageFormat.extension}`;
+  const key = `products/${filename}`;
+  if (isR2Configured()) {
+    const uploaded = await uploadRawFileToR2(file.buffer, key, imageFormat.contentType);
+    if (!uploaded) throw new Error('Could not store the homepage hero image.');
+    return {
+      filename,
+      originalName: file.originalname,
+      size: file.size,
+      width: metadata.width,
+      height: metadata.height,
+      url: `/r2/${key}`,
+    };
+  }
+
+  const uploadDir = path.join(process.cwd(), 'uploads', 'products');
+  await fs.mkdir(uploadDir, { recursive: true });
+  await fs.writeFile(path.join(uploadDir, filename), file.buffer, { flag: 'wx' });
+  return {
+    filename,
+    originalName: file.originalname,
+    size: file.size,
+    width: metadata.width,
+    height: metadata.height,
+    url: `/uploads/products/${filename}`,
+  };
+}
 
 // Serve uploaded files (for local storage only)
 export const serveUploads = (req: Request, res: Response) => {

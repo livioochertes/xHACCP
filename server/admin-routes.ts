@@ -14,7 +14,7 @@ import QRCode from "qrcode";
 import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
-import { upload, processImages, serveUploads, deleteUploadedFile } from "./upload-middleware";
+import { upload, processImages, serveUploads, deleteUploadedFile, uploadOriginalHomepageHeroImage } from "./upload-middleware";
 import {
   deleteProductCertification,
   normalizeProductCertifications,
@@ -1088,6 +1088,29 @@ export async function registerAdminRoutes(app: Express) {
       res.status(500).json({ 
         success: false, 
         message: "Error uploading images" 
+      });
+    }
+  });
+
+  app.post("/admin/api/upload-homepage-hero-image", authenticateAdmin, upload.single('image'), async (req: AdminAuthRequest, res: Response) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No hero image uploaded" });
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(req.file.mimetype)) {
+      return res.status(400).json({ success: false, message: "Homepage hero images must be JPEG, PNG, or WebP files" });
+    }
+
+    try {
+      const file = await uploadOriginalHomepageHeroImage(req.file);
+      res.json({ success: true, file });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      console.error("Homepage hero image upload failed:", error);
+      res.status(message.startsWith("Homepage hero images must be") ? 400 : 500).json({
+        success: false,
+        message: message.startsWith("Homepage hero images must be")
+          ? message
+          : "Failed to upload the homepage hero image",
       });
     }
   });

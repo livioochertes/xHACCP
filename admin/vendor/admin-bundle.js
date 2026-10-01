@@ -15752,16 +15752,15 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
       setHeroUploading(true);
       try {
         const formData = new FormData();
-        formData.append("images", file);
-        const response = await fetch("/admin/api/upload-images", {
+        formData.append("image", file);
+        const response = await fetch("/admin/api/upload-homepage-hero-image", {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}` },
           body: formData
         });
         const data = await response.json();
-        if (!response.ok || !data.files?.[0]) throw new Error(data.message || t2("homepageHero.uploadFailed"));
-        const uploaded = data.files[0];
-        setHeroForm((prev) => ({ ...prev, imageUrl: uploaded.url || uploaded.thumbnailUrl || uploaded }));
+        if (!response.ok || !data.file?.url) throw new Error(data.message || t2("homepageHero.uploadFailed"));
+        setHeroForm((prev) => ({ ...prev, imageUrl: data.file.url }));
       } catch (error2) {
         alert(t2("homepageHero.error", { message: error2.message }));
       } finally {
@@ -18651,7 +18650,7 @@ This action cannot be undone.`)) {
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { value: heroForm.imageUrl, onChange: (e2) => setHeroForm({ ...heroForm, imageUrl: e2.target.value }), placeholder: t2("homepageHero.imageUrlPlaceholder"), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", flexWrap: "wrap" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "file", accept: "image/*", disabled: heroUploading, onChange: (e2) => uploadHeroImage(e2.target.files?.[0]) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("input", { type: "file", accept: ".jpg,.jpeg,.png,.webp", disabled: heroUploading, onChange: (e2) => uploadHeroImage(e2.target.files?.[0]) }),
                     heroUploading && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: t2("homepageHero.uploading") })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { style: { display: "block", marginTop: "10px", fontSize: "13px", color: "#495057" }, children: [
@@ -18671,7 +18670,7 @@ This action cannot be undone.`)) {
               heroLoading ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "30px", textAlign: "center", color: "#6c757d" }, children: t2("homepageHero.loadingSlides") }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "grid", gap: "12px" }, children: [
                 heroSlides.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { padding: "25px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", color: "#6c757d" }, children: t2("homepageHero.emptySlides") }),
                 heroSlides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", gap: "15px", alignItems: "center", padding: "12px", border: "1px solid #dee2e6", borderRadius: "8px", opacity: slide.isActive ? 1 : 0.55, flexWrap: "wrap" }, children: [
-                  slide.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("img", { src: slide.imageUrl, alt: slide.imageAlt || slide.title || t2("homepageHero.previewAlt"), style: { width: "150px", height: "80px", objectFit: "cover", borderRadius: "5px", background: "#e9ecef" } }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { width: "150px", height: "80px", borderRadius: "5px", background: "linear-gradient(135deg,#102a43,#1f5f8b)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "8px", boxSizing: "border-box", fontSize: "12px" }, children: slide.title || t2("homepageHero.textSlide") }),
+                  slide.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("img", { src: slide.imageUrl, alt: slide.imageAlt || slide.title || t2("homepageHero.previewAlt"), style: { width: "150px", height: "48px", objectFit: "contain", borderRadius: "5px", background: "#e9ecef" } }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { width: "150px", height: "80px", borderRadius: "5px", background: "linear-gradient(135deg,#102a43,#1f5f8b)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "8px", boxSizing: "border-box", fontSize: "12px" }, children: slide.title || t2("homepageHero.textSlide") }),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { flex: 1, minWidth: "220px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("strong", { style: { color: "#333" }, children: [
                       index + 1,

@@ -112,7 +112,7 @@ export default function HomeHero() {
   return (
     <section
       ref={heroRef}
-      className="relative min-h-[360px] overflow-hidden bg-slate-950 text-white md:min-h-[410px]"
+      className="relative h-[360px] overflow-hidden bg-slate-950 text-white md:h-[410px]"
       aria-roledescription="carousel"
       aria-label="Promotional highlights"
       onMouseEnter={() => setPaused(true)}
@@ -122,7 +122,7 @@ export default function HomeHero() {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
       }}
     >
-      <div className="relative min-h-[360px] md:min-h-[410px]">
+      <div className="relative h-[360px] md:h-[410px]">
         {slides.map((slide, index) => {
           const isActive = index === activeIndex;
           const fullCover = isFullCoverSlide(slide);

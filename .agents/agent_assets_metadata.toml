@@ -119,3 +119,31 @@ mtime_ms = 1790812571376
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/6b840e5a-9339-4ebe-a4c0-d10cf3a96a1b/2c8a150a-f8b2-4d98-bad4-c6f3f6695ca5"
 storage_version_token = "1790812610268172"
 content_type = "image/png"
+
+[[outputs]]
+id = "gHHuADt3HE8zZdK8s498n"
+uri = "file://attached_assets/generated_images/chef-event-cover-light-1920x615-final.png"
+type = "image"
+title = "Cover luminos xHACCP France — 1920 × 615"
+description = "PNG la rezoluție completă; încărcarea dedicată din admin păstrează fișierul original."
+logical_id = "1c41a8ab-3b33-40ee-b77b-8d6606675d3c"
+content_hash = "sha256:2463219c6e263ca5713b2fca6328bfb47415b5e26ec5f78e10928463198aa517"
+size = 825741
+mtime_ms = 1790814905380
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/1c41a8ab-3b33-40ee-b77b-8d6606675d3c/940aea99-f45e-4aaf-ae85-40178ede3852"
+storage_version_token = "1790814990134422"
+content_type = "image/png"
+
+[[outputs]]
+id = "DLtt_qmUbxBr8G0IeyIBL"
+uri = "file://attached_assets/generated_images/chef-event-cover-navy-1920x615-final.png"
+type = "image"
+title = "Cover navy xHACCP France — 1920 × 615"
+description = "PNG la rezoluție completă; încărcarea dedicată din admin păstrează fișierul original."
+logical_id = "035a0e8f-54e9-4538-b419-f4c786dc1f32"
+content_hash = "sha256:75348c0723aca8504a0be8f0380fdd4f3c8d16bfbe95875ac57522c4de03a84a"
+size = 922388
+mtime_ms = 1790814905384
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/035a0e8f-54e9-4538-b419-f4c786dc1f32/a28110f4-2afe-41a1-a04d-bcd1601050ba"
+storage_version_token = "1790814990808496"
+content_type = "image/png"

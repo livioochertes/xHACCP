@@ -2972,16 +2972,15 @@ import {
         setHeroUploading(true);
         try {
           const formData = new FormData();
-          formData.append('images', file);
-          const response = await fetch('/admin/api/upload-images', {
+          formData.append('image', file);
+          const response = await fetch('/admin/api/upload-homepage-hero-image', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData
           });
           const data = await response.json();
-          if (!response.ok || !data.files?.[0]) throw new Error(data.message || t('homepageHero.uploadFailed'));
-          const uploaded = data.files[0];
-          setHeroForm(prev => ({ ...prev, imageUrl: uploaded.url || uploaded.thumbnailUrl || uploaded }));
+          if (!response.ok || !data.file?.url) throw new Error(data.message || t('homepageHero.uploadFailed'));
+          setHeroForm(prev => ({ ...prev, imageUrl: data.file.url }));
         } catch (error) {
           alert(t('homepageHero.error', { message: error.message }));
         } finally {
@@ -5722,7 +5721,7 @@ import {
                           <input value={heroForm.imageUrl} onChange={e => setHeroForm({...heroForm, imageUrl: e.target.value})} placeholder={t('homepageHero.imageUrlPlaceholder')} style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
                         </label>
                         <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', flexWrap: 'wrap'}}>
-                          <input type="file" accept="image/*" disabled={heroUploading} onChange={e => uploadHeroImage(e.target.files?.[0])} />
+                          <input type="file" accept=".jpg,.jpeg,.png,.webp" disabled={heroUploading} onChange={e => uploadHeroImage(e.target.files?.[0])} />
                           {heroUploading && <span style={{fontSize: '12px', color: '#6c757d'}}>{t('homepageHero.uploading')}</span>}
                         </div>
                         <label style={{display: 'block', marginTop: '10px', fontSize: '13px', color: '#495057'}}>{t('homepageHero.imageAlt')}
@@ -5742,7 +5741,7 @@ import {
                         {heroSlides.length === 0 && <div style={{padding: '25px', textAlign: 'center', background: '#f8f9fa', borderRadius: '6px', color: '#6c757d'}}>{t('homepageHero.emptySlides')}</div>}
                         {heroSlides.map((slide, index) => (
                           <div key={slide.id} style={{display: 'flex', gap: '15px', alignItems: 'center', padding: '12px', border: '1px solid #dee2e6', borderRadius: '8px', opacity: slide.isActive ? 1 : 0.55, flexWrap: 'wrap'}}>
-                            {slide.imageUrl ? <img src={slide.imageUrl} alt={slide.imageAlt || slide.title || t('homepageHero.previewAlt')} style={{width: '150px', height: '80px', objectFit: 'cover', borderRadius: '5px', background: '#e9ecef'}} /> : <div style={{width: '150px', height: '80px', borderRadius: '5px', background: 'linear-gradient(135deg,#102a43,#1f5f8b)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px', boxSizing: 'border-box', fontSize: '12px'}}>{slide.title || t('homepageHero.textSlide')}</div>}
+                            {slide.imageUrl ? <img src={slide.imageUrl} alt={slide.imageAlt || slide.title || t('homepageHero.previewAlt')} style={{width: '150px', height: '48px', objectFit: 'contain', borderRadius: '5px', background: '#e9ecef'}} /> : <div style={{width: '150px', height: '80px', borderRadius: '5px', background: 'linear-gradient(135deg,#102a43,#1f5f8b)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px', boxSizing: 'border-box', fontSize: '12px'}}>{slide.title || t('homepageHero.textSlide')}</div>}
                             <div style={{flex: 1, minWidth: '220px'}}>
                               <strong style={{color: '#333'}}>{index + 1}. {slide.title || t('homepageHero.imageSlide')}</strong>
                               <div style={{fontSize: '12px', color: '#6c757d', marginTop: '4px'}}>{slide.subtitle || t('common.noDescription')} · {slide.isActive ? t('common.active') : t('common.inactive')}</div>

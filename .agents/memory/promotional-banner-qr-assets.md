@@ -3,8 +3,10 @@ name: Promotional banner QR assets
 description: Quality requirements for marketing banners used as homepage image slides.
 ---
 
-For promotional banners that include exact text or a QR code, use image generation only for background imagery. Render copy as deterministic SVG/vector text and generate the QR from the confirmed destination URL. Export at the homepage hero's target dimensions rather than enlarging a small upload.
+For promotional banners that include exact text or a QR code, use image generation only for background imagery. Render copy as deterministic SVG/vector text and generate the QR from the confirmed destination URL. Export at the homepage hero's aspect ratio and keep the rendered hero at its fixed base height; use contain rather than cropping or stretching the full banner.
 
-**Why:** Generated raster text can be illegible and AI-drawn QR patterns are not dependable. A low-resolution image also becomes visibly soft when the hero displays it wider than its source dimensions.
+Store finished homepage banners without passing them through the product-image optimizer. Keep the original file format, dimensions, and bytes on admin upload so vector-rendered text and QR codes are not softened by downscaling and JPEG recompression.
 
-**How to apply:** Confirm the QR target from the campaign owner or an existing verified code, compose the QR and readable copy over the design, then check the exported dimensions and scanability before upload.
+**Why:** Generated raster text can be illegible and AI-drawn QR patterns are not dependable. Product-image compression and an oversized hero frame both undermine a cover that is otherwise sharp and correctly composed.
+
+**How to apply:** Confirm the QR target from the campaign owner or an existing verified code, compose the QR and readable copy over the design, check the export dimensions and scanability, and use a dedicated original-preserving upload path for homepage banners.
