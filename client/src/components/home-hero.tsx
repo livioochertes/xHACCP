@@ -141,6 +141,15 @@ export default function HomeHero() {
             >
               {hasImage && slide.imageUrl ? (
                 <>
+                  {fullCover && (
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+                      <img
+                        src={slide.imageUrl}
+                        alt=""
+                        className="h-full w-full scale-110 object-cover blur-2xl"
+                      />
+                    </div>
+                  )}
                   {(slide.destinationUrl || (slide.destinationType === "none" && slide.ctaType !== "quote" && slide.ctaUrl)) ? (
                     <HeroDestination
                       href={slide.destinationUrl || slide.ctaUrl as string}

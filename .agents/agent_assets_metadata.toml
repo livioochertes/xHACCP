@@ -175,3 +175,31 @@ mtime_ms = 1790839800247
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/7898c68c-1f80-4a6e-acd9-c2bb53f5b00a/bc790840-fa56-49aa-bea2-fee7126fc5c2"
 storage_version_token = "1790839837370835"
 content_type = "image/png"
+
+[[outputs]]
+id = "h-TRBlQeWr1sFSu29o_Sf"
+uri = "file://attached_assets/generated_images/chef-event-cover-light-final-1920x615.png"
+type = "image"
+title = "Cover FR clair — logo sans plaque"
+description = "PNG final 1920×615, sans rectangle blanc autour du logo ; couleurs d’origine conservées."
+logical_id = "8bf8fc25-8b9d-4dc9-acef-95a1bfbe5674"
+content_hash = "sha256:110b379f047b977eced3c93cc5fa16365777754abfe007586abd19ef2a3a3d7f"
+size = 942403
+mtime_ms = 1790840747583
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/8bf8fc25-8b9d-4dc9-acef-95a1bfbe5674/63ec48ec-a113-4b31-974e-f2181a109f7b"
+storage_version_token = "1790840877880069"
+content_type = "image/png"
+
+[[outputs]]
+id = "vPEOmx0cLIIB8UB3bEfQZ"
+uri = "file://attached_assets/generated_images/chef-event-cover-navy-final-1920x615.png"
+type = "image"
+title = "Cover FR navy — logo contrasté"
+description = "PNG final 1920×615, plaque supprimée ; logo clair avec accent bleu pour rester lisible sur le fond navy."
+logical_id = "15a0640b-1557-4415-b2d0-91a04c0afb3c"
+content_hash = "sha256:34a17647a0d4ec54a9ef06f97f9a4dddede927bd0e1bf7d5d665e105fcf19499"
+size = 1015400
+mtime_ms = 1790840747875
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/15a0640b-1557-4415-b2d0-91a04c0afb3c/01361301-8f1e-4f69-b085-2575868121e7"
+storage_version_token = "1790840878423472"
+content_type = "image/png"
