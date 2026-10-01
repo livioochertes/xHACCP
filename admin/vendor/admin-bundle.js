@@ -170,7 +170,7 @@
       var U = { current: null };
       var V = { transition: null };
       var W = { ReactCurrentDispatcher: U, ReactCurrentBatchConfig: V, ReactCurrentOwner: K };
-      function X() {
+      function X2() {
         throw Error("act(...) is not supported in production builds of React.");
       }
       exports.Children = { map: S, forEach: function(a, b, e2) {
@@ -198,7 +198,7 @@
       exports.StrictMode = q;
       exports.Suspense = w;
       exports.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = W;
-      exports.act = X;
+      exports.act = X2;
       exports.cloneElement = function(a, b, e2) {
         if (null === a || void 0 === a) throw Error("React.cloneElement(...): The argument must be a React element, but you passed " + a + ".");
         var d = C({}, a.props), c = a.key, k = a.ref, h = a._owner;
@@ -250,7 +250,7 @@
           V.transition = b;
         }
       };
-      exports.unstable_act = X;
+      exports.unstable_act = X2;
       exports.useCallback = function(a, b) {
         return U.current.useCallback(a, b);
       };
@@ -5219,7 +5219,7 @@
         if (5 === d || 6 === d) a = a.stateNode, b ? c.insertBefore(a, b) : c.appendChild(a);
         else if (4 !== d && (a = a.child, null !== a)) for (Wj(a, b, c), a = a.sibling; null !== a; ) Wj(a, b, c), a = a.sibling;
       }
-      var X = null;
+      var X2 = null;
       var Xj = false;
       function Yj(a, b, c) {
         for (c = c.child; null !== c; ) Zj(a, b, c), c = c.sibling;
@@ -5233,23 +5233,23 @@
           case 5:
             U || Lj(c, b);
           case 6:
-            var d = X, e2 = Xj;
-            X = null;
+            var d = X2, e2 = Xj;
+            X2 = null;
             Yj(a, b, c);
-            X = d;
+            X2 = d;
             Xj = e2;
-            null !== X && (Xj ? (a = X, c = c.stateNode, 8 === a.nodeType ? a.parentNode.removeChild(c) : a.removeChild(c)) : X.removeChild(c.stateNode));
+            null !== X2 && (Xj ? (a = X2, c = c.stateNode, 8 === a.nodeType ? a.parentNode.removeChild(c) : a.removeChild(c)) : X2.removeChild(c.stateNode));
             break;
           case 18:
-            null !== X && (Xj ? (a = X, c = c.stateNode, 8 === a.nodeType ? Kf(a.parentNode, c) : 1 === a.nodeType && Kf(a, c), bd(a)) : Kf(X, c.stateNode));
+            null !== X2 && (Xj ? (a = X2, c = c.stateNode, 8 === a.nodeType ? Kf(a.parentNode, c) : 1 === a.nodeType && Kf(a, c), bd(a)) : Kf(X2, c.stateNode));
             break;
           case 4:
-            d = X;
+            d = X2;
             e2 = Xj;
-            X = c.stateNode.containerInfo;
+            X2 = c.stateNode.containerInfo;
             Xj = true;
             Yj(a, b, c);
-            X = d;
+            X2 = d;
             Xj = e2;
             break;
           case 0:
@@ -5306,23 +5306,23 @@
             a: for (; null !== h; ) {
               switch (h.tag) {
                 case 5:
-                  X = h.stateNode;
+                  X2 = h.stateNode;
                   Xj = false;
                   break a;
                 case 3:
-                  X = h.stateNode.containerInfo;
+                  X2 = h.stateNode.containerInfo;
                   Xj = true;
                   break a;
                 case 4:
-                  X = h.stateNode.containerInfo;
+                  X2 = h.stateNode.containerInfo;
                   Xj = true;
                   break a;
               }
               h = h.return;
             }
-            if (null === X) throw Error(p(160));
+            if (null === X2) throw Error(p(160));
             Zj(f, g, e2);
-            X = null;
+            X2 = null;
             Xj = false;
             var k = e2.alternate;
             null !== k && (k.return = null);
@@ -10446,7 +10446,9 @@
       navigation: "Admin navigation",
       workspace: "Your workspace",
       openMenu: "Admin menu",
-      closeMenu: "Close menu"
+      closeMenu: "Close menu",
+      collapseNavigation: "Collapse navigation",
+      expandNavigation: "Expand navigation"
     },
     navGroups: {
       catalog: "Catalog",
@@ -10496,6 +10498,9 @@
       logout: "Logout",
       marketplace: "Marketplace",
       all: "All",
+      marketRomania: "Romania (.ro)",
+      marketFrance: "France (.fr)",
+      marketInternational: "International (.com)",
       superadmin: "Superadmin",
       languageSwitcher: "Interface language: {{language}}",
       chooseLanguage: "Choose interface language"
@@ -11337,7 +11342,9 @@
       navigation: "Navigarea Admin",
       workspace: "Spa\u021Biul t\u0103u de lucru",
       openMenu: "Meniu Admin",
-      closeMenu: "\xCEnchide meniul"
+      closeMenu: "\xCEnchide meniul",
+      collapseNavigation: "Restr\xE2nge navigarea",
+      expandNavigation: "Extinde navigarea"
     },
     navGroups: {
       catalog: "Catalog",
@@ -11387,6 +11394,9 @@
       logout: "Deconectare",
       marketplace: "Pia\u021B\u0103",
       all: "Toate",
+      marketRomania: "Rom\xE2nia (.ro)",
+      marketFrance: "Fran\u021Ba (.fr)",
+      marketInternational: "Interna\u021Bional (.com)",
       superadmin: "Superadmin",
       languageSwitcher: "Limba interfe\u021Bei: {{language}}",
       chooseLanguage: "Alege limba interfe\u021Bei"
@@ -12228,7 +12238,9 @@
       navigation: "Navigation Admin",
       workspace: "Votre espace de travail",
       openMenu: "Menu Admin",
-      closeMenu: "Fermer le menu"
+      closeMenu: "Fermer le menu",
+      collapseNavigation: "R\xE9duire la navigation",
+      expandNavigation: "D\xE9velopper la navigation"
     },
     navGroups: {
       catalog: "Catalogue",
@@ -12278,6 +12290,9 @@
       logout: "D\xE9connexion",
       marketplace: "March\xE9",
       all: "Tous",
+      marketRomania: "Roumanie (.ro)",
+      marketFrance: "France (.fr)",
+      marketInternational: "International (.com)",
       superadmin: "Superadmin",
       languageSwitcher: "Langue de l\u2019interface : {{language}}",
       chooseLanguage: "Choisir la langue de l\u2019interface"
@@ -13308,6 +13323,20 @@
     ["path", { d: "m7.5 4.27 9 5.15", key: "1c824w" }]
   ]);
 
+  // node_modules/lucide-react/dist/esm/icons/panel-left-close.js
+  var PanelLeftClose = createLucideIcon("PanelLeftClose", [
+    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
+    ["path", { d: "M9 3v18", key: "fh3hqa" }],
+    ["path", { d: "m16 15-3-3 3-3", key: "14y99z" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/panel-left-open.js
+  var PanelLeftOpen = createLucideIcon("PanelLeftOpen", [
+    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
+    ["path", { d: "M9 3v18", key: "fh3hqa" }],
+    ["path", { d: "m14 9 3 3-3 3", key: "8010ee" }]
+  ]);
+
   // node_modules/lucide-react/dist/esm/icons/receipt-text.js
   var ReceiptText = createLucideIcon("ReceiptText", [
     [
@@ -13380,6 +13409,12 @@
     ["path", { d: "M18 21a8 8 0 0 0-16 0", key: "3ypg7q" }],
     ["circle", { cx: "10", cy: "8", r: "5", key: "o932ke" }],
     ["path", { d: "M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3", key: "10s06x" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/x.js
+  var X = createLucideIcon("X", [
+    ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
+    ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
   ]);
 
   // admin-src/categoryTranslationSync.js
@@ -13599,25 +13634,65 @@
   function getGroupForView(view) {
     return navGroups.find((group) => group.items.some((item) => item.id === view))?.id || "";
   }
-  function AdminNavigation({ activeView, onSelect, t: t2 }) {
+  function AdminNavigation({
+    activeView,
+    onSelect,
+    t: t2,
+    collapsed,
+    onToggleCollapsed
+  }) {
     const activeGroupId = getGroupForView(activeView);
     const [openGroup, setOpenGroup] = (0, import_react15.useState)(activeGroupId);
     const [mobileOpen, setMobileOpen] = (0, import_react15.useState)(false);
     const mobileToggleRef = (0, import_react15.useRef)(null);
+    const sidebarRef = (0, import_react15.useRef)(null);
     (0, import_react15.useEffect)(() => {
       setOpenGroup(activeGroupId);
       setMobileOpen(false);
     }, [activeGroupId]);
+    (0, import_react15.useEffect)(() => {
+      const closeDrawerOnDesktop = () => {
+        if (window.matchMedia?.("(min-width: 801px)").matches) {
+          setMobileOpen(false);
+        }
+      };
+      window.addEventListener("resize", closeDrawerOnDesktop);
+      return () => window.removeEventListener("resize", closeDrawerOnDesktop);
+    }, []);
     (0, import_react15.useEffect)(() => {
       if (!mobileOpen) return void 0;
       const handleKeyDown = (event) => {
         if (event.key === "Escape") {
           setMobileOpen(false);
           mobileToggleRef.current?.focus();
+          return;
+        }
+        if (event.key === "Tab" && sidebarRef.current) {
+          const focusableItems = sidebarRef.current.querySelectorAll(
+            "button:not([disabled])"
+          );
+          const firstItem = focusableItems[0];
+          const lastItem = focusableItems[focusableItems.length - 1];
+          if (event.shiftKey && document.activeElement === firstItem) {
+            event.preventDefault();
+            lastItem?.focus();
+          } else if (!event.shiftKey && document.activeElement === lastItem) {
+            event.preventDefault();
+            firstItem?.focus();
+          }
         }
       };
+      const previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      window.requestAnimationFrame(() => {
+        const currentItem = sidebarRef.current?.querySelector('[aria-current="page"]');
+        (currentItem || sidebarRef.current?.querySelector("button"))?.focus();
+      });
       document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = previousOverflow;
+        document.removeEventListener("keydown", handleKeyDown);
+      };
     }, [mobileOpen]);
     const selectView = (view, groupId) => {
       setOpenGroup(groupId);
@@ -13636,6 +13711,8 @@
           type: "button",
           className: `admin-nav-link${isActive ? " is-active" : ""}`,
           "aria-current": isActive ? "page" : void 0,
+          "aria-label": collapsed ? t2(item.labelKey) : void 0,
+          title: collapsed ? t2(item.labelKey) : void 0,
           onClick: () => selectView(item.id, groupId),
           children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "admin-nav-link-icon", "aria-hidden": "true", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Icon2, { size: 16, strokeWidth: 1.9 }) }),
@@ -13645,7 +13722,7 @@
         item.id
       );
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: `admin-nav-column${mobileOpen ? " menu-open" : ""}`, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: `admin-nav-column${collapsed ? " is-collapsed" : ""}${mobileOpen ? " menu-open" : ""}`, children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
         "button",
         {
@@ -13656,7 +13733,7 @@
           "aria-controls": "admin-primary-navigation",
           onClick: () => setMobileOpen((open) => !open),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Menu, { size: 16, "aria-hidden": "true" }),
+            mobileOpen ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(X, { size: 16, "aria-hidden": "true" }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Menu, { size: 16, "aria-hidden": "true" }),
             mobileOpen ? t2("nav.closeMenu") : t2("nav.openMenu")
           ]
         }
@@ -13664,11 +13741,26 @@
       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
         "aside",
         {
+          ref: sidebarRef,
           className: "admin-sidebar",
           id: "admin-primary-navigation",
           "aria-label": t2("nav.navigation"),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "admin-sidebar-kicker", children: t2("nav.workspace") }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "admin-sidebar-top", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "admin-sidebar-kicker", children: t2("nav.workspace") }),
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                "button",
+                {
+                  className: "admin-sidebar-toggle",
+                  type: "button",
+                  "aria-label": collapsed ? t2("nav.expandNavigation") : t2("nav.collapseNavigation"),
+                  "aria-pressed": collapsed,
+                  title: collapsed ? t2("nav.expandNavigation") : t2("nav.collapseNavigation"),
+                  onClick: onToggleCollapsed,
+                  children: collapsed ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(PanelLeftOpen, { size: 16, "aria-hidden": "true" }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(PanelLeftClose, { size: 16, "aria-hidden": "true" })
+                }
+              )
+            ] }),
             renderLink(dashboardItem, ""),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "admin-nav-divider" }),
             navGroups.map((group) => {
@@ -13682,7 +13774,7 @@
                   {
                     className: `admin-nav-group-button${isCurrent ? " is-current" : ""}`,
                     type: "button",
-                    "aria-expanded": isOpen,
+                    "aria-expanded": isOpen || collapsed,
                     "aria-controls": childrenId,
                     onClick: () => setOpenGroup((current) => current === group.id ? "" : group.id),
                     children: [
@@ -13699,10 +13791,22 @@
                     ]
                   }
                 ),
-                isOpen && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "admin-nav-children", id: childrenId, children: group.items.map((item) => renderLink(item, group.id)) })
+                (isOpen || collapsed) && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "admin-nav-children", id: childrenId, children: group.items.map((item) => renderLink(item, group.id)) })
               ] }, group.id);
             })
           ]
+        }
+      ),
+      mobileOpen && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        "button",
+        {
+          className: "admin-sidebar-scrim",
+          type: "button",
+          "aria-label": t2("nav.closeMenu"),
+          onClick: () => {
+            setMobileOpen(false);
+            mobileToggleRef.current?.focus();
+          }
         }
       )
     ] });
@@ -14434,6 +14538,7 @@
     const [error, setError] = (0, import_react17.useState)("");
     const [showTwoFactor, setShowTwoFactor] = (0, import_react17.useState)(false);
     const [activeView, setActiveView] = (0, import_react17.useState)("dashboard");
+    const [navigationCollapsed, setNavigationCollapsed] = (0, import_react17.useState)(false);
     const adminIsSuperAdmin = !admin?.adminMarkets || admin.adminMarkets.length === 0;
     const [selectedMarketTab, setSelectedMarketTab] = (0, import_react17.useState)(() => {
       const saved = sessionStorage.getItem("adminMarketTab");
@@ -28508,7 +28613,7 @@ ${selectedOrders.map((id) => {
         ] }) })
       ] });
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "container", children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "container admin-app-shell", children: [
       /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "admin-header", children: [
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "logo", onClick: () => setActiveView("dashboard"), style: { cursor: "pointer" }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("img", { src: "/attached_assets/logo_xHACCP-S1_1772812623761.png", alt: "xHACCP Logo" }),
@@ -28519,68 +28624,59 @@ ${selectedOrders.map((id) => {
             t2("header.welcome"),
             ", ",
             admin?.firstName || "Admin",
-            adminIsSuperAdmin ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { marginLeft: "6px", background: "#667eea", color: "white", fontSize: "11px", padding: "2px 7px", borderRadius: "10px", fontWeight: "600" }, children: "Superadmin" }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { marginLeft: "6px", background: "#ff9800", color: "white", fontSize: "11px", padding: "2px 7px", borderRadius: "10px", fontWeight: "600" }, children: (admin?.adminMarkets || []).map((m) => m.toUpperCase()).join(", ") })
+            adminIsSuperAdmin ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "admin-role-badge is-superadmin", children: t2("header.superadmin") }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "admin-role-badge is-market-admin", children: (admin?.adminMarkets || []).map((m) => m.toUpperCase()).join(", ") })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(LanguageSwitcher, {}),
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { onClick: handleLogout, className: "btn btn-secondary admin-logout-button", style: { padding: "8px 16px", fontSize: "14px", width: "auto" }, children: t2("header.logout") })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { background: "rgba(255,255,255,0.95)", backdropFilter: "blur(10px)", borderRadius: "12px", padding: "8px 12px", marginBottom: "12px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "13px", fontWeight: "600", color: "#555", marginRight: "4px" }, children: "\u{1F30D} Marketplace:" }),
-        adminIsSuperAdmin && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "admin-marketplace-bar", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "admin-marketplace-label", children: [
+          "\u{1F30D} ",
+          t2("header.marketplace"),
+          ":"
+        ] }),
+        adminIsSuperAdmin && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
           "button",
           {
+            className: `admin-marketplace-option${selectedMarketTab === "all" ? " is-active" : ""}`,
             onClick: () => setSelectedMarketTab("all"),
-            style: {
-              padding: "5px 14px",
-              borderRadius: "20px",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: "600",
-              background: selectedMarketTab === "all" ? "linear-gradient(135deg,#667eea,#764ba2)" : "#f0f0f0",
-              color: selectedMarketTab === "all" ? "white" : "#555",
-              boxShadow: selectedMarketTab === "all" ? "0 2px 8px rgba(102,126,234,0.4)" : "none",
-              transition: "all 0.2s"
-            },
-            children: "\u{1F310} All"
+            type: "button",
+            "aria-pressed": selectedMarketTab === "all",
+            children: [
+              "\u{1F310} ",
+              t2("header.all")
+            ]
           }
         ),
         (adminIsSuperAdmin ? ["ro", "fr", "com"] : admin?.adminMarkets || []).map((mkt) => {
           const flags = { ro: "\u{1F1F7}\u{1F1F4}", fr: "\u{1F1EB}\u{1F1F7}", com: "\u{1F310}" };
-          const labels = { ro: "Romania (.ro)", fr: "France (.fr)", com: "International (.com)" };
+          const labelKeys = { ro: "marketRomania", fr: "marketFrance", com: "marketInternational" };
           const active = selectedMarketTab === mkt;
           return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
             "button",
             {
+              className: `admin-marketplace-option${active ? " is-active" : ""}`,
               onClick: () => setSelectedMarketTab(mkt),
-              style: {
-                padding: "5px 14px",
-                borderRadius: "20px",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "13px",
-                fontWeight: "600",
-                background: active ? "linear-gradient(135deg,#667eea,#764ba2)" : "#f0f0f0",
-                color: active ? "white" : "#555",
-                boxShadow: active ? "0 2px 8px rgba(102,126,234,0.4)" : "none",
-                transition: "all 0.2s"
-              },
+              type: "button",
+              "aria-pressed": active,
               children: [
                 flags[mkt] || "\u{1F310}",
                 " ",
-                labels[mkt] || mkt.toUpperCase()
+                t2(`header.${labelKeys[mkt]}`)
               ]
             },
             mkt
           );
         })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "admin-workspace", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: `admin-workspace${navigationCollapsed ? " is-collapsed" : ""}`, children: [
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
           AdminNavigation,
           {
             activeView,
+            collapsed: navigationCollapsed,
+            onToggleCollapsed: () => setNavigationCollapsed((collapsed) => !collapsed),
             onSelect: (view) => {
               handleViewChange(view);
               if (view === "invoices") {
@@ -28961,6 +29057,22 @@ lucide-react/dist/esm/icons/package.js:
    * See the LICENSE file in the root directory of this source tree.
    *)
 
+lucide-react/dist/esm/icons/panel-left-close.js:
+  (**
+   * @license lucide-react v0.453.0 - ISC
+   *
+   * This source code is licensed under the ISC license.
+   * See the LICENSE file in the root directory of this source tree.
+   *)
+
+lucide-react/dist/esm/icons/panel-left-open.js:
+  (**
+   * @license lucide-react v0.453.0 - ISC
+   *
+   * This source code is licensed under the ISC license.
+   * See the LICENSE file in the root directory of this source tree.
+   *)
+
 lucide-react/dist/esm/icons/receipt-text.js:
   (**
    * @license lucide-react v0.453.0 - ISC
@@ -29010,6 +29122,14 @@ lucide-react/dist/esm/icons/truck.js:
    *)
 
 lucide-react/dist/esm/icons/users-round.js:
+  (**
+   * @license lucide-react v0.453.0 - ISC
+   *
+   * This source code is licensed under the ISC license.
+   * See the LICENSE file in the root directory of this source tree.
+   *)
+
+lucide-react/dist/esm/icons/x.js:
   (**
    * @license lucide-react v0.453.0 - ISC
    *

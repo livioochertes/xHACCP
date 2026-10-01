@@ -19,7 +19,9 @@
     "navigation": "Admin navigation",
     "workspace": "Your workspace",
     "openMenu": "Admin menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "collapseNavigation": "Collapse navigation",
+    "expandNavigation": "Expand navigation"
   },
   "navGroups": {
     "catalog": "Catalog",
@@ -69,6 +71,9 @@
     "logout": "Logout",
     "marketplace": "Marketplace",
     "all": "All",
+    "marketRomania": "Romania (.ro)",
+    "marketFrance": "France (.fr)",
+    "marketInternational": "International (.com)",
     "superadmin": "Superadmin",
     "languageSwitcher": "Interface language: {{language}}",
     "chooseLanguage": "Choose interface language"

@@ -7,6 +7,8 @@ import {
   LayoutDashboard,
   Megaphone,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Package,
   ReceiptText,
   Rss,
@@ -16,6 +18,7 @@ import {
   Truck,
   UsersRound,
   Image as ImageIcon,
+  X,
 } from 'lucide-react';
 
 const dashboardItem = {
@@ -73,16 +76,34 @@ function getGroupForView(view) {
   return navGroups.find((group) => group.items.some((item) => item.id === view))?.id || '';
 }
 
-export default function AdminNavigation({ activeView, onSelect, t }) {
+export default function AdminNavigation({
+  activeView,
+  onSelect,
+  t,
+  collapsed,
+  onToggleCollapsed,
+}) {
   const activeGroupId = getGroupForView(activeView);
   const [openGroup, setOpenGroup] = useState(activeGroupId);
   const [mobileOpen, setMobileOpen] = useState(false);
   const mobileToggleRef = useRef(null);
+  const sidebarRef = useRef(null);
 
   useEffect(() => {
     setOpenGroup(activeGroupId);
     setMobileOpen(false);
   }, [activeGroupId]);
+
+  useEffect(() => {
+    const closeDrawerOnDesktop = () => {
+      if (window.matchMedia?.('(min-width: 801px)').matches) {
+        setMobileOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', closeDrawerOnDesktop);
+    return () => window.removeEventListener('resize', closeDrawerOnDesktop);
+  }, []);
 
   useEffect(() => {
     if (!mobileOpen) return undefined;
@@ -91,11 +112,37 @@ export default function AdminNavigation({ activeView, onSelect, t }) {
       if (event.key === 'Escape') {
         setMobileOpen(false);
         mobileToggleRef.current?.focus();
+        return;
+      }
+
+      if (event.key === 'Tab' && sidebarRef.current) {
+        const focusableItems = sidebarRef.current.querySelectorAll(
+          'button:not([disabled])',
+        );
+        const firstItem = focusableItems[0];
+        const lastItem = focusableItems[focusableItems.length - 1];
+
+        if (event.shiftKey && document.activeElement === firstItem) {
+          event.preventDefault();
+          lastItem?.focus();
+        } else if (!event.shiftKey && document.activeElement === lastItem) {
+          event.preventDefault();
+          firstItem?.focus();
+        }
       }
     };
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.requestAnimationFrame(() => {
+      const currentItem = sidebarRef.current?.querySelector('[aria-current="page"]');
+      (currentItem || sidebarRef.current?.querySelector('button'))?.focus();
+    });
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [mobileOpen]);
 
   const selectView = (view, groupId) => {
@@ -118,6 +165,8 @@ export default function AdminNavigation({ activeView, onSelect, t }) {
         type="button"
         className={`admin-nav-link${isActive ? ' is-active' : ''}`}
         aria-current={isActive ? 'page' : undefined}
+        aria-label={collapsed ? t(item.labelKey) : undefined}
+        title={collapsed ? t(item.labelKey) : undefined}
         onClick={() => selectView(item.id, groupId)}
       >
         <span className="admin-nav-link-icon" aria-hidden="true">
@@ -129,7 +178,7 @@ export default function AdminNavigation({ activeView, onSelect, t }) {
   };
 
   return (
-    <div className={`admin-nav-column${mobileOpen ? ' menu-open' : ''}`}>
+    <div className={`admin-nav-column${collapsed ? ' is-collapsed' : ''}${mobileOpen ? ' menu-open' : ''}`}>
       <button
         ref={mobileToggleRef}
         className="mobile-nav-toggle"
@@ -138,16 +187,33 @@ export default function AdminNavigation({ activeView, onSelect, t }) {
         aria-controls="admin-primary-navigation"
         onClick={() => setMobileOpen((open) => !open)}
       >
-        <Menu size={16} aria-hidden="true" />
+        {mobileOpen
+          ? <X size={16} aria-hidden="true" />
+          : <Menu size={16} aria-hidden="true" />}
         {mobileOpen ? t('nav.closeMenu') : t('nav.openMenu')}
       </button>
 
       <aside
+        ref={sidebarRef}
         className="admin-sidebar"
         id="admin-primary-navigation"
         aria-label={t('nav.navigation')}
       >
-        <div className="admin-sidebar-kicker">{t('nav.workspace')}</div>
+        <div className="admin-sidebar-top">
+          <span className="admin-sidebar-kicker">{t('nav.workspace')}</span>
+          <button
+            className="admin-sidebar-toggle"
+            type="button"
+            aria-label={collapsed ? t('nav.expandNavigation') : t('nav.collapseNavigation')}
+            aria-pressed={collapsed}
+            title={collapsed ? t('nav.expandNavigation') : t('nav.collapseNavigation')}
+            onClick={onToggleCollapsed}
+          >
+            {collapsed
+              ? <PanelLeftOpen size={16} aria-hidden="true" />
+              : <PanelLeftClose size={16} aria-hidden="true" />}
+          </button>
+        </div>
         {renderLink(dashboardItem, '')}
         <div className="admin-nav-divider" />
 
@@ -162,7 +228,7 @@ export default function AdminNavigation({ activeView, onSelect, t }) {
               <button
                 className={`admin-nav-group-button${isCurrent ? ' is-current' : ''}`}
                 type="button"
-                aria-expanded={isOpen}
+                aria-expanded={isOpen || collapsed}
                 aria-controls={childrenId}
                 onClick={() => setOpenGroup((current) => current === group.id ? '' : group.id)}
               >
@@ -176,7 +242,7 @@ export default function AdminNavigation({ activeView, onSelect, t }) {
                   aria-hidden="true"
                 />
               </button>
-              {isOpen && (
+              {(isOpen || collapsed) && (
                 <div className="admin-nav-children" id={childrenId}>
                   {group.items.map((item) => renderLink(item, group.id))}
                 </div>
@@ -185,6 +251,17 @@ export default function AdminNavigation({ activeView, onSelect, t }) {
           );
         })}
       </aside>
+      {mobileOpen && (
+        <button
+          className="admin-sidebar-scrim"
+          type="button"
+          aria-label={t('nav.closeMenu')}
+          onClick={() => {
+            setMobileOpen(false);
+            mobileToggleRef.current?.focus();
+          }}
+        />
+      )}
     </div>
   );
 }

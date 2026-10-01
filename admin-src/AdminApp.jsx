@@ -362,6 +362,7 @@ import {
       const [error, setError] = useState('');
       const [showTwoFactor, setShowTwoFactor] = useState(false);
       const [activeView, setActiveView] = useState('dashboard');
+      const [navigationCollapsed, setNavigationCollapsed] = useState(false);
       const adminIsSuperAdmin = !admin?.adminMarkets || admin.adminMarkets.length === 0;
       const [selectedMarketTab, setSelectedMarketTab] = useState(() => {
         const saved = sessionStorage.getItem('adminMarketTab');
@@ -14020,7 +14021,7 @@ TOTAL: ${formatOrderAmount(selectedOrder, selectedOrder.totalAmount)}
       };
 
       return (
-        <div className="container">
+        <div className="container admin-app-shell">
           <div className="admin-header">
             <div className="logo" onClick={() => setActiveView('dashboard')} style={{cursor: 'pointer'}}>
               <img src="/attached_assets/logo_xHACCP-S1_1772812623761.png" alt="xHACCP Logo" />
@@ -14030,8 +14031,8 @@ TOTAL: ${formatOrderAmount(selectedOrder, selectedOrder.totalAmount)}
               <span className="admin-account-summary">
                 {t('header.welcome')}, {admin?.firstName || 'Admin'}
                 {adminIsSuperAdmin
-                  ? <span style={{marginLeft:'6px',background:'#667eea',color:'white',fontSize:'11px',padding:'2px 7px',borderRadius:'10px',fontWeight:'600'}}>Superadmin</span>
-                  : <span style={{marginLeft:'6px',background:'#ff9800',color:'white',fontSize:'11px',padding:'2px 7px',borderRadius:'10px',fontWeight:'600'}}>{(admin?.adminMarkets||[]).map(m=>m.toUpperCase()).join(', ')}</span>
+                  ? <span className="admin-role-badge is-superadmin">{t('header.superadmin')}</span>
+                  : <span className="admin-role-badge is-market-admin">{(admin?.adminMarkets||[]).map(m=>m.toUpperCase()).join(', ')}</span>
                 }
               </span>
               <LanguageSwitcher />
@@ -14042,40 +14043,39 @@ TOTAL: ${formatOrderAmount(selectedOrder, selectedOrder.totalAmount)}
           </div>
 
           {/* Marketplace selector bar */}
-          <div style={{background:'rgba(255,255,255,0.95)',backdropFilter:'blur(10px)',borderRadius:'12px',padding:'8px 12px',marginBottom:'12px',boxShadow:'0 4px 16px rgba(0,0,0,0.08)',border:'1px solid rgba(255,255,255,0.2)',display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
-            <span style={{fontSize:'13px',fontWeight:'600',color:'#555',marginRight:'4px'}}>🌍 Marketplace:</span>
+          <div className="admin-marketplace-bar">
+            <span className="admin-marketplace-label">🌍 {t('header.marketplace')}:</span>
             {adminIsSuperAdmin && (
               <button
+                className={`admin-marketplace-option${selectedMarketTab === 'all' ? ' is-active' : ''}`}
                 onClick={() => setSelectedMarketTab('all')}
-                style={{padding:'5px 14px',borderRadius:'20px',border:'none',cursor:'pointer',fontSize:'13px',fontWeight:'600',
-                  background: selectedMarketTab==='all' ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#f0f0f0',
-                  color: selectedMarketTab==='all' ? 'white' : '#555',
-                  boxShadow: selectedMarketTab==='all' ? '0 2px 8px rgba(102,126,234,0.4)' : 'none',
-                  transition:'all 0.2s'}}
-              >🌐 All</button>
+                type="button"
+                aria-pressed={selectedMarketTab === 'all'}
+              >🌐 {t('header.all')}</button>
             )}
             {(adminIsSuperAdmin ? ['ro','fr','com'] : (admin?.adminMarkets||[])).map(mkt => {
               const flags = {ro:'🇷🇴',fr:'🇫🇷',com:'🌐'};
-              const labels = {ro:'Romania (.ro)',fr:'France (.fr)',com:'International (.com)'};
+              const labelKeys = {ro:'marketRomania',fr:'marketFrance',com:'marketInternational'};
               const active = selectedMarketTab === mkt;
               return (
-                <button key={mkt}
+                <button
+                  key={mkt}
+                  className={`admin-marketplace-option${active ? ' is-active' : ''}`}
                   onClick={() => setSelectedMarketTab(mkt)}
-                  style={{padding:'5px 14px',borderRadius:'20px',border:'none',cursor:'pointer',fontSize:'13px',fontWeight:'600',
-                    background: active ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#f0f0f0',
-                    color: active ? 'white' : '#555',
-                    boxShadow: active ? '0 2px 8px rgba(102,126,234,0.4)' : 'none',
-                    transition:'all 0.2s'}}
+                  type="button"
+                  aria-pressed={active}
                 >
-                  {flags[mkt]||'🌐'} {labels[mkt]||mkt.toUpperCase()}
+                  {flags[mkt]||'🌐'} {t(`header.${labelKeys[mkt]}`)}
                 </button>
               );
             })}
           </div>
           
-          <div className="admin-workspace">
+          <div className={`admin-workspace${navigationCollapsed ? ' is-collapsed' : ''}`}>
             <AdminNavigation
               activeView={activeView}
+              collapsed={navigationCollapsed}
+              onToggleCollapsed={() => setNavigationCollapsed((collapsed) => !collapsed)}
               onSelect={(view) => {
                 handleViewChange(view);
                 if (view === 'invoices') {
