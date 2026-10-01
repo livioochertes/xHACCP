@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, RequestHandler, Response } from "express";
 import {
   aiRecommendationCampaigns,
   type MarketingSegmentCriteria,
@@ -27,32 +27,117 @@ function isRecommendationMarket(value: unknown): value is RecommendationMarket {
   return value === "ro" || value === "fr" || value === "com";
 }
 
+type RecommendationCampaign = {
+  id: number;
+  market: string;
+  productIds: number[];
+  startsAt: Date;
+  endsAt: Date;
+  [key: string]: unknown;
+};
+
+type NewRecommendationCampaign = {
+  market: RecommendationMarket;
+  productIds: number[];
+  startsAt: Date;
+  endsAt: Date;
+  createdBy?: number;
+};
+
+export interface AIRecommendationCampaignRouteDependencies {
+  authenticateAdmin: RequestHandler;
+  canAccessMarket: (req: Request, market: string) => boolean;
+  getCatalogForMarket: typeof getAIMarketCatalogForMarket;
+  listCampaigns: (market: RecommendationMarket) => Promise<RecommendationCampaign[]>;
+  findCampaign: (id: number) => Promise<RecommendationCampaign | undefined>;
+  hasOverlappingCampaign: (
+    market: RecommendationMarket,
+    startsAt: Date,
+    endsAt: Date,
+    exceptId?: number,
+  ) => Promise<boolean>;
+  createCampaign: (campaign: NewRecommendationCampaign) => Promise<RecommendationCampaign>;
+  updateCampaign: (
+    id: number,
+    campaign: Pick<NewRecommendationCampaign, "productIds" | "startsAt" | "endsAt">,
+  ) => Promise<RecommendationCampaign>;
+  deleteCampaign: (id: number) => Promise<void>;
+}
+
+const defaultAIRecommendationCampaignDependencies: AIRecommendationCampaignRouteDependencies = {
+  authenticateAdmin: authenticateAdmin as RequestHandler,
+  canAccessMarket: canAccessMarket as (req: Request, market: string) => boolean,
+  getCatalogForMarket: getAIMarketCatalogForMarket,
+  listCampaigns: async (market) => db.select()
+    .from(aiRecommendationCampaigns)
+    .where(eq(aiRecommendationCampaigns.market, market))
+    .orderBy(desc(aiRecommendationCampaigns.startsAt)),
+  findCampaign: async (id) => {
+    const [campaign] = await db.select().from(aiRecommendationCampaigns)
+      .where(eq(aiRecommendationCampaigns.id, id))
+      .limit(1);
+    return campaign;
+  },
+  hasOverlappingCampaign: async (market, startsAt, endsAt, exceptId) => {
+    const conditions = [
+      eq(aiRecommendationCampaigns.market, market),
+      lt(aiRecommendationCampaigns.startsAt, endsAt),
+      gt(aiRecommendationCampaigns.endsAt, startsAt),
+    ];
+    if (exceptId !== undefined) {
+      conditions.push(ne(aiRecommendationCampaigns.id, exceptId));
+    }
+    const [overlap] = await db.select({ id: aiRecommendationCampaigns.id })
+      .from(aiRecommendationCampaigns)
+      .where(and(...conditions))
+      .limit(1);
+    return Boolean(overlap);
+  },
+  createCampaign: async (campaign) => {
+    const [created] = await db.insert(aiRecommendationCampaigns).values(campaign).returning();
+    if (!created) throw new Error("Campaign insert returned no row");
+    return created;
+  },
+  updateCampaign: async (id, campaign) => {
+    const [updated] = await db.update(aiRecommendationCampaigns)
+      .set({ ...campaign, updatedAt: new Date() })
+      .where(eq(aiRecommendationCampaigns.id, id))
+      .returning();
+    if (!updated) throw new Error("Campaign update returned no row");
+    return updated;
+  },
+  deleteCampaign: async (id) => {
+    await db.delete(aiRecommendationCampaigns).where(eq(aiRecommendationCampaigns.id, id));
+  },
+};
+
 async function recommendationProductsBelongToMarket(
   productIds: number[],
   market: RecommendationMarket,
+  getCatalogForMarket: typeof getAIMarketCatalogForMarket,
 ): Promise<boolean> {
   const availableProductIds = new Set(
-    getAIMarketCatalogForMarket(market).map((product) => String(product.id)),
+    getCatalogForMarket(market).map((product) => String(product.id)),
   );
   return productIds.every((id) => availableProductIds.has(String(id)));
 }
 
-export function registerMarketingAdminRoutes(app: Express): void {
-  app.get("/admin/api/ai-recommendation-campaigns", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+export function registerMarketingAdminRoutes(
+  app: Express,
+  campaignDependencies: AIRecommendationCampaignRouteDependencies = defaultAIRecommendationCampaignDependencies,
+): void {
+  app.get("/admin/api/ai-recommendation-campaigns", campaignDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
     try {
       const market = String(req.query.market || "");
       if (!isRecommendationMarket(market)) {
         return res.status(400).json({ message: "Choose a valid market: ro, fr or com" });
       }
-      if (!canAccessMarket(req as any, market)) {
+      if (!campaignDependencies.canAccessMarket(req, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
 
-      const campaigns = await db.select()
-        .from(aiRecommendationCampaigns)
-        .where(eq(aiRecommendationCampaigns.market, market))
-        .orderBy(desc(aiRecommendationCampaigns.startsAt));
-      const products = getAIMarketCatalogForMarket(market).map((product) => ({
+      const campaigns = await campaignDependencies.listCampaigns(market);
+      const products = campaignDependencies.getCatalogForMarket(market).map((product) => ({
         id: product.id,
         name: product.name,
         slug: product.slug,
@@ -67,41 +152,37 @@ export function registerMarketingAdminRoutes(app: Express): void {
     }
   });
 
-  app.post("/admin/api/ai-recommendation-campaigns", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+  app.post("/admin/api/ai-recommendation-campaigns", campaignDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
     try {
       const market = req.body?.market;
       if (!isRecommendationMarket(market)) {
         return res.status(400).json({ message: "Choose a valid market: ro, fr or com" });
       }
-      if (!canAccessMarket(req as any, market)) {
+      if (!campaignDependencies.canAccessMarket(req, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
 
       const input = parseAIRecommendationCampaignInput(req.body);
       if ("error" in input) return res.status(400).json({ message: input.error });
-      if (!(await recommendationProductsBelongToMarket(input.productIds, market))) {
+      if (!(await recommendationProductsBelongToMarket(
+        input.productIds,
+        market,
+        campaignDependencies.getCatalogForMarket,
+      ))) {
         return res.status(400).json({ message: "All selected products must be active in this market" });
       }
 
-      const [overlap] = await db.select({ id: aiRecommendationCampaigns.id })
-        .from(aiRecommendationCampaigns)
-        .where(and(
-          eq(aiRecommendationCampaigns.market, market),
-          lt(aiRecommendationCampaigns.startsAt, input.endsAt),
-          gt(aiRecommendationCampaigns.endsAt, input.startsAt),
-        ))
-        .limit(1);
-      if (overlap) {
+      if (await campaignDependencies.hasOverlappingCampaign(market, input.startsAt, input.endsAt)) {
         return res.status(409).json({ message: "Another campaign overlaps this period for the selected market" });
       }
 
-      const [campaign] = await db.insert(aiRecommendationCampaigns).values({
+      const campaign = await campaignDependencies.createCampaign({
         market,
         productIds: input.productIds,
         startsAt: input.startsAt,
         endsAt: input.endsAt,
         createdBy: req.adminId,
-      }).returning();
+      });
       res.status(201).json(campaign);
     } catch (error) {
       console.error("AI recommendation campaign create error:", error);
@@ -109,18 +190,19 @@ export function registerMarketingAdminRoutes(app: Express): void {
     }
   });
 
-  app.put("/admin/api/ai-recommendation-campaigns/:id", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+  app.put("/admin/api/ai-recommendation-campaigns/:id", campaignDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (!Number.isSafeInteger(id) || id <= 0) {
         return res.status(400).json({ message: "Invalid campaign ID" });
       }
-      const [existing] = await db.select().from(aiRecommendationCampaigns)
-        .where(eq(aiRecommendationCampaigns.id, id))
-        .limit(1);
+      const existing = await campaignDependencies.findCampaign(id);
       if (!existing) return res.status(404).json({ message: "Campaign not found" });
-      if (!canAccessMarket(req as any, existing.market)) {
+      if (!campaignDependencies.canAccessMarket(req, existing.market)) {
         return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (!isRecommendationMarket(existing.market)) {
+        return res.status(400).json({ message: "Campaign has an invalid market" });
       }
       if (req.body?.market !== undefined && req.body.market !== existing.market) {
         return res.status(400).json({ message: "A campaign's market cannot be changed" });
@@ -128,32 +210,28 @@ export function registerMarketingAdminRoutes(app: Express): void {
 
       const input = parseAIRecommendationCampaignInput(req.body);
       if ("error" in input) return res.status(400).json({ message: input.error });
-      if (!(await recommendationProductsBelongToMarket(input.productIds, existing.market as RecommendationMarket))) {
+      if (!(await recommendationProductsBelongToMarket(
+        input.productIds,
+        existing.market,
+        campaignDependencies.getCatalogForMarket,
+      ))) {
         return res.status(400).json({ message: "All selected products must be active in this market" });
       }
 
-      const [overlap] = await db.select({ id: aiRecommendationCampaigns.id })
-        .from(aiRecommendationCampaigns)
-        .where(and(
-          eq(aiRecommendationCampaigns.market, existing.market),
-          ne(aiRecommendationCampaigns.id, id),
-          lt(aiRecommendationCampaigns.startsAt, input.endsAt),
-          gt(aiRecommendationCampaigns.endsAt, input.startsAt),
-        ))
-        .limit(1);
-      if (overlap) {
+      if (await campaignDependencies.hasOverlappingCampaign(
+        existing.market,
+        input.startsAt,
+        input.endsAt,
+        id,
+      )) {
         return res.status(409).json({ message: "Another campaign overlaps this period for the selected market" });
       }
 
-      const [campaign] = await db.update(aiRecommendationCampaigns)
-        .set({
-          productIds: input.productIds,
-          startsAt: input.startsAt,
-          endsAt: input.endsAt,
-          updatedAt: new Date(),
-        })
-        .where(eq(aiRecommendationCampaigns.id, id))
-        .returning();
+      const campaign = await campaignDependencies.updateCampaign(id, {
+        productIds: input.productIds,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+      });
       res.json(campaign);
     } catch (error) {
       console.error("AI recommendation campaign update error:", error);
@@ -161,21 +239,19 @@ export function registerMarketingAdminRoutes(app: Express): void {
     }
   });
 
-  app.delete("/admin/api/ai-recommendation-campaigns/:id", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+  app.delete("/admin/api/ai-recommendation-campaigns/:id", campaignDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
     try {
       const id = Number(req.params.id);
       if (!Number.isSafeInteger(id) || id <= 0) {
         return res.status(400).json({ message: "Invalid campaign ID" });
       }
-      const [existing] = await db.select().from(aiRecommendationCampaigns)
-        .where(eq(aiRecommendationCampaigns.id, id))
-        .limit(1);
+      const existing = await campaignDependencies.findCampaign(id);
       if (!existing) return res.status(404).json({ message: "Campaign not found" });
-      if (!canAccessMarket(req as any, existing.market)) {
+      if (!campaignDependencies.canAccessMarket(req, existing.market)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
 
-      await db.delete(aiRecommendationCampaigns).where(eq(aiRecommendationCampaigns.id, id));
+      await campaignDependencies.deleteCampaign(id);
       res.json({ success: true });
     } catch (error) {
       console.error("AI recommendation campaign delete error:", error);

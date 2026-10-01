@@ -24,7 +24,11 @@ import { sendNotificationPreferencesEmail, sendContactFormEmails, sendEventVouch
 import { getMarketFromRequest, marketMatches } from "./market-routing.js";
 import { EVENT_VOUCHER_ACTIVATION_DAYS, getVoucherValidityError } from "./voucher-validity.js";
 import { registerSeoRoutes, build404Html, getBaseUrl } from './seo-routes.js';
-import { buildAIMarketCatalog, formatAIMarketCatalog, rankAIPromotionProducts } from './ai-catalog';
+import {
+  buildAIMarketCatalog,
+  formatAIMarketCatalog,
+  getActiveAIPromotionProducts,
+} from './ai-catalog';
 import {
   collectContactRecipients,
   isValidEmailAddress,
@@ -3782,7 +3786,10 @@ ${product.description}`;
       const productList = formatAIMarketCatalog(products, marketCurrency);
       const now = new Date();
       const [activeAIPromotion] = await db.select({
+        market: aiRecommendationCampaigns.market,
         productIds: aiRecommendationCampaigns.productIds,
+        startsAt: aiRecommendationCampaigns.startsAt,
+        endsAt: aiRecommendationCampaigns.endsAt,
       })
         .from(aiRecommendationCampaigns)
         .where(and(
@@ -3792,9 +3799,12 @@ ${product.description}`;
         ))
         .orderBy(desc(aiRecommendationCampaigns.startsAt))
         .limit(1);
-      const promotedProducts = activeAIPromotion
-        ? rankAIPromotionProducts(products, activeAIPromotion.productIds || [])
-        : [];
+      const promotedProducts = getActiveAIPromotionProducts(
+        products,
+        activeAIPromotion,
+        market,
+        now,
+      );
       const promotionContext = promotedProducts.length > 0
         ? `\n\nSCHEDULED AI RECOMMENDATIONS FOR THIS MARKET:\n${formatAIMarketCatalog(promotedProducts, marketCurrency)}\nWhen a customer asks for a relevant product recommendation, consider these campaign products first, in the order shown. Do not force them into unrelated answers. They are subject to the same availability, price, currency, and linking rules as the complete catalog.`
         : "";

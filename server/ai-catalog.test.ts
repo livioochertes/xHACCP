@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildAIMarketCatalog,
   formatAIMarketCatalog,
+  getActiveAIPromotionProducts,
   rankAIPromotionProducts,
   type AIMarketProduct,
 } from "./ai-catalog";
@@ -115,5 +116,33 @@ test("limits scheduled promotion output to three available campaign products", (
     rankAIPromotionProducts(catalog.filter((product) => product.id !== 4), [1, 2, 3, 4])
       .map((product) => product.id),
     [3, 1, 2],
+  );
+});
+
+test("promotion context uses only an active campaign for the request market and currently available products", () => {
+  const now = new Date("2026-10-01T12:00:00.000Z");
+  const activeProducts = [
+    { id: 1, name: "Available item", status: "active" },
+    { id: 3, name: "Also available", status: "active" },
+  ];
+  const campaign = {
+    market: "fr",
+    productIds: [1, 2, 3],
+    startsAt: "2026-10-01T00:00:00.000Z",
+    endsAt: "2026-10-02T00:00:00.000Z",
+  };
+
+  assert.deepEqual(
+    getActiveAIPromotionProducts(activeProducts, campaign, "fr", now).map((product) => product.id),
+    [1, 3],
+  );
+  assert.deepEqual(getActiveAIPromotionProducts(activeProducts, campaign, "ro", now), []);
+  assert.deepEqual(
+    getActiveAIPromotionProducts(activeProducts, { ...campaign, startsAt: "2026-10-02T00:00:00.000Z" }, "fr", now),
+    [],
+  );
+  assert.deepEqual(
+    getActiveAIPromotionProducts(activeProducts, { ...campaign, endsAt: "2026-10-01T12:00:00.000Z" }, "fr", now),
+    [],
   );
 });

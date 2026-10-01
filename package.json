@@ -7,7 +7,7 @@
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
-    "test:ai-catalog": "tsx --test server/ai-catalog.test.ts server/ai-blog-generator.test.ts server/ai-recommendation-campaign-validation.test.ts",
+    "test:ai-catalog": "tsx --test server/ai-catalog.test.ts server/ai-blog-generator.test.ts server/ai-recommendation-campaign-validation.test.ts server/marketing-admin-routes.test.ts",
     "test:contact-email": "tsx --test server/contact-email.test.ts server/market-routing.test.ts",
     "test:subscriptions": "tsx --test server/subscription-service.test.ts",
     "test:thank-you": "tsx --test client/src/lib/analytics.test.ts && node --test scripts/thank-you-browser.test.mjs",

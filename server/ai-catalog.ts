@@ -14,6 +14,13 @@ export type AIMarketOverlay = (
   market: string,
 ) => AIMarketProduct | null;
 
+export interface AIMarketPromotionCampaign {
+  market: string;
+  productIds: Array<number | string> | null;
+  startsAt: Date | string;
+  endsAt: Date | string;
+}
+
 /**
  * Returns every active product that is available in the requested market.
  * Market overlays are applied before the data is formatted for the model so
@@ -68,4 +75,26 @@ export function rankAIPromotionProducts(
       || (selectionOrder.get(String(a.id)) ?? 0) - (selectionOrder.get(String(b.id)) ?? 0),
     )
     .slice(0, 3);
+}
+
+/**
+ * Builds the promotion product set only for a currently active campaign in
+ * the request's market. The supplied catalog must already be market-filtered.
+ */
+export function getActiveAIPromotionProducts(
+  products: AIMarketProduct[],
+  campaign: AIMarketPromotionCampaign | null | undefined,
+  market: string,
+  now = new Date(),
+): AIMarketProduct[] {
+  if (!campaign || campaign.market !== market) return [];
+
+  const startsAt = new Date(campaign.startsAt).getTime();
+  const endsAt = new Date(campaign.endsAt).getTime();
+  const nowTime = now.getTime();
+  if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt) || startsAt > nowTime || endsAt <= nowTime) {
+    return [];
+  }
+
+  return rankAIPromotionProducts(products, campaign.productIds || []);
 }
