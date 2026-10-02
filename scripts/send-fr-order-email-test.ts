@@ -4,7 +4,6 @@ import {
   sendNewOrderNotificationEmail,
   sendOrderConfirmationEmail,
 } from "../server/email-service.js";
-import { storage } from "../server/storage";
 
 async function main() {
   if (process.env.NODE_ENV !== "development") {
@@ -19,10 +18,9 @@ async function main() {
     throw new Error("Set FR_ORDER_EMAIL_TEST_TO to a valid test mailbox.");
   }
 
-  const companySettings = await storage.getCompanySettingsByMarket("fr");
-  const companyEmail = companySettings?.email?.trim();
+  const companyEmail = process.env.FR_ORDER_EMAIL_TEST_COMPANY_TO?.trim();
   if (!companyEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(companyEmail)) {
-    throw new Error("No valid company email is configured for the French market; nothing was sent.");
+    throw new Error("Set FR_ORDER_EMAIL_TEST_COMPANY_TO to the verified French company inbox; nothing was sent.");
   }
 
   const now = new Date();
