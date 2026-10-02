@@ -22,8 +22,8 @@ export default function Cart() {
   const taxLabels = market === "fr"
     ? { subtotal: "Produits HT", shipping: "Livraison HT", vat: "TVA", total: "Total TTC" }
     : market === "ro"
-      ? { subtotal: "Produse fără TVA", shipping: "Livrare cu TVA", vat: "TVA", total: "Total cu TVA" }
-      : { subtotal: "Products excl. VAT", shipping: "Shipping incl. VAT", vat: "VAT", total: "Total incl. VAT" };
+      ? { subtotal: "Produse fără TVA", shipping: "Livrare fără TVA", vat: "TVA", total: "Total cu TVA" }
+      : { subtotal: "Products excl. VAT", shipping: "Shipping excl. VAT", vat: "VAT", total: "Total incl. VAT" };
 
   const { data: shippingSettings } = useQuery({
     queryKey: ['/api/shipping-settings'],
@@ -251,7 +251,7 @@ export default function Cart() {
                       {shipping === 0 ? (
                         <Badge variant="secondary">{t('cart.free')}</Badge>
                       ) : (
-                        `${taxSnapshot.shippingDisplayAmount} ${currencySymbol}`
+                        `${taxSnapshot.shippingNetAmount} ${currencySymbol}`
                       )}
                     </span>
                   </div>

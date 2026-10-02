@@ -266,8 +266,8 @@ export default function Checkout() {
   const taxLabels = market === "fr"
     ? { subtotal: "Produits HT", discount: "Remise HT", shipping: "Livraison HT", vat: "TVA", total: "Total TTC" }
     : market === "ro"
-      ? { subtotal: "Produse fără TVA", discount: "Reducere fără TVA", shipping: "Livrare cu TVA", vat: "TVA", total: "Total cu TVA" }
-      : { subtotal: "Products excl. VAT", discount: "Discount excl. VAT", shipping: "Shipping incl. VAT", vat: "VAT", total: "Total incl. VAT" };
+      ? { subtotal: "Produse fără TVA", discount: "Reducere fără TVA", shipping: "Livrare fără TVA", vat: "TVA", total: "Total cu TVA" }
+      : { subtotal: "Products excl. VAT", discount: "Discount excl. VAT", shipping: "Shipping excl. VAT", vat: "VAT", total: "Total incl. VAT" };
 
   // Helper function to get default form values
   const getDefaultFormValues = (): CheckoutFormData => {
@@ -887,7 +887,7 @@ export default function Checkout() {
                   <span>
                     {confirmedOrder.shipping === 0
                       ? <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
-                      : `${confirmedOrder.shippingDisplayAmount.toFixed(2)} ${confirmedOrder.currencySymbol}`}
+                      : `${confirmedOrder.shippingNetAmount.toFixed(2)} ${confirmedOrder.currencySymbol}`}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
@@ -2106,7 +2106,7 @@ export default function Checkout() {
                       {shipping === 0 ? (
                         <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
                       ) : (
-                        `${taxSnapshot.shippingDisplayAmount} ${currencySymbol}`
+                        `${taxSnapshot.shippingNetAmount} ${currencySymbol}`
                       )}
                     </span>
                   </div>
