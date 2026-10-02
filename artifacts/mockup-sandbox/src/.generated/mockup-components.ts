@@ -13,5 +13,7 @@ export const modules: ModuleMap = {
   "./components/mockups/fr-chef-event/Current.tsx": () => import("../components/mockups/fr-chef-event/Current.tsx"),
   "./components/mockups/fr-chef-event/Extended.tsx": () => import("../components/mockups/fr-chef-event/Extended.tsx"),
   "./components/mockups/fr-chef-event/ExtendedNavy.tsx": () => import("../components/mockups/fr-chef-event/ExtendedNavy.tsx"),
+  "./components/mockups/product-card-fr/Aligned.tsx": () => import("../components/mockups/product-card-fr/Aligned.tsx"),
+  "./components/mockups/product-card-fr/Current.tsx": () => import("../components/mockups/product-card-fr/Current.tsx"),
   "./components/mockups/wms-tab/WmsRestructure.tsx": () => import("../components/mockups/wms-tab/WmsRestructure.tsx")
 };

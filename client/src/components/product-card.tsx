@@ -147,12 +147,17 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
                   </span>
                 )}
               </div>
-              {/* Discount badge */}
-              {product.compareAtPrice && !isService && (
-                <Badge variant="destructive" className="text-xs w-fit">
-                  {t('products.save')} {formatPrice((parseFloat(product.compareAtPrice) - parseFloat(product.price)).toString(), product.currency)}
-                </Badge>
-              )}
+              {/* Keep the price and discount rows aligned across cards. */}
+              <div
+                className="flex h-5 items-start"
+                aria-hidden={!product.compareAtPrice || isService}
+              >
+                {product.compareAtPrice && !isService && (
+                  <Badge variant="destructive" className="text-xs w-fit whitespace-nowrap">
+                    {t('products.save')} {formatPrice((parseFloat(product.compareAtPrice) - parseFloat(product.price)).toString(), product.currency)}
+                  </Badge>
+                )}
+              </div>
 
               {/* CTA button */}
               {isService || isComposite ? (
