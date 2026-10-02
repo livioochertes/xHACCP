@@ -14985,7 +14985,7 @@
           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("tbody", { children: rows.map((order) => {
             const status = orderStatus(order, t2);
             const tone = status.tone === "pending" || status.tone === "manual_processing" ? "is-pending" : ["processing", "accepted", "in_delivery"].includes(status.tone) ? "is-processing" : ["cancelled", "manual_failed", "archived"].includes(status.tone) ? "is-archived" : "";
-            const displayOrderId = order.publicOrderRef || `#${order.id}`;
+            const displayOrderId = `#${order.id}`;
             const customer = String(order.customerName || "").trim() || (order.userId ? `#${order.userId}` : t2("reports.guest"));
             return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("tr", { children: [
               /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("td", { children: [

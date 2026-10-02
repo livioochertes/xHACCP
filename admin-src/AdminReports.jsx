@@ -233,7 +233,7 @@ function ReportOrderTable({
                       : ["cancelled", "manual_failed", "archived"].includes(status.tone)
                         ? "is-archived"
                         : "";
-                  const displayOrderId = order.publicOrderRef || `#${order.id}`;
+                  const displayOrderId = `#${order.id}`;
                   const customer = String(order.customerName || "").trim()
                     || (order.userId ? `#${order.userId}` : t("reports.guest"));
 
