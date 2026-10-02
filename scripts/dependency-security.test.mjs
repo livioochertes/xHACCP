@@ -10,7 +10,7 @@ const minimumVersions = {
   browserslist: "4.28.7",
   "fast-xml-parser": "5.7.0",
   sharp: "0.35.4",
-  postcss: "8.5.18",
+  postcss: "8.5.23",
   esbuild: "0.25.0",
   undici: "7.29.0",
   "shell-quote": "1.9.0",
@@ -25,6 +25,10 @@ const minimumVersions = {
   axios: "1.18.0",
   vite: "6.4.3",
   nanoid: "3.3.18",
+  yaml: "2.8.3",
+  "@anthropic-ai/sdk": "0.91.1",
+  "fast-xml-builder": "1.1.7",
+  "follow-redirects": "1.16.0",
 };
 const root = new URL("../", import.meta.url);
 
@@ -60,6 +64,14 @@ function assertPatched(name, version, location) {
 
 test("security version checks reject every reported vulnerable version and unsafe Vite release line", () => {
   const vulnerable = {
+    picomatch: ["2.3.1"],
+    yaml: ["2.6.0", "2.8.2"],
+    ws: ["8.18.0"],
+    "fast-xml-builder": ["1.0.0", "1.1.6"],
+    lodash: ["4.17.23"],
+    postcss: ["8.4.47", "8.5.22"],
+    "@anthropic-ai/sdk": ["0.82.0", "0.91.0"],
+    "follow-redirects": ["1.15.11"],
     multer: ["2.1.1", "2.3.0"],
     qs: ["6.14.2", "6.15.3"],
     axios: ["1.13.5", "1.17.0"],
@@ -72,6 +84,9 @@ test("security version checks reject every reported vulnerable version and unsaf
     }
   }
   for (const [name, version] of [
+    ["picomatch", "2.3.2"], ["yaml", "2.8.3"], ["ws", "8.22.0"],
+    ["fast-xml-builder", "1.3.1"], ["lodash", "4.18.1"], ["postcss", "8.5.28"],
+    ["@anthropic-ai/sdk", "0.91.1"], ["follow-redirects", "1.16.1"],
     ["multer", "2.4.0"], ["qs", "6.16.0"], ["axios", "1.18.0"],
     ["vite", "6.4.3"], ["vite", "7.3.5"], ["vite", "8.0.16"],
   ]) {
@@ -98,7 +113,7 @@ test("pnpm lockfile contains no versions affected by the targeted advisories", (
   const lock = readFileSync(new URL("pnpm-lock.yaml", root), "utf8");
   const found = new Set();
   const resolutions = lock.slice(lock.indexOf("\npackages:\n"));
-  for (const match of resolutions.matchAll(/^  ([a-z][a-z0-9-]*)@([^:\s(]+)(?:\([^:\n]*\))?:/gm)) {
+  for (const match of resolutions.matchAll(/^  ['"]?((?:@[a-z0-9-]+\/)?[a-z][a-z0-9-]*)@([^:'"\s(]+)(?:\([^:\n]*\))?['"]?:/gm)) {
     const [, name, version] = match;
     if (minimumVersions[name]) {
       assertPatched(name, version, `pnpm-lock.yaml:${name}`);
@@ -264,6 +279,69 @@ test("updated XML parser and builder preserve invoice-style XML round trips", as
   const document = { invoice: { "@_currency": "EUR", item: { name: "Chef & HACCP", quantity: 2 } } };
   const xml = new XMLBuilder(options).build(document);
   assert.deepEqual(new XMLParser(options).parse(xml), document);
+});
+
+test("YAML parsing rejects deep nesting with YAML errors instead of stack overflows", () => {
+  const require = createRequire(import.meta.url);
+  const YAML = require("yaml");
+  assert.deepEqual(YAML.parse("market: FR\nitems:\n  - chef\n"), { market: "FR", items: ["chef"] });
+  const payload = "[".repeat(5000) + "1" + "]".repeat(5000);
+  assert.throws(() => YAML.parse(payload), YAML.YAMLParseError);
+  const document = YAML.parseDocument(payload);
+  const documents = YAML.parseAllDocuments(payload);
+  for (const doc of [document, ...documents]) {
+    assert.ok(doc.errors.length > 0);
+    assert.ok(doc.errors.every(error => error instanceof YAML.YAMLParseError));
+  }
+});
+
+test("Anthropic memory files stay private even with a permissive umask", () => {
+  // Run separately so changing umask cannot affect the app or other tests.
+  execFileSync(process.execPath, ["--input-type=module", "-e", `
+    import assert from 'node:assert/strict';
+    import { mkdtemp, stat, readFile, rm } from 'node:fs/promises';
+    import { tmpdir } from 'node:os';
+    import { join } from 'node:path';
+    import { BetaLocalFilesystemMemoryTool } from '@anthropic-ai/sdk/tools/memory/node';
+    const directory = await mkdtemp(join(tmpdir(), 'sdk-memory-security-'));
+    const original = process.umask(0);
+    try {
+      const memory = await BetaLocalFilesystemMemoryTool.init(directory);
+      await memory.create({ command: 'create', path: '/memories/catalog/item.txt', file_text: 'Chef' });
+      for (const path of ['memories', 'memories/catalog']) {
+        assert.equal((await stat(join(directory, path))).mode & 0o777, 0o700);
+      }
+      const file = join(directory, 'memories/catalog/item.txt');
+      assert.equal((await stat(file)).mode & 0o777, 0o600);
+      assert.equal(await readFile(file, 'utf8'), 'Chef');
+    } finally {
+      process.umask(original);
+      await rm(directory, { recursive: true, force: true });
+    }
+  `], { cwd: root, timeout: 5000 });
+});
+
+test("patched Anthropic SDK preserves message request and response compatibility", async () => {
+  const { default: Anthropic } = await import("@anthropic-ai/sdk");
+  const client = new Anthropic({
+    apiKey: "local-test-key",
+    fetch: async (url, init) => {
+      assert.equal(new URL(url).pathname, "/v1/messages");
+      const body = JSON.parse(init.body);
+      assert.deepEqual(body.messages, [{ role: "user", content: "Catalog" }]);
+      assert.equal(body.max_tokens, 32);
+      return new Response(JSON.stringify({
+        id: "msg_test", type: "message", role: "assistant", model: body.model,
+        content: [{ type: "text", text: "Chef" }], stop_reason: "end_turn",
+        stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 },
+      }), { headers: { "content-type": "application/json" } });
+    },
+  });
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-20250514", max_tokens: 32,
+    messages: [{ role: "user", content: "Catalog" }],
+  });
+  assert.equal(message.content[0].text, "Chef");
 });
 
 test("updated Sharp resizes and encodes uploaded images", async () => {
