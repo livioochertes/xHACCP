@@ -15,7 +15,7 @@
 - [Promotional banner QR assets](promotional-banner-qr-assets.md) — preserve copy/QR and match the measured Hero viewport ratio by extending only background.
 - [Admin numeric form fields](admin-numeric-form-fields.md) — optional numeric inputs can arrive as empty strings; normalize them server-side before database writes.
 - [Product bulk-action UX](product-bulk-action-ux.md) — expose actions in a dropdown, keep required inputs inline, and confirm explicitly before execution.
-- [French product-card layout](french-product-card-layout.md) — preserve product-image size and align prices and sale badges across French cards.
+- [French product-card layout](french-product-card-layout.md) — show full product photos without cropping; preserve frame size and align price/discount rows.
 - [Viva currency-specific sources](viva-currency-specific-sources.md) — Viva source codes can reject currencies they do not support; never reuse the RO source for FR EUR payments.
 - [Viva market configuration](viva-market-configuration.md) — initial checkout and recurring renewals must resolve through one market-specific credential/currency mapping.
 - [Viva checkout error handling](viva-checkout-error-handling.md) — payment failures must stay JSON/user-safe; correlate logs without logging source codes or customer payloads.

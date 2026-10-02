@@ -74,11 +74,11 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
       <Link href={`/products/${productSlug}`}>
         <CardContent className="p-0 h-full flex flex-col">
           {/* Image */}
-          <div className="relative">
+          <div className="relative bg-white">
             <img
               src={product.imageUrl || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300"}
               alt={translatedName}
-              className="w-full h-48 object-cover"
+              className="w-full h-48 object-contain"
               loading="lazy"
             />
             {product.compareAtPrice && !isService && (
@@ -250,11 +250,11 @@ export const ProductListItem = memo(function ProductListItem({ product }: Produc
         <div className="flex gap-4 p-4">
           {/* Image */}
           <Link href={`/products/${productSlug}`} className="shrink-0">
-            <div className="relative w-36 h-32 sm:w-44 sm:h-36 rounded-md overflow-hidden bg-gray-100">
+            <div className="relative w-36 h-32 sm:w-44 sm:h-36 rounded-md overflow-hidden bg-white">
               <img
                 src={product.imageUrl || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300"}
                 alt={translatedName}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                className="w-full h-full object-contain"
                 loading="lazy"
               />
               {product.compareAtPrice && !isService && (

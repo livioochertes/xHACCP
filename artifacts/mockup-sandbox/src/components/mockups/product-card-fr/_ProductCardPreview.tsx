@@ -48,9 +48,11 @@ const price = (value: number) =>
 function PreviewCard({
   product,
   reserveDiscountRow,
+  showWholeImage,
 }: {
   product: PreviewProduct;
   reserveDiscountRow: boolean;
+  showWholeImage: boolean;
 }) {
   const hasDiscount = product.compareAtPrice !== undefined;
 
@@ -62,7 +64,7 @@ function PreviewCard({
             <img
               src={product.imageUrl}
               alt={product.name}
-              className="h-48 w-full object-cover"
+              className={`h-48 w-full bg-white ${showWholeImage ? "object-contain" : "object-cover"}`}
               loading="lazy"
             />
             {hasDiscount && (
@@ -142,7 +144,13 @@ function PreviewCard({
   );
 }
 
-export function ProductCardPreview({ reserveDiscountRow }: { reserveDiscountRow: boolean }) {
+export function ProductCardPreview({
+  reserveDiscountRow,
+  showWholeImage = false,
+}: {
+  reserveDiscountRow: boolean;
+  showWholeImage?: boolean;
+}) {
   return (
     <main className="fr-product-card-preview">
       <div className="fr-product-card-grid">
@@ -151,6 +159,7 @@ export function ProductCardPreview({ reserveDiscountRow }: { reserveDiscountRow:
             key={product.name}
             product={product}
             reserveDiscountRow={reserveDiscountRow}
+            showWholeImage={showWholeImage}
           />
         ))}
       </div>
