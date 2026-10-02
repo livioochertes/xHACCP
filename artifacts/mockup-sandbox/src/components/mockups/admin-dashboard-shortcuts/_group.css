@@ -1,0 +1,70 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&display=swap");
+
+:root {
+  --admin-paper: #f2f4ed;
+  --admin-surface: #fffefa;
+  --admin-ink: #1b3431;
+  --admin-ink-soft: #62736d;
+  --admin-ink-faint: #91a09a;
+  --admin-border: #e3e8dd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  min-width: 0;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--admin-paper);
+  color: var(--admin-ink);
+  font-family: "DM Sans", sans-serif;
+}
+
+.admin-shortcuts-preview {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.admin-shortcuts-preview nav {
+  width: 100%;
+}
+
+.admin-report-text-button {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #50635b;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.admin-report-text-button:hover {
+  border-color: #cbd7c8;
+  background: #f8f9f4;
+  color: var(--admin-ink);
+}
+
+.admin-report-text-button:focus-visible {
+  outline: 2px solid #789276;
+  outline-offset: 2px;
+}

@@ -468,6 +468,7 @@ export default function AdminReports({
             />
           </div>
           <nav
+            className="admin-dashboard-shortcuts"
             aria-label={t("dashboard.quickShortcuts")}
             style={{ display: "flex", flexWrap: "wrap", gap: "10px", margin: "12px 0 24px" }}
           >

@@ -1078,13 +1078,13 @@
         return null == a || "http://www.w3.org/1999/xhtml" === a ? kb(b) : "http://www.w3.org/2000/svg" === a && "foreignObject" === b ? "http://www.w3.org/1999/xhtml" : a;
       }
       var mb;
-      var nb = function(a) {
+      var nb = (function(a) {
         return "undefined" !== typeof MSApp && MSApp.execUnsafeLocalFunction ? function(b, c, d, e2) {
           MSApp.execUnsafeLocalFunction(function() {
             return a(b, c, d, e2);
           });
         } : a;
-      }(function(a, b) {
+      })(function(a, b) {
         if ("http://www.w3.org/2000/svg" !== a.namespaceURI || "innerHTML" in a) a.innerHTML = b;
         else {
           mb = mb || document.createElement("div");
@@ -15187,6 +15187,7 @@
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
           "nav",
           {
+            className: "admin-dashboard-shortcuts",
             "aria-label": t2("dashboard.quickShortcuts"),
             style: { display: "flex", flexWrap: "wrap", gap: "10px", margin: "12px 0 24px" },
             children: [
@@ -30944,341 +30945,47 @@ react/cjs/react-jsx-runtime.production.min.js:
    *)
 
 lucide-react/dist/esm/shared/src/utils.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/defaultAttributes.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/Icon.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/createLucideIcon.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/activity.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/arrow-down-right.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/arrow-up-right.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/badge-percent.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/book-open-text.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/boxes.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/calendar-days.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/chevron-down.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/chevron-left.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/chevron-right.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/chevrons-left.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/chevrons-right.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/earth.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/image.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/key-round.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/layout-dashboard.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/lock-keyhole-open.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/lock-keyhole.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/megaphone.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/menu.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/package.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/panel-left-close.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/panel-left-open.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/pencil.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/receipt-text.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/refresh-cw.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/rss.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/save.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/settings-2.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/shield-check.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/shield-off.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/shopping-basket.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/shopping-cart.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/sparkles.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/truck.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/users-round.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/users.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/icons/x.js:
-  (**
-   * @license lucide-react v0.453.0 - ISC
-   *
-   * This source code is licensed under the ISC license.
-   * See the LICENSE file in the root directory of this source tree.
-   *)
-
 lucide-react/dist/esm/lucide-react.js:
   (**
    * @license lucide-react v0.453.0 - ISC
