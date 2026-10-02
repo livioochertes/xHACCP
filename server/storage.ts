@@ -304,7 +304,16 @@ export interface IStorage {
   getProductsForMarket(market: string): Promise<number[]>;
 
   // Composite product operations
-  getCompositeProductComponents(parentProductId: number, market: string): Promise<Array<CompositeProductComponent & { product: Product; marketPrice: string | null; marketCurrency: string | null; marketIsActive: boolean | null }>>;
+  getCompositeProductComponents(parentProductId: number, market: string): Promise<Array<CompositeProductComponent & {
+    product: Product;
+    marketPrice: string | null;
+    marketPriceNet: string | null;
+    marketPriceGross: string | null;
+    marketPriceDisplayMode: string | null;
+    marketCurrency: string | null;
+    marketStockQuantity: number | null;
+    marketIsActive: boolean | null;
+  }>>;
   replaceCompositeProductComponents(parentProductId: number, market: string, componentProductIds: number[]): Promise<void>;
 }
 
@@ -2383,12 +2392,24 @@ export class DatabaseStorage implements IStorage {
     return rows.map(r => r.productId);
   }
 
-  async getCompositeProductComponents(parentProductId: number, market: string): Promise<Array<CompositeProductComponent & { product: Product; marketPrice: string | null; marketCurrency: string | null; marketStockQuantity: number | null; marketIsActive: boolean | null }>> {
+  async getCompositeProductComponents(parentProductId: number, market: string): Promise<Array<CompositeProductComponent & {
+    product: Product;
+    marketPrice: string | null;
+    marketPriceNet: string | null;
+    marketPriceGross: string | null;
+    marketPriceDisplayMode: string | null;
+    marketCurrency: string | null;
+    marketStockQuantity: number | null;
+    marketIsActive: boolean | null;
+  }>> {
     const rows = await db
       .select({
         relation: compositeProductComponents,
         product: products,
         marketPrice: productMarkets.price,
+        marketPriceNet: productMarkets.priceNet,
+        marketPriceGross: productMarkets.priceGross,
+        marketPriceDisplayMode: productMarkets.priceDisplayMode,
         marketCurrency: productMarkets.currency,
         marketStockQuantity: productMarkets.stockQuantity,
         marketIsActive: productMarkets.isActive,
@@ -2409,6 +2430,9 @@ export class DatabaseStorage implements IStorage {
       ...row.relation,
       product: row.product,
       marketPrice: row.marketPrice,
+      marketPriceNet: row.marketPriceNet,
+      marketPriceGross: row.marketPriceGross,
+      marketPriceDisplayMode: row.marketPriceDisplayMode,
       marketCurrency: row.marketCurrency,
       marketStockQuantity: row.marketStockQuantity,
       marketIsActive: row.marketIsActive,

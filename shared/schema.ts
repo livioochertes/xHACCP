@@ -78,6 +78,10 @@ export type CompositeConfiguration = {
   components: CompositeSelectionItem[];
   currency?: string;
   totalPrice?: string;
+  totalPriceNet?: string;
+  totalPriceGross?: string;
+  priceDisplayMode?: "net" | "gross";
+  vatPercentage?: string;
 };
 
 export type ProductType = "standard" | "service" | "subscription";
@@ -242,6 +246,9 @@ export const productMarkets = pgTable("product_markets", {
   isActive: boolean("is_active").default(true),
   // Price overrides — null means fall back to product.price / product.compareAtPrice
   price: decimal("price", { precision: 10, scale: 2 }),
+  priceNet: decimal("price_net", { precision: 10, scale: 2 }),
+  priceGross: decimal("price_gross", { precision: 10, scale: 2 }),
+  priceDisplayMode: varchar("price_display_mode", { length: 10 }),
   compareAtPrice: decimal("compare_at_price", { precision: 10, scale: 2 }),
   currency: varchar("currency", { length: 3 }), // null = inherit from marketSettings.currency
   // Pennylane mappings are market/company specific and are intentionally
@@ -310,6 +317,9 @@ export const orders = pgTable("orders", {
   fulfillmentAssignedAt: timestamp("fulfillment_assigned_at"),
   confirmedAt: timestamp("confirmed_at"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  subtotalNet: decimal("subtotal_net", { precision: 10, scale: 2 }),
+  vatPercentage: decimal("vat_percentage", { precision: 5, scale: 2 }),
+  vatAmount: decimal("vat_amount", { precision: 10, scale: 2 }),
   shippingAddress: jsonb("shipping_address").notNull(),
   billingAddress: jsonb("billing_address").notNull(),
   paymentMethod: varchar("payment_method", { length: 50 }).notNull(),
@@ -321,6 +331,8 @@ export const orders = pgTable("orders", {
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default("0.00"),
   voucherCode: varchar("voucher_code", { length: 100 }),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0.00"),
+  discountNetAmount: decimal("discount_net_amount", { precision: 10, scale: 2 }),
+  discountGrossAmount: decimal("discount_gross_amount", { precision: 10, scale: 2 }),
   awbNumber: varchar("awb_number", { length: 100 }),
   awbCourier: varchar("awb_courier", { length: 50 }).default("sameday"),
   awbCost: decimal("awb_cost", { precision: 10, scale: 2 }),
@@ -345,6 +357,12 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  priceNet: decimal("price_net", { precision: 10, scale: 2 }),
+  totalPriceNet: decimal("total_price_net", { precision: 10, scale: 2 }),
+  vatPercentage: decimal("vat_percentage", { precision: 5, scale: 2 }),
+  vatAmount: decimal("vat_amount", { precision: 10, scale: 2 }),
+  displayPrice: decimal("display_price", { precision: 10, scale: 2 }),
+  priceDisplayMode: varchar("price_display_mode", { length: 10 }),
   compositeConfiguration: jsonb("composite_configuration").$type<CompositeConfiguration | null>(),
 });
 

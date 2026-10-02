@@ -31,6 +31,13 @@ import {
   getActiveAIPromotionProducts,
 } from './ai-catalog';
 import {
+  calculateOrderTaxSnapshot,
+  defaultPriceDisplayMode,
+  moneyString,
+  pricePairFromDisplayPrice,
+  resolveMarketPricePair,
+} from "@shared/market-pricing";
+import {
   collectContactRecipients,
   isValidEmailAddress,
   type ContactMarket,
@@ -356,6 +363,15 @@ export function applyMarketOverlay(product: any, market: string): any {
   const effectiveCurrency = product.isComposite
     ? (marketSettingsMap.get(market)?.currency ?? product.currency)
     : (marketRow.currency ?? marketSettingsMap.get(market)?.currency ?? product.currency);
+  const vatPercentage = Number(marketSettingsMap.get(market)?.vatPercentage ?? 0);
+  const pricePair = resolveMarketPricePair({
+    market,
+    price: marketRow.price ?? product.price,
+    priceNet: marketRow.priceNet,
+    priceGross: marketRow.priceGross,
+    priceDisplayMode: marketRow.priceDisplayMode,
+    vatPercentage,
+  });
   const directCompositeStock = marketRow.stockQuantity ?? product.stockQuantity;
   const effectiveCompositeStock = product.isComposite
     ? resolveCompositeStockQuantity(
@@ -369,16 +385,15 @@ export function applyMarketOverlay(product: any, market: string): any {
         }],
       )
     : null;
-  const hasOverrides = marketRow.price != null || marketRow.compareAtPrice != null ||
-    marketRow.currency != null || marketRow.inStock != null || marketRow.stockQuantity != null ||
-    effectiveCurrency !== product.currency || effectiveCategory.id !== product.categoryId ||
-    product.isComposite;
-  if (!hasOverrides) return product;
   return {
     ...product,
     categoryId: effectiveCategory.id,
     category: effectiveCategory,
-    price: marketRow.price ?? product.price,
+    price: moneyString(pricePair.displayPrice),
+    priceNet: moneyString(pricePair.priceNet),
+    priceGross: moneyString(pricePair.priceGross),
+    priceDisplayMode: pricePair.priceDisplayMode,
+    vatPercentage: moneyString(pricePair.vatPercentage),
     compareAtPrice: marketRow.compareAtPrice ?? product.compareAtPrice,
     currency: effectiveCurrency,
     inStock: product.isComposite
@@ -532,9 +547,21 @@ async function getCompositeSources(parentProductId: number, market: string): Pro
   const language = market === "fr" ? "fr" : market === "com" ? "en" : "ro";
   return Promise.all(rows.map(async row => {
     const translation = await storage.getProductTranslation(row.product.id, language);
+    const pricePair = resolveMarketPricePair({
+      market,
+      price: row.marketPrice ?? row.product.price,
+      priceNet: row.marketPriceNet,
+      priceGross: row.marketPriceGross,
+      priceDisplayMode: row.marketPriceDisplayMode,
+      vatPercentage: marketSettingsMap.get(market)?.vatPercentage ?? 0,
+    });
     return {
       product: translation?.name ? { ...row.product, name: translation.name } : row.product,
-      marketPrice: row.marketPrice,
+      marketPrice: moneyString(pricePair.displayPrice),
+      priceNet: moneyString(pricePair.priceNet),
+      priceGross: moneyString(pricePair.priceGross),
+      priceDisplayMode: pricePair.priceDisplayMode,
+      vatPercentage: moneyString(pricePair.vatPercentage),
       marketCurrency: row.marketCurrency ?? marketSettingsMap.get(market)?.currency ?? row.product.currency,
       marketStockQuantity: row.marketStockQuantity,
       sortOrder: row.sortOrder,
@@ -575,6 +602,10 @@ async function getCompositeConfiguration(
     requestedComponents,
     defaultCurrency,
     applyVolumeDiscount,
+    {
+      parentPriceDisplayMode: effectiveProduct.priceDisplayMode,
+      vatPercentage: Number(effectiveProduct.vatPercentage ?? 0),
+    },
   );
 }
 
@@ -588,6 +619,10 @@ async function decorateCompositeProduct(product: any, market: string): Promise<a
     imageUrl: source.product.imageUrl,
     status: source.product.status,
     price: source.marketPrice ?? source.product.price,
+    priceNet: source.priceNet,
+    priceGross: source.priceGross,
+    priceDisplayMode: source.priceDisplayMode,
+    vatPercentage: source.vatPercentage,
     currency: source.marketCurrency ?? marketSettingsMap.get(market)?.currency ?? source.product.currency,
     stockQuantity: source.marketStockQuantity ?? source.product.stockQuantity ?? 0,
     inStock: Number(source.marketStockQuantity ?? source.product.stockQuantity ?? 0) > 0,
@@ -616,29 +651,56 @@ async function validateOrderItemForMarket(item: any, market: string) {
   if (product.isComposite) {
     const requestedComponents = item.compositeConfiguration?.components ?? item.components;
     const configuration = await getCompositeConfiguration(product, market, requestedComponents);
-    const unitPrice = Number(configuration.totalPrice);
+    const unitPriceNet = Number(configuration.totalPriceNet ?? configuration.totalPrice);
+    const unitPriceGross = Number(configuration.totalPriceGross ?? configuration.totalPrice);
+    const displayPrice = configuration.priceDisplayMode === "net" ? unitPriceNet : unitPriceGross;
+    const totalPriceNet = Number(moneyString(unitPriceNet * quantity));
+    const totalPriceGross = Number(moneyString(unitPriceGross * quantity));
     return {
       productId: item.productId,
       quantity,
-      price: unitPrice.toFixed(2),
-      totalPrice: (unitPrice * quantity).toFixed(2),
+      price: moneyString(unitPriceGross),
+      totalPrice: moneyString(totalPriceGross),
+      priceNet: moneyString(unitPriceNet),
+      totalPriceNet: moneyString(totalPriceNet),
+      displayPrice: moneyString(displayPrice),
+      displayTotalPrice: moneyString(displayPrice * quantity),
+      priceDisplayMode: configuration.priceDisplayMode || defaultPriceDisplayMode(market),
+      vatPercentage: moneyString(Number(configuration.vatPercentage ?? marketSettingsMap.get(market)?.vatPercentage ?? 0)),
+      vatAmount: moneyString(totalPriceGross - totalPriceNet),
       compositeConfiguration: configuration,
-        productType: product.productType || (product.isService ? "service" : "standard"),
+      productType: product.productType || (product.isService ? "service" : "standard"),
     };
   }
 
-  const unitPrice = applyVolumeDiscount(
-    parseFloat(effectiveProduct.price),
+  const priceDisplayMode = effectiveProduct.priceDisplayMode || defaultPriceDisplayMode(market);
+  const vatPercentage = Number(effectiveProduct.vatPercentage ?? marketSettingsMap.get(market)?.vatPercentage ?? 0);
+  const discountedDisplayPrice = applyVolumeDiscount(
+    Number(effectiveProduct.price),
     quantity,
     (product as any).volumeDiscounts,
   );
+  const discountedPair = pricePairFromDisplayPrice(
+    discountedDisplayPrice,
+    priceDisplayMode,
+    vatPercentage,
+  );
+  const totalPriceNet = Number(moneyString(discountedPair.priceNet * quantity));
+  const totalPriceGross = Number(moneyString(discountedPair.priceGross * quantity));
   return {
     productId: item.productId,
     quantity,
-    price: unitPrice.toFixed(2),
-    totalPrice: (unitPrice * quantity).toFixed(2),
+    price: moneyString(discountedPair.priceGross),
+    totalPrice: moneyString(totalPriceGross),
+    priceNet: moneyString(discountedPair.priceNet),
+    totalPriceNet: moneyString(totalPriceNet),
+    displayPrice: moneyString(discountedPair.displayPrice),
+    displayTotalPrice: moneyString(discountedPair.displayPrice * quantity),
+    priceDisplayMode,
+    vatPercentage: moneyString(vatPercentage),
+    vatAmount: moneyString(totalPriceGross - totalPriceNet),
     compositeConfiguration: null,
-      productType: product.productType || (product.isService ? "service" : "standard"),
+    productType: product.productType || (product.isService ? "service" : "standard"),
   };
 }
 
@@ -2761,13 +2823,14 @@ Sitemap: ${baseUrl}/sitemap.xml
       }
       
       // Calculate subtotal from validated items (using server-side prices with volume discounts)
-      const subtotal = validatedItems.reduce((sum: number, item: any) => sum + parseFloat(item.price) * item.quantity, 0);
+      const subtotal = validatedItems.reduce((sum: number, item: any) => sum + Number(item.displayTotalPrice), 0);
       
       // Shipping and tax settings are market-owned. Never fall back to the
       // first/global company row for a different storefront.
       const market = orderMarket;
       const companySettings = await storage.getCompanySettingsByMarket(market);
       const marketSetting = marketSettingsMap.get(market);
+      const vatPercentage = Number(marketSetting?.vatPercentage ?? 0);
       const freeShippingThreshold = marketSetting?.freeShippingThreshold
         ? parseFloat(marketSetting.freeShippingThreshold)
         : (companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : (market === "ro" ? 1000 : 200));
@@ -2808,10 +2871,14 @@ Sitemap: ${baseUrl}/sitemap.xml
       }
       
       // Apply voucher discount (to subtotal only, not shipping)
-      const discountedSubtotal = Math.max(0, subtotal - discountAmount);
-      
-      // Final total = discounted subtotal + shipping (prices already include VAT)
-      const totalAmount = discountedSubtotal + shippingCost;
+      const taxSnapshot = calculateOrderTaxSnapshot(
+        validatedItems,
+        discountAmount,
+        shippingCost,
+        vatPercentage,
+      );
+      discountAmount = Number(taxSnapshot.discountAmount);
+      const totalAmount = Number(taxSnapshot.totalAmount);
       
       // Add voucher info to notes if applied
       let orderNotes = notes || '';
@@ -2831,9 +2898,14 @@ Sitemap: ${baseUrl}/sitemap.xml
         currency: marketSettingsMap.get(orderMarket)?.currency ?? (orderMarket === "ro" ? "RON" : "EUR"),
         status: "pending",
         totalAmount: totalAmount.toFixed(2),
+        subtotalNet: taxSnapshot.subtotalNet,
+        vatPercentage: moneyString(vatPercentage),
+        vatAmount: taxSnapshot.vatAmount,
         shippingCost: shippingCost.toFixed(2),
         voucherCode: validatedVoucher?.code || undefined,
-        discountAmount: discountAmount > 0 ? discountAmount.toFixed(2) : undefined,
+        discountAmount: discountAmount > 0 ? taxSnapshot.discountAmount : undefined,
+        discountNetAmount: discountAmount > 0 ? taxSnapshot.discountNetAmount : undefined,
+        discountGrossAmount: discountAmount > 0 ? taxSnapshot.discountGrossAmount : undefined,
         shippingAddress: { ...shippingAddress, email: guestEmail || shippingAddress?.email },
         billingAddress,
         paymentMethod,
@@ -4058,18 +4130,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         } catch (e) { }
       }
 
-      const validatedVivaItems: Array<{
-        productId: number;
-        quantity: number;
-        price: string;
-        totalPrice: string;
-        compositeConfiguration: CompositeConfiguration | null;
-        productType?: string;
-      }> = [];
+      const validatedVivaItems: any[] = [];
       let subscriptionItemCount = 0;
       for (const item of cartItems) {
         const validatedItem = await validateOrderItemForMarket(item, vivaMarket);
-        subtotal += parseFloat(validatedItem.totalPrice);
+        subtotal += Number(validatedItem.displayTotalPrice);
         validatedVivaItems.push(validatedItem);
         if (validatedItem.productType === "subscription") {
           subscriptionItemCount += validatedItem.quantity;
@@ -4096,6 +4161,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const companySettings = await storage.getCompanySettingsByMarket(vivaMarket);
       const market2 = vivaMarket;
       const marketSetting2 = marketSettingsMap.get(market2);
+      const vatPercentage = Number(marketSetting2?.vatPercentage ?? 0);
       const freeShippingThreshold = marketSetting2?.freeShippingThreshold
         ? parseFloat(marketSetting2.freeShippingThreshold)
         : (companySettings?.freeShippingThreshold ? parseFloat(companySettings.freeShippingThreshold) : (vivaMarket === "ro" ? 1000 : 200));
@@ -4128,8 +4194,14 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         }
       }
 
-      const discountedSubtotal = Math.max(0, subtotal - discountAmount);
-      const finalAmountCents = Math.round((discountedSubtotal + shippingCost) * 100);
+      const taxSnapshot = calculateOrderTaxSnapshot(
+        validatedVivaItems,
+        discountAmount,
+        shippingCost,
+        vatPercentage,
+      );
+      discountAmount = Number(taxSnapshot.discountAmount);
+      const finalAmountCents = Math.round(Number(taxSnapshot.totalAmount) * 100);
 
       if (finalAmountCents < 30) {
         return res.status(400).json({ message: "Order total is too low" });
@@ -4157,10 +4229,15 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           market: vivaMarket,
           currency: serverCurrency,
           status: 'pending',
-          totalAmount: (discountedSubtotal + shippingCost).toFixed(2),
+          totalAmount: taxSnapshot.totalAmount,
+          subtotalNet: taxSnapshot.subtotalNet,
+          vatPercentage: moneyString(vatPercentage),
+          vatAmount: taxSnapshot.vatAmount,
           shippingCost: shippingCost.toFixed(2),
           voucherCode: voucherCode && discountAmount > 0 ? voucherCode : undefined,
-          discountAmount: discountAmount > 0 ? discountAmount.toFixed(2) : undefined,
+          discountAmount: discountAmount > 0 ? taxSnapshot.discountAmount : undefined,
+          discountNetAmount: discountAmount > 0 ? taxSnapshot.discountNetAmount : undefined,
+          discountGrossAmount: discountAmount > 0 ? taxSnapshot.discountGrossAmount : undefined,
           shippingAddress: orderData.shippingAddress || {},
           billingAddress: orderData.billingAddress || {},
           paymentMethod: 'viva',
@@ -4679,8 +4756,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (validatedItems.some((item: any) => item.productType === "subscription")) {
         return res.status(400).json({ message: "Subscriptions require Viva recurring payment" });
       }
-      const subtotal = validatedItems.reduce((sum: number, item: any) => sum + Number(item.totalPrice), 0);
+      const subtotal = validatedItems.reduce((sum: number, item: any) => sum + Number(item.displayTotalPrice), 0);
       const setting = marketSettingsMap.get("fr");
+      const vatPercentage = Number(setting?.vatPercentage ?? 0);
       const company = await storage.getCompanySettingsByMarket("fr");
       const freeThreshold = setting?.freeShippingThreshold ? Number(setting.freeShippingThreshold) : Number(company?.freeShippingThreshold || 200);
       const shippingCost = subtotal > freeThreshold ? 0 : Number(setting?.standardShippingCost ?? company?.standardShippingCost ?? 12);
@@ -4696,13 +4774,20 @@ Always be helpful, professional, and focus on practical solutions. When recommen
             : Number(voucher.discountValue);
         } else voucher = null;
       }
-      const total = Math.max(0, subtotal - discountAmount) + shippingCost;
+      const taxSnapshot = calculateOrderTaxSnapshot(validatedItems, discountAmount, shippingCost, vatPercentage);
+      discountAmount = Number(taxSnapshot.discountAmount);
+      const total = Number(taxSnapshot.totalAmount);
       if (!Number.isFinite(total) || total < 0.01) return res.status(400).json({ message: "Order total is invalid" });
       const notes = `${orderData.notes || ""}${voucher ? `${orderData.notes ? "\n" : ""}Voucher: ${voucher.code} (-${discountAmount.toFixed(2)})` : ""}`;
       const localOrder = await storage.createOrder({
         userId: req.userId || null, market: "fr", currency: "EUR", status: "pending",
         totalAmount: total.toFixed(2), shippingCost: shippingCost.toFixed(2),
-        voucherCode: voucher?.code, discountAmount: discountAmount ? discountAmount.toFixed(2) : undefined,
+        subtotalNet: taxSnapshot.subtotalNet,
+        vatPercentage: moneyString(vatPercentage),
+        vatAmount: taxSnapshot.vatAmount,
+        voucherCode: voucher?.code, discountAmount: discountAmount ? taxSnapshot.discountAmount : undefined,
+        discountNetAmount: discountAmount ? taxSnapshot.discountNetAmount : undefined,
+        discountGrossAmount: discountAmount ? taxSnapshot.discountGrossAmount : undefined,
         shippingAddress: { ...(orderData.shippingAddress || {}), email }, billingAddress: orderData.billingAddress || {},
         paymentMethod: "paypal", paymentStatus: "pending", notes: notes || undefined,
       }, validatedItems);

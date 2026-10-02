@@ -1,4 +1,11 @@
 import type { CompositeConfiguration, CompositeSelectionItem, Product } from "@shared/schema";
+import {
+  defaultPriceDisplayMode,
+  moneyString,
+  pricePairFromDisplayPrice,
+  resolveMarketPricePair,
+  type PriceDisplayMode,
+} from "@shared/market-pricing";
 
 export const MAX_COMPOSITE_COMPONENTS = 8;
 export const MAX_COMPONENT_QUANTITY = 9999;
@@ -8,6 +15,10 @@ export type CompositeComponentSource = {
   marketPrice: string | null;
   marketCurrency: string | null;
   marketStockQuantity?: number | null;
+  priceNet?: string | null;
+  priceGross?: string | null;
+  priceDisplayMode?: PriceDisplayMode;
+  vatPercentage?: string | number;
   sortOrder: number;
 };
 
@@ -72,6 +83,7 @@ export function calculateCompositeConfiguration(
   requestedInput: unknown,
   defaultCurrency: string,
   applyDiscount: (basePrice: number, quantity: number, tiers: unknown) => number,
+  options: { parentPriceDisplayMode?: PriceDisplayMode; vatPercentage?: number } = {},
 ): CompositeConfiguration {
   const requested = normalizeRequestedCompositeComponents(requestedInput);
   const requestedById = new Map(requested.map(item => [item.componentProductId, item.quantity]));
@@ -85,7 +97,11 @@ export function calculateCompositeConfiguration(
 
   const currencies = new Set<string>();
   const components: CompositeSelectionItem[] = [];
-  let total = 0;
+  let totalNetCents = 0;
+  let totalGrossCents = 0;
+  let totalDisplayCents = 0;
+  const parentPriceDisplayMode = options.parentPriceDisplayMode ?? "gross";
+  const vatPercentage = Math.max(0, Number(options.vatPercentage ?? 0));
 
   for (const source of [...available].sort((a, b) => a.sortOrder - b.sortOrder)) {
     const quantity = requestedById.get(source.product.id);
@@ -93,8 +109,15 @@ export function calculateCompositeConfiguration(
 
     // Composite membership explicitly permits inactive simple products. We
     // intentionally use the market price row even when that row is inactive.
-    const basePrice = Number(source.marketPrice ?? source.product.price);
-    if (!Number.isFinite(basePrice) || basePrice < 0) {
+    const pair = resolveMarketPricePair({
+      market: "ro",
+      price: source.marketPrice ?? source.product.price,
+      priceNet: source.priceNet,
+      priceGross: source.priceGross,
+      priceDisplayMode: source.priceDisplayMode ?? "gross",
+      vatPercentage: source.vatPercentage ?? vatPercentage,
+    });
+    if (![pair.priceNet, pair.priceGross, pair.displayPrice].every(value => Number.isFinite(value) && value >= 0)) {
       throw new Error(`Invalid price for component ${source.product.name}`);
     }
     const currency = source.marketCurrency || source.product.currency || defaultCurrency;
@@ -106,16 +129,25 @@ export function calculateCompositeConfiguration(
     }
     currencies.add(currency);
 
-    const unitPrice = applyDiscount(basePrice, quantity, source.product.volumeDiscounts);
-    const lineTotal = unitPrice * quantity;
-    total += lineTotal;
+    const discountedDisplayPrice = applyDiscount(pair.displayPrice, quantity, source.product.volumeDiscounts);
+    const discountedPair = pricePairFromDisplayPrice(
+      discountedDisplayPrice,
+      pair.priceDisplayMode,
+      pair.vatPercentage,
+    );
+    const lineNetCents = Math.round(discountedPair.priceNet * quantity * 100);
+    const lineGrossCents = Math.round(discountedPair.priceGross * quantity * 100);
+    const lineDisplayCents = Math.round(discountedPair.displayPrice * quantity * 100);
+    totalNetCents += lineNetCents;
+    totalGrossCents += lineGrossCents;
+    totalDisplayCents += parentPriceDisplayMode === "net" ? lineNetCents : lineGrossCents;
     components.push({
       componentProductId: source.product.id,
       quantity,
       name: source.product.name,
       productCode: source.product.productCode,
-      unitPrice: unitPrice.toFixed(2),
-      totalPrice: lineTotal.toFixed(2),
+      unitPrice: moneyString(discountedPair.displayPrice),
+      totalPrice: moneyString(lineDisplayCents / 100),
     });
   }
 
@@ -126,7 +158,11 @@ export function calculateCompositeConfiguration(
   return {
     components,
     currency: [...currencies][0] || defaultCurrency,
-    totalPrice: total.toFixed(2),
+    totalPrice: moneyString(totalDisplayCents / 100),
+    totalPriceNet: moneyString(totalNetCents / 100),
+    totalPriceGross: moneyString(totalGrossCents / 100),
+    priceDisplayMode: parentPriceDisplayMode,
+    vatPercentage: moneyString(vatPercentage),
   };
 }
 

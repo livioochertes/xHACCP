@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { moneyString, resolveMarketPricePair } from "@shared/market-pricing";
 
 export interface AdminProductMarketRow {
   productId: number;
@@ -95,9 +96,12 @@ export function createAdminProductListHandler(dependencies: AdminProductListDepe
         const marketCategoriesById = new Map(marketCategories.map(category => [category.id, category]));
         const marketCategoriesBySlug = new Map(marketCategories.map(category => [category.slug, category]));
         let defaultCurrency: string | null = null;
+        let vatPercentage = 0;
         try {
           const settings = await dependencies.getMarketSettings();
-          defaultCurrency = settings.find((setting: any) => setting.market === effectiveMarket)?.currency || null;
+          const marketSettings = settings.find((setting: any) => setting.market === effectiveMarket);
+          defaultCurrency = marketSettings?.currency || null;
+          vatPercentage = Number(marketSettings?.vatPercentage ?? 0);
         } catch (error) {
           console.error("Could not load market settings for currency fallback:", error);
         }
@@ -109,10 +113,22 @@ export function createAdminProductListHandler(dependencies: AdminProductListDepe
             : product.category?.slug
               ? marketCategoriesBySlug.get(product.category.slug)
               : undefined;
+          const pricePair = resolveMarketPricePair({
+            market: effectiveMarket,
+            price: row.price ?? product.price,
+            priceNet: row.priceNet,
+            priceGross: row.priceGross,
+            priceDisplayMode: row.priceDisplayMode,
+            vatPercentage,
+          });
           return {
             ...product,
             ...(marketCategory ? { categoryId: marketCategory.id, category: marketCategory } : {}),
-            price: row.price ?? product.price,
+            price: moneyString(pricePair.displayPrice),
+            priceNet: moneyString(pricePair.priceNet),
+            priceGross: moneyString(pricePair.priceGross),
+            priceDisplayMode: pricePair.priceDisplayMode,
+            vatPercentage: moneyString(pricePair.vatPercentage),
             compareAtPrice: row.compareAtPrice ?? product.compareAtPrice,
             currency: row.currency ?? defaultCurrency ?? product.currency,
             stockQuantity: row.stockQuantity ?? product.stockQuantity,
