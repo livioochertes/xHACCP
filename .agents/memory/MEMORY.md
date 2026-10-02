@@ -28,7 +28,7 @@
 - [Marketing automation](marketing-automation.md) — reminder thresholds, segments, and campaigns are market-scoped and require both email and promotions consent.
 - [Review query URL convention](review-query-keys.md) — nested review endpoints must be complete in queryKey[0]; extra key segments are not converted into URL paths.
 - [Development schema sync](dev-schema-sync.md) — use development database tooling when Drizzle push cannot receive its interactive confirmation.
-- [App database environment identity](app-database-environment-identity.md) — match the app's runtime DB to the development DB with read-only fingerprints before sensitive writes.
+- [App database environment identity](app-database-environment-identity.md) — this workspace's Replit Production pane is confirmed to target live Neon; don't generalize to other environments.
 - [WMS credential monitoring](wms-monitoring.md) — scheduled WMS checks need durable shared alert state and credential-safe notifications outside the autoscaled web process.
 - [WMS partner guide DOCX](wms-partner-guide-docx.md) — the existing guide may lack Word heading styles; preserve it with python-docx when Pandoc is unavailable.
 - [Event voucher production seeding](event-voucher-production-seeding.md) — production may have campaign tables without seed rows; provision fixed campaigns idempotently at the public boundary.
