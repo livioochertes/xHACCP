@@ -6,6 +6,9 @@ import { test } from "node:test";
 
 // Highest patched version required by the advisories in this remediation.
 const minimumVersions = {
+  "@babel/core": "7.29.6",
+  "postcss-selector-parser": "6.0.0",
+  "body-parser": "1.20.6",
   "path-to-regexp": "0.1.13",
   browserslist: "4.28.7",
   "fast-xml-parser": "5.7.0",
@@ -40,6 +43,13 @@ function assertPatched(name, version, location) {
   const required = minimum.split(".").map(Number);
   const difference = actual.map((value, index) => value - required[index]).find(Boolean) ?? 0;
   assert.ok(difference >= 0, `${location}: ${name}@${version} must be >=${minimum}`);
+  // GHSA-w9m9-85wc-3x92 does not affect the older 6.0.x/7.0.x lines.
+  if (name === "postcss-selector-parser" && [6, 7].includes(actual[0]) && actual[1] === 1) {
+    assert.ok(actual[2] >= 3, `${location}: selector parser ${actual[0]}.1 requires >=${actual[0]}.1.3`);
+  }
+  if (name === "body-parser" && actual[0] === 2) {
+    assert.ok(actual[1] >= 3, `${location}: body-parser 2 requires >=2.3.0`);
+  }
   // These advisories have separate patched versions on parallel release lines.
   if (name === "picomatch" && actual[0] === 3) {
     assert.ok(actual[1] > 0 || actual[2] >= 2, `${location}: picomatch 3 requires >=3.0.2`);
@@ -64,6 +74,10 @@ function assertPatched(name, version, location) {
 
 test("security version checks reject every reported vulnerable version and unsafe Vite release line", () => {
   const vulnerable = {
+    "@babel/core": ["7.28.0", "7.29.0"],
+    "postcss-selector-parser": ["6.1.0", "6.1.2", "7.1.2"],
+    "body-parser": ["1.20.4", "1.20.5", "2.2.0"],
+    "fast-xml-parser": ["5.3.6"],
     picomatch: ["2.3.1"],
     yaml: ["2.6.0", "2.8.2"],
     ws: ["8.18.0"],
@@ -84,6 +98,10 @@ test("security version checks reject every reported vulnerable version and unsaf
     }
   }
   for (const [name, version] of [
+    ["@babel/core", "7.29.6"], ["@babel/core", "7.29.7"],
+    ["postcss-selector-parser", "6.0.10"], ["postcss-selector-parser", "6.1.3"],
+    ["postcss-selector-parser", "6.1.4"], ["postcss-selector-parser", "7.1.3"],
+    ["body-parser", "1.20.6"], ["body-parser", "1.20.8"], ["body-parser", "2.3.0"],
     ["picomatch", "2.3.2"], ["yaml", "2.8.3"], ["ws", "8.22.0"],
     ["fast-xml-builder", "1.3.1"], ["lodash", "4.18.1"], ["postcss", "8.5.28"],
     ["@anthropic-ai/sdk", "0.91.1"], ["follow-redirects", "1.16.1"],
@@ -249,6 +267,52 @@ test("patched qs safely parses attacker-controlled isBuffer values and nested fo
     assert.deepEqual(qs.parse("customer[name]=Chef&items[0][quantity]=2"),
       { customer: { name: "Chef" }, items: [{ quantity: "2" }] });
     assert.doesNotThrow(() => qs.parse({ isBuffer: "not a function", customer: "Chef" }));
+    assert.throws(() => qs.parse("items[]=a,b,c,d", {
+      comma: true, arrayLimit: 2, throwOnLimitExceeded: true,
+    }), RangeError);
+  }
+});
+
+test("selector parsing rejects excessive pseudo nesting without a stack overflow", () => {
+  execFileSync(process.execPath, ["-e", `
+    const assert = require('node:assert/strict');
+    const selector = require('postcss-selector-parser');
+    assert.equal(selector().processSync('.catalog > :is(.chef, .product)'), '.catalog > :is(.chef, .product)');
+    assert.throws(() => selector().astSync(':is('.repeat(2000) + '.chef' + ')'.repeat(2000)),
+      error => !(error instanceof RangeError) && /nesting depth/.test(error.message));
+  `], { cwd: root, timeout: 5000 });
+});
+
+test("Babel does not read source maps outside the package root", () => {
+  execFileSync(process.execPath, ["-e", `
+    const assert = require('node:assert/strict');
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const babel = require('@babel/core');
+    const originalRead = fs.readFileSync;
+    const outside = path.resolve('..', 'outside-package-fixture.map');
+    let attemptedRead = false;
+    fs.readFileSync = function(file, ...args) {
+      if (String(file) === outside) attemptedRead = true;
+      return originalRead.call(this, file, ...args);
+    };
+    const result = babel.transformSync('const catalog = 1;\\n//# sourceMappingURL=' + outside, {
+      filename: path.resolve('catalog-fixture.js'), root: process.cwd(),
+      configFile: false, babelrc: false, sourceMaps: true
+    });
+    assert.match(result.code, /const catalog = 1/);
+    assert.equal(attemptedRead, false);
+  `], { cwd: root, timeout: 5000 });
+});
+
+test("Express body parsers reject invalid limits rather than disabling size enforcement", () => {
+  const require = createRequire(import.meta.url);
+  const bodyParser = createRequire(require.resolve("express"))("body-parser");
+  for (const parser of ["json", "raw", "text", "urlencoded"]) {
+    for (const limit of ["not-a-size", NaN]) {
+      assert.throws(() => bodyParser[parser]({ limit, extended: true }), TypeError);
+    }
+    assert.equal(typeof bodyParser[parser]({ limit: "10kb", extended: true }), "function");
   }
 });
 
