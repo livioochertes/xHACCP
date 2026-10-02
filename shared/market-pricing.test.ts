@@ -75,6 +75,22 @@ test("tax snapshots apply net- and gross-basis discounts once and include shippi
   assert.equal(snapshot.totalAmount, "228.00");
 });
 
+test("shipping follows the market display basis while order totals remain VAT-inclusive", () => {
+  const french = calculateOrderTaxSnapshot([], 0, 12, 20, "net");
+  assert.equal(french.shippingDisplayAmount, "12.00");
+  assert.equal(french.shippingNetAmount, "12.00");
+  assert.equal(french.shippingGrossAmount, "14.40");
+  assert.equal(french.shippingVatAmount, "2.40");
+  assert.equal(french.totalAmount, "14.40");
+
+  const romanian = calculateOrderTaxSnapshot([], 0, 35, 19, "gross");
+  assert.equal(romanian.shippingDisplayAmount, "35.00");
+  assert.equal(romanian.shippingNetAmount, "29.41");
+  assert.equal(romanian.shippingGrossAmount, "35.00");
+  assert.equal(romanian.shippingVatAmount, "5.59");
+  assert.equal(romanian.totalAmount, "35.00");
+});
+
 test("zero-rate markets retain equal net, gross, VAT, and total values", () => {
   const pair = resolveMarketPricePair({ market: "com", price: "50.00", vatPercentage: 0 });
   const snapshot = calculateOrderTaxSnapshot([{
@@ -105,5 +121,33 @@ test("stored tax snapshots are reused instead of recalculating from a changed VA
   assert.equal(summary.vatAmount, "38.00");
   assert.equal(summary.totalNetAmount, "190.00");
   assert.equal(summary.shippingNetAmount, "10.00");
+  assert.equal(summary.shippingGrossAmount, "12.00");
+  assert.equal(summary.shippingDisplayAmount, "12.00");
   assert.equal(summary.discountNetAmount, "20.00");
+});
+
+test("stored shipping snapshots display net in France and gross in Romania", () => {
+  const french = getOrderTaxSummary({
+    market: "fr",
+    totalAmount: "14.40",
+    vatPercentage: "20",
+    vatAmount: "2.40",
+    shippingCost: "14.40",
+    shippingNetAmount: "12.00",
+    shippingVatAmount: "2.40",
+  });
+  const romanian = getOrderTaxSummary({
+    market: "ro",
+    totalAmount: "35.00",
+    vatPercentage: "19",
+    vatAmount: "5.59",
+    shippingCost: "35.00",
+    shippingNetAmount: "29.41",
+    shippingVatAmount: "5.59",
+  });
+
+  assert.equal(french.shippingDisplayAmount, "12.00");
+  assert.equal(romanian.shippingDisplayAmount, "35.00");
+  assert.equal(french.totalAmount, "14.40");
+  assert.equal(romanian.totalAmount, "35.00");
 });

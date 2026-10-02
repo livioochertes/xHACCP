@@ -24,6 +24,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { trackEvent } from "@/lib/analytics";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getCountyOptions, getCitiesForCounty, getCountryOptions, romanianCounties } from "@/utils/location-data";
+import { getOrderTaxSummary } from "@shared/market-pricing";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -1903,29 +1904,37 @@ export default function Account() {
                   
                   {/* Order Total Breakdown */}
                   {(() => {
-                    const shippingCost = parseFloat(selectedOrder.shippingCost || '0');
+                    const orderMarket = String(selectedOrder.market || getMarketFromHostname());
+                    const taxSummary = getOrderTaxSummary(
+                      selectedOrder as any,
+                      Number(selectedOrder.vatPercentage ?? 0),
+                    );
+                    const shippingGrossAmount = Number(taxSummary.shippingGrossAmount);
+                    const shippingDisplayAmount = Number(taxSummary.shippingDisplayAmount);
+                    const orderCurrency = selectedOrder.currency || (orderMarket === 'ro' ? 'RON' : 'EUR');
+                    const currencyLabel = orderCurrency === 'RON' ? 'lei' : orderCurrency === 'EUR' ? '€' : orderCurrency;
                     const discountAmt = parseFloat(selectedOrder.discountAmount || '0');
                     const voucherCode = selectedOrder.voucherCode || '';
-                    const itemsSubtotal = (parseFloat(selectedOrder.totalAmount) + discountAmt - shippingCost).toFixed(2);
+                    const itemsSubtotal = (parseFloat(selectedOrder.totalAmount) + discountAmt - shippingGrossAmount).toFixed(2);
                     return (
                       <div className="bg-gray-50 p-3 space-y-1 text-sm">
                         <div className="flex justify-between">
-                          <span>Subtotal:</span>
-                          <span>{itemsSubtotal} lei</span>
+                          <span>{orderMarket === 'fr' ? 'Sous-total :' : 'Subtotal:'}</span>
+                          <span>{itemsSubtotal} {currencyLabel}</span>
                         </div>
                         {discountAmt > 0 && (
                           <div className="flex justify-between text-green-600">
                             <span>Discount voucher{voucherCode ? ` ${voucherCode}` : ''}:</span>
-                            <span>-{discountAmt.toFixed(2)} lei</span>
+                            <span>-{discountAmt.toFixed(2)} {currencyLabel}</span>
                           </div>
                         )}
                         <div className="flex justify-between">
-                          <span>Transport:</span>
-                          <span>{shippingCost > 0 ? `${shippingCost.toFixed(2)} lei` : 'Gratuit'}</span>
+                          <span>{orderMarket === 'fr' ? 'Livraison HT :' : orderMarket === 'ro' ? 'Transport (TVA inclusă):' : 'Shipping incl. VAT:'}</span>
+                          <span>{shippingDisplayAmount > 0 ? `${shippingDisplayAmount.toFixed(2)} ${currencyLabel}` : 'Gratuit'}</span>
                         </div>
                         <div className="flex justify-between font-semibold border-t border-gray-200 pt-1 mt-1">
-                          <span>Total:</span>
-                          <span>{parseFloat(selectedOrder.totalAmount).toFixed(2)} lei</span>
+                          <span>{orderMarket === 'fr' ? 'Total TTC :' : 'Total:'}</span>
+                          <span>{parseFloat(selectedOrder.totalAmount).toFixed(2)} {currencyLabel}</span>
                         </div>
                       </div>
                     );

@@ -350,28 +350,30 @@ export async function sendOrderConfirmationEmail(
           </tbody>
           <tfoot>
             ${(() => {
-              const shippingCost = Number(taxSummary.shippingNetAmount);
-              const discountAmt = Number(taxSummary.discountNetAmount);
+              const shippingCost = Number(taxSummary.shippingDisplayAmount);
+              const displaySubtotal = Number(isFrenchOrder ? taxSummary.subtotalNet : taxSummary.subtotalGross);
+              const discountAmt = Number(isFrenchOrder ? taxSummary.discountNetAmount : taxSummary.discountGrossAmount);
               const voucherCode = (order as any).voucherCode || '';
               const discountRow = discountAmt > 0 ? `
                 <tr>
-                  <td colspan="3" style="padding: 8px; text-align: right; color: #27ae60;">Discount excl. VAT${voucherCode ? ` ${voucherCode}` : ''}:</td>
+                  <td colspan="3" style="padding: 8px; text-align: right; color: #27ae60;">Discount${isFrenchOrder ? ' excl. VAT' : ''}${voucherCode ? ` ${voucherCode}` : ''}:</td>
                   <td style="padding: 8px; text-align: right; color: #27ae60;">-${discountAmt.toFixed(2)} ${orderCurrency(order)}</td>
                 </tr>` : '';
               return `
                 <tr>
-                  <td colspan="3" style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">Products subtotal excl. VAT:</td>
-                  <td style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">${taxSummary.subtotalNet} ${orderCurrency(order)}</td>
+                  <td colspan="3" style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">Products subtotal ${isFrenchOrder ? 'excl.' : 'incl.'} VAT:</td>
+                  <td style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">${displaySubtotal.toFixed(2)} ${orderCurrency(order)}</td>
                 </tr>
                 ${discountRow}
                 <tr>
-                  <td colspan="3" style="padding: 8px; text-align: right;">Shipping excl. VAT:</td>
+                  <td colspan="3" style="padding: 8px; text-align: right;">${(order as any).market === 'fr' ? 'Shipping excl. VAT:' : 'Shipping incl. VAT:'}</td>
                   <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' ' + orderCurrency(order) : 'Free'}</td>
                 </tr>
-                <tr>
-                  <td colspan="3" style="padding: 8px; text-align: right;">VAT (${orderVatRate}%):</td>
-                  <td style="padding: 8px; text-align: right;">${taxSummary.vatAmount} ${orderCurrency(order)}</td>
-                </tr>
+                ${isFrenchOrder ? `
+                  <tr>
+                    <td colspan="3" style="padding: 8px; text-align: right;">VAT (${orderVatRate}%):</td>
+                    <td style="padding: 8px; text-align: right;">${taxSummary.vatAmount} ${orderCurrency(order)}</td>
+                  </tr>` : ''}
                 <tr>
                   <td colspan="3" style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">Total incl. VAT:</td>
                   <td style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">${order.totalAmount} ${orderCurrency(order)}</td>
@@ -1338,6 +1340,9 @@ export async function sendCustomerShipmentEmail(
   const shippingAddress = order.shippingAddress as any;
   const trackingUrl = `https://sameday.ro/status-colet/?awb=${awbNumber}`;
   const customerName = `${shippingAddress?.firstName || 'Customer'} ${shippingAddress?.lastName || ''}`.trim();
+  const taxSummary = getOrderTaxSummary(order as any);
+  const isFrenchMarket = (order as any).market === 'fr';
+  const orderVatRate = Number((order as any).vatPercentage ?? 0);
 
   const orderItemsHtml = order.items.map(item => `
     <tr>
@@ -1391,29 +1396,34 @@ export async function sendCustomerShipmentEmail(
           <tbody>
             ${orderItemsHtml}
             ${(() => {
-              const shippingCost = parseFloat(order.shippingCost || '0');
-              const discountAmt = parseFloat((order as any).discountAmount || '0');
+              const shippingCost = Number(taxSummary.shippingDisplayAmount);
+              const discountAmt = Math.max(0, Number((order as any).discountAmount || 0));
               const vc = (order as any).voucherCode || '';
-              const itemsSubtotal = (parseFloat(order.totalAmount) + discountAmt - shippingCost).toFixed(2);
+              const itemsSubtotal = order.items.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
               const discountRow = discountAmt > 0 ? `
                 <tr>
-                  <td style="padding: 8px; color: #27ae60;" colspan="2">Discount voucher${vc ? ' ' + vc : ''}</td>
-                  <td style="padding: 8px; text-align: right; color: #27ae60;">-${discountAmt.toFixed(2)} lei</td>
+                  <td style="padding: 8px; color: #27ae60;" colspan="2">${isFrenchMarket ? 'Discount excl. VAT' : 'Discount'}${vc ? ' ' + vc : ''}</td>
+                  <td style="padding: 8px; text-align: right; color: #27ae60;">-${discountAmt.toFixed(2)} ${orderCurrency(order)}</td>
                 </tr>` : '';
               return `
                 <tr>
-                  <td style="padding: 8px; border-top: 1px solid #ddd;" colspan="2">Subtotal</td>
-                  <td style="padding: 8px; border-top: 1px solid #ddd; text-align: right;">${itemsSubtotal} lei</td>
+                  <td style="padding: 8px; border-top: 1px solid #ddd;" colspan="2">${isFrenchMarket ? 'Products subtotal excl. VAT' : 'Products subtotal incl. VAT'}</td>
+                  <td style="padding: 8px; border-top: 1px solid #ddd; text-align: right;">${itemsSubtotal.toFixed(2)} ${orderCurrency(order)}</td>
                 </tr>
                 ${discountRow}
                 <tr>
-                  <td style="padding: 8px;" colspan="2">Transport</td>
+                  <td style="padding: 8px;" colspan="2">${isFrenchMarket ? 'Shipping excl. VAT' : 'Shipping incl. VAT'}</td>
                   <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' ' + orderCurrency(order) : 'Gratuit'}</td>
                 </tr>
+                ${isFrenchMarket ? `
+                  <tr>
+                    <td style="padding: 8px;" colspan="2">VAT (${orderVatRate}%):</td>
+                    <td style="padding: 8px; text-align: right;">${taxSummary.vatAmount} ${orderCurrency(order)}</td>
+                  </tr>` : ''}
               `;
             })()}
             <tr style="font-weight: bold; background-color: #f0f0f0;">
-              <td style="padding: 10px 8px;" colspan="2">Total</td>
+              <td style="padding: 10px 8px;" colspan="2">Total incl. VAT</td>
               <td style="padding: 10px 8px; text-align: right;">${order.totalAmount} ${orderCurrency(order)}</td>
             </tr>
           </tbody>

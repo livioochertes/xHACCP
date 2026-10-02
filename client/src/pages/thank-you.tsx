@@ -26,6 +26,7 @@ interface OrderSummary {
   voucherCode: string | null;
   shipping: number;
   shippingNetAmount?: number;
+  shippingDisplayAmount?: number;
   vatAmount?: number;
   total: number;
   currencySymbol: string;
@@ -223,12 +224,12 @@ export default function ThankYou() {
               )}
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">
-                  {getMarketFromHostname() === "fr" ? "Livraison HT" : getMarketFromHostname() === "ro" ? "Livrare fără TVA" : "Shipping excl. VAT"}:
+                  {market === "fr" ? "Livraison HT" : market === "ro" ? "Livrare cu TVA" : "Shipping incl. VAT"}:
                 </span>
                 <span>
                   {summary.shipping === 0
                     ? <Badge variant="secondary">{t("checkout.freeShipping")}</Badge>
-                    : `${(summary.shippingNetAmount ?? summary.shipping).toFixed(2)} ${summary.currencySymbol}`}
+                    : `${(summary.shippingDisplayAmount ?? (market === "fr" ? summary.shippingNetAmount ?? summary.shipping : summary.shipping)).toFixed(2)} ${summary.currencySymbol}`}
                 </span>
               </div>
               {summary.vatAmount != null && (

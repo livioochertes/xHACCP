@@ -33,6 +33,8 @@ export interface OrderTaxSnapshot {
   discountNetAmount: string;
   discountGrossAmount: string;
   shippingNetAmount: string;
+  shippingGrossAmount: string;
+  shippingDisplayAmount: string;
   shippingVatAmount: string;
   vatAmount: string;
   totalAmount: string;
@@ -120,14 +122,15 @@ const fromCents = (value: number): string => (value / 100).toFixed(2);
 export function calculateOrderTaxSnapshot(
   lines: TaxableOrderLine[],
   requestedDiscountAmount: number,
-  shippingGrossAmount: number,
+  shippingDisplayAmount: number,
   vatPercentage: number,
+  shippingDisplayMode: PriceDisplayMode = "gross",
 ): OrderTaxSnapshot {
   const displayCents = lines.reduce((sum, line) => sum + toCents(line.displayTotalPrice), 0);
   const netCents = lines.reduce((sum, line) => sum + toCents(line.totalPriceNet), 0);
   const grossCents = lines.reduce((sum, line) => sum + toCents(line.totalPriceGross), 0);
   const discountCents = Math.min(displayCents, Math.max(0, toCents(requestedDiscountAmount)));
-  const shippingGrossCents = Math.max(0, toCents(shippingGrossAmount));
+  const shippingDisplayCents = Math.max(0, toCents(shippingDisplayAmount));
 
   let discountNetCents = 0;
   let discountGrossCents = 0;
@@ -172,7 +175,12 @@ export function calculateOrderTaxSnapshot(
   const finalGoodsNetCents = Math.max(0, netCents - discountNetCents);
   const finalGoodsGrossCents = Math.max(0, grossCents - discountGrossCents);
   const rate = 1 + Math.max(0, vatPercentage) / 100;
-  const shippingNetCents = rate === 0 ? shippingGrossCents : Math.round(shippingGrossCents / rate);
+  const shippingNetCents = shippingDisplayMode === "net"
+    ? shippingDisplayCents
+    : rate === 0 ? shippingDisplayCents : Math.round(shippingDisplayCents / rate);
+  const shippingGrossCents = shippingDisplayMode === "net"
+    ? Math.round(shippingDisplayCents * rate)
+    : shippingDisplayCents;
   const shippingVatCents = shippingGrossCents - shippingNetCents;
   const totalNetCents = finalGoodsNetCents + shippingNetCents;
   const totalVatCents = (finalGoodsGrossCents - finalGoodsNetCents) + shippingVatCents;
@@ -187,6 +195,8 @@ export function calculateOrderTaxSnapshot(
     discountNetAmount: fromCents(discountNetCents),
     discountGrossAmount: fromCents(discountGrossCents),
     shippingNetAmount: fromCents(shippingNetCents),
+    shippingGrossAmount: fromCents(shippingGrossCents),
+    shippingDisplayAmount: fromCents(shippingDisplayCents),
     shippingVatAmount: fromCents(shippingVatCents),
     vatAmount: fromCents(totalVatCents),
     totalAmount: fromCents(totalGrossCents),
@@ -210,7 +220,9 @@ export function getOrderTaxSummary(
     numberOr(order.vatAmount, rate === 0 ? 0 : totalAmount * vatPercentage / (100 + vatPercentage)),
   );
   const totalNetAmount = Math.max(0, totalAmount - vatAmount);
-  const shippingGross = Math.max(0, numberOr(order.shippingCost, 0));
+  const shippingGrossFallback =
+    numberOr(order.shippingNetAmount, 0) + numberOr(order.shippingVatAmount, 0);
+  const shippingGross = Math.max(0, numberOr(order.shippingCost, shippingGrossFallback));
   const shippingNetAmount = Math.max(
     0,
     numberOr(order.shippingNetAmount, rate === 0 ? shippingGross : shippingGross / rate),
@@ -237,6 +249,10 @@ export function getOrderTaxSummary(
     numberOr(order.subtotalGross, subtotalNet + (vatAmount - shippingVatAmount) + discountGrossAmount - discountNetAmount),
   );
   const subtotalDisplay = Math.max(0, numberOr(order.subtotalDisplay, subtotalGross));
+  const shippingDisplayMode = defaultPriceDisplayMode(String(order.market ?? ""));
+  const shippingDisplayAmount = shippingDisplayMode === "net"
+    ? shippingNetAmount
+    : shippingGross;
 
   return {
     subtotalDisplay: moneyString(subtotalDisplay),
@@ -247,6 +263,8 @@ export function getOrderTaxSummary(
     discountNetAmount: moneyString(discountNetAmount),
     discountGrossAmount: moneyString(discountGrossAmount),
     shippingNetAmount: moneyString(shippingNetAmount),
+    shippingGrossAmount: moneyString(shippingGross),
+    shippingDisplayAmount: moneyString(shippingDisplayAmount),
     shippingVatAmount: moneyString(shippingVatAmount),
     vatAmount: moneyString(vatAmount),
     totalAmount: moneyString(totalAmount),

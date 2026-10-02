@@ -20,6 +20,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { getCartLinePrice, getCartTaxSnapshot } from "@/lib/market-pricing";
+import { defaultPriceDisplayMode } from "@shared/market-pricing";
 import paypalOfficialLogo from "@/assets/paypal-official-logo.png";
 
 import { useCart } from "@/hooks/use-cart";
@@ -224,6 +225,7 @@ export default function Checkout() {
     voucherCode: string | null;
     shipping: number;
     shippingNetAmount: number;
+    shippingDisplayAmount: number;
     total: number;
     currencySymbol: string;
   } | null>(null);
@@ -242,9 +244,10 @@ export default function Checkout() {
     voucherCode: string | null;
     shipping: number;
     shippingNetAmount: number;
+    shippingDisplayAmount: number;
     total: number;
     currencySymbol: string;
-  }>({ buyerName: '', email: '', phone: '', items: [], subtotal: 0, subtotalNet: 0, discountNetAmount: 0, vatAmount: 0, discountAmount: 0, voucherCode: null, shipping: 0, shippingNetAmount: 0, total: 0, currencySymbol: '' });
+  }>({ buyerName: '', email: '', phone: '', items: [], subtotal: 0, subtotalNet: 0, discountNetAmount: 0, vatAmount: 0, discountAmount: 0, voucherCode: null, shipping: 0, shippingNetAmount: 0, shippingDisplayAmount: 0, total: 0, currencySymbol: '' });
   const checkoutStartedRef = useRef(false);
 
   // Fetch shipping settings (includes VAT percentage)
@@ -263,8 +266,8 @@ export default function Checkout() {
   const taxLabels = market === "fr"
     ? { subtotal: "Produits HT", discount: "Remise HT", shipping: "Livraison HT", vat: "TVA", total: "Total TTC" }
     : market === "ro"
-      ? { subtotal: "Produse fără TVA", discount: "Reducere fără TVA", shipping: "Livrare fără TVA", vat: "TVA", total: "Total cu TVA" }
-      : { subtotal: "Products excl. VAT", discount: "Discount excl. VAT", shipping: "Shipping excl. VAT", vat: "VAT", total: "Total incl. VAT" };
+      ? { subtotal: "Produse fără TVA", discount: "Reducere fără TVA", shipping: "Livrare cu TVA", vat: "TVA", total: "Total cu TVA" }
+      : { subtotal: "Products excl. VAT", discount: "Discount excl. VAT", shipping: "Shipping incl. VAT", vat: "VAT", total: "Total incl. VAT" };
 
   // Helper function to get default form values
   const getDefaultFormValues = (): CheckoutFormData => {
@@ -435,6 +438,7 @@ export default function Checkout() {
     },
     onSuccess: async (order: { id?: number; [key: string]: any }, variables: CheckoutFormData) => {
       const orderId = order?.id ?? null;
+      const shippingDisplayMode = defaultPriceDisplayMode(market);
       const numberOr = (value: unknown, fallback: number) => {
         const parsed = Number(value);
         return value != null && Number.isFinite(parsed) ? parsed : fallback;
@@ -447,6 +451,9 @@ export default function Checkout() {
         subtotalNet: numberOr(order.subtotalNet, currentOrderSummaryRef.current.subtotalNet),
         discountNetAmount: numberOr(order.discountNetAmount, currentOrderSummaryRef.current.discountNetAmount),
         shippingNetAmount: numberOr(order.shippingNetAmount, currentOrderSummaryRef.current.shippingNetAmount),
+        shippingDisplayAmount: shippingDisplayMode === "net"
+          ? numberOr(order.shippingNetAmount, currentOrderSummaryRef.current.shippingDisplayAmount)
+          : numberOr(order.shippingCost, currentOrderSummaryRef.current.shippingDisplayAmount),
         vatAmount: numberOr(order.vatAmount, currentOrderSummaryRef.current.vatAmount),
         shipping: numberOr(order.shippingCost, currentOrderSummaryRef.current.shipping),
         total: numberOr(order.totalAmount, currentOrderSummaryRef.current.total),
@@ -545,6 +552,7 @@ export default function Checkout() {
       voucherCode: appliedVoucher?.code ?? null,
       shipping,
       shippingNetAmount: Number(taxSnapshot.shippingNetAmount),
+      shippingDisplayAmount: Number(taxSnapshot.shippingDisplayAmount),
       total: finalTotal,
       currencySymbol,
     };
@@ -879,7 +887,7 @@ export default function Checkout() {
                   <span>
                     {confirmedOrder.shipping === 0
                       ? <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
-                      : `${confirmedOrder.shippingNetAmount.toFixed(2)} ${confirmedOrder.currencySymbol}`}
+                      : `${confirmedOrder.shippingDisplayAmount.toFixed(2)} ${confirmedOrder.currencySymbol}`}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
@@ -2098,7 +2106,7 @@ export default function Checkout() {
                       {shipping === 0 ? (
                         <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
                       ) : (
-                        `${taxSnapshot.shippingNetAmount} ${currencySymbol}`
+                        `${taxSnapshot.shippingDisplayAmount} ${currencySymbol}`
                       )}
                     </span>
                   </div>

@@ -24233,8 +24233,9 @@ This action cannot be undone.`)) {
             /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("input", { type: "number", step: "0.01", min: "0", value: local.freeShippingThreshold || "", onChange: (e2) => set("freeShippingThreshold", e2.target.value), placeholder: "500.00", style: { width: "100%", padding: "8px 10px", border: "1px solid #ced4da", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" } })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#495057" }, children: "Cost transport standard" }),
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("input", { type: "number", step: "0.01", min: "0", value: local.standardShippingCost || "", onChange: (e2) => set("standardShippingCost", e2.target.value), placeholder: "20.00", style: { width: "100%", padding: "8px 10px", border: "1px solid #ced4da", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" } })
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#495057" }, children: market === "fr" ? "Cost transport standard (f\u0103r\u0103 TVA)" : market === "ro" ? "Cost transport standard (TVA inclus)" : "Cost transport standard" }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("input", { type: "number", step: "0.01", min: "0", value: local.standardShippingCost || "", onChange: (e2) => set("standardShippingCost", e2.target.value), placeholder: "20.00", style: { width: "100%", padding: "8px 10px", border: "1px solid #ced4da", borderRadius: "6px", fontSize: "14px", boxSizing: "border-box" } }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("small", { style: { display: "block", marginTop: "4px", color: "#6c757d" }, children: market === "fr" ? "TVA se adaug\u0103 la acest cost \xEEn totalul comenzii." : market === "ro" ? "Acest cost include TVA \xEEn suma pl\u0103tit\u0103 de client." : "Pia\u021Ba .com folose\u0219te TVA 0%." })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("label", { style: { display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "600", color: "#495057" }, children: "Partener facturare" }),
@@ -24786,7 +24787,7 @@ Cordialement,`
       const initialMarket = marketFilter && marketFilter !== "all" ? marketFilter : "ro";
       const [aoMarket, setAoMarket] = (0, import_react21.useState)(initialMarket);
       const [aoProducts, setAoProducts] = (0, import_react21.useState)([]);
-      const [aoShipping, setAoShipping] = (0, import_react21.useState)({ freeShippingThreshold: 500, standardShippingCost: 25 });
+      const [aoShipping, setAoShipping] = (0, import_react21.useState)({ freeShippingThreshold: 500, standardShippingCost: 25, vatPercentage: 0 });
       const [aoCustomShipping, setAoCustomShipping] = (0, import_react21.useState)(void 0);
       const [aoLoading, setAoLoading] = (0, import_react21.useState)(false);
       const [aoSubmitting, setAoSubmitting] = (0, import_react21.useState)(false);
@@ -24954,6 +24955,17 @@ Cordialement,`
         if (!p || q <= 0) return sum;
         const unit = it.customPrice !== void 0 && it.customPrice !== "" ? parseFloat(it.customPrice) || 0 : computeUnitPrice(p, q);
         return sum + unit * q;
+      }, 0);
+      const subtotalGross = aoItems.reduce((sum, it) => {
+        const p = getProduct(it.productId);
+        const q = parseInt(it.quantity) || 0;
+        if (!p || q <= 0) return sum;
+        const displayUnit = it.customPrice !== void 0 && it.customPrice !== "" ? parseFloat(it.customPrice) || 0 : computeUnitPrice(p, q);
+        const mode = p.priceDisplayMode === "net" || p.priceDisplayMode === "gross" ? p.priceDisplayMode : aoMarket === "fr" ? "net" : "gross";
+        const candidateVat = Number(p.vatPercentage ?? aoShipping.vatPercentage ?? 0);
+        const vatRate = Number.isFinite(candidateVat) ? Math.max(0, candidateVat) / 100 : 0;
+        const grossUnit = mode === "net" ? parseFloat((displayUnit * (1 + vatRate)).toFixed(2)) : displayUnit;
+        return sum + grossUnit * q;
       }, 0);
       const updateItem = (idx, field, value) => {
         setAoItems((items) => items.map((it, i) => i === idx ? { ...it, [field]: value } : it));
@@ -25238,7 +25250,9 @@ Cordialement,`
           const siteShipping = subtotal > aoShipping.freeShippingThreshold ? 0 : aoShipping.standardShippingCost;
           const shippingOverridden = aoCustomShipping !== void 0 && aoCustomShipping !== "" && parseFloat(aoCustomShipping) !== siteShipping;
           const shippingCost = aoCustomShipping !== void 0 && aoCustomShipping !== "" ? parseFloat(aoCustomShipping) || 0 : siteShipping;
-          const total = subtotal + (subtotal > 0 ? shippingCost : 0);
+          const shippingGross = aoMarket === "fr" ? parseFloat((shippingCost * (1 + Math.max(0, Number(aoShipping.vatPercentage) || 0) / 100)).toFixed(2)) : shippingCost;
+          const total = subtotalGross + (subtotal > 0 ? shippingGross : 0);
+          const shippingBasis = aoMarket === "fr" ? "HT" : aoMarket === "ro" ? "TVA inclus\u0103" : "incl. VAT";
           return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { padding: "12px 14px", background: "#f0f8f0", borderRadius: "6px", marginBottom: "16px", fontSize: "13px", border: "1px solid #d4edda" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "4px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Subtotal produse:" }),
@@ -25250,7 +25264,9 @@ Cordialement,`
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", gap: "8px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
-                "Transport ",
+                "Transport (",
+                shippingBasis,
+                ") ",
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { color: "#888", fontSize: "11px" }, children: [
                   "(site: ",
                   subtotal > 0 ? siteShipping === 0 ? "gratuit" : siteShipping.toFixed(2) + " " + currency : "\u2014",
@@ -25280,7 +25296,7 @@ Cordialement,`
             ] }),
             shippingOverridden && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { color: "#f0ad4e", fontSize: "11px", marginBottom: "4px", textAlign: "right" }, children: "transport modificat manual" }),
             /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", paddingTop: "6px", borderTop: "1px solid #d4edda", fontSize: "15px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("b", { children: "Total comand\u0103:" }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("b", { children: aoMarket === "fr" ? "Total comand\u0103 (TVA inclus):" : "Total comand\u0103:" }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("b", { style: { color: "#28a745" }, children: [
                 total.toFixed(2),
                 " ",

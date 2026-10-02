@@ -51,8 +51,10 @@ import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
 import { buildAdminCustomerList } from "./admin-customer-list";
 import { createAdminProductListHandler } from "./admin-product-list";
 import {
+  calculateOrderTaxSnapshot,
   defaultPriceDisplayMode,
   moneyString,
+  pricePairFromDisplayPrice,
   resolveMarketPricePair,
 } from "@shared/market-pricing";
 import {
@@ -2063,6 +2065,8 @@ export async function registerAdminRoutes(app: Express) {
           name: product.name,
           price: effective.price,
           currency: effective.currency,
+          priceDisplayMode: effective.priceDisplayMode,
+          vatPercentage: effective.vatPercentage,
           volumeDiscounts: (product as any).volumeDiscounts || [],
         });
       }
@@ -2072,6 +2076,7 @@ export async function registerAdminRoutes(app: Express) {
       const shipping = {
         freeShippingThreshold: ms?.freeShippingThreshold ? parseFloat(ms.freeShippingThreshold) : (cs?.freeShippingThreshold ? parseFloat(cs.freeShippingThreshold) : 500),
         standardShippingCost: ms?.standardShippingCost ? parseFloat(ms.standardShippingCost) : (cs?.standardShippingCost ? parseFloat(cs.standardShippingCost) : 25),
+        vatPercentage: Number(ms?.vatPercentage ?? cs?.defaultVatPercentage ?? 0),
       };
       res.json({ products: options, shipping });
     } catch (error) {
@@ -2577,7 +2582,11 @@ export async function registerAdminRoutes(app: Express) {
       // Server-side price validation — identical rules to site checkout:
       // active product check, market overlay, volume discounts.
       const validatedItems = [];
+      const taxableLines = [];
       const priceOverrideNotes: string[] = [];
+      const companySettingsData = await storage.getCompanySettingsByMarket(orderMarket);
+      const marketSetting = marketSettingsMap.get(orderMarket);
+      const vatPercentage = Number(marketSetting?.vatPercentage ?? companySettingsData?.defaultVatPercentage ?? 0);
       for (const item of items) {
         const quantity = parseInt(String(item.quantity), 10);
         if (isNaN(quantity) || quantity < 1 || quantity > 9999) {
@@ -2595,6 +2604,10 @@ export async function registerAdminRoutes(app: Express) {
         if (!effectiveProduct) {
           return res.status(400).json({ success: false, message: `Produsul "${product.name}" nu este disponibil pe piața ${orderMarket.toUpperCase()}` });
         }
+        const priceDisplayMode = effectiveProduct.priceDisplayMode === 'net' || effectiveProduct.priceDisplayMode === 'gross'
+          ? effectiveProduct.priceDisplayMode
+          : defaultPriceDisplayMode(orderMarket);
+        const itemVatPercentage = Number(effectiveProduct.vatPercentage ?? vatPercentage);
         const sitePrice = applyVolumeDiscount(parseFloat(effectiveProduct.price), quantity, (product as any).volumeDiscounts);
         // Admin may override the unit price (situations where it differs from the site)
         let unitPrice = sitePrice;
@@ -2609,19 +2622,33 @@ export async function registerAdminRoutes(app: Express) {
             priceOverrideNotes.push(`${product.name}: ${unitPrice.toFixed(2)} (site: ${sitePrice.toFixed(2)})`);
           }
         }
+        const pricePair = pricePairFromDisplayPrice(unitPrice, priceDisplayMode, itemVatPercentage);
+        const displayTotalPrice = unitPrice * quantity;
+        const totalPriceNet = pricePair.priceNet * quantity;
+        const totalPriceGross = pricePair.priceGross * quantity;
         validatedItems.push({
           productId: product.id,
           quantity,
           price: unitPrice.toFixed(2),
-          totalPrice: (unitPrice * quantity).toFixed(2),
+          totalPrice: moneyString(displayTotalPrice),
+          priceNet: moneyString(pricePair.priceNet),
+          totalPriceNet: moneyString(totalPriceNet),
+          vatPercentage: moneyString(itemVatPercentage),
+          vatAmount: moneyString(totalPriceGross - totalPriceNet),
+          displayPrice: moneyString(unitPrice),
+          priceDisplayMode,
+        });
+        taxableLines.push({
+          priceDisplayMode,
+          displayTotalPrice,
+          totalPriceNet,
+          totalPriceGross,
         });
       }
 
       const subtotal = validatedItems.reduce((sum, it) => sum + parseFloat(it.price) * it.quantity, 0);
 
       // Shipping — same market-specific thresholds as site checkout
-       const companySettingsData = await storage.getCompanySettingsByMarket(orderMarket);
-      const marketSetting = marketSettingsMap.get(orderMarket);
       const freeShippingThreshold = marketSetting?.freeShippingThreshold
         ? parseFloat(marketSetting.freeShippingThreshold)
         : (companySettingsData?.freeShippingThreshold ? parseFloat(companySettingsData.freeShippingThreshold) : 500);
@@ -2641,7 +2668,14 @@ export async function registerAdminRoutes(app: Express) {
           priceOverrideNotes.push(`Transport: ${shippingCost.toFixed(2)} (site: ${siteShippingCost.toFixed(2)})`);
         }
       }
-      const totalAmount = subtotal + shippingCost;
+      const taxSnapshot = calculateOrderTaxSnapshot(
+        taxableLines,
+        0,
+        shippingCost,
+        vatPercentage,
+        defaultPriceDisplayMode(orderMarket),
+      );
+      const totalAmount = Number(taxSnapshot.totalAmount);
 
       const customerEmail = email || shippingAddress?.email || '';
       const adminName = req.admin?.username || req.admin?.email || 'admin';
@@ -2656,7 +2690,13 @@ export async function registerAdminRoutes(app: Express) {
         currency: marketSettingsMap.get(orderMarket)?.currency ?? (orderMarket === 'ro' ? 'RON' : 'EUR'),
         status: 'pending',
         totalAmount: totalAmount.toFixed(2),
-        shippingCost: shippingCost.toFixed(2),
+        subtotalNet: taxSnapshot.subtotalNet,
+        subtotalGross: taxSnapshot.subtotalGross,
+        vatPercentage: moneyString(vatPercentage),
+        vatAmount: taxSnapshot.vatAmount,
+        shippingNetAmount: taxSnapshot.shippingNetAmount,
+        shippingVatAmount: taxSnapshot.shippingVatAmount,
+        shippingCost: taxSnapshot.shippingGrossAmount,
         shippingAddress: { ...normShipping, email: customerEmail, phone: phone || normShipping?.phone },
         billingAddress: normBilling,
         paymentMethod: paymentMethod || 'cash_on_delivery',

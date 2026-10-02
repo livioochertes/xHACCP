@@ -2876,6 +2876,7 @@ Sitemap: ${baseUrl}/sitemap.xml
         discountAmount,
         shippingCost,
         vatPercentage,
+        defaultPriceDisplayMode(orderMarket),
       );
       discountAmount = Number(taxSnapshot.discountAmount);
       const totalAmount = Number(taxSnapshot.totalAmount);
@@ -2904,7 +2905,7 @@ Sitemap: ${baseUrl}/sitemap.xml
         vatAmount: taxSnapshot.vatAmount,
         shippingNetAmount: taxSnapshot.shippingNetAmount,
         shippingVatAmount: taxSnapshot.shippingVatAmount,
-        shippingCost: shippingCost.toFixed(2),
+        shippingCost: taxSnapshot.shippingGrossAmount,
         voucherCode: validatedVoucher?.code || undefined,
         discountAmount: discountAmount > 0 ? taxSnapshot.discountAmount : undefined,
         discountNetAmount: discountAmount > 0 ? taxSnapshot.discountNetAmount : undefined,
@@ -4202,6 +4203,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         discountAmount,
         shippingCost,
         vatPercentage,
+        defaultPriceDisplayMode(vivaMarket),
       );
       discountAmount = Number(taxSnapshot.discountAmount);
       const finalAmountCents = Math.round(Number(taxSnapshot.totalAmount) * 100);
@@ -4239,7 +4241,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           vatAmount: taxSnapshot.vatAmount,
           shippingNetAmount: taxSnapshot.shippingNetAmount,
           shippingVatAmount: taxSnapshot.shippingVatAmount,
-          shippingCost: shippingCost.toFixed(2),
+          shippingCost: taxSnapshot.shippingGrossAmount,
           voucherCode: voucherCode && discountAmount > 0 ? voucherCode : undefined,
           discountAmount: discountAmount > 0 ? taxSnapshot.discountAmount : undefined,
           discountNetAmount: discountAmount > 0 ? taxSnapshot.discountNetAmount : undefined,
@@ -4785,6 +4787,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         discountAmount,
         shippingCost,
         vatPercentage,
+        defaultPriceDisplayMode("fr"),
       );
       discountAmount = Number(taxSnapshot.discountAmount);
       const total = Number(taxSnapshot.totalAmount);
@@ -4792,7 +4795,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const notes = `${orderData.notes || ""}${voucher ? `${orderData.notes ? "\n" : ""}Voucher: ${voucher.code} (-${discountAmount.toFixed(2)})` : ""}`;
       const localOrder = await storage.createOrder({
         userId: req.userId || null, market: "fr", currency: "EUR", status: "pending",
-        totalAmount: total.toFixed(2), shippingCost: shippingCost.toFixed(2),
+        totalAmount: total.toFixed(2), shippingCost: taxSnapshot.shippingGrossAmount,
         subtotalNet: taxSnapshot.subtotalNet,
         subtotalGross: taxSnapshot.subtotalGross,
         vatPercentage: moneyString(vatPercentage),

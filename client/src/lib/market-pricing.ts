@@ -1,5 +1,6 @@
 import {
   calculateOrderTaxSnapshot,
+  defaultPriceDisplayMode,
   normalizePriceDisplayMode,
   pricePairFromDisplayPrice,
   resolveMarketPricePair,
@@ -74,7 +75,7 @@ export function getCartTaxSnapshot(
   market: string,
   defaultVatPercentage: number,
   discountAmount: number,
-  shippingGrossAmount: number,
+  shippingDisplayAmount: number,
 ): OrderTaxSnapshot {
   const lines = items
     .filter(item => item.product && item.product.price != null)
@@ -90,7 +91,8 @@ export function getCartTaxSnapshot(
   return calculateOrderTaxSnapshot(
     lines,
     discountAmount,
-    shippingGrossAmount,
+    shippingDisplayAmount,
     defaultVatPercentage,
+    defaultPriceDisplayMode(market),
   );
 }

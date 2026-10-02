@@ -7880,8 +7880,17 @@ import {
                 <input type="number" step="0.01" min="0" value={local.freeShippingThreshold || ''} onChange={e => set('freeShippingThreshold', e.target.value)} placeholder="500.00" style={{width: '100%', padding: '8px 10px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box'}} />
               </div>
               <div>
-                <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#495057'}}>Cost transport standard</label>
+                <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#495057'}}>
+                  {market === 'fr' ? 'Cost transport standard (fără TVA)' : market === 'ro' ? 'Cost transport standard (TVA inclus)' : 'Cost transport standard'}
+                </label>
                 <input type="number" step="0.01" min="0" value={local.standardShippingCost || ''} onChange={e => set('standardShippingCost', e.target.value)} placeholder="20.00" style={{width: '100%', padding: '8px 10px', border: '1px solid #ced4da', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box'}} />
+                <small style={{display: 'block', marginTop: '4px', color: '#6c757d'}}>
+                  {market === 'fr'
+                    ? 'TVA se adaugă la acest cost în totalul comenzii.'
+                    : market === 'ro'
+                      ? 'Acest cost include TVA în suma plătită de client.'
+                      : 'Piața .com folosește TVA 0%.'}
+                </small>
               </div>
               <div>
                 <label style={{display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#495057'}}>Partener facturare</label>
@@ -8386,7 +8395,7 @@ import {
         const initialMarket = (marketFilter && marketFilter !== 'all') ? marketFilter : 'ro';
         const [aoMarket, setAoMarket] = useState(initialMarket);
         const [aoProducts, setAoProducts] = useState([]);
-        const [aoShipping, setAoShipping] = useState({ freeShippingThreshold: 500, standardShippingCost: 25 });
+        const [aoShipping, setAoShipping] = useState({ freeShippingThreshold: 500, standardShippingCost: 25, vatPercentage: 0 });
         const [aoCustomShipping, setAoCustomShipping] = useState(undefined); // undefined = folosește regula site-ului
         const [aoLoading, setAoLoading] = useState(false);
         const [aoSubmitting, setAoSubmitting] = useState(false);
@@ -8551,6 +8560,23 @@ import {
           if (!p || q <= 0) return sum;
           const unit = (it.customPrice !== undefined && it.customPrice !== '') ? (parseFloat(it.customPrice) || 0) : computeUnitPrice(p, q);
           return sum + unit * q;
+        }, 0);
+        const subtotalGross = aoItems.reduce((sum, it) => {
+          const p = getProduct(it.productId);
+          const q = parseInt(it.quantity) || 0;
+          if (!p || q <= 0) return sum;
+          const displayUnit = (it.customPrice !== undefined && it.customPrice !== '')
+            ? (parseFloat(it.customPrice) || 0)
+            : computeUnitPrice(p, q);
+          const mode = p.priceDisplayMode === 'net' || p.priceDisplayMode === 'gross'
+            ? p.priceDisplayMode
+            : (aoMarket === 'fr' ? 'net' : 'gross');
+          const candidateVat = Number(p.vatPercentage ?? aoShipping.vatPercentage ?? 0);
+          const vatRate = Number.isFinite(candidateVat) ? Math.max(0, candidateVat) / 100 : 0;
+          const grossUnit = mode === 'net'
+            ? parseFloat((displayUnit * (1 + vatRate)).toFixed(2))
+            : displayUnit;
+          return sum + grossUnit * q;
         }, 0);
 
         const updateItem = (idx, field, value) => {
@@ -8804,14 +8830,18 @@ import {
                 const siteShipping = subtotal > aoShipping.freeShippingThreshold ? 0 : aoShipping.standardShippingCost;
                 const shippingOverridden = aoCustomShipping !== undefined && aoCustomShipping !== '' && parseFloat(aoCustomShipping) !== siteShipping;
                 const shippingCost = (aoCustomShipping !== undefined && aoCustomShipping !== '') ? (parseFloat(aoCustomShipping) || 0) : siteShipping;
-                const total = subtotal + (subtotal > 0 ? shippingCost : 0);
+                const shippingGross = aoMarket === 'fr'
+                  ? parseFloat((shippingCost * (1 + Math.max(0, Number(aoShipping.vatPercentage) || 0) / 100)).toFixed(2))
+                  : shippingCost;
+                const total = subtotalGross + (subtotal > 0 ? shippingGross : 0);
+                const shippingBasis = aoMarket === 'fr' ? 'HT' : aoMarket === 'ro' ? 'TVA inclusă' : 'incl. VAT';
                 return (
                   <div style={{padding: '12px 14px', background: '#f0f8f0', borderRadius: '6px', marginBottom: '16px', fontSize: '13px', border: '1px solid #d4edda'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
                       <span>Subtotal produse:</span><b>{subtotal.toFixed(2)} {currency}</b>
                     </div>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', gap: '8px'}}>
-                      <span>Transport <span style={{color: '#888', fontSize: '11px'}}>(site: {subtotal > 0 ? (siteShipping === 0 ? 'gratuit' : siteShipping.toFixed(2) + ' ' + currency) : '—'}, gratuit peste {aoShipping.freeShippingThreshold.toFixed(0)} {currency})</span></span>
+                      <span>Transport ({shippingBasis}) <span style={{color: '#888', fontSize: '11px'}}>(site: {subtotal > 0 ? (siteShipping === 0 ? 'gratuit' : siteShipping.toFixed(2) + ' ' + currency) : '—'}, gratuit peste {aoShipping.freeShippingThreshold.toFixed(0)} {currency})</span></span>
                       <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
                         <input
                           type="number" step="0.01" min="0"
@@ -8830,7 +8860,7 @@ import {
                     </div>
                     {shippingOverridden && <div style={{color: '#f0ad4e', fontSize: '11px', marginBottom: '4px', textAlign: 'right'}}>transport modificat manual</div>}
                     <div style={{display: 'flex', justifyContent: 'space-between', paddingTop: '6px', borderTop: '1px solid #d4edda', fontSize: '15px'}}>
-                      <b>Total comandă:</b><b style={{color: '#28a745'}}>{total.toFixed(2)} {currency}</b>
+                      <b>{aoMarket === 'fr' ? 'Total comandă (TVA inclus):' : 'Total comandă:'}</b><b style={{color: '#28a745'}}>{total.toFixed(2)} {currency}</b>
                     </div>
                     <div style={{color: '#888', fontSize: '11px', marginTop: '4px'}}>Calculat după aceleași reguli ca pe site; serverul revalidează la creare.</div>
                   </div>
