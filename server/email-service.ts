@@ -1,5 +1,6 @@
 import { MailService } from '@sendgrid/mail';
 import type { OrderWithItems, User } from '../shared/schema';
+import { getOrderTaxSummary } from '../shared/market-pricing.js';
 import {
   buildContactEmailTemplates,
   dedupeEmailAddresses,
@@ -281,16 +282,28 @@ export async function sendOrderConfirmationEmail(
   const shippingAddress = order.shippingAddress as any;
   const billingAddress = order.billingAddress as any;
   const isFrenchOrder = (order as any).market === 'fr';
+  const orderMarket = (order as any).market || 'ro';
+  const orderVatRate = Number((order as any).vatPercentage ?? (orderMarket === 'fr' ? 20 : 21));
+  const taxSummary = getOrderTaxSummary(order as any, orderVatRate);
   
   const orderItemsHtml = order.items
-    .map(item => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #eee;">${orderItemNameHtml(item)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.price} ${orderCurrency(order)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.totalPrice} ${orderCurrency(order)}</td>
-      </tr>
-    `)
+    .map(item => {
+      const priceMode = (item as any).priceDisplayMode === 'net' ? 'net' : 'gross';
+      const vatRate = Number((item as any).vatPercentage ?? orderVatRate);
+      const netUnit = Number((item as any).priceNet ?? Number(item.price) / (1 + vatRate / 100));
+      const netTotal = Number((item as any).totalPriceNet ?? Number(item.totalPrice) / (1 + vatRate / 100));
+      const displayUnit = priceMode === 'net' ? netUnit : Number(item.price);
+      const displayTotal = priceMode === 'net' ? netTotal : Number(item.totalPrice);
+      const basis = priceMode === 'net' ? `excl. VAT + ${vatRate}% VAT` : 'incl. VAT';
+      return `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #eee;">${orderItemNameHtml(item)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${displayUnit.toFixed(2)} ${orderCurrency(order)}<br><small>${basis}</small></td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${displayTotal.toFixed(2)} ${orderCurrency(order)}</td>
+        </tr>
+      `;
+    })
     .join('');
 
   const html = `
@@ -337,27 +350,30 @@ export async function sendOrderConfirmationEmail(
           </tbody>
           <tfoot>
             ${(() => {
-              const shippingCost = parseFloat(order.shippingCost || '0');
-              const discountAmt = parseFloat((order as any).discountAmount || '0');
+              const shippingCost = Number(taxSummary.shippingNetAmount);
+              const discountAmt = Number(taxSummary.discountNetAmount);
               const voucherCode = (order as any).voucherCode || '';
-              const itemsSubtotal = (parseFloat(order.totalAmount) + discountAmt - shippingCost).toFixed(2);
               const discountRow = discountAmt > 0 ? `
                 <tr>
-                  <td colspan="3" style="padding: 8px; text-align: right; color: #27ae60;">Discount voucher${voucherCode ? ' ' + voucherCode : ''}:</td>
-                  <td style="padding: 8px; text-align: right; color: #27ae60;">-${discountAmt.toFixed(2)} lei</td>
+                  <td colspan="3" style="padding: 8px; text-align: right; color: #27ae60;">Discount excl. VAT${voucherCode ? ` ${voucherCode}` : ''}:</td>
+                  <td style="padding: 8px; text-align: right; color: #27ae60;">-${discountAmt.toFixed(2)} ${orderCurrency(order)}</td>
                 </tr>` : '';
               return `
                 <tr>
-                  <td colspan="3" style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">Subtotal:</td>
-                  <td style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">${itemsSubtotal} lei</td>
+                  <td colspan="3" style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">Products subtotal excl. VAT:</td>
+                  <td style="padding: 8px; text-align: right; border-top: 1px solid #dee2e6;">${taxSummary.subtotalNet} ${orderCurrency(order)}</td>
                 </tr>
                 ${discountRow}
                 <tr>
-                  <td colspan="3" style="padding: 8px; text-align: right;">Transport:</td>
-                  <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' ' + orderCurrency(order) : 'Gratuit'}</td>
+                  <td colspan="3" style="padding: 8px; text-align: right;">Shipping excl. VAT:</td>
+                  <td style="padding: 8px; text-align: right;">${shippingCost > 0 ? shippingCost.toFixed(2) + ' ' + orderCurrency(order) : 'Free'}</td>
                 </tr>
                 <tr>
-                  <td colspan="3" style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">Total:</td>
+                  <td colspan="3" style="padding: 8px; text-align: right;">VAT (${orderVatRate}%):</td>
+                  <td style="padding: 8px; text-align: right;">${taxSummary.vatAmount} ${orderCurrency(order)}</td>
+                </tr>
+                <tr>
+                  <td colspan="3" style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">Total incl. VAT:</td>
                   <td style="padding: 12px 8px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;">${order.totalAmount} ${orderCurrency(order)}</td>
                 </tr>
               `;
@@ -433,7 +449,8 @@ export async function sendOrderConfirmationEmail(
     - Customer Email: ${user.email}
     - Contact Phone: ${shippingAddress.phone}
     - Payment: ${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}
-    - Total Amount: ${order.totalAmount} ${orderCurrency(order)}
+    - VAT: ${taxSummary.vatAmount} ${orderCurrency(order)}
+    - Total Amount incl. VAT: ${taxSummary.totalAmount} ${orderCurrency(order)}
     
     Delivery Address:
     ${shippingAddress.firstName} ${shippingAddress.lastName}
@@ -1503,29 +1520,35 @@ export async function sendInvoiceEmailFr(
   const lastName     = billingAddr.lastName   || shippingAddr.lastName   || '';
   const customerName = `${firstName} ${lastName}`.trim();
   const currency     = (order as any).currency || 'EUR';
-  const totalAmount  = parseFloat(order.totalAmount);
-  const vatRate      = 20; // France standard VAT
-  const vatAmount    = (totalAmount * vatRate) / (100 + vatRate);
-  const subtotalHT   = totalAmount - vatAmount;
+  const vatRate      = Number((order as any).vatPercentage ?? 20);
+  const taxSummary   = getOrderTaxSummary(order as any, vatRate);
+  const totalAmount  = Number(taxSummary.totalAmount);
+  const vatAmount    = Number(taxSummary.vatAmount);
+  const subtotalHT   = Number(taxSummary.subtotalNet);
   const trackingUrl = options.trackingUrl || buildPublicTrackingUrl((order as any).publicOrderRef);
 
-  const orderItemsHtml = order.items.map(item => `
-    <tr>
-      <td style="padding:8px 10px;border-bottom:1px solid #eee;">${orderItemNameHtml(item)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${parseFloat(item.price).toFixed(2)} ${currency}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${parseFloat(item.totalPrice).toFixed(2)} ${currency}</td>
-    </tr>
-  `).join('');
+  const orderItemsHtml = order.items.map(item => {
+    const itemVatRate = Number((item as any).vatPercentage ?? vatRate);
+    const unitNet = Number((item as any).priceNet ?? Number(item.price) / (1 + itemVatRate / 100));
+    const lineNet = Number((item as any).totalPriceNet ?? Number(item.totalPrice) / (1 + itemVatRate / 100));
+    return `
+      <tr>
+        <td style="padding:8px 10px;border-bottom:1px solid #eee;">${orderItemNameHtml(item)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${unitNet.toFixed(2)} ${currency}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${lineNet.toFixed(2)} ${currency}</td>
+      </tr>
+    `;
+  }).join('');
 
-  const discountAmt = parseFloat((order as any).discountAmount || '0');
+  const discountAmt = Number(taxSummary.discountNetAmount);
   const discountRow = discountAmt > 0 ? `
     <tr>
       <td style="padding:8px 10px;color:#27ae60;" colspan="3">Remise${(order as any).voucherCode ? ' ' + (order as any).voucherCode : ''}</td>
       <td style="padding:8px 10px;text-align:right;color:#27ae60;">-${discountAmt.toFixed(2)} ${currency}</td>
     </tr>` : '';
 
-  const shippingCost = parseFloat(order.shippingCost || '0');
+  const shippingCost = Number(taxSummary.shippingNetAmount);
   const shippingRow  = shippingCost > 0 ? `
     <tr>
       <td style="padding:8px 10px;" colspan="3">Frais de port</td>
@@ -1562,8 +1585,8 @@ export async function sendInvoiceEmailFr(
         <tr style="background:#e9ecef;">
           <th style="padding:8px 10px;text-align:left;">Produit</th>
           <th style="padding:8px 10px;text-align:center;">Qté</th>
-          <th style="padding:8px 10px;text-align:right;">Prix unit. TTC</th>
-          <th style="padding:8px 10px;text-align:right;">Total TTC</th>
+          <th style="padding:8px 10px;text-align:right;">Prix unit. HT</th>
+          <th style="padding:8px 10px;text-align:right;">Total HT</th>
         </tr>
       </thead>
       <tbody>
@@ -1571,7 +1594,7 @@ export async function sendInvoiceEmailFr(
         ${discountRow}
         ${shippingRow}
         <tr style="border-top:2px solid #dee2e6;color:#555;">
-          <td style="padding:8px 10px;" colspan="3">Sous-total HT</td>
+          <td style="padding:8px 10px;" colspan="3">Produits HT avant remise</td>
           <td style="padding:8px 10px;text-align:right;">${subtotalHT.toFixed(2)} ${currency}</td>
         </tr>
         <tr style="color:#555;">
@@ -1610,7 +1633,7 @@ export async function sendInvoiceEmailFr(
     subject: invoiceNumber
       ? `Votre facture xHACCP N° ${invoiceNumber} – Commande #${order.id}`
       : `Confirmation de commande xHACCP #${order.id}`,
-    text: `Bonjour ${customerName},\n\nMerci pour votre commande #${order.id} sur xhaccp.fr.\nMontant total TTC : ${totalAmount.toFixed(2)} ${currency}\n${invoiceNumber ? `Facture N° ${invoiceNumber}\n` : ''}${invoicePdfBuffer ? 'Votre facture est jointe en PDF.\n' : ''}${options.awbNumber && trackingUrl ? `\nTransporteur : MyFlyingBox\nN° de suivi : ${options.awbNumber}\nSuivre votre colis : ${trackingUrl}\n` : ''}\nCordialement,\nL'équipe xHACCP`,
+    text: `Bonjour ${customerName},\n\nMerci pour votre commande #${order.id} sur xhaccp.fr.\nTotal HT après remises : ${taxSummary.totalNetAmount} ${currency}\nTVA (${vatRate}%) : ${vatAmount.toFixed(2)} ${currency}\nMontant total TTC : ${totalAmount.toFixed(2)} ${currency}\n${invoiceNumber ? `Facture N° ${invoiceNumber}\n` : ''}${invoicePdfBuffer ? 'Votre facture est jointe en PDF.\n' : ''}${options.awbNumber && trackingUrl ? `\nTransporteur : MyFlyingBox\nN° de suivi : ${options.awbNumber}\nSuivre votre colis : ${trackingUrl}\n` : ''}\nCordialement,\nL'équipe xHACCP`,
     html,
   };
 

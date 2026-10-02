@@ -16250,6 +16250,53 @@
     ] });
   }
 
+  // shared/market-pricing.ts
+  function roundMoney(value) {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+  function defaultPriceDisplayMode(market) {
+    return market.toLowerCase() === "fr" ? "net" : "gross";
+  }
+  function normalizePriceDisplayMode(value, market = "ro") {
+    return value === "net" || value === "gross" ? value : defaultPriceDisplayMode(market);
+  }
+  function resolveMarketPricePair(input) {
+    const vat = Number(input.vatPercentage);
+    const vatPercentage = Number.isFinite(vat) ? Math.max(0, vat) : 0;
+    const priceDisplayMode = normalizePriceDisplayMode(input.priceDisplayMode, input.market);
+    const netProvided = input.priceNet !== null && input.priceNet !== void 0 && input.priceNet !== "";
+    const grossProvided = input.priceGross !== null && input.priceGross !== void 0 && input.priceGross !== "";
+    const net = netProvided ? Number(input.priceNet) : Number.NaN;
+    const gross = grossProvided ? Number(input.priceGross) : Number.NaN;
+    const legacyPrice = Number(input.price);
+    const rate = 1 + vatPercentage / 100;
+    let priceNet;
+    let priceGross;
+    if (netProvided && grossProvided) {
+      priceNet = roundMoney(net);
+      priceGross = roundMoney(gross);
+    } else if (netProvided) {
+      priceNet = roundMoney(net);
+      priceGross = roundMoney(priceNet * rate);
+    } else if (grossProvided) {
+      priceGross = roundMoney(gross);
+      priceNet = rate === 0 ? priceGross : roundMoney(priceGross / rate);
+    } else if (priceDisplayMode === "net") {
+      priceNet = roundMoney(legacyPrice);
+      priceGross = roundMoney(priceNet * rate);
+    } else {
+      priceGross = roundMoney(legacyPrice);
+      priceNet = rate === 0 ? priceGross : roundMoney(priceGross / rate);
+    }
+    return {
+      priceNet,
+      priceGross,
+      displayPrice: priceDisplayMode === "net" ? priceNet : priceGross,
+      priceDisplayMode,
+      vatPercentage
+    };
+  }
+
   // admin-src/AdminApp.jsx
   var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
   console.log("Defining uploadCategoryImage function on window object");
@@ -16634,6 +16681,8 @@
     const lastVisibleUser = Math.min(currentUsersPage * usersPageSize, users.length);
     const paginatedUsers = users.slice(firstVisibleUser - 1, lastVisibleUser);
     const [products, setProducts] = (0, import_react21.useState)([]);
+    const [productsLoading, setProductsLoading] = (0, import_react21.useState)(false);
+    const [productsError, setProductsError] = (0, import_react21.useState)("");
     const [productSyncState, setProductSyncState] = (0, import_react21.useState)(null);
     const [categories, setCategories] = (0, import_react21.useState)([]);
     const categoriesRequestIdRef = import_react21.default.useRef(0);
@@ -17306,8 +17355,11 @@
     };
     const fetchProducts = async (marketOverride) => {
       const requestId = ++productsRequestIdRef.current;
+      const effectiveMarket = marketOverride !== void 0 ? marketOverride : selectedMarketTab;
+      setProducts([]);
+      setProductsError("");
+      setProductsLoading(true);
       try {
-        const effectiveMarket = marketOverride !== void 0 ? marketOverride : selectedMarketTab;
         const params = new URLSearchParams();
         if (effectiveMarket && effectiveMarket !== "all") params.set("market", effectiveMarket);
         if (i18n_default.language) params.set("language", i18n_default.language);
@@ -17324,10 +17376,18 @@
             setProductPage(1);
           }
         } else {
-          console.error("Failed to fetch products:", data.message);
+          throw new Error(data.message || `Failed to load products for .${effectiveMarket}`);
         }
       } catch (err) {
-        console.error("Network error fetching products:", err);
+        console.error("Failed to fetch products:", err);
+        if (requestId === productsRequestIdRef.current) {
+          setProducts([]);
+          setProductsError(err.message || "Failed to load products.");
+        }
+      } finally {
+        if (requestId === productsRequestIdRef.current) {
+          setProductsLoading(false);
+        }
       }
     };
     const syncProductsToBillingProvider = async () => {
@@ -17999,6 +18059,9 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
             map[pm.productId][pm.market] = pm;
           });
           setProductMarketsMap(map);
+          if (editingProduct?.id) {
+            setEditingProductMarkets(map[editingProduct.id] || { ro: null, fr: null, com: null });
+          }
         }
       } catch (err) {
         console.error("Error fetching product markets:", err);
@@ -20733,7 +20796,7 @@ This action cannot be undone.`)) {
                 )
               ] })
             ] }),
-            filteredProducts.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_react21.default.Fragment, { children: [
+            filteredProducts.length > 0 && !productsError && !productsLoading ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_react21.default.Fragment, { children: [
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { overflowX: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "12px", textAlign: "left", borderBottom: "2px solid #ddd", width: "50px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
@@ -20890,45 +20953,55 @@ This action cannot be undone.`)) {
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "12px", color: "#6c757d", fontSize: "14px", fontFamily: "monospace" }, children: product.productCode || "N/A" }),
                   ["ro", "fr", "com"].map((market) => {
                     const pm = productMarketsMap[product.id]?.[market];
-                    const isActive = pm ? pm.isActive : true;
-                    const hasCustomPrice = pm && pm.price != null && pm.price !== "";
-                    const effectivePrice = hasCustomPrice ? pm.price : product.price;
+                    const isAssigned = Boolean(pm);
+                    const isActive = Boolean(pm?.isActive);
+                    const hasCustomPrice = pm && [pm.price, pm.priceNet, pm.priceGross].some((value) => value != null && value !== "");
+                    const vatPercentage = Number(marketsData?.[market]?.vatPercentage ?? 0);
+                    const pricePair = pm ? resolveMarketPricePair({
+                      market,
+                      price: pm.price ?? product.price,
+                      priceNet: pm.priceNet,
+                      priceGross: pm.priceGross,
+                      priceDisplayMode: pm.priceDisplayMode,
+                      vatPercentage
+                    }) : null;
                     const currency = (pm?.currency || getMarketCurrency(market) || product.currency || "\u2014").toString().toUpperCase();
                     return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "center", minWidth: "80px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
-                        "span",
-                        {
-                          title: hasCustomPrice ? `Pre\u021B custom pentru .${market}` : `Pre\u021B baz\u0103 (f\u0103r\u0103 override pe .${market})`,
-                          style: {
-                            fontSize: "12px",
-                            fontWeight: "bold",
-                            color: hasCustomPrice ? "#007bff" : "#888",
-                            whiteSpace: "nowrap",
-                            letterSpacing: "0.3px"
-                          },
-                          children: [
-                            formatAdminPrice(effectivePrice, currency),
-                            hasCustomPrice && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { marginLeft: "2px", fontSize: "10px", color: "#fd7e14" }, children: "\u270E" })
-                          ]
-                        }
-                      ),
+                      pricePair ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontSize: "11px", fontWeight: "600", color: hasCustomPrice ? "#007bff" : "#555", whiteSpace: "nowrap" }, children: [
+                          "Net ",
+                          formatAdminPrice(pricePair.priceNet, currency)
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontSize: "11px", fontWeight: "600", color: hasCustomPrice ? "#007bff" : "#555", whiteSpace: "nowrap" }, children: [
+                          "Brut ",
+                          formatAdminPrice(pricePair.priceGross, currency)
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { title: hasCustomPrice ? `Pre\u021B custom pentru .${market}` : `Pre\u021B mo\u0219tenit pentru .${market}`, style: { fontSize: "10px", color: "#888" }, children: [
+                          "Afi\u0219at ",
+                          pricePair.priceDisplayMode,
+                          " \xB7 TVA ",
+                          pricePair.vatPercentage,
+                          "%"
+                        ] })
+                      ] }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { fontSize: "11px", color: "#888" }, children: "Nealocat" }),
                       /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                         "button",
                         {
-                          title: isActive ? `Activ pe .${market} \u2014 click pentru dezactivare` : `Inactiv pe .${market} \u2014 click pentru activare`,
+                          title: !isAssigned ? `Produsul nu este alocat pie\u021Bei .${market}` : isActive ? `Activ pe .${market} \u2014 click pentru dezactivare` : `Inactiv pe .${market} \u2014 click pentru activare`,
                           onClick: () => toggleProductMarket(product.id, market, isActive),
+                          disabled: !isAssigned,
                           style: {
                             padding: "2px 8px",
                             border: "none",
                             borderRadius: "12px",
-                            cursor: "pointer",
+                            cursor: isAssigned ? "pointer" : "not-allowed",
                             fontSize: "11px",
                             fontWeight: "600",
-                            backgroundColor: isActive ? "#d4edda" : "#f8d7da",
-                            color: isActive ? "#155724" : "#721c24",
+                            backgroundColor: !isAssigned ? "#e9ecef" : isActive ? "#d4edda" : "#f8d7da",
+                            color: !isAssigned ? "#6c757d" : isActive ? "#155724" : "#721c24",
                             minWidth: "40px"
                           },
-                          children: isActive ? "\u2713 ON" : "\u2717 OFF"
+                          children: !isAssigned ? "\u2014" : isActive ? "\u2713 ON" : "\u2717 OFF"
                         }
                       )
                     ] }) }, market);
@@ -21046,6 +21119,26 @@ This action cannot be undone.`;
                   )
                 ] })
               ] })
+            ] }) : productsError ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { role: "alert", style: { padding: "24px", background: "#fff3f3", border: "1px solid #dc3545", borderRadius: "6px", color: "#842029" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("strong", { children: [
+                "Could not load products for ",
+                selectedMarketTab === "all" ? "all markets" : `.${selectedMarketTab}`,
+                "."
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "6px" }, children: productsError }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => fetchProducts(),
+                  style: { marginTop: "12px", padding: "7px 14px", border: "1px solid #842029", borderRadius: "4px", background: "white", color: "#842029", cursor: "pointer" },
+                  children: "Retry"
+                }
+              )
+            ] }) : productsLoading ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { role: "status", style: { padding: "32px", textAlign: "center", color: "#666" }, children: [
+              "Loading products for ",
+              selectedMarketTab === "all" ? "all markets" : `.${selectedMarketTab}`,
+              "\u2026"
             ] }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: "No products found" }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: "Start building your product catalog by adding your first product." }),
@@ -24491,24 +24584,74 @@ Cordialement,`
       );
     };
     const MarketPricesSection = ({ editingProduct: editingProduct2, editingProductMarkets: editingProductMarkets2, token: token2, fetchProductMarkets: fetchProductMarkets2 }) => {
-      const emptyRow = () => ({ isActive: true, price: "", compareAtPrice: "" });
-      const [local, setLocal] = (0, import_react21.useState)({ ro: emptyRow(), fr: emptyRow(), com: emptyRow() });
-      (0, import_react21.useEffect)(() => {
-        setLocal({
-          ro: editingProductMarkets2?.ro ? { isActive: editingProductMarkets2.ro.isActive, price: editingProductMarkets2.ro.price || "", compareAtPrice: editingProductMarkets2.ro.compareAtPrice || "" } : emptyRow(),
-          fr: editingProductMarkets2?.fr ? { isActive: editingProductMarkets2.fr.isActive, price: editingProductMarkets2.fr.price || "", compareAtPrice: editingProductMarkets2.fr.compareAtPrice || "" } : emptyRow(),
-          com: editingProductMarkets2?.com ? { isActive: editingProductMarkets2.com.isActive, price: editingProductMarkets2.com.price || "", compareAtPrice: editingProductMarkets2.com.compareAtPrice || "" } : emptyRow()
+      const marketNames = ["ro", "fr", "com"];
+      const marketVatRate = (market) => Number(marketsData?.[market]?.vatPercentage ?? 0);
+      const buildLocal = () => Object.fromEntries(marketNames.map((market) => {
+        const row = editingProductMarkets2?.[market];
+        const mode = row?.priceDisplayMode || defaultPriceDisplayMode(market);
+        const pricePair = resolveMarketPricePair({
+          market,
+          price: row?.price ?? editingProduct2?.price,
+          priceNet: row?.priceNet,
+          priceGross: row?.priceGross,
+          priceDisplayMode: mode,
+          vatPercentage: marketVatRate(market)
         });
-      }, [editingProductMarkets2]);
+        const hasOverride = row && [row.price, row.priceNet, row.priceGross].some((value) => value != null && value !== "");
+        return [market, {
+          assigned: Boolean(row),
+          isActive: Boolean(row?.isActive),
+          priceNet: hasOverride ? pricePair.priceNet.toFixed(2) : "",
+          priceGross: hasOverride ? pricePair.priceGross.toFixed(2) : "",
+          inheritedPriceNet: pricePair.priceNet,
+          inheritedPriceGross: pricePair.priceGross,
+          priceDisplayMode: mode,
+          compareAtPrice: row?.compareAtPrice || ""
+        }];
+      }));
+      const [local, setLocal] = (0, import_react21.useState)(buildLocal);
+      (0, import_react21.useEffect)(() => {
+        setLocal(buildLocal());
+      }, [editingProductMarkets2, editingProduct2, marketsData]);
       const setField = (market, field, val) => setLocal((prev) => ({ ...prev, [market]: { ...prev[market], [field]: val } }));
+      const setPriceField = (market, field, val) => {
+        if (val === "") {
+          setLocal((prev) => ({ ...prev, [market]: { ...prev[market], priceNet: "", priceGross: "" } }));
+          return;
+        }
+        const pair = resolveMarketPricePair({
+          market,
+          [field]: val,
+          priceDisplayMode: local[market].priceDisplayMode,
+          vatPercentage: marketVatRate(market)
+        });
+        setLocal((prev) => ({
+          ...prev,
+          [market]: {
+            ...prev[market],
+            priceNet: pair.priceNet.toFixed(2),
+            priceGross: pair.priceGross.toFixed(2)
+          }
+        }));
+      };
       const save = async () => {
         try {
-          const markets2 = ["ro", "fr", "com"].map((m) => ({
-            market: m,
-            isActive: local[m].isActive,
-            price: local[m].price || null,
-            compareAtPrice: local[m].compareAtPrice || null
-          }));
+          const markets2 = marketNames.filter((market) => local[market].assigned).map((market) => {
+            const hasOverride = local[market].priceNet !== "" && local[market].priceGross !== "";
+            return {
+              market,
+              isActive: local[market].isActive,
+              priceDisplayMode: local[market].priceDisplayMode,
+              price: hasOverride ? local[market].priceDisplayMode === "net" ? local[market].priceNet : local[market].priceGross : null,
+              priceNet: hasOverride ? local[market].priceNet : null,
+              priceGross: hasOverride ? local[market].priceGross : null,
+              compareAtPrice: local[market].compareAtPrice || null
+            };
+          });
+          if (markets2.length === 0) {
+            alert("Produsul nu este alocat unei pie\u021Be. Nu au fost f\u0103cute modific\u0103ri.");
+            return;
+          }
           const res = await fetch(`/admin/api/products/${editingProduct2.id}/markets/bulk`, {
             method: "POST",
             headers: { "Authorization": `Bearer ${token2}`, "Content-Type": "application/json" },
@@ -24518,7 +24661,8 @@ Cordialement,`
             alert("\u2705 Pre\u021Buri per pia\u021B\u0103 salvate!");
             fetchProductMarkets2();
           } else {
-            alert("\u274C Eroare la salvare");
+            const data = await res.json().catch(() => ({}));
+            alert(`\u274C Eroare la salvare: ${data.message || res.statusText}`);
           }
         } catch (err) {
           alert("\u274C Eroare: " + err.message);
@@ -24535,7 +24679,9 @@ Cordialement,`
           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { style: { backgroundColor: "#fff3cd" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px 10px", textAlign: "left", borderBottom: "1px solid #ffe082" }, children: "Pia\u021B\u0103" }),
             /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px 10px", textAlign: "center", borderBottom: "1px solid #ffe082" }, children: "Activ" }),
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px 10px", textAlign: "left", borderBottom: "1px solid #ffe082" }, children: "Pre\u021B override" }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px 10px", textAlign: "left", borderBottom: "1px solid #ffe082" }, children: "Pre\u021B net" }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px 10px", textAlign: "left", borderBottom: "1px solid #ffe082" }, children: "Pre\u021B brut" }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px 10px", textAlign: "left", borderBottom: "1px solid #ffe082" }, children: "Afi\u0219eaz\u0103" }),
             /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px 10px", textAlign: "left", borderBottom: "1px solid #ffe082" }, children: "Pre\u021B vechi (bar\xE1t)" })
           ] }) }),
           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tbody", { children: rows.map(({ market, flag, label, currency }) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { style: { borderBottom: "1px solid #ffe082" }, children: [
@@ -24548,7 +24694,8 @@ Cordialement,`
               "input",
               {
                 type: "checkbox",
-                checked: local[market].isActive || false,
+                checked: local[market].isActive,
+                disabled: !local[market].assigned,
                 onChange: (e2) => setField(market, "isActive", e2.target.checked),
                 style: { width: "16px", height: "16px", cursor: "pointer" }
               }
@@ -24560,9 +24707,10 @@ Cordialement,`
                   type: "number",
                   step: "0.01",
                   min: "0",
-                  value: local[market].price,
-                  onChange: (e2) => setField(market, "price", e2.target.value),
-                  placeholder: "(pre\u021B implicit)",
+                  value: local[market].priceNet,
+                  disabled: !local[market].assigned,
+                  onChange: (e2) => setPriceField(market, "priceNet", e2.target.value),
+                  placeholder: local[market].assigned ? "(mo\u0219tenit)" : "nealocat",
                   style: { width: "120px", padding: "5px 8px", border: "1px solid #ced4da", borderRadius: "4px", fontSize: "13px" }
                 }
               ),
@@ -24575,7 +24723,45 @@ Cordialement,`
                   type: "number",
                   step: "0.01",
                   min: "0",
+                  value: local[market].priceGross,
+                  disabled: !local[market].assigned,
+                  onChange: (e2) => setPriceField(market, "priceGross", e2.target.value),
+                  placeholder: local[market].assigned ? "(mo\u0219tenit)" : "nealocat",
+                  style: { width: "120px", padding: "5px 8px", border: "1px solid #ced4da", borderRadius: "4px", fontSize: "13px" }
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: "#666", fontSize: "12px" }, children: currency })
+            ] }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("td", { style: { padding: "8px 10px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
+                "select",
+                {
+                  value: local[market].priceDisplayMode,
+                  disabled: !local[market].assigned,
+                  onChange: (e2) => setField(market, "priceDisplayMode", e2.target.value),
+                  style: { padding: "5px 8px", border: "1px solid #ced4da", borderRadius: "4px", fontSize: "13px" },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "net", children: "Net" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "gross", children: "Brut" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "4px", fontSize: "11px", color: "#795548" }, children: [
+                "TVA ",
+                marketVatRate(market),
+                "% \xB7 ",
+                local[market].assigned ? local[market].priceNet || local[market].priceGross ? "" : `mo\u0219tenit: net ${local[market].inheritedPriceNet.toFixed(2)} / brut ${local[market].inheritedPriceGross.toFixed(2)}` : "f\u0103r\u0103 alocare"
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px 10px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "4px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                "input",
+                {
+                  type: "number",
+                  step: "0.01",
+                  min: "0",
                   value: local[market].compareAtPrice,
+                  disabled: !local[market].assigned,
                   onChange: (e2) => setField(market, "compareAtPrice", e2.target.value),
                   placeholder: "(op\u021Bional)",
                   style: { width: "120px", padding: "5px 8px", border: "1px solid #ced4da", borderRadius: "4px", fontSize: "13px" }

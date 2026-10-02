@@ -28,6 +28,7 @@ export interface OrderTaxSnapshot {
   subtotalDisplay: string;
   subtotalNet: string;
   subtotalGross: string;
+  totalNetAmount: string;
   discountAmount: string;
   discountNetAmount: string;
   discountGrossAmount: string;
@@ -179,8 +180,9 @@ export function calculateOrderTaxSnapshot(
 
   return {
     subtotalDisplay: fromCents(displayCents),
-    subtotalNet: fromCents(totalNetCents),
+    subtotalNet: fromCents(netCents),
     subtotalGross: fromCents(grossCents),
+    totalNetAmount: fromCents(totalNetCents),
     discountAmount: fromCents(discountCents),
     discountNetAmount: fromCents(discountNetCents),
     discountGrossAmount: fromCents(discountGrossCents),
@@ -188,5 +190,65 @@ export function calculateOrderTaxSnapshot(
     shippingVatAmount: fromCents(shippingVatCents),
     vatAmount: fromCents(totalVatCents),
     totalAmount: fromCents(totalGrossCents),
+  };
+}
+
+export function getOrderTaxSummary(
+  order: Record<string, unknown>,
+  fallbackVatPercentage = 0,
+): OrderTaxSnapshot {
+  const numberOr = (value: unknown, fallback: number): number => {
+    if (value === null || value === undefined || value === "") return fallback;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const totalAmount = Math.max(0, numberOr(order.totalAmount, 0));
+  const vatPercentage = Math.max(0, numberOr(order.vatPercentage, fallbackVatPercentage));
+  const rate = 1 + vatPercentage / 100;
+  const vatAmount = Math.max(
+    0,
+    numberOr(order.vatAmount, rate === 0 ? 0 : totalAmount * vatPercentage / (100 + vatPercentage)),
+  );
+  const totalNetAmount = Math.max(0, totalAmount - vatAmount);
+  const shippingGross = Math.max(0, numberOr(order.shippingCost, 0));
+  const shippingNetAmount = Math.max(
+    0,
+    numberOr(order.shippingNetAmount, rate === 0 ? shippingGross : shippingGross / rate),
+  );
+  const shippingVatAmount = Math.max(
+    0,
+    numberOr(order.shippingVatAmount, shippingGross - shippingNetAmount),
+  );
+  const discountAmount = Math.max(0, numberOr(order.discountAmount, 0));
+  const discountNetAmount = Math.max(
+    0,
+    numberOr(order.discountNetAmount, rate === 0 ? discountAmount : discountAmount / rate),
+  );
+  const discountGrossAmount = Math.max(
+    0,
+    numberOr(order.discountGrossAmount, discountAmount),
+  );
+  const subtotalNet = Math.max(
+    0,
+    numberOr(order.subtotalNet, totalNetAmount + discountNetAmount - shippingNetAmount),
+  );
+  const subtotalGross = Math.max(
+    0,
+    numberOr(order.subtotalGross, subtotalNet + (vatAmount - shippingVatAmount) + discountGrossAmount - discountNetAmount),
+  );
+  const subtotalDisplay = Math.max(0, numberOr(order.subtotalDisplay, subtotalGross));
+
+  return {
+    subtotalDisplay: moneyString(subtotalDisplay),
+    subtotalNet: moneyString(subtotalNet),
+    subtotalGross: moneyString(subtotalGross),
+    totalNetAmount: moneyString(totalNetAmount),
+    discountAmount: moneyString(discountAmount),
+    discountNetAmount: moneyString(discountNetAmount),
+    discountGrossAmount: moneyString(discountGrossAmount),
+    shippingNetAmount: moneyString(shippingNetAmount),
+    shippingVatAmount: moneyString(shippingVatAmount),
+    vatAmount: moneyString(vatAmount),
+    totalAmount: moneyString(totalAmount),
   };
 }

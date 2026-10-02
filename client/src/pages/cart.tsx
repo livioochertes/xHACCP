@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/utils";
 import { getMarketFromHostname } from "@/lib/queryClient";
-import { getVolumePrice } from "@/lib/volume-price";
+import { getCartLinePrice, getCartTaxSnapshot } from "@/lib/market-pricing";
 
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,12 @@ export default function Cart() {
   const { cart, updateQuantity, removeFromCart, clearCart, isLoading } = useCart();
   const { toast } = useToast();
   const { t } = useTranslation();
+  const market = getMarketFromHostname();
+  const taxLabels = market === "fr"
+    ? { subtotal: "Produits HT", shipping: "Livraison HT", vat: "TVA", total: "Total TTC" }
+    : market === "ro"
+      ? { subtotal: "Produse fără TVA", shipping: "Livrare fără TVA", vat: "TVA", total: "Total cu TVA" }
+      : { subtotal: "Products excl. VAT", shipping: "Shipping excl. VAT", vat: "VAT", total: "Total incl. VAT" };
 
   const { data: shippingSettings } = useQuery({
     queryKey: ['/api/shipping-settings'],
@@ -31,9 +37,10 @@ export default function Cart() {
   });
 
   const validCart = cart.filter(item => item.product && item.product.price);
-  const getUnitPrice = (item: typeof validCart[number]) => item.compositeConfiguration
-    ? parseFloat(item.product.price)
-    : getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+  const defaultVatPercentage = Number(shippingSettings?.vatPercentage ?? 0);
+  const getLinePrice = (item: typeof validCart[number]) =>
+    getCartLinePrice(item, market, defaultVatPercentage);
+  const getUnitPrice = (item: typeof validCart[number]) => getLinePrice(item).displayPrice;
 
   const subtotal = validCart.reduce((sum, item) => {
     const unitPrice = getUnitPrice(item);
@@ -45,7 +52,8 @@ export default function Cart() {
   const currency = shippingSettings?.currency || 'EUR';
   
   const shipping = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
-  const total = subtotal + shipping;
+  const taxSnapshot = getCartTaxSnapshot(validCart, market, defaultVatPercentage, 0, shipping);
+  const total = Number(taxSnapshot.totalAmount);
 
   const getCurrencySymbol = (curr: string) => {
     const symbols: { [key: string]: string } = { 'EUR': '€', 'RON': 'lei', 'USD': '$', 'GBP': '£' };
@@ -160,6 +168,16 @@ export default function Cart() {
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
                           {item.product?.price ? formatPrice(getUnitPrice(item).toFixed(2), item.product.currency) : "0.00"} {t('cart.each')}
+                          <span className="ml-1 text-xs">
+                            {getLinePrice(item).priceDisplayMode === "net"
+                              ? `(${market === "fr" ? "HT + TVA" : "Excl. VAT"}${getLinePrice(item).vatPercentage > 0 ? ` ${getLinePrice(item).vatPercentage}%` : ""})`
+                              : `(${market === "fr" ? "TTC" : "Incl. VAT"})`}
+                          </span>
+                          {getLinePrice(item).priceDisplayMode === "net" && (
+                            <span className="ml-1 text-xs">
+                              · TTC / each {formatPrice(getLinePrice(item).priceGross.toFixed(2), item.product.currency)}
+                            </span>
+                          )}
                           {!item.compositeConfiguration && (() => {
                             const vd = (item.product as any).volumeDiscounts;
                             if (!Array.isArray(vd) || vd.length === 0) return null;
@@ -223,19 +241,24 @@ export default function Cart() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between">
-                    <span>{t('cart.subtotal')} ({cart.length} {t('cart.items')}):</span>
-                    <span>{subtotal.toFixed(2)} {currencySymbol}</span>
+                    <span>{taxLabels.subtotal}:</span>
+                    <span>{taxSnapshot.subtotalNet} {currencySymbol}</span>
                   </div>
                   
                   <div className="flex justify-between">
-                    <span>{t('cart.shipping')}:</span>
+                    <span>{taxLabels.shipping}:</span>
                     <span>
                       {shipping === 0 ? (
                         <Badge variant="secondary">{t('cart.free')}</Badge>
                       ) : (
-                        `${shipping.toFixed(2)} ${currencySymbol}`
+                        `${taxSnapshot.shippingNetAmount} ${currencySymbol}`
                       )}
                     </span>
+                  </div>
+
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>{taxLabels.vat} ({defaultVatPercentage}%):</span>
+                    <span>{taxSnapshot.vatAmount} {currencySymbol}</span>
                   </div>
                   
                   {subtotal < freeShippingThreshold && (
@@ -247,7 +270,7 @@ export default function Cart() {
                   <Separator />
                   
                   <div className="flex justify-between font-semibold text-lg">
-                    <span>{t('cart.total')}:</span>
+                    <span>{taxLabels.total}:</span>
                     <span>{total.toFixed(2)} {currencySymbol}</span>
                   </div>
                   

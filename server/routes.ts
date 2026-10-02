@@ -2872,7 +2872,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       // Apply voucher discount (to subtotal only, not shipping)
       const taxSnapshot = calculateOrderTaxSnapshot(
-        validatedItems,
+        validatedItems.map((item: any) => ({ ...item, totalPriceGross: item.totalPrice })),
         discountAmount,
         shippingCost,
         vatPercentage,
@@ -2899,8 +2899,11 @@ Sitemap: ${baseUrl}/sitemap.xml
         status: "pending",
         totalAmount: totalAmount.toFixed(2),
         subtotalNet: taxSnapshot.subtotalNet,
+        subtotalGross: taxSnapshot.subtotalGross,
         vatPercentage: moneyString(vatPercentage),
         vatAmount: taxSnapshot.vatAmount,
+        shippingNetAmount: taxSnapshot.shippingNetAmount,
+        shippingVatAmount: taxSnapshot.shippingVatAmount,
         shippingCost: shippingCost.toFixed(2),
         voucherCode: validatedVoucher?.code || undefined,
         discountAmount: discountAmount > 0 ? taxSnapshot.discountAmount : undefined,
@@ -4195,7 +4198,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }
 
       const taxSnapshot = calculateOrderTaxSnapshot(
-        validatedVivaItems,
+        validatedVivaItems.map((item: any) => ({ ...item, totalPriceGross: item.totalPrice })),
         discountAmount,
         shippingCost,
         vatPercentage,
@@ -4231,8 +4234,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           status: 'pending',
           totalAmount: taxSnapshot.totalAmount,
           subtotalNet: taxSnapshot.subtotalNet,
+          subtotalGross: taxSnapshot.subtotalGross,
           vatPercentage: moneyString(vatPercentage),
           vatAmount: taxSnapshot.vatAmount,
+          shippingNetAmount: taxSnapshot.shippingNetAmount,
+          shippingVatAmount: taxSnapshot.shippingVatAmount,
           shippingCost: shippingCost.toFixed(2),
           voucherCode: voucherCode && discountAmount > 0 ? voucherCode : undefined,
           discountAmount: discountAmount > 0 ? taxSnapshot.discountAmount : undefined,
@@ -4774,7 +4780,12 @@ Always be helpful, professional, and focus on practical solutions. When recommen
             : Number(voucher.discountValue);
         } else voucher = null;
       }
-      const taxSnapshot = calculateOrderTaxSnapshot(validatedItems, discountAmount, shippingCost, vatPercentage);
+      const taxSnapshot = calculateOrderTaxSnapshot(
+        validatedItems.map((item: any) => ({ ...item, totalPriceGross: item.totalPrice })),
+        discountAmount,
+        shippingCost,
+        vatPercentage,
+      );
       discountAmount = Number(taxSnapshot.discountAmount);
       const total = Number(taxSnapshot.totalAmount);
       if (!Number.isFinite(total) || total < 0.01) return res.status(400).json({ message: "Order total is invalid" });
@@ -4783,8 +4794,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         userId: req.userId || null, market: "fr", currency: "EUR", status: "pending",
         totalAmount: total.toFixed(2), shippingCost: shippingCost.toFixed(2),
         subtotalNet: taxSnapshot.subtotalNet,
+        subtotalGross: taxSnapshot.subtotalGross,
         vatPercentage: moneyString(vatPercentage),
         vatAmount: taxSnapshot.vatAmount,
+        shippingNetAmount: taxSnapshot.shippingNetAmount,
+        shippingVatAmount: taxSnapshot.shippingVatAmount,
         voucherCode: voucher?.code, discountAmount: discountAmount ? taxSnapshot.discountAmount : undefined,
         discountNetAmount: discountAmount ? taxSnapshot.discountNetAmount : undefined,
         discountGrossAmount: discountAmount ? taxSnapshot.discountGrossAmount : undefined,

@@ -20,9 +20,13 @@ interface OrderSummary {
   phone?: string;
   items?: OrderSummaryItem[];
   subtotal: number;
+  subtotalNet?: number;
   discountAmount: number;
+  discountNetAmount?: number;
   voucherCode: string | null;
   shipping: number;
+  shippingNetAmount?: number;
+  vatAmount?: number;
   total: number;
   currencySymbol: string;
 }
@@ -33,6 +37,15 @@ interface OrderSummaryItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  priceDisplayMode?: "net" | "gross";
+}
+
+function getItemPriceBasisLabel(item: OrderSummaryItem, market: string): string {
+  const mode = item.priceDisplayMode ?? (market === "fr" ? "net" : "gross");
+  if (mode === "net") {
+    return market === "fr" ? "HT + TVA" : market === "ro" ? "Fără TVA + TVA" : "Excl. VAT + VAT";
+  }
+  return market === "fr" ? "TTC" : market === "ro" ? "TVA inclusă" : "Incl. VAT";
 }
 
 function readOrderSummary(): OrderSummary | null {
@@ -46,6 +59,7 @@ function readOrderSummary(): OrderSummary | null {
 
 export default function ThankYou() {
   const { t } = useTranslation();
+  const market = getMarketFromHostname();
   const { clearCart, isSessionExpired } = useCart();
   const { toast } = useToast();
   const params = new URLSearchParams(window.location.search);
@@ -101,7 +115,7 @@ export default function ThankYou() {
 
     const eventData: Record<string, string | number | boolean> = {
       payment_method: paymentResult === "cash" ? "cash" : paymentResult === "paypal" ? "paypal" : "viva",
-      market: getMarketFromHostname(),
+      market,
     };
     if (summary) {
       eventData.value = Number(summary.total.toFixed(2));
@@ -109,7 +123,7 @@ export default function ThankYou() {
     }
 
     trackEvent(eventName, eventData);
-  }, [paymentResult, paymentSuccessful, orderId, summary]);
+  }, [paymentResult, paymentSuccessful, orderId, summary, market]);
 
   return (
     <main className="min-h-[70vh] bg-slate-50 px-4 py-12">
@@ -182,6 +196,7 @@ export default function ThankYou() {
                           <p className="font-medium">{item.name}</p>
                           <p className="text-muted-foreground text-xs">
                             {item.quantity} × {Number(item.unitPrice).toFixed(2)} {summary.currencySymbol}
+                            <span className="ml-1">{getItemPriceBasisLabel(item, market)}</span>
                           </p>
                         </div>
                         <span className="font-medium whitespace-nowrap">
@@ -193,28 +208,38 @@ export default function ThankYou() {
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{t("checkout.subtotal")}:</span>
-                <span>{summary.subtotal.toFixed(2)} {summary.currencySymbol}</span>
+                <span className="text-muted-foreground">
+                  {getMarketFromHostname() === "fr" ? "Produits HT" : getMarketFromHostname() === "ro" ? "Produse fără TVA" : "Products excl. VAT"}:
+                </span>
+                <span>{(summary.subtotalNet ?? summary.subtotal).toFixed(2)} {summary.currencySymbol}</span>
               </div>
-              {summary.discountAmount > 0 && (
+              {(summary.discountNetAmount ?? summary.discountAmount) > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
                   <span>
-                    {t("checkout.voucher")} {summary.voucherCode ? `(${summary.voucherCode})` : ""}:
+                    {getMarketFromHostname() === "fr" ? "Remise HT" : getMarketFromHostname() === "ro" ? "Reducere fără TVA" : "Discount excl. VAT"} {summary.voucherCode ? `(${summary.voucherCode})` : ""}:
                   </span>
-                  <span>-{summary.discountAmount.toFixed(2)} {summary.currencySymbol}</span>
+                  <span>-{(summary.discountNetAmount ?? summary.discountAmount).toFixed(2)} {summary.currencySymbol}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{t("checkout.shipping")}:</span>
+                <span className="text-muted-foreground">
+                  {getMarketFromHostname() === "fr" ? "Livraison HT" : getMarketFromHostname() === "ro" ? "Livrare fără TVA" : "Shipping excl. VAT"}:
+                </span>
                 <span>
                   {summary.shipping === 0
                     ? <Badge variant="secondary">{t("checkout.freeShipping")}</Badge>
-                    : `${summary.shipping.toFixed(2)} ${summary.currencySymbol}`}
+                    : `${(summary.shippingNetAmount ?? summary.shipping).toFixed(2)} ${summary.currencySymbol}`}
                 </span>
               </div>
+              {summary.vatAmount != null && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>{getMarketFromHostname() === "fr" ? "TVA" : getMarketFromHostname() === "ro" ? "TVA" : "VAT"}:</span>
+                  <span>{summary.vatAmount.toFixed(2)} {summary.currencySymbol}</span>
+                </div>
+              )}
               <Separator />
               <div className="flex justify-between font-semibold">
-                <span>{t("checkout.total")}:</span>
+                <span>{getMarketFromHostname() === "fr" ? "Total TTC" : getMarketFromHostname() === "ro" ? "Total cu TVA" : "Total incl. VAT"}:</span>
                 <span>{summary.total.toFixed(2)} {summary.currencySymbol}</span>
               </div>
             </div>

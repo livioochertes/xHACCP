@@ -120,7 +120,56 @@ function normalizePennylaneMappings(input: Record<string, unknown>): PennylaneMa
 
 function isProductMarketValidationError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return message.startsWith("Pennylane ") || message.startsWith("Category ");
+  return message.startsWith("Pennylane ") || message.startsWith("Category ") || message.startsWith("Price ");
+}
+
+function normalizeMarketPriceFields(market: string, input: any, existing: any, fallbackPrice: unknown) {
+  const has = (key: string) => Object.prototype.hasOwnProperty.call(input || {}, key);
+  const modeValue = has("priceDisplayMode") ? input.priceDisplayMode : existing?.priceDisplayMode;
+  if (has("priceDisplayMode") && modeValue !== "net" && modeValue !== "gross") {
+    throw new Error("Price display mode must be net or gross");
+  }
+  const priceDisplayMode = modeValue === "net" || modeValue === "gross"
+    ? modeValue
+    : defaultPriceDisplayMode(market);
+  const hasPriceValue = has("price") || has("priceNet") || has("priceGross");
+  if (!hasPriceValue) {
+    return {
+      price: existing?.price ?? null,
+      priceNet: existing?.priceNet ?? null,
+      priceGross: existing?.priceGross ?? null,
+      priceDisplayMode,
+    };
+  }
+
+  const clearingLegacyPrice = has("price") && (input.price === null || input.price === "");
+  const clearingPair = (has("priceNet") || has("priceGross")) &&
+    (input.priceNet == null || input.priceNet === "") &&
+    (input.priceGross == null || input.priceGross === "");
+  if (clearingLegacyPrice || clearingPair) {
+    return { price: null, priceNet: null, priceGross: null, priceDisplayMode };
+  }
+
+  const vatPercentage = Number(marketSettingsMap.get(market)?.vatPercentage ?? 0);
+  const pricePair = resolveMarketPricePair({
+    market,
+    price: has("price") ? input.price : existing?.price ?? fallbackPrice,
+    priceNet: has("priceNet") ? input.priceNet : existing?.priceNet,
+    priceGross: has("priceGross") ? input.priceGross : existing?.priceGross,
+    priceDisplayMode,
+    vatPercentage,
+  });
+  for (const value of [pricePair.priceNet, pricePair.priceGross]) {
+    if (!Number.isFinite(value) || value < 0 || value > 99_999_999.99) {
+      throw new Error("Price must be a non-negative amount with at most 8 integer digits");
+    }
+  }
+  return {
+    price: moneyString(pricePair.displayPrice),
+    priceNet: moneyString(pricePair.priceNet),
+    priceGross: moneyString(pricePair.priceGross),
+    priceDisplayMode,
+  };
 }
 
 const VALID_INVOICE_PROVIDERS = ["smartbill", "pennylane", "local"] as const;
@@ -7542,7 +7591,7 @@ export async function registerAdminRoutes(app: Express) {
       const market = req.params.market;
       const validMarkets = ['ro', 'fr', 'com'];
       const {
-        categoryId: rawCategoryId, isActive, price, compareAtPrice, currency,
+        categoryId: rawCategoryId, isActive, currency,
         inStock, stockQuantity, pennylaneProductId, pennylaneAccountingAccountId,
       } = req.body;
 
@@ -7560,18 +7609,22 @@ export async function registerAdminRoutes(app: Express) {
         ? undefined
         : await validateCategoryForMarket(rawCategoryId, market);
       const existing = (await storage.getProductMarkets(productId)).find(row => row.market === market);
+      if (!existing) {
+        return res.status(404).json({
+          message: `Product is not assigned to .${market}; use the explicit market assignment action first`,
+        });
+      }
       const normalizedMappings = normalizePennylaneMappings(req.body || {});
+      const priceFields = normalizeMarketPriceFields(market, req.body || {}, existing, product.price);
 
-      const pm = await storage.setProductMarket({
-        productId,
-        market,
+      const pm = await storage.updateProductMarket(productId, market, {
         ...(categoryId !== undefined ? { categoryId } : {}),
         isActive: isActive ?? existing?.isActive ?? true,
-        price: price ?? existing?.price ?? null,
-        compareAtPrice: compareAtPrice ?? existing?.compareAtPrice ?? null,
-        currency: currency ?? existing?.currency ?? null,
-        inStock: inStock ?? existing?.inStock ?? null,
-        stockQuantity: stockQuantity ?? existing?.stockQuantity ?? null,
+        ...priceFields,
+        compareAtPrice: req.body.compareAtPrice === undefined ? existing?.compareAtPrice ?? null : req.body.compareAtPrice,
+        currency: currency === undefined ? existing?.currency ?? null : currency,
+        inStock: inStock === undefined ? existing?.inStock ?? null : inStock,
+        stockQuantity: stockQuantity === undefined ? existing?.stockQuantity ?? null : stockQuantity,
         pennylaneProductId: normalizedMappings.pennylaneProductId !== undefined
           ? normalizedMappings.pennylaneProductId
           : existing?.pennylaneProductId ?? null,
@@ -7579,6 +7632,9 @@ export async function registerAdminRoutes(app: Express) {
           ? normalizedMappings.pennylaneAccountingAccountId
           : existing?.pennylaneAccountingAccountId ?? null,
       });
+      if (!pm) {
+        return res.status(409).json({ message: `Product market .${market} changed while saving; refresh and retry` });
+      }
       await refreshMarketCaches();
       res.json(pm);
     } catch (error) {
@@ -7644,17 +7700,22 @@ export async function registerAdminRoutes(app: Express) {
         ...marketEntry,
         ...normalizePennylaneMappings(marketEntry),
       }));
+      const missingMarket = normalizedMarkets.find(marketEntry => !existingByMarket.has(marketEntry.market));
+      if (missingMarket) {
+        return res.status(400).json({
+          message: `Product is not assigned to .${missingMarket.market}; pricing edits cannot create market assignments`,
+        });
+      }
       for (const m of normalizedMarkets) {
         const existing = existingByMarket.get(m.market);
-        const pm = await storage.setProductMarket({
-          productId,
-          market: m.market,
+        const priceFields = normalizeMarketPriceFields(m.market, m, existing, product.price);
+        const pm = await storage.updateProductMarket(productId, m.market, {
+          ...priceFields,
           isActive: m.isActive ?? existing?.isActive ?? true,
-          price: m.price ?? existing?.price ?? null,
-          compareAtPrice: m.compareAtPrice ?? existing?.compareAtPrice ?? null,
-          currency: m.currency ?? existing?.currency ?? null,
-          inStock: m.inStock ?? existing?.inStock ?? null,
-          stockQuantity: m.stockQuantity ?? existing?.stockQuantity ?? null,
+          compareAtPrice: m.compareAtPrice === undefined ? existing?.compareAtPrice ?? null : m.compareAtPrice,
+          currency: m.currency === undefined ? existing?.currency ?? null : m.currency,
+          inStock: m.inStock === undefined ? existing?.inStock ?? null : m.inStock,
+          stockQuantity: m.stockQuantity === undefined ? existing?.stockQuantity ?? null : m.stockQuantity,
           pennylaneProductId: m.pennylaneProductId !== undefined
             ? m.pennylaneProductId
             : existing?.pennylaneProductId ?? null,
@@ -7662,6 +7723,9 @@ export async function registerAdminRoutes(app: Express) {
             ? m.pennylaneAccountingAccountId
             : existing?.pennylaneAccountingAccountId ?? null,
         });
+        if (!pm) {
+          return res.status(409).json({ message: `Product market .${m.market} changed while saving; refresh and retry` });
+        }
         results.push(pm);
       }
       await refreshMarketCaches();

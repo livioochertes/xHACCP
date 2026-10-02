@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   calculateOrderTaxSnapshot,
   defaultPriceDisplayMode,
+  getOrderTaxSummary,
   pricePairFromDisplayPrice,
   resolveMarketPricePair,
 } from "./market-pricing";
@@ -69,7 +70,7 @@ test("tax snapshots apply net- and gross-basis discounts once and include shippi
   assert.equal(snapshot.discountAmount, "22.00");
   assert.equal(snapshot.discountNetAmount, "20.00");
   assert.equal(snapshot.discountGrossAmount, "24.00");
-  assert.equal(snapshot.subtotalNet, "190.00");
+  assert.equal(snapshot.subtotalNet, "200.00");
   assert.equal(snapshot.vatAmount, "38.00");
   assert.equal(snapshot.totalAmount, "228.00");
 });
@@ -84,4 +85,25 @@ test("zero-rate markets retain equal net, gross, VAT, and total values", () => {
   }], 5, 0, 0);
   assert.equal(snapshot.vatAmount, "0.00");
   assert.equal(snapshot.totalAmount, "45.00");
+});
+
+test("stored tax snapshots are reused instead of recalculating from a changed VAT default", () => {
+  const summary = getOrderTaxSummary({
+    totalAmount: "228.00",
+    subtotalNet: "190.00",
+    subtotalGross: "240.00",
+    vatPercentage: "20",
+    vatAmount: "38.00",
+    discountAmount: "22.00",
+    discountNetAmount: "20.00",
+    discountGrossAmount: "24.00",
+    shippingCost: "12.00",
+    shippingNetAmount: "10.00",
+    shippingVatAmount: "2.00",
+  }, 25);
+
+  assert.equal(summary.vatAmount, "38.00");
+  assert.equal(summary.totalNetAmount, "190.00");
+  assert.equal(summary.shippingNetAmount, "10.00");
+  assert.equal(summary.discountNetAmount, "20.00");
 });

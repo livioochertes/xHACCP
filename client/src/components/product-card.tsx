@@ -9,6 +9,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useProductTranslation } from "@/hooks/useProductTranslation";
 import { useCategoryTranslations } from "@/hooks/useCategoryTranslation";
 import { formatPrice } from "@/lib/utils";
+import { getMarketFromHostname } from "@/lib/queryClient";
 import type { ProductWithCategory } from "@shared/schema";
 import { memo } from "react";
 
@@ -36,6 +37,12 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const isSubscription = (product as any).productType === "subscription";
   const isComposite = !!(product as any).isComposite;
   const productSlug = localizedSlug || product.slug;
+  const market = getMarketFromHostname();
+  const priceDisplayMode = (product as any).priceDisplayMode === "net" ? "net" : "gross";
+  const vatPercentage = Number((product as any).vatPercentage ?? 0);
+  const priceBasisLabel = priceDisplayMode === "net"
+    ? `${market === "fr" ? "HT + TVA" : market === "ro" ? "Fără TVA + TVA" : "Excl. VAT"}${vatPercentage > 0 ? ` ${vatPercentage}%` : ""}`
+    : market === "fr" ? "TTC" : market === "ro" ? "TVA inclusă" : "Incl. VAT";
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -133,6 +140,7 @@ const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
                 <span className="text-2xl font-bold text-emerald-600">
                   {formatPrice(product.price, product.currency)}
                 </span>
+                <span className="text-xs text-muted-foreground">{priceBasisLabel}</span>
                 {product.compareAtPrice && !isService && (
                   <span className="text-sm text-gray-500 line-through">
                     {formatPrice(product.compareAtPrice, product.currency)}
@@ -200,6 +208,12 @@ export const ProductListItem = memo(function ProductListItem({ product }: Produc
   const isSubscription = (product as any).productType === "subscription";
   const isComposite = !!(product as any).isComposite;
   const productSlug = localizedSlug || product.slug;
+  const market = getMarketFromHostname();
+  const priceDisplayMode = (product as any).priceDisplayMode === "net" ? "net" : "gross";
+  const vatPercentage = Number((product as any).vatPercentage ?? 0);
+  const priceBasisLabel = priceDisplayMode === "net"
+    ? `${market === "fr" ? "HT + TVA" : market === "ro" ? "Fără TVA + TVA" : "Excl. VAT"}${vatPercentage > 0 ? ` ${vatPercentage}%` : ""}`
+    : market === "fr" ? "TTC" : market === "ro" ? "TVA inclusă" : "Incl. VAT";
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -302,6 +316,7 @@ export const ProductListItem = memo(function ProductListItem({ product }: Produc
                 <span className="text-xl font-bold text-emerald-600">
                   {formatPrice(product.price, product.currency)}
                 </span>
+                <span className="text-xs text-muted-foreground">{priceBasisLabel}</span>
                 {product.compareAtPrice && !isService && (
                   <span className="text-sm text-gray-500 line-through">
                     {formatPrice(product.compareAtPrice, product.currency)}

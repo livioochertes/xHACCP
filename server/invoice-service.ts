@@ -13,6 +13,7 @@ import {
   pennylaneVatRateCode,
   type PennylaneInvoiceInput,
 } from './pennylane-api.js';
+import { getOrderTaxSummary } from '../shared/market-pricing.js';
 
 function invoiceProductName(item: any): string {
   const productName = item.product?.name || item.productName || 'Product';
@@ -23,6 +24,25 @@ function invoiceProductName(item: any): string {
   return `${productName} (${components
     .map((component: any) => `${component.name || `#${component.componentProductId}`} x${component.quantity}`)
     .join(', ')})`;
+}
+
+function invoiceItemVatRate(item: any, fallback: number): number {
+  const rate = Number(item?.vatPercentage);
+  return Number.isFinite(rate) && rate >= 0 ? rate : fallback;
+}
+
+function invoiceItemUnitNet(item: any, fallbackVatRate: number): number {
+  const savedNet = Number(item?.priceNet);
+  if (item?.priceNet != null && Number.isFinite(savedNet)) return savedNet;
+  const rate = invoiceItemVatRate(item, fallbackVatRate);
+  return Number(item?.price || 0) / (1 + rate / 100);
+}
+
+function invoiceItemTotalNet(item: any, fallbackVatRate: number): number {
+  const savedNet = Number(item?.totalPriceNet);
+  if (item?.totalPriceNet != null && Number.isFinite(savedNet)) return savedNet;
+  const rate = invoiceItemVatRate(item, fallbackVatRate);
+  return Number(item?.totalPrice || 0) / (1 + rate / 100);
 }
 
 export interface InvoiceServiceConfig {
@@ -297,34 +317,41 @@ export class InvoiceService {
     let invoice: any = await storage.getInvoiceByExternalRef(externalRef);
     if (invoice?.providerStatus === 'issued') return invoice;
 
-    const vatRate = parseFloat(String(companyInfo?.defaultVatPercentage ?? 20));
+    const fallbackVatRate = Number(companyInfo?.defaultVatPercentage ?? 20);
+    const vatRate = Number(order.vatPercentage ?? fallbackVatRate);
+    const taxSnapshot = getOrderTaxSummary(order, vatRate);
     const totalAmount = Number(order.totalAmount || 0);
-    const vatAmount = (totalAmount * vatRate) / (100 + vatRate);
+    const vatAmount = Number(taxSnapshot.vatAmount);
     const items: any[] = (order.items || []).map((item: any) => ({
       productId: item.productId,
       productName: invoiceProductName(item),
       productCode: item.product?.productCode || null,
       quantity: Number(item.quantity),
-      // Pennylane's raw_currency_unit_price is tax-exclusive. Order prices
-      // are stored tax-inclusive, so remove the configured FR VAT first.
-      unitPrice: Number(item.price) / (1 + vatRate / 100),
-      vatRate,
-      lineTotal: Number(item.totalPrice),
+      unitPrice: invoiceItemUnitNet(item, vatRate),
+      vatRate: invoiceItemVatRate(item, vatRate),
+      lineTotal: invoiceItemTotalNet(item, vatRate),
     }));
-    const discountAmount = Number(order.discountAmount || 0) ||
-      (() => {
-        const match = String(order.notes || '').match(/Voucher:\s*[^\s(]+\s*\(-?([\d.]+)\)/);
-        return match ? Number(match[1]) : 0;
-      })();
-    if (discountAmount > 0) {
+    const discountNetAmount = Number(taxSnapshot.discountNetAmount);
+    if (discountNetAmount > 0) {
       items.push({
         productId: null,
         productName: `Remise${order.voucherCode ? ` ${order.voucherCode}` : ''}`,
         productCode: 'DISCOUNT',
         quantity: 1,
-        unitPrice: -Math.abs(discountAmount) / (1 + vatRate / 100),
+        unitPrice: -Math.abs(discountNetAmount),
         vatRate,
-        lineTotal: -Math.abs(discountAmount),
+        lineTotal: -Math.abs(discountNetAmount),
+      });
+    }
+    if (Number(taxSnapshot.shippingNetAmount) > 0) {
+      items.push({
+        productId: null,
+        productName: 'Frais de livraison',
+        productCode: 'SHIPPING',
+        quantity: 1,
+        unitPrice: Number(taxSnapshot.shippingNetAmount),
+        vatRate,
+        lineTotal: Number(taxSnapshot.shippingNetAmount),
       });
     }
 
@@ -336,7 +363,7 @@ export class InvoiceService {
           userId: order.userId || undefined,
           issueDate: new Date(),
           supplyDate: new Date(),
-          subtotal: (totalAmount - vatAmount).toFixed(2),
+          subtotal: Number(taxSnapshot.totalNetAmount).toFixed(2),
           vatAmount: vatAmount.toFixed(2),
           totalAmount: totalAmount.toFixed(2),
           currency: 'EUR',
@@ -525,7 +552,10 @@ export class InvoiceService {
       console.log(`   User: ${user.email}, Series: ${this.config.defaultSeries}`);
       
       // Use per-request companyInfo (passed in) to avoid shared-singleton mutation
-      const defaultVatPercentage = parseFloat(companyInfo?.defaultVatPercentage || this.config.companyInfo?.defaultVatPercentage || '19');
+      const defaultVatPercentage = Number(order.vatPercentage ??
+        companyInfo?.defaultVatPercentage ??
+        this.config.companyInfo?.defaultVatPercentage ??
+        ((order.market || "ro") === "fr" ? 20 : 21));
       const smartbillInvoiceData = orderToSmartbillInvoice(
         order,
         user,
@@ -545,13 +575,10 @@ export class InvoiceService {
       const smartbillResult = await this.smartbillApi.createInvoice(smartbillInvoiceData);
 
       // Store invoice reference in local database with proper KTO format
-      const subtotalNum = parseFloat(order.totalAmount);
-       const vatRate = parseFloat(String(
-         companyInfo?.defaultVatPercentage ??
-         ((order.market || "ro") === "fr" ? "20" : "21")
-       ));
-      const vatAmountCalc = (subtotalNum * vatRate) / (100 + vatRate);
-      const subtotalWithoutVat = subtotalNum - vatAmountCalc;
+      const vatRate = defaultVatPercentage;
+      const taxSnapshot = getOrderTaxSummary(order, vatRate);
+      const vatAmountCalc = Number(taxSnapshot.vatAmount);
+      const subtotalWithoutVat = Number(taxSnapshot.totalNetAmount);
 
       const invoiceData = {
         invoiceNumber: `${smartbillResult.series} ${smartbillResult.number}`,
@@ -579,10 +606,32 @@ export class InvoiceService {
         productName: invoiceProductName(item),
         productCode: item.product.productCode || null,
         quantity: item.quantity,
-        unitPrice: item.price,
-         vatRate: vatRate.toFixed(2),
-        lineTotal: item.totalPrice,
+        unitPrice: invoiceItemUnitNet(item, vatRate).toFixed(2),
+        vatRate: invoiceItemVatRate(item, vatRate).toFixed(2),
+        lineTotal: invoiceItemTotalNet(item, vatRate).toFixed(2),
       }));
+      if (Number(taxSnapshot.discountNetAmount) > 0) {
+        invoiceItems.push({
+          productId: null,
+          productName: `Remise${order.voucherCode ? ` ${order.voucherCode}` : ''}`,
+          productCode: 'DISCOUNT',
+          quantity: 1,
+          unitPrice: (-Number(taxSnapshot.discountNetAmount)).toFixed(2),
+          vatRate: vatRate.toFixed(2),
+          lineTotal: (-Number(taxSnapshot.discountNetAmount)).toFixed(2),
+        });
+      }
+      if (Number(taxSnapshot.shippingNetAmount) > 0) {
+        invoiceItems.push({
+          productId: null,
+          productName: 'Frais de livraison',
+          productCode: 'SHIPPING',
+          quantity: 1,
+          unitPrice: Number(taxSnapshot.shippingNetAmount).toFixed(2),
+          vatRate: vatRate.toFixed(2),
+          lineTotal: Number(taxSnapshot.shippingNetAmount).toFixed(2),
+        });
+      }
 
       const localInvoice = await storage.createInvoice(invoiceData, invoiceItems);
 
@@ -639,15 +688,13 @@ export class InvoiceService {
       
       console.log(`📋 Generating local invoice with Smartbill format: ${invoiceNumber}`);
       
-      // Calculate totals with 21% VAT for RON
-      const subtotal = parseFloat(order.totalAmount);
-       const vatRate = parseFloat(String(
-         companyInfo?.defaultVatPercentage ??
-         ((order.market || "ro") === "fr" ? "20" : "21")
-       ));
-      const vatAmount = (subtotal * vatRate) / (100 + vatRate); // Extract VAT from total (price includes VAT)
-      const subtotalWithoutVat = subtotal - vatAmount;
-      const totalAmount = subtotal; // Total already includes VAT
+      const fallbackVatRate = Number(companyInfo?.defaultVatPercentage ??
+        ((order.market || "ro") === "fr" ? 20 : 21));
+      const vatRate = Number(order.vatPercentage ?? fallbackVatRate);
+      const taxSnapshot = getOrderTaxSummary(order, vatRate);
+      const vatAmount = Number(taxSnapshot.vatAmount);
+      const subtotalWithoutVat = Number(taxSnapshot.totalNetAmount);
+      const totalAmount = Number(taxSnapshot.totalAmount);
 
       // Create invoice with proper Smartbill numbering format
       const invoiceData = {
@@ -676,17 +723,13 @@ export class InvoiceService {
         productName: invoiceProductName(item),
         productCode: item.product.productCode || null,
         quantity: item.quantity,
-        unitPrice: item.price,
-        vatRate: vatRate.toFixed(2),
-        lineTotal: item.totalPrice,
+        unitPrice: invoiceItemUnitNet(item, vatRate).toFixed(2),
+        vatRate: invoiceItemVatRate(item, vatRate).toFixed(2),
+        lineTotal: invoiceItemTotalNet(item, vatRate).toFixed(2),
       }));
 
       // Add discount line BEFORE shipping (discount applies only to products, not transport)
-      const localDiscountAmount = parseFloat(order.discountAmount || '0') ||
-        (() => {
-          const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)\s*\(-?([\d.]+)\)/);
-          return m ? parseFloat(m[2]) : 0;
-        })();
+      const localDiscountAmount = Number(taxSnapshot.discountNetAmount);
       const localVoucherCode = order.voucherCode ||
         (() => {
           const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)/);
@@ -702,6 +745,17 @@ export class InvoiceService {
           unitPrice: (-Math.abs(localDiscountAmount)).toFixed(2),
           vatRate: vatRate.toFixed(2),
           lineTotal: (-Math.abs(localDiscountAmount)).toFixed(2),
+        });
+      }
+      if (Number(taxSnapshot.shippingNetAmount) > 0) {
+        invoiceItems.push({
+          productId: null,
+          productName: 'Transport',
+          productCode: 'TRANSPORT',
+          quantity: 1,
+          unitPrice: Number(taxSnapshot.shippingNetAmount).toFixed(2),
+          vatRate: vatRate.toFixed(2),
+          lineTotal: Number(taxSnapshot.shippingNetAmount).toFixed(2),
         });
       }
 
@@ -728,13 +782,12 @@ export class InvoiceService {
       console.log(`📋 [${market.toUpperCase()}] Generating local PDF invoice: ${invoiceNumber}`);
 
       const currency = order.currency || (market === 'ro' ? 'RON' : 'EUR');
-      const vatRate = parseFloat(String(
-        companyInfo?.defaultVatPercentage ??
-        (market === 'fr' ? 20 : 21)
-      ));
-      const totalAmount = parseFloat(order.totalAmount);
-      const vatAmount = (totalAmount * vatRate) / (100 + vatRate);
-      const subtotalWithoutVat = totalAmount - vatAmount;
+      const fallbackVatRate = Number(companyInfo?.defaultVatPercentage ?? (market === 'fr' ? 20 : 21));
+      const vatRate = Number(order.vatPercentage ?? fallbackVatRate);
+      const taxSnapshot = getOrderTaxSummary(order, vatRate);
+      const totalAmount = Number(taxSnapshot.totalAmount);
+      const vatAmount = Number(taxSnapshot.vatAmount);
+      const subtotalWithoutVat = Number(taxSnapshot.totalNetAmount);
 
       // Build invoice items
       const items: any[] = (order.items || []).map((item: any) => ({
@@ -742,16 +795,14 @@ export class InvoiceService {
         productName: invoiceProductName(item),
         productCode: item.product?.productCode || null,
         quantity: item.quantity,
-        unitPrice: parseFloat(item.price),
-        vatRate: vatRate.toFixed(2),
-        lineTotal: parseFloat(item.totalPrice),
+        unitPrice: invoiceItemUnitNet(item, vatRate).toFixed(2),
+        vatRate: invoiceItemVatRate(item, vatRate).toFixed(2),
+        lineTotal: invoiceItemTotalNet(item, vatRate).toFixed(2),
       }));
 
       // Add discount if present
-      const discountAmount = parseFloat(order.discountAmount || '0') ||
-        (() => { const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)\s*\(-?([\d.]+)\)/); return m ? parseFloat(m[2]) : 0; })();
-      const voucherCode = order.voucherCode ||
-        (() => { const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)/); return m ? m[1] : ''; })();
+      const discountAmount = Number(taxSnapshot.discountNetAmount);
+      const voucherCode = order.voucherCode || '';
       if (discountAmount > 0) {
         items.push({
           productId: null,
@@ -761,6 +812,17 @@ export class InvoiceService {
           unitPrice: (-Math.abs(discountAmount)).toFixed(2),
           vatRate: vatRate.toFixed(2),
           lineTotal: (-Math.abs(discountAmount)).toFixed(2),
+        });
+      }
+      if (Number(taxSnapshot.shippingNetAmount) > 0) {
+        items.push({
+          productId: null,
+          productName: 'Frais de livraison',
+          productCode: 'SHIPPING',
+          quantity: 1,
+          unitPrice: Number(taxSnapshot.shippingNetAmount).toFixed(2),
+          vatRate: vatRate.toFixed(2),
+          lineTotal: Number(taxSnapshot.shippingNetAmount).toFixed(2),
         });
       }
 

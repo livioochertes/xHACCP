@@ -703,7 +703,9 @@ export function orderToSmartbillInvoice(
 
   // Format products using Romanian tax settings
   const products: SmartbillProduct[] = order.items.map((item: any) => {
-    const productVatPercentage = parseFloat(item.product.vatPercentage || '21');
+    const productVatPercentage = parseFloat(
+      item.vatPercentage || item.product.vatPercentage || String(defaultVatPercentage),
+    );
     const isReverseCharge = false; // Use standard VAT for Romanian invoices
     
     console.log(`📦 Product ${item.product.name}: VAT=${productVatPercentage}%, ReverseCharge=${isReverseCharge}`);
@@ -726,7 +728,11 @@ export function orderToSmartbillInvoice(
   });
 
   // Add discount line BEFORE shipping (discount applies only to products, not transport)
-  const orderDiscountAmount = parseFloat(order.discountAmount || '0') ||
+  const orderDiscountAmount = parseFloat(
+    order.discountGrossAmount != null
+      ? String(order.discountGrossAmount)
+      : order.discountAmount || '0',
+  ) ||
     (() => {
       // Backward-compat: parse discount from notes for old orders without discountAmount column
       const m = (order.notes || '').match(/Voucher:\s*([^\s(]+)\s*\(-?([\d.]+)\)/);

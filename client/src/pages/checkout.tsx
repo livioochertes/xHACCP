@@ -19,7 +19,7 @@ import { z } from "zod";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
-import { getVolumePrice } from "@/lib/volume-price";
+import { getCartLinePrice, getCartTaxSnapshot } from "@/lib/market-pricing";
 import paypalOfficialLogo from "@/assets/paypal-official-logo.png";
 
 import { useCart } from "@/hooks/use-cart";
@@ -173,11 +173,15 @@ type OrderSummaryItem = {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  priceNet?: number;
+  priceGross?: number;
+  priceDisplayMode?: "net" | "gross";
 };
 
 export default function Checkout() {
   const { t } = useTranslation();
-  const isFrenchMarket = getMarketFromHostname() === "fr";
+  const market = getMarketFromHostname();
+  const isFrenchMarket = market === "fr";
   const checkoutSchema = useMemo(() => createCheckoutSchema(t, isFrenchMarket), [t, isFrenchMarket]);
   const { user, isAuthenticated, login } = useAuth();
   const [step, setStep] = useState(isAuthenticated ? 2 : 1);
@@ -187,9 +191,8 @@ export default function Checkout() {
   const { cart, clearCart, isSessionExpired } = useCart();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const getUnitPrice = (item: typeof cart[number]) => item.compositeConfiguration
-    ? parseFloat(item.product.price)
-    : getVolumePrice(item.product.price, item.quantity, (item.product as any).volumeDiscounts);
+  const getUnitPrice = (item: typeof cart[number]) =>
+    getCartLinePrice(item, market, Number(shippingSettings?.vatPercentage ?? 0)).displayPrice;
   const subscriptionItems = cart.filter(item => (item.product as any)?.productType === "subscription");
   const hasSubscription = subscriptionItems.length > 0;
   
@@ -214,9 +217,13 @@ export default function Checkout() {
     phone: string;
     items: OrderSummaryItem[];
     subtotal: number;
+    subtotalNet: number;
+    discountNetAmount: number;
+    vatAmount: number;
     discountAmount: number;
     voucherCode: string | null;
     shipping: number;
+    shippingNetAmount: number;
     total: number;
     currencySymbol: string;
   } | null>(null);
@@ -228,12 +235,16 @@ export default function Checkout() {
     phone: string;
     items: OrderSummaryItem[];
     subtotal: number;
+    subtotalNet: number;
+    discountNetAmount: number;
+    vatAmount: number;
     discountAmount: number;
     voucherCode: string | null;
     shipping: number;
+    shippingNetAmount: number;
     total: number;
     currencySymbol: string;
-  }>({ buyerName: '', email: '', phone: '', items: [], subtotal: 0, discountAmount: 0, voucherCode: null, shipping: 0, total: 0, currencySymbol: '' });
+  }>({ buyerName: '', email: '', phone: '', items: [], subtotal: 0, subtotalNet: 0, discountNetAmount: 0, vatAmount: 0, discountAmount: 0, voucherCode: null, shipping: 0, shippingNetAmount: 0, total: 0, currencySymbol: '' });
   const checkoutStartedRef = useRef(false);
 
   // Fetch shipping settings (includes VAT percentage)
@@ -248,10 +259,12 @@ export default function Checkout() {
     },
   });
   
-  // Get VAT percentage from shipping settings (stored as "21.00" format, convert to decimal like 0.21)
-  const vatPercentage = shippingSettings?.vatPercentage 
-    ? parseFloat(shippingSettings.vatPercentage) / 100 
-    : 0.19;
+  const defaultVatPercentage = Number(shippingSettings?.vatPercentage ?? 0);
+  const taxLabels = market === "fr"
+    ? { subtotal: "Produits HT", discount: "Remise HT", shipping: "Livraison HT", vat: "TVA", total: "Total TTC" }
+    : market === "ro"
+      ? { subtotal: "Produse fără TVA", discount: "Reducere fără TVA", shipping: "Livrare fără TVA", vat: "TVA", total: "Total cu TVA" }
+      : { subtotal: "Products excl. VAT", discount: "Discount excl. VAT", shipping: "Shipping excl. VAT", vat: "VAT", total: "Total incl. VAT" };
 
   // Helper function to get default form values
   const getDefaultFormValues = (): CheckoutFormData => {
@@ -422,11 +435,21 @@ export default function Checkout() {
     },
     onSuccess: async (order: { id?: number; [key: string]: any }, variables: CheckoutFormData) => {
       const orderId = order?.id ?? null;
+      const numberOr = (value: unknown, fallback: number) => {
+        const parsed = Number(value);
+        return value != null && Number.isFinite(parsed) ? parsed : fallback;
+      };
       const summary = {
         ...currentOrderSummaryRef.current,
         orderId,
         email: variables.email?.trim() || currentOrderSummaryRef.current.email,
         phone: variables.phone?.trim() || currentOrderSummaryRef.current.phone,
+        subtotalNet: numberOr(order.subtotalNet, currentOrderSummaryRef.current.subtotalNet),
+        discountNetAmount: numberOr(order.discountNetAmount, currentOrderSummaryRef.current.discountNetAmount),
+        shippingNetAmount: numberOr(order.shippingNetAmount, currentOrderSummaryRef.current.shippingNetAmount),
+        vatAmount: numberOr(order.vatAmount, currentOrderSummaryRef.current.vatAmount),
+        shipping: numberOr(order.shippingCost, currentOrderSummaryRef.current.shipping),
+        total: numberOr(order.totalAmount, currentOrderSummaryRef.current.total),
       };
       trackEvent("purchase_completed", {
         value: Number(summary.total.toFixed(2)),
@@ -464,7 +487,6 @@ export default function Checkout() {
   const currency = shippingSettings?.currency || 'EUR';
   
   const shipping = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
-  const total = subtotal + shipping;
 
   // Currency symbol helper
   const getCurrencySymbol = (curr: string) => {
@@ -479,18 +501,18 @@ export default function Checkout() {
   // Calculate voucher discount (applies only to product subtotal, not shipping)
   const voucherDiscount = appliedVoucher ? parseFloat(appliedVoucher.discountAmount) : 0;
   
-  // Apply discount to subtotal only (voucher applies to products, not shipping)
-  const discountedSubtotal = Math.max(0, subtotal - voucherDiscount);
-  
-  // Final total = discounted subtotal + shipping (NO VAT added - prices already include VAT)
-  const finalTotal = discountedSubtotal + shipping;
+  const taxSnapshot = getCartTaxSnapshot(
+    cart,
+    market,
+    defaultVatPercentage,
+    voucherDiscount,
+    shipping,
+  );
+  const finalTotal = Number(taxSnapshot.totalAmount);
   
   // VAT display percentage (for UI display)
-  const vatDisplayPercentage = Math.round(vatPercentage * 100);
-  
-  // VAT is INCLUDED in prices - calculate for display only (reverse VAT calculation)
-  // Formula: VAT = Total * (vatRate / (1 + vatRate))
-  const vatIncludedInFinal = finalTotal * (vatPercentage / (1 + vatPercentage));
+  const vatDisplayPercentage = Math.round(defaultVatPercentage);
+  const vatIncludedInFinal = Number(taxSnapshot.vatAmount);
 
   // Keep ref current so onSuccess / Viva-redirect path can read the latest summary
   useEffect(() => {
@@ -502,6 +524,9 @@ export default function Checkout() {
         quantity: item.quantity,
         unitPrice,
         totalPrice: unitPrice * item.quantity,
+        priceNet: getCartLinePrice(item, market, defaultVatPercentage).priceNet,
+        priceGross: getCartLinePrice(item, market, defaultVatPercentage).priceGross,
+        priceDisplayMode: getCartLinePrice(item, market, defaultVatPercentage).priceDisplayMode,
       };
     });
     const summary = {
@@ -513,9 +538,13 @@ export default function Checkout() {
       phone: watchedPhone?.trim() || watchedShippingPhone?.trim() || "",
       items,
       subtotal,
+      subtotalNet: Number(taxSnapshot.subtotalNet),
+      discountNetAmount: Number(taxSnapshot.discountNetAmount),
+      vatAmount: Number(taxSnapshot.vatAmount),
       discountAmount: voucherDiscount,
       voucherCode: appliedVoucher?.code ?? null,
       shipping,
+      shippingNetAmount: Number(taxSnapshot.shippingNetAmount),
       total: finalTotal,
       currencySymbol,
     };
@@ -525,7 +554,7 @@ export default function Checkout() {
     if (step === 3) {
       localStorage.setItem('xhaccp_pending_order_summary', JSON.stringify(summary));
     }
-  }, [cart, subtotal, voucherDiscount, appliedVoucher, shipping, finalTotal, currencySymbol, step, watchedEmail, watchedPhone, watchedShippingPhone]);
+  }, [cart, market, defaultVatPercentage, subtotal, voucherDiscount, appliedVoucher, shipping, finalTotal, currencySymbol, step, watchedEmail, watchedPhone, watchedShippingPhone, taxSnapshot]);
 
   useEffect(() => {
     if (step !== 3 || checkoutStartedRef.current) return;
@@ -836,26 +865,30 @@ export default function Checkout() {
                 <h3 className="font-semibold text-sm mb-3">{t('checkout.orderSummary')}</h3>
                 <OrderContactDetails email={confirmedOrder.email} phone={confirmedOrder.phone} />
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{t('checkout.subtotal')}:</span>
-                  <span>{confirmedOrder.subtotal.toFixed(2)} {confirmedOrder.currencySymbol}</span>
+                  <span className="text-muted-foreground">{taxLabels.subtotal}:</span>
+                  <span>{confirmedOrder.subtotalNet.toFixed(2)} {confirmedOrder.currencySymbol}</span>
                 </div>
-                {confirmedOrder.discountAmount > 0 && (
+                {confirmedOrder.discountNetAmount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>{t('checkout.voucher')} {confirmedOrder.voucherCode ? `(${confirmedOrder.voucherCode})` : ''}:</span>
-                    <span>-{confirmedOrder.discountAmount.toFixed(2)} {confirmedOrder.currencySymbol}</span>
+                    <span>{taxLabels.discount} {confirmedOrder.voucherCode ? `(${confirmedOrder.voucherCode})` : ''}:</span>
+                    <span>-{confirmedOrder.discountNetAmount.toFixed(2)} {confirmedOrder.currencySymbol}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{t('checkout.shipping')}:</span>
+                  <span className="text-muted-foreground">{taxLabels.shipping}:</span>
                   <span>
                     {confirmedOrder.shipping === 0
                       ? <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
-                      : `${confirmedOrder.shipping.toFixed(2)} ${confirmedOrder.currencySymbol}`}
+                      : `${confirmedOrder.shippingNetAmount.toFixed(2)} ${confirmedOrder.currencySymbol}`}
                   </span>
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>{taxLabels.vat} ({vatDisplayPercentage}%):</span>
+                  <span>{confirmedOrder.vatAmount.toFixed(2)} {confirmedOrder.currencySymbol}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold">
-                  <span>{t('checkout.total')}:</span>
+                  <span>{taxLabels.total}:</span>
                   <span>{confirmedOrder.total.toFixed(2)} {confirmedOrder.currencySymbol}</span>
                 </div>
               </div>
@@ -1699,6 +1732,11 @@ export default function Checkout() {
                                     </div>
                                     <span className="font-medium flex-shrink-0 ml-2">
                                       {(getUnitPrice(item) * item.quantity).toFixed(2)} {currencySymbol}
+                                      <span className="ml-1 text-xs text-muted-foreground">
+                                        {getCartLinePrice(item, market, defaultVatPercentage).priceDisplayMode === "net"
+                                          ? `HT + TVA ${defaultVatPercentage}%`
+                                          : market === "fr" ? "TTC" : "incl. VAT"}
+                                      </span>
                                     </span>
                                   </div>
                                   {item.compositeConfiguration?.components?.length ? (
@@ -2037,6 +2075,11 @@ export default function Checkout() {
                       </div>
                       <p className="text-sm font-medium flex-shrink-0">
                         {(getUnitPrice(item) * item.quantity).toFixed(2)} {currencySymbol}
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          {getCartLinePrice(item, market, defaultVatPercentage).priceDisplayMode === "net"
+                            ? `HT + TVA ${defaultVatPercentage}%`
+                            : market === "fr" ? "TTC" : "incl. VAT"}
+                        </span>
                       </p>
                     </div>
                   ))}
@@ -2046,21 +2089,21 @@ export default function Checkout() {
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>{t('checkout.subtotal')}:</span>
-                    <span>{subtotal.toFixed(2)} {currencySymbol}</span>
+                    <span>{taxLabels.subtotal}:</span>
+                    <span>{taxSnapshot.subtotalNet} {currencySymbol}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>{t('checkout.shipping')}:</span>
+                    <span>{taxLabels.shipping}:</span>
                     <span>
                       {shipping === 0 ? (
                         <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
                       ) : (
-                        `${shipping.toFixed(2)} ${currencySymbol}`
+                        `${taxSnapshot.shippingNetAmount} ${currencySymbol}`
                       )}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>VAT ({vatDisplayPercentage}% included):</span>
+                    <span>{taxLabels.vat} ({vatDisplayPercentage}%):</span>
                     <span>{vatIncludedInFinal.toFixed(2)} {currencySymbol}</span>
                   </div>
                   {appliedVoucher && (
@@ -2075,7 +2118,7 @@ export default function Checkout() {
                           ✕
                         </button>
                       </span>
-                      <span>-{appliedVoucher.discountAmount} {currencySymbol}</span>
+                      <span>-{taxSnapshot.discountNetAmount} {currencySymbol}</span>
                     </div>
                   )}
                 </div>
@@ -2114,7 +2157,7 @@ export default function Checkout() {
                 <Separator />
 
                 <div className="flex justify-between font-semibold text-lg">
-                  <span>{t('checkout.total')}:</span>
+                  <span>{taxLabels.total}:</span>
                   <span>{finalTotal.toFixed(2)} {currencySymbol}</span>
                 </div>
               </CardContent>

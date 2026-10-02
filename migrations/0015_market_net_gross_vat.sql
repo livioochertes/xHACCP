@@ -6,8 +6,11 @@ ALTER TABLE "product_markets"
 
 ALTER TABLE "orders"
   ADD COLUMN IF NOT EXISTS "subtotal_net" numeric(10, 2),
+  ADD COLUMN IF NOT EXISTS "subtotal_gross" numeric(10, 2),
   ADD COLUMN IF NOT EXISTS "vat_percentage" numeric(5, 2),
   ADD COLUMN IF NOT EXISTS "vat_amount" numeric(10, 2),
+  ADD COLUMN IF NOT EXISTS "shipping_net_amount" numeric(10, 2),
+  ADD COLUMN IF NOT EXISTS "shipping_vat_amount" numeric(10, 2),
   ADD COLUMN IF NOT EXISTS "discount_net_amount" numeric(10, 2),
   ADD COLUMN IF NOT EXISTS "discount_gross_amount" numeric(10, 2);
 

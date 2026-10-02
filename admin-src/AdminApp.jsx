@@ -7,6 +7,7 @@ import AdminNavigation from "./AdminNavigation.jsx";
 import AIRecommendationCampaigns from "./AIRecommendationCampaigns.jsx";
 import AdminReports from "./AdminReports.jsx";
 import AdminTwoFactorSettings from "./AdminTwoFactorSettings.jsx";
+import { defaultPriceDisplayMode, resolveMarketPricePair } from "../shared/market-pricing";
 import {
   broadcastCategoryTranslationUpdate,
   subscribeToCategoryTranslationUpdates,
@@ -407,6 +408,8 @@ import {
       const lastVisibleUser = Math.min(currentUsersPage * usersPageSize, users.length);
       const paginatedUsers = users.slice(firstVisibleUser - 1, lastVisibleUser);
       const [products, setProducts] = useState([]);
+      const [productsLoading, setProductsLoading] = useState(false);
+      const [productsError, setProductsError] = useState("");
       const [productSyncState, setProductSyncState] = useState(null);
       const [categories, setCategories] = useState([]);
       const categoriesRequestIdRef = React.useRef(0);
@@ -1175,8 +1178,11 @@ import {
 
       const fetchProducts = async (marketOverride) => {
         const requestId = ++productsRequestIdRef.current;
+        const effectiveMarket = marketOverride !== undefined ? marketOverride : selectedMarketTab;
+        setProducts([]);
+        setProductsError("");
+        setProductsLoading(true);
         try {
-          const effectiveMarket = marketOverride !== undefined ? marketOverride : selectedMarketTab;
           const params = new URLSearchParams();
           if (effectiveMarket && effectiveMarket !== 'all') params.set('market', effectiveMarket);
           if (i18n.language) params.set('language', i18n.language);
@@ -1195,10 +1201,18 @@ import {
               setProductPage(1);
             }
           } else {
-            console.error('Failed to fetch products:', data.message);
+            throw new Error(data.message || `Failed to load products for .${effectiveMarket}`);
           }
         } catch (err) {
-          console.error('Network error fetching products:', err);
+          console.error('Failed to fetch products:', err);
+          if (requestId === productsRequestIdRef.current) {
+            setProducts([]);
+            setProductsError(err.message || 'Failed to load products.');
+          }
+        } finally {
+          if (requestId === productsRequestIdRef.current) {
+            setProductsLoading(false);
+          }
         }
       };
 
@@ -1907,6 +1921,9 @@ import {
               map[pm.productId][pm.market] = pm;
             });
             setProductMarketsMap(map);
+            if (editingProduct?.id) {
+              setEditingProductMarkets(map[editingProduct.id] || { ro: null, fr: null, com: null });
+            }
           }
         } catch (err) {
           console.error('Error fetching product markets:', err);
@@ -4673,7 +4690,7 @@ import {
                   </div>
                 )}
                 
-                {filteredProducts.length > 0 ? (
+                {filteredProducts.length > 0 && !productsError && !productsLoading ? (
                   <React.Fragment>
                   <div style={{overflowX: 'auto'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse'}}>
@@ -4846,42 +4863,54 @@ import {
                             <td style={{padding: '12px', color: '#6c757d', fontSize: '14px', fontFamily: 'monospace'}}>{product.productCode || 'N/A'}</td>
                             {['ro', 'fr', 'com'].map(market => {
                               const pm = productMarketsMap[product.id]?.[market];
-                              const isActive = pm ? pm.isActive : true;
-                              const hasCustomPrice = pm && pm.price != null && pm.price !== '';
-                              const effectivePrice = hasCustomPrice ? pm.price : product.price;
+                              const isAssigned = Boolean(pm);
+                              const isActive = Boolean(pm?.isActive);
+                              const hasCustomPrice = pm && [pm.price, pm.priceNet, pm.priceGross].some(value => value != null && value !== '');
+                              const vatPercentage = Number(marketsData?.[market]?.vatPercentage ?? 0);
+                              const pricePair = pm ? resolveMarketPricePair({
+                                market,
+                                price: pm.price ?? product.price,
+                                priceNet: pm.priceNet,
+                                priceGross: pm.priceGross,
+                                priceDisplayMode: pm.priceDisplayMode,
+                                vatPercentage,
+                              }) : null;
                               const currency = (pm?.currency || getMarketCurrency(market) || product.currency || '—').toString().toUpperCase();
                               return (
                                 <td key={market} style={{padding: '8px', textAlign: 'center', minWidth: '80px'}}>
                                   <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'}}>
-                                    <span
-                                      title={hasCustomPrice ? `Preț custom pentru .${market}` : `Preț bază (fără override pe .${market})`}
-                                      style={{
-                                        fontSize: '12px',
-                                        fontWeight: 'bold',
-                                        color: hasCustomPrice ? '#007bff' : '#888',
-                                        whiteSpace: 'nowrap',
-                                        letterSpacing: '0.3px'
-                                      }}
-                                    >
-                                      {formatAdminPrice(effectivePrice, currency)}
-                                      {hasCustomPrice && <span style={{marginLeft: '2px', fontSize: '10px', color: '#fd7e14'}}>✎</span>}
-                                    </span>
+                                    {pricePair ? (
+                                      <>
+                                        <span style={{fontSize: '11px', fontWeight: '600', color: hasCustomPrice ? '#007bff' : '#555', whiteSpace: 'nowrap'}}>
+                                          Net {formatAdminPrice(pricePair.priceNet, currency)}
+                                        </span>
+                                        <span style={{fontSize: '11px', fontWeight: '600', color: hasCustomPrice ? '#007bff' : '#555', whiteSpace: 'nowrap'}}>
+                                          Brut {formatAdminPrice(pricePair.priceGross, currency)}
+                                        </span>
+                                        <span title={hasCustomPrice ? `Preț custom pentru .${market}` : `Preț moștenit pentru .${market}`} style={{fontSize: '10px', color: '#888'}}>
+                                          Afișat {pricePair.priceDisplayMode} · TVA {pricePair.vatPercentage}%
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span style={{fontSize: '11px', color: '#888'}}>Nealocat</span>
+                                    )}
                                     <button
-                                      title={isActive ? `Activ pe .${market} — click pentru dezactivare` : `Inactiv pe .${market} — click pentru activare`}
+                                      title={!isAssigned ? `Produsul nu este alocat pieței .${market}` : isActive ? `Activ pe .${market} — click pentru dezactivare` : `Inactiv pe .${market} — click pentru activare`}
                                       onClick={() => toggleProductMarket(product.id, market, isActive)}
+                                      disabled={!isAssigned}
                                       style={{
                                         padding: '2px 8px',
                                         border: 'none',
                                         borderRadius: '12px',
-                                        cursor: 'pointer',
+                                        cursor: isAssigned ? 'pointer' : 'not-allowed',
                                         fontSize: '11px',
                                         fontWeight: '600',
-                                        backgroundColor: isActive ? '#d4edda' : '#f8d7da',
-                                        color: isActive ? '#155724' : '#721c24',
+                                        backgroundColor: !isAssigned ? '#e9ecef' : isActive ? '#d4edda' : '#f8d7da',
+                                        color: !isAssigned ? '#6c757d' : isActive ? '#155724' : '#721c24',
                                         minWidth: '40px'
                                       }}
                                     >
-                                      {isActive ? '✓ ON' : '✗ OFF'}
+                                      {!isAssigned ? '—' : isActive ? '✓ ON' : '✗ OFF'}
                                     </button>
                                   </div>
                                 </td>
@@ -4978,6 +5007,22 @@ import {
                     </div>
                   )}
                   </React.Fragment>
+                ) : productsError ? (
+                  <div role="alert" style={{padding: '24px', background: '#fff3f3', border: '1px solid #dc3545', borderRadius: '6px', color: '#842029'}}>
+                    <strong>Could not load products for {selectedMarketTab === 'all' ? 'all markets' : `.${selectedMarketTab}`}.</strong>
+                    <div style={{marginTop: '6px'}}>{productsError}</div>
+                    <button
+                      type="button"
+                      onClick={() => fetchProducts()}
+                      style={{marginTop: '12px', padding: '7px 14px', border: '1px solid #842029', borderRadius: '4px', background: 'white', color: '#842029', cursor: 'pointer'}}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : productsLoading ? (
+                  <div role="status" style={{padding: '32px', textAlign: 'center', color: '#666'}}>
+                    Loading products for {selectedMarketTab === 'all' ? 'all markets' : `.${selectedMarketTab}`}…
+                  </div>
                 ) : (
                   <div style={{padding: '40px', textAlign: 'center', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
                     <p style={{color: '#666', fontSize: '18px', marginBottom: '15px'}}>No products found</p>
@@ -8127,27 +8172,79 @@ import {
 
       // Market Prices Section — shown in product edit modal for per-market price overrides
       const MarketPricesSection = ({ editingProduct, editingProductMarkets, token, fetchProductMarkets }) => {
-        const emptyRow = () => ({ isActive: true, price: '', compareAtPrice: '' });
-        const [local, setLocal] = useState({ ro: emptyRow(), fr: emptyRow(), com: emptyRow() });
+        const marketNames = ['ro', 'fr', 'com'];
+        const marketVatRate = market => Number(marketsData?.[market]?.vatPercentage ?? 0);
+        const buildLocal = () => Object.fromEntries(marketNames.map(market => {
+          const row = editingProductMarkets?.[market];
+          const mode = row?.priceDisplayMode || defaultPriceDisplayMode(market);
+          const pricePair = resolveMarketPricePair({
+            market,
+            price: row?.price ?? editingProduct?.price,
+            priceNet: row?.priceNet,
+            priceGross: row?.priceGross,
+            priceDisplayMode: mode,
+            vatPercentage: marketVatRate(market),
+          });
+          const hasOverride = row && [row.price, row.priceNet, row.priceGross].some(value => value != null && value !== '');
+          return [market, {
+            assigned: Boolean(row),
+            isActive: Boolean(row?.isActive),
+            priceNet: hasOverride ? pricePair.priceNet.toFixed(2) : '',
+            priceGross: hasOverride ? pricePair.priceGross.toFixed(2) : '',
+            inheritedPriceNet: pricePair.priceNet,
+            inheritedPriceGross: pricePair.priceGross,
+            priceDisplayMode: mode,
+            compareAtPrice: row?.compareAtPrice || '',
+          }];
+        }));
+        const [local, setLocal] = useState(buildLocal);
 
         useEffect(() => {
-          setLocal({
-            ro: editingProductMarkets?.ro ? { isActive: editingProductMarkets.ro.isActive, price: editingProductMarkets.ro.price || '', compareAtPrice: editingProductMarkets.ro.compareAtPrice || '' } : emptyRow(),
-            fr: editingProductMarkets?.fr ? { isActive: editingProductMarkets.fr.isActive, price: editingProductMarkets.fr.price || '', compareAtPrice: editingProductMarkets.fr.compareAtPrice || '' } : emptyRow(),
-            com: editingProductMarkets?.com ? { isActive: editingProductMarkets.com.isActive, price: editingProductMarkets.com.price || '', compareAtPrice: editingProductMarkets.com.compareAtPrice || '' } : emptyRow(),
-          });
-        }, [editingProductMarkets]);
+          setLocal(buildLocal());
+        }, [editingProductMarkets, editingProduct, marketsData]);
 
         const setField = (market, field, val) => setLocal(prev => ({...prev, [market]: {...prev[market], [field]: val}}));
+        const setPriceField = (market, field, val) => {
+          if (val === '') {
+            setLocal(prev => ({...prev, [market]: {...prev[market], priceNet: '', priceGross: ''}}));
+            return;
+          }
+          const pair = resolveMarketPricePair({
+            market,
+            [field]: val,
+            priceDisplayMode: local[market].priceDisplayMode,
+            vatPercentage: marketVatRate(market),
+          });
+          setLocal(prev => ({
+            ...prev,
+            [market]: {
+              ...prev[market],
+              priceNet: pair.priceNet.toFixed(2),
+              priceGross: pair.priceGross.toFixed(2),
+            },
+          }));
+        };
 
         const save = async () => {
           try {
-            const markets = ['ro', 'fr', 'com'].map(m => ({
-              market: m,
-              isActive: local[m].isActive,
-              price: local[m].price || null,
-              compareAtPrice: local[m].compareAtPrice || null,
-            }));
+            const markets = marketNames.filter(market => local[market].assigned).map(market => {
+              const hasOverride = local[market].priceNet !== '' && local[market].priceGross !== '';
+              return {
+                market,
+                isActive: local[market].isActive,
+                priceDisplayMode: local[market].priceDisplayMode,
+                price: hasOverride
+                  ? (local[market].priceDisplayMode === 'net' ? local[market].priceNet : local[market].priceGross)
+                  : null,
+                priceNet: hasOverride ? local[market].priceNet : null,
+                priceGross: hasOverride ? local[market].priceGross : null,
+                compareAtPrice: local[market].compareAtPrice || null,
+              };
+            });
+            if (markets.length === 0) {
+              alert('Produsul nu este alocat unei piețe. Nu au fost făcute modificări.');
+              return;
+            }
             const res = await fetch(`/admin/api/products/${editingProduct.id}/markets/bulk`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -8157,7 +8254,8 @@ import {
               alert('✅ Prețuri per piață salvate!');
               fetchProductMarkets();
             } else {
-              alert('❌ Eroare la salvare');
+              const data = await res.json().catch(() => ({}));
+              alert(`❌ Eroare la salvare: ${data.message || res.statusText}`);
             }
           } catch (err) {
             alert('❌ Eroare: ' + err.message);
@@ -8181,7 +8279,9 @@ import {
                   <tr style={{backgroundColor: '#fff3cd'}}>
                     <th style={{padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #ffe082'}}>Piață</th>
                     <th style={{padding: '8px 10px', textAlign: 'center', borderBottom: '1px solid #ffe082'}}>Activ</th>
-                    <th style={{padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #ffe082'}}>Preț override</th>
+                    <th style={{padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #ffe082'}}>Preț net</th>
+                    <th style={{padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #ffe082'}}>Preț brut</th>
+                    <th style={{padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #ffe082'}}>Afișează</th>
                     <th style={{padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #ffe082'}}>Preț vechi (barát)</th>
                   </tr>
                 </thead>
@@ -8192,7 +8292,8 @@ import {
                       <td style={{padding: '8px 10px', textAlign: 'center'}}>
                         <input
                           type="checkbox"
-                          checked={local[market].isActive || false}
+                          checked={local[market].isActive}
+                          disabled={!local[market].assigned}
                           onChange={e => setField(market, 'isActive', e.target.checked)}
                           style={{width: '16px', height: '16px', cursor: 'pointer'}}
                         />
@@ -8203,9 +8304,10 @@ import {
                             type="number"
                             step="0.01"
                             min="0"
-                            value={local[market].price}
-                            onChange={e => setField(market, 'price', e.target.value)}
-                            placeholder="(preț implicit)"
+                            value={local[market].priceNet}
+                            disabled={!local[market].assigned}
+                            onChange={e => setPriceField(market, 'priceNet', e.target.value)}
+                            placeholder={local[market].assigned ? '(moștenit)' : 'nealocat'}
                             style={{width: '120px', padding: '5px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px'}}
                           />
                           <span style={{color: '#666', fontSize: '12px'}}>{currency}</span>
@@ -8217,7 +8319,41 @@ import {
                             type="number"
                             step="0.01"
                             min="0"
+                            value={local[market].priceGross}
+                            disabled={!local[market].assigned}
+                            onChange={e => setPriceField(market, 'priceGross', e.target.value)}
+                            placeholder={local[market].assigned ? '(moștenit)' : 'nealocat'}
+                            style={{width: '120px', padding: '5px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px'}}
+                          />
+                          <span style={{color: '#666', fontSize: '12px'}}>{currency}</span>
+                        </div>
+                      </td>
+                      <td style={{padding: '8px 10px'}}>
+                        <select
+                          value={local[market].priceDisplayMode}
+                          disabled={!local[market].assigned}
+                          onChange={e => setField(market, 'priceDisplayMode', e.target.value)}
+                          style={{padding: '5px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px'}}
+                        >
+                          <option value="net">Net</option>
+                          <option value="gross">Brut</option>
+                        </select>
+                        <div style={{marginTop: '4px', fontSize: '11px', color: '#795548'}}>
+                          TVA {marketVatRate(market)}% · {local[market].assigned
+                            ? (local[market].priceNet || local[market].priceGross
+                              ? ''
+                              : `moștenit: net ${local[market].inheritedPriceNet.toFixed(2)} / brut ${local[market].inheritedPriceGross.toFixed(2)}`)
+                            : 'fără alocare'}
+                        </div>
+                      </td>
+                      <td style={{padding: '8px 10px'}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
                             value={local[market].compareAtPrice}
+                            disabled={!local[market].assigned}
                             onChange={e => setField(market, 'compareAtPrice', e.target.value)}
                             placeholder="(opțional)"
                             style={{width: '120px', padding: '5px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px'}}
