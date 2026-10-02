@@ -78,6 +78,10 @@ interface EmailParams {
   attachments?: EmailAttachment[];
 }
 
+export interface EmailSendOptions {
+  testMode?: boolean;
+}
+
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   if (!mailService) {
     console.warn("Email service not configured. Skipping email send.");
@@ -277,11 +281,13 @@ export async function sendOrderConfirmationEmail(
   user: User,
   paymentMethod?: string,
   invoicePdfBuffer?: Buffer,
-  invoiceNumber?: string
+  invoiceNumber?: string,
+  options: EmailSendOptions = {},
 ): Promise<boolean> {
   const shippingAddress = order.shippingAddress as any;
   const billingAddress = order.billingAddress as any;
   const isFrenchOrder = (order as any).market === 'fr';
+  const isTestEmail = options.testMode === true;
   const orderMarket = (order as any).market || 'ro';
   const orderVatRate = Number((order as any).vatPercentage ?? (orderMarket === 'fr' ? 20 : 21));
   const taxSummary = getOrderTaxSummary(order as any, orderVatRate);
@@ -316,26 +322,33 @@ export async function sendOrderConfirmationEmail(
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
         <h1 style="color: #2c3e50; margin-bottom: 10px;">xHACCP</h1>
-        <h2 style="color: #27ae60; margin-top: 0;">Order Confirmation</h2>
+        <h2 style="color: #27ae60; margin-top: 0;">${isTestEmail ? 'TEST ONLY — Order Confirmation' : 'Order Confirmation'}</h2>
       </div>
+
+      ${isTestEmail ? `
+      <div style="background-color:#fff3cd;padding:16px 20px;border-radius:8px;margin-bottom:20px;border-left:4px solid #ffc107;">
+        <strong>TEST EMAIL ONLY:</strong> No real order, payment, invoice, or shipment was created.
+      </div>` : ''}
       
       <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
         <h3 style="margin-top: 0; color: #2c3e50;">Hello ${user.firstName} ${user.lastName},</h3>
-        <p>Thank you for your order! We're pleased to confirm that your order has been accepted and is now being processed.</p>
+        <p>${isTestEmail
+          ? 'This message checks French-market order email delivery only. It does not confirm a real order.'
+          : "Thank you for your order! We're pleased to confirm that your order has been accepted and is now being processed."}</p>
         
         <div style="margin: 20px 0;">
           <strong>Order Details:</strong><br>
-          Order ID: #${order.id}<br>
+          Order ID: ${isTestEmail ? 'TEST ONLY — no database order' : `#${order.id}`}<br>
           Order Date: ${new Date(order.createdAt!).toLocaleDateString()}<br>
-          Status: <span style="color: #27ae60; font-weight: bold;">Accepted</span><br>
+          Status: <span style="color: #27ae60; font-weight: bold;">${isTestEmail ? 'TEST ONLY — no order created' : 'Accepted'}</span><br>
           Customer Email: ${user.email}<br>
           Contact Phone: ${shippingAddress.phone}<br>
-          Payment: <span style="font-weight: bold; color: ${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? '#e67e22' : '#27ae60'};">${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}</span>
+          Payment: <span style="font-weight: bold; color: ${isTestEmail ? '#856404' : (paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? '#e67e22' : '#27ae60'};">${isTestEmail ? 'TEST ONLY — no payment was taken' : (paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}</span>
         </div>
       </div>
 
       <div style="margin-bottom: 20px;">
-        <h3 style="color: #2c3e50;">Order Items:</h3>
+        <h3 style="color: #2c3e50;">${isTestEmail ? 'Sample Items (email test):' : 'Order Items:'}</h3>
         <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
           <thead>
             <tr style="background-color: #f8f9fa;">
@@ -408,15 +421,18 @@ export async function sendOrderConfirmationEmail(
         </div>
       </div>
 
-      <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+      ${isTestEmail ? `
+      <div style="background-color:#e8f4fd;padding:16px 20px;border-radius:8px;margin-bottom:20px;">
+        No payment, invoice, or shipment was created for this email test.
+      </div>` : `<div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
         <h3 style="margin-top: 0; color: #27ae60;">What's Next?</h3>
         <ul style="margin: 0; padding-left: 20px;">
           <li>Our team will prepare your order for shipping</li>
           <li>You'll receive a shipping confirmation with tracking information</li>
           <li>Your order will be delivered to the address provided</li>
         </ul>
-      </div>
-      ${isFrenchOrder ? `
+      </div>`}
+      ${isFrenchOrder && !isTestEmail ? `
       <div style="background-color: #e8f4fd; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #1a4f8a;">
         <p style="margin: 0; color: #1a4f8a;">
           Vous recevrez un nouvel e-mail avec votre facture et le lien de suivi de votre colis.
@@ -438,19 +454,21 @@ export async function sendOrderConfirmationEmail(
   `;
 
   const textContent = `
-    xHACCP - Order Confirmation
+    ${isTestEmail ? 'TEST ONLY — EMAIL DELIVERY CHECK (NO ORDER OR PAYMENT)' : 'xHACCP - Order Confirmation'}
     
     Hello ${user.firstName} ${user.lastName},
     
-    Thank you for your order! We're pleased to confirm that your order has been accepted and is now being processed.
+    ${isTestEmail
+      ? 'This message checks French-market order email delivery only. No real order, payment, invoice, or shipment was created.'
+      : "Thank you for your order! We're pleased to confirm that your order has been accepted and is now being processed."}
     
     Order Details:
-    - Order ID: #${order.id}
+    - Order ID: ${isTestEmail ? 'TEST ONLY — no database order' : `#${order.id}`}
     - Order Date: ${new Date(order.createdAt!).toLocaleDateString()}
-    - Status: Accepted
+    - Status: ${isTestEmail ? 'TEST ONLY — no order created' : 'Accepted'}
     - Customer Email: ${user.email}
     - Contact Phone: ${shippingAddress.phone}
-    - Payment: ${(paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}
+    - Payment: ${isTestEmail ? 'TEST ONLY — no payment was taken' : (paymentMethod === 'cash_on_delivery' || paymentMethod === 'cod' || paymentMethod === 'cash') ? 'Plată ramburs (cash la livrare)' : paymentMethod === 'viva' || paymentMethod === 'card' ? 'Plătit online cu cardul' : 'În curs de procesare'}
     - VAT: ${taxSummary.vatAmount} ${orderCurrency(order)}
     - Total Amount incl. VAT: ${taxSummary.totalAmount} ${orderCurrency(order)}
     
@@ -468,8 +486,10 @@ export async function sendOrderConfirmationEmail(
     ${billingAddress.country}
     Phone: ${billingAddress.phone}
     
-    Your order will be prepared for shipping and you'll receive tracking information soon.
-    ${isFrenchOrder ? '\n\nVous recevrez un nouvel e-mail avec votre facture et le lien de suivi de votre colis.\n' : ''}
+    ${isTestEmail
+      ? 'No payment, invoice, or shipment was created for this email test.'
+      : "Your order will be prepared for shipping and you'll receive tracking information soon."}
+    ${isFrenchOrder && !isTestEmail ? '\n\nVous recevrez un nouvel e-mail avec votre facture et le lien de suivi de votre colis.\n' : ''}
     
     Questions? Contact us at info@xhaccp.com
     
@@ -479,7 +499,7 @@ export async function sendOrderConfirmationEmail(
   const emailParams: Parameters<typeof sendEmail>[0] = {
     to: user.email,
     from: getSenderForOrder(order),
-    subject: `Order Confirmation #${order.id} - xHACCP`,
+    subject: `${isTestEmail ? '[TEST ONLY — NO ORDER OR PAYMENT] ' : ''}Order Confirmation #${order.id} - xHACCP`,
     text: textContent,
     html: html,
   };
@@ -502,7 +522,8 @@ export async function sendOrderConfirmationEmail(
 export async function sendNewOrderNotificationEmail(
   order: OrderWithItems,
   user: User,
-  logisticsEmail?: string
+  logisticsEmail?: string,
+  options: EmailSendOptions = {},
 ): Promise<boolean> {
   // Get logistics email from company settings if not provided
   if (!logisticsEmail) {
@@ -510,9 +531,10 @@ export async function sendNewOrderNotificationEmail(
   }
   const shippingAddress = order.shippingAddress as any;
   const billingAddress = order.billingAddress as any;
+  const isTestEmail = options.testMode === true;
   
   // Create admin URL for order management
-  const adminOrderUrl = `https://xhaccp.com/admin#orders-${order.id}`;
+  const adminOrderUrl = isTestEmail ? '' : `https://xhaccp.com/admin#orders-${order.id}`;
   
   const orderItemsText = order.items
     .map(item => `- ${orderItemNameText(item)} (Qty: ${item.quantity}) - ${item.totalPrice} ${orderCurrency(order)}`)
@@ -528,12 +550,17 @@ export async function sendNewOrderNotificationEmail(
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="text-align: center; margin-bottom: 30px;">
         <h1 style="color: #2c3e50; margin-bottom: 10px;">xHACCP</h1>
-        <h2 style="color: #f39c12; margin-top: 0;">🔔 New Order Created</h2>
+        <h2 style="color: #f39c12; margin-top: 0;">${isTestEmail ? 'TEST EMAIL — NO ORDER CREATED' : '🔔 New Order Created'}</h2>
       </div>
+
+      ${isTestEmail ? `
+      <div style="background-color:#fff3cd;padding:16px 20px;border-radius:8px;margin-bottom:20px;border-left:4px solid #ffc107;">
+        <strong>TEST EMAIL ONLY:</strong> No real order, payment, invoice, or shipment exists. No action is required.
+      </div>` : ''}
       
       <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
-        <h3 style="margin-top: 0; color: #856404;">Order Awaiting Review</h3>
-        <p><strong>Order ID:</strong> #${order.id}</p>
+        <h3 style="margin-top: 0; color: #856404;">${isTestEmail ? 'Email Delivery Test' : 'Order Awaiting Review'}</h3>
+        <p><strong>Order ID:</strong> ${isTestEmail ? 'TEST ONLY — no database order' : `#${order.id}`}</p>
         <p><strong>Order Date:</strong> ${new Date(order.createdAt!).toLocaleDateString()}</p>
         <p><strong>Customer:</strong> ${user.firstName} ${user.lastName}</p>
         <p><strong>Customer Email:</strong> ${user.email}</p>
@@ -550,11 +577,11 @@ export async function sendNewOrderNotificationEmail(
         ${discountLine}<p><strong>Transport:</strong> ${sc > 0 ? sc.toFixed(2) + ' ' + currency : 'Gratuit'}</p>
         <p style="font-size:15px;border-top:1px solid #e0e0e0;padding-top:6px;margin-top:4px;"><strong>Total:</strong> ${total.toFixed(2)} ${currency}</p>`;
         })()}
-        <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
-        <p><strong>Status:</strong> <span style="color: #f39c12; font-weight: bold;">PENDING REVIEW</span></p>
+        <p><strong>Payment Method:</strong> ${isTestEmail ? 'TEST ONLY — no payment taken' : order.paymentMethod}</p>
+        <p><strong>Status:</strong> <span style="color: #f39c12; font-weight: bold;">${isTestEmail ? 'TEST ONLY — no review or action required' : 'PENDING REVIEW'}</span></p>
       </div>
 
-      <div style="text-align: center; margin-bottom: 30px;">
+      ${isTestEmail ? '' : `<div style="text-align: center; margin-bottom: 30px;">
         <a href="${adminOrderUrl}" 
            style="display: inline-block; background-color: #27ae60; color: white; padding: 15px 30px; 
                   text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
@@ -563,7 +590,7 @@ export async function sendNewOrderNotificationEmail(
         <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
           Click the button above to review and accept this order
         </p>
-      </div>
+      </div>`}
 
       <div style="margin-bottom: 20px;">
         <h3 style="color: #2c3e50;">Order Items:</h3>
@@ -620,7 +647,10 @@ export async function sendNewOrderNotificationEmail(
         </div>
       ` : ''}
 
-      <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+      ${isTestEmail ? `
+      <div style="background-color:#e8f4fd;padding:16px 20px;border-radius:8px;margin-bottom:20px;">
+        This message verifies the French company notification email only. No database order was created.
+      </div>` : `<div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
         <h3 style="margin-top: 0; color: #856404;">🚨 Action Required</h3>
         <ol style="margin: 0; padding-left: 20px;">
           <li><strong>Review order details above</strong></li>
@@ -628,9 +658,9 @@ export async function sendNewOrderNotificationEmail(
           <li><strong>Verify product availability</strong></li>
           <li><strong>Accept the order to begin processing</strong></li>
         </ol>
-      </div>
+      </div>`}
 
-      <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+      ${isTestEmail ? '' : `<div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
         <p style="margin: 0; color: #666;">
           Direct admin link: 
           <a href="${adminOrderUrl}" style="color: #27ae60;">xhaccp.com/admin#orders-${order.id}</a>
@@ -638,25 +668,25 @@ export async function sendNewOrderNotificationEmail(
         <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
           xHACCP - Order Management System
         </p>
-      </div>
+      </div>`}
     </body>
     </html>
   `;
 
   const textContent = `
-    xHACCP - New Order Created
+    ${isTestEmail ? 'TEST ONLY — EMAIL DELIVERY CHECK (NO ORDER EXISTS)' : 'xHACCP - New Order Created'}
     
-    🔔 NEW ORDER AWAITING REVIEW
+    ${isTestEmail ? 'TEST ONLY — NO ACTION REQUIRED' : '🔔 NEW ORDER AWAITING REVIEW'}
     
     Order Details:
-    - Order ID: #${order.id}
+    - Order ID: ${isTestEmail ? 'TEST ONLY — no database order' : `#${order.id}`}
     - Order Date: ${new Date(order.createdAt!).toLocaleDateString()}
     - Customer: ${user.firstName} ${user.lastName}
     - Customer Email: ${user.email}
     - Customer Phone: ${shippingAddress.phone}
     - Total Amount: ${order.totalAmount} ${orderCurrency(order)}
-    - Payment Method: ${order.paymentMethod}
-    - Status: PENDING REVIEW
+    - Payment Method: ${isTestEmail ? 'TEST ONLY — no payment taken' : order.paymentMethod}
+    - Status: ${isTestEmail ? 'TEST ONLY — no review or action required' : 'PENDING REVIEW'}
     
     Items Ordered:
     ${orderItemsText}
@@ -677,11 +707,11 @@ export async function sendNewOrderNotificationEmail(
     
     ${order.notes ? `Customer Notes: ${order.notes}` : ''}
     
-    🚨 ACTION REQUIRED:
+    ${isTestEmail ? 'This message verifies email delivery only. No database order, payment, invoice, or shipment exists.' : `🚨 ACTION REQUIRED:
     1. Review order details above
     2. Access admin panel: ${adminOrderUrl}
     3. Verify product availability
-    4. Accept the order to begin processing
+    4. Accept the order to begin processing`}
     
     Direct link: xhaccp.com/admin#orders-${order.id}
   `;
@@ -689,7 +719,7 @@ export async function sendNewOrderNotificationEmail(
   return await sendEmail({
     to: logisticsEmail,
     from: getSenderForOrder(order),
-    subject: `🔔 New Order #${order.id} - Awaiting Review & Acceptance`,
+    subject: `${isTestEmail ? '[TEST ONLY — NO ORDER] ' : '🔔 '}${isTestEmail ? 'French order notification email test' : `New Order #${order.id} - Awaiting Review & Acceptance`}`,
     text: textContent,
     html: html,
   });
