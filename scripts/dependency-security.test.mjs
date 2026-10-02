@@ -20,7 +20,10 @@ const minimumVersions = {
   tmp: "0.2.6",
   lodash: "4.18.0",
   uuid: "11.1.1",
-  multer: "2.3.0",
+  multer: "2.4.0",
+  qs: "6.16.0",
+  axios: "1.18.0",
+  vite: "6.4.3",
   nanoid: "3.3.18",
 };
 const root = new URL("../", import.meta.url);
@@ -44,7 +47,37 @@ function assertPatched(name, version, location) {
     assert.ok(actual[0] > 5 || (actual[0] === 5 && (actual[1] > 1 || (actual[1] === 1 && actual[2] >= 16))),
       `${location}: nanoid 4/5 requires >=5.1.16`);
   }
+  // GHSA-v6wh-96g9-6wx3 fixes differ across the supported Vite release lines.
+  if (name === "vite" && actual[0] === 7) {
+    assert.ok(actual[1] > 3 || (actual[1] === 3 && actual[2] >= 5),
+      `${location}: vite 7 requires >=7.3.5`);
+  }
+  if (name === "vite" && actual[0] === 8) {
+    assert.ok(actual[1] > 0 || actual[2] >= 16,
+      `${location}: vite 8 requires >=8.0.16`);
+  }
 }
+
+test("security version checks reject every reported vulnerable version and unsafe Vite release line", () => {
+  const vulnerable = {
+    multer: ["2.1.1", "2.3.0"],
+    qs: ["6.14.2", "6.15.3"],
+    axios: ["1.13.5", "1.17.0"],
+    vite: ["5.4.19", "5.4.21", "6.4.2", "7.3.1", "7.3.4", "8.0.15"],
+  };
+  for (const [name, versions] of Object.entries(vulnerable)) {
+    for (const version of versions) {
+      assert.throws(() => assertPatched(name, version, "regression fixture"),
+        assert.AssertionError, `${name}@${version} must be rejected`);
+    }
+  }
+  for (const [name, version] of [
+    ["multer", "2.4.0"], ["qs", "6.16.0"], ["axios", "1.18.0"],
+    ["vite", "6.4.3"], ["vite", "7.3.5"], ["vite", "8.0.16"],
+  ]) {
+    assert.doesNotThrow(() => assertPatched(name, version, "patched fixture"));
+  }
+});
 
 for (const file of ["package-lock.json", "artifacts/mockup-sandbox/package-lock.json"]) {
   test(`${file} contains no versions affected by the targeted advisories`, () => {
@@ -191,6 +224,38 @@ test("multipart uploads remain compatible with patched Multer and form-data", { 
   });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { name: "catalog.txt", content: "catalog" });
+});
+
+test("patched qs safely parses attacker-controlled isBuffer values and nested form fields", () => {
+  const require = createRequire(import.meta.url);
+  // Exercise the actual copies consumed by Express and Stripe as well as the root copy.
+  for (const consumer of ["express", "stripe"]) {
+    const qs = createRequire(require.resolve(consumer))("qs");
+    assert.deepEqual(qs.parse("customer[name]=Chef&items[0][quantity]=2"),
+      { customer: { name: "Chef" }, items: [{ quantity: "2" }] });
+    assert.doesNotThrow(() => qs.parse({ isBuffer: "not a function", customer: "Chef" }));
+  }
+});
+
+test("patched Axios retains JSON request and response compatibility", { timeout: 5000 }, async (t) => {
+  const { once } = await import("node:events");
+  const { createServer } = await import("node:http");
+  const { default: axios } = await import("axios");
+  const server = createServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ method: req.method, body: JSON.parse(Buffer.concat(chunks).toString()) }));
+  });
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  for (const adapter of ["http", "fetch"]) {
+    const response = await axios.post(`http://127.0.0.1:${server.address().port}/`,
+      { product: "Chef", quantity: 2 }, { adapter, proxy: false, timeout: 2000 });
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.data, { method: "POST", body: { product: "Chef", quantity: 2 } });
+  }
 });
 
 test("updated XML parser and builder preserve invoice-style XML round trips", async () => {
