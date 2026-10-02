@@ -6,7 +6,7 @@
 - [Volume discount must be applied server-side](volume-discount-server-side.md) — backend recalculates prices from DB for security; must also call applyVolumeDiscount() or volume-tier prices are ignored in emails/Viva.
 - [SendGrid sender by market](sendgrid-sender-by-market.md) — French-market email must use the verified info@xhaccp.fr sender; RO/COM retain the default identity.
 - [Marketplace product removal](marketplace-product-removal.md) — removing an item from one market must preserve the shared catalog record and historical invoices in other markets.
-- [Market price and shipping basis](market-price-preservation.md) — payment summaries use net products/shipping plus VAT; other surfaces keep market display rules and gross order snapshots.
+- [Market price and shipping basis](market-price-preservation.md) — payment summaries use net products/shipping plus VAT; service products are excluded from shipping.
 - [Composite product invariants](composite-product-invariants.md) — components require an explicit same-market row; marketplace currency is authoritative and order configurations are immutable snapshots.
 - [Marketplace category filtering](market-category-filtering.md) — duplicate slugs across market-specific category rows must never use a global product cache.
 - [Atomic marketplace product creation](atomic-market-product-creation.md) — a new product and its first marketplace row must commit together; never confirm a global orphan.

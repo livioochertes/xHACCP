@@ -20,6 +20,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { getCartLinePrice, getCartTaxSnapshot } from "@/lib/market-pricing";
+import { calculateShippingQuote } from "@shared/shipping-pricing";
 import { defaultPriceDisplayMode } from "@shared/market-pricing";
 import paypalOfficialLogo from "@/assets/paypal-official-logo.png";
 
@@ -226,6 +227,7 @@ export default function Checkout() {
     shipping: number;
     shippingNetAmount: number;
     shippingDisplayAmount: number;
+    hasShippableItems: boolean;
     total: number;
     currencySymbol: string;
   } | null>(null);
@@ -245,9 +247,10 @@ export default function Checkout() {
     shipping: number;
     shippingNetAmount: number;
     shippingDisplayAmount: number;
+    hasShippableItems: boolean;
     total: number;
     currencySymbol: string;
-  }>({ buyerName: '', email: '', phone: '', items: [], subtotal: 0, subtotalNet: 0, discountNetAmount: 0, vatAmount: 0, discountAmount: 0, voucherCode: null, shipping: 0, shippingNetAmount: 0, shippingDisplayAmount: 0, total: 0, currencySymbol: '' });
+  }>({ buyerName: '', email: '', phone: '', items: [], subtotal: 0, subtotalNet: 0, discountNetAmount: 0, vatAmount: 0, discountAmount: 0, voucherCode: null, shipping: 0, shippingNetAmount: 0, shippingDisplayAmount: 0, hasShippableItems: false, total: 0, currencySymbol: '' });
   const checkoutStartedRef = useRef(false);
 
   // Fetch shipping settings (includes VAT percentage)
@@ -493,7 +496,18 @@ export default function Checkout() {
   const standardShippingCost = shippingSettings ? parseFloat(shippingSettings.standardShippingCost) : 25;
   const currency = shippingSettings?.currency || 'EUR';
   
-  const shipping = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
+  const shippingQuote = calculateShippingQuote(
+    cart
+      .filter(item => item.product && item.product.price)
+      .map(item => ({
+        productType: item.product.productType,
+        isService: item.product.isService,
+        displayTotalPrice: getUnitPrice(item) * item.quantity,
+      })),
+    freeShippingThreshold,
+    standardShippingCost,
+  );
+  const shipping = shippingQuote.shippingCost;
 
   // Currency symbol helper
   const getCurrencySymbol = (curr: string) => {
@@ -553,6 +567,7 @@ export default function Checkout() {
       shipping,
       shippingNetAmount: Number(taxSnapshot.shippingNetAmount),
       shippingDisplayAmount: Number(taxSnapshot.shippingDisplayAmount),
+      hasShippableItems: shippingQuote.hasShippableItems,
       total: finalTotal,
       currencySymbol,
     };
@@ -562,7 +577,7 @@ export default function Checkout() {
     if (step === 3) {
       localStorage.setItem('xhaccp_pending_order_summary', JSON.stringify(summary));
     }
-  }, [cart, market, defaultVatPercentage, subtotal, voucherDiscount, appliedVoucher, shipping, finalTotal, currencySymbol, step, watchedEmail, watchedPhone, watchedShippingPhone, taxSnapshot]);
+  }, [cart, market, defaultVatPercentage, subtotal, voucherDiscount, appliedVoucher, shipping, shippingQuote.hasShippableItems, finalTotal, currencySymbol, step, watchedEmail, watchedPhone, watchedShippingPhone, taxSnapshot]);
 
   useEffect(() => {
     if (step !== 3 || checkoutStartedRef.current) return;
@@ -882,14 +897,16 @@ export default function Checkout() {
                     <span>-{confirmedOrder.discountNetAmount.toFixed(2)} {confirmedOrder.currencySymbol}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{taxLabels.shipping}:</span>
-                  <span>
-                    {confirmedOrder.shipping === 0
-                      ? <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
-                      : `${confirmedOrder.shippingNetAmount.toFixed(2)} ${confirmedOrder.currencySymbol}`}
-                  </span>
-                </div>
+                {confirmedOrder.hasShippableItems && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{taxLabels.shipping}:</span>
+                    <span>
+                      {confirmedOrder.shipping === 0
+                        ? <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
+                        : `${confirmedOrder.shippingNetAmount.toFixed(2)} ${confirmedOrder.currencySymbol}`}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>{taxLabels.vat} ({vatDisplayPercentage}%):</span>
                   <span>{confirmedOrder.vatAmount.toFixed(2)} {confirmedOrder.currencySymbol}</span>
@@ -2100,16 +2117,18 @@ export default function Checkout() {
                     <span>{taxLabels.subtotal}:</span>
                     <span>{taxSnapshot.subtotalNet} {currencySymbol}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>{taxLabels.shipping}:</span>
-                    <span>
-                      {shipping === 0 ? (
-                        <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
-                      ) : (
-                        `${taxSnapshot.shippingNetAmount} ${currencySymbol}`
-                      )}
-                    </span>
-                  </div>
+                  {shippingQuote.hasShippableItems && (
+                    <div className="flex justify-between text-sm">
+                      <span>{taxLabels.shipping}:</span>
+                      <span>
+                        {shipping === 0 ? (
+                          <Badge variant="secondary">{t('checkout.freeShipping')}</Badge>
+                        ) : (
+                          `${taxSnapshot.shippingNetAmount} ${currencySymbol}`
+                        )}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>{taxLabels.vat} ({vatDisplayPercentage}%):</span>
                     <span>{vatIncludedInFinal.toFixed(2)} {currencySymbol}</span>

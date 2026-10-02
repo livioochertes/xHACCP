@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/utils";
 import { getMarketFromHostname } from "@/lib/queryClient";
 import { getCartLinePrice, getCartTaxSnapshot } from "@/lib/market-pricing";
+import { calculateShippingQuote } from "@shared/shipping-pricing";
 
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
@@ -51,7 +52,16 @@ export default function Cart() {
   const standardShippingCost = shippingSettings ? parseFloat(shippingSettings.standardShippingCost) : 25;
   const currency = shippingSettings?.currency || 'EUR';
   
-  const shipping = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
+  const shippingQuote = calculateShippingQuote(
+    validCart.map(item => ({
+      productType: item.product?.productType,
+      isService: item.product?.isService,
+      displayTotalPrice: getUnitPrice(item) * item.quantity,
+    })),
+    freeShippingThreshold,
+    standardShippingCost,
+  );
+  const shipping = shippingQuote.shippingCost;
   const taxSnapshot = getCartTaxSnapshot(validCart, market, defaultVatPercentage, 0, shipping);
   const total = Number(taxSnapshot.totalAmount);
 
@@ -245,25 +255,27 @@ export default function Cart() {
                     <span>{taxSnapshot.subtotalNet} {currencySymbol}</span>
                   </div>
                   
-                  <div className="flex justify-between">
-                    <span>{taxLabels.shipping}:</span>
-                    <span>
-                      {shipping === 0 ? (
-                        <Badge variant="secondary">{t('cart.free')}</Badge>
-                      ) : (
-                        `${taxSnapshot.shippingNetAmount} ${currencySymbol}`
-                      )}
-                    </span>
-                  </div>
+                  {shippingQuote.hasShippableItems && (
+                    <div className="flex justify-between">
+                      <span>{taxLabels.shipping}:</span>
+                      <span>
+                        {shipping === 0 ? (
+                          <Badge variant="secondary">{t('cart.free')}</Badge>
+                        ) : (
+                          `${taxSnapshot.shippingNetAmount} ${currencySymbol}`
+                        )}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>{taxLabels.vat} ({defaultVatPercentage}%):</span>
                     <span>{taxSnapshot.vatAmount} {currencySymbol}</span>
                   </div>
                   
-                  {subtotal < freeShippingThreshold && (
+                  {shippingQuote.hasShippableItems && shippingQuote.shippableSubtotal < freeShippingThreshold && (
                     <div className="text-sm text-muted-foreground">
-                      {t('cart.addMoreForFree').replace('{amount}', `${(freeShippingThreshold - subtotal).toFixed(2)} ${currencySymbol}`)}
+                      {t('cart.addMoreForFree').replace('{amount}', `${(freeShippingThreshold - shippingQuote.shippableSubtotal).toFixed(2)} ${currencySymbol}`)}
                     </div>
                   )}
                   

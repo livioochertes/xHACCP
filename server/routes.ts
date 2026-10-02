@@ -37,6 +37,7 @@ import {
   pricePairFromDisplayPrice,
   resolveMarketPricePair,
 } from "@shared/market-pricing";
+import { calculateShippingQuote } from "@shared/shipping-pricing";
 import {
   collectContactRecipients,
   isValidEmailAddress,
@@ -647,6 +648,11 @@ async function validateOrderItemForMarket(item: any, market: string) {
   if (effectiveProduct === null) {
     throw new Error(`Product is not available in this market: ${product.name}`);
   }
+  const storedProductType = String(product.productType ?? "").trim().toLowerCase();
+  const productType = (storedProductType === "service" ||
+    (storedProductType === "standard" && product.isService === true))
+    ? "service"
+    : storedProductType || "standard";
 
   if (product.isComposite) {
     const requestedComponents = item.compositeConfiguration?.components ?? item.components;
@@ -669,7 +675,7 @@ async function validateOrderItemForMarket(item: any, market: string) {
       vatPercentage: moneyString(Number(configuration.vatPercentage ?? marketSettingsMap.get(market)?.vatPercentage ?? 0)),
       vatAmount: moneyString(totalPriceGross - totalPriceNet),
       compositeConfiguration: configuration,
-      productType: product.productType || (product.isService ? "service" : "standard"),
+      productType,
     };
   }
 
@@ -700,7 +706,7 @@ async function validateOrderItemForMarket(item: any, market: string) {
     vatPercentage: moneyString(vatPercentage),
     vatAmount: moneyString(totalPriceGross - totalPriceNet),
     compositeConfiguration: null,
-    productType: product.productType || (product.isService ? "service" : "standard"),
+    productType,
   };
 }
 
@@ -2838,8 +2844,11 @@ Sitemap: ${baseUrl}/sitemap.xml
         ? parseFloat(marketSetting.standardShippingCost)
         : (companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : (market === "ro" ? 35 : 12));
       
-      // Calculate shipping cost
-      const shippingCost = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
+      const shippingCost = calculateShippingQuote(
+        validatedItems,
+        freeShippingThreshold,
+        standardShippingCost,
+      ).shippingCost;
       
       // Server-side voucher validation (do NOT trust client-provided discount amounts)
       let discountAmount = 0;
@@ -4172,7 +4181,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const standardShippingCost = marketSetting2?.standardShippingCost
         ? parseFloat(marketSetting2.standardShippingCost)
         : (companySettings?.standardShippingCost ? parseFloat(companySettings.standardShippingCost) : (vivaMarket === "ro" ? 35 : 12));
-      const shippingCost = subtotal > freeShippingThreshold ? 0 : standardShippingCost;
+      const shippingCost = calculateShippingQuote(
+        validatedVivaItems,
+        freeShippingThreshold,
+        standardShippingCost,
+      ).shippingCost;
 
       let discountAmount = 0;
       if (voucherCode) {
@@ -4769,7 +4782,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const vatPercentage = Number(setting?.vatPercentage ?? 0);
       const company = await storage.getCompanySettingsByMarket("fr");
       const freeThreshold = setting?.freeShippingThreshold ? Number(setting.freeShippingThreshold) : Number(company?.freeShippingThreshold || 200);
-      const shippingCost = subtotal > freeThreshold ? 0 : Number(setting?.standardShippingCost ?? company?.standardShippingCost ?? 12);
+      const shippingCost = calculateShippingQuote(
+        validatedItems,
+        freeThreshold,
+        Number(setting?.standardShippingCost ?? company?.standardShippingCost ?? 12),
+      ).shippingCost;
       let discountAmount = 0;
       let voucher: any = null;
       if (voucherCode) {

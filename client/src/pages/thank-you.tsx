@@ -27,6 +27,7 @@ interface OrderSummary {
   shipping: number;
   shippingNetAmount?: number;
   shippingDisplayAmount?: number;
+  hasShippableItems?: boolean;
   vatAmount?: number;
   total: number;
   currencySymbol: string;
@@ -222,16 +223,18 @@ export default function ThankYou() {
                   <span>-{(summary.discountNetAmount ?? summary.discountAmount).toFixed(2)} {summary.currencySymbol}</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {market === "fr" ? "Livraison HT" : market === "ro" ? "Livrare cu TVA" : "Shipping incl. VAT"}:
-                </span>
-                <span>
-                  {summary.shipping === 0
-                    ? <Badge variant="secondary">{t("checkout.freeShipping")}</Badge>
-                    : `${(summary.shippingDisplayAmount ?? (market === "fr" ? summary.shippingNetAmount ?? summary.shipping : summary.shipping)).toFixed(2)} ${summary.currencySymbol}`}
-                </span>
-              </div>
+              {summary.hasShippableItems !== false && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {market === "fr" ? "Livraison HT" : market === "ro" ? "Livrare cu TVA" : "Shipping incl. VAT"}:
+                  </span>
+                  <span>
+                    {summary.shipping === 0
+                      ? <Badge variant="secondary">{t("checkout.freeShipping")}</Badge>
+                      : `${(summary.shippingDisplayAmount ?? (market === "fr" ? summary.shippingNetAmount ?? summary.shipping : summary.shipping)).toFixed(2)} ${summary.currencySymbol}`}
+                  </span>
+                </div>
+              )}
               {summary.vatAmount != null && (
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>{getMarketFromHostname() === "fr" ? "TVA" : getMarketFromHostname() === "ro" ? "TVA" : "VAT"}:</span>
