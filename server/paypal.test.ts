@@ -122,6 +122,7 @@ function reconciliationDependencies(sendResults: boolean[] = [true]) {
   let paymentTransactionId: string | undefined;
   let invoiceCount = 0;
   let awbCount = 0;
+  let orderConfirmationCount = 0;
   let notificationCount = 0;
   let captureCount = 0;
   let issuedInvoice: { id: number; invoiceNumber: string } = { id: 7, invoiceNumber: "INV-FR-7" };
@@ -174,6 +175,11 @@ function reconciliationDependencies(sendResults: boolean[] = [true]) {
       localWithShipping.awbCourier = "MyFlyingBox";
       localWithShipping.awbTrackingUrl = "https://xhaccp.fr/tracking/fr-paypal-42";
     },
+    async sendFrenchOrderConfirmationEmails(orderId: number) {
+      assert.equal(orderId, 42);
+      orderConfirmationCount++;
+      sideEffects.push("order_confirmation");
+    },
     async sendFrenchOrderDocumentsEmail(orderId: number) {
       assert.equal(orderId, 42);
       notificationCount++;
@@ -213,7 +219,7 @@ function reconciliationDependencies(sendResults: boolean[] = [true]) {
     order: localWithShipping,
     sentEmails,
     state: () => ({ invoiceEmailClaimed, deliveryAttempts }),
-    counts: () => ({ paymentStatus, paymentTransactionId, invoiceCount, awbCount, notificationCount, captureCount, sideEffects }),
+    counts: () => ({ paymentStatus, paymentTransactionId, invoiceCount, awbCount, orderConfirmationCount, notificationCount, captureCount, sideEffects }),
   };
 }
 
@@ -240,9 +246,10 @@ test("verified PayPal webhook reconciles a completed capture after the browser c
     paymentTransactionId: "C-1",
     invoiceCount: 1,
     awbCount: 1,
+    orderConfirmationCount: 1,
     notificationCount: 1,
     captureCount: 0,
-    sideEffects: ["invoice", "awb", "notification"],
+    sideEffects: ["order_confirmation", "invoice", "awb", "notification"],
   });
   assert.equal(sentEmails.length, 1);
   assert.equal(sentEmails[0].to, "customer@example.invalid");
@@ -284,9 +291,10 @@ test("repeated verified PayPal webhooks produce one paid transition, invoice, an
     paymentTransactionId: "C-1",
     invoiceCount: 1,
     awbCount: 1,
+    orderConfirmationCount: 1,
     notificationCount: 1,
     captureCount: 0,
-    sideEffects: ["invoice", "awb", "notification"],
+    sideEffects: ["order_confirmation", "invoice", "awb", "notification"],
   });
   assert.equal(sentEmails.length, 1);
   assert.match(sentEmails[0].text, /https:\/\/xhaccp\.fr\/tracking\/fr-paypal-42/);
@@ -350,6 +358,7 @@ test("invalid PayPal webhook signatures never change the order", async () => {
     paymentTransactionId: undefined,
     invoiceCount: 0,
     awbCount: 0,
+    orderConfirmationCount: 0,
     notificationCount: 0,
     captureCount: 0,
     sideEffects: [],

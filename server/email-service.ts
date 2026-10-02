@@ -543,11 +543,12 @@ export async function sendNewOrderNotificationEmail(
           const total = parseFloat(order.totalAmount || '0');
           const discountAmt = parseFloat((order as any).discountAmount || '0');
           const voucherCode = (order as any).voucherCode || '';
+          const currency = orderCurrency(order);
           const itemsSubtotal = (total + discountAmt - sc).toFixed(2);
-          const discountLine = discountAmt > 0 ? `<p style="color:#27ae60;"><strong>Discount voucher${voucherCode ? ' ' + voucherCode : ''}:</strong> -${discountAmt.toFixed(2)} lei</p>` : '';
-          return `<p><strong>Subtotal:</strong> ${itemsSubtotal} lei</p>
-        ${discountLine}<p><strong>Transport:</strong> ${sc > 0 ? sc.toFixed(2) + ' lei' : 'Gratuit'}</p>
-        <p style="font-size:15px;border-top:1px solid #e0e0e0;padding-top:6px;margin-top:4px;"><strong>Total:</strong> ${total.toFixed(2)} lei</p>`;
+          const discountLine = discountAmt > 0 ? `<p style="color:#27ae60;"><strong>Discount voucher${voucherCode ? ' ' + voucherCode : ''}:</strong> -${discountAmt.toFixed(2)} ${currency}</p>` : '';
+          return `<p><strong>Subtotal:</strong> ${itemsSubtotal} ${currency}</p>
+        ${discountLine}<p><strong>Transport:</strong> ${sc > 0 ? sc.toFixed(2) + ' ' + currency : 'Gratuit'}</p>
+        <p style="font-size:15px;border-top:1px solid #e0e0e0;padding-top:6px;margin-top:4px;"><strong>Total:</strong> ${total.toFixed(2)} ${currency}</p>`;
         })()}
         <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
         <p><strong>Status:</strong> <span style="color: #f39c12; font-weight: bold;">PENDING REVIEW</span></p>

@@ -50,6 +50,7 @@ export type PayPalReconciliationDependencies = {
   capturePayPalOrder?: typeof capturePayPalOrder;
   getInvoiceService: () => Promise<PayPalInvoiceService>;
   ensureFrenchOrderAwb: (orderId: number) => Promise<unknown>;
+  sendFrenchOrderConfirmationEmails: (orderId: number) => Promise<unknown>;
   sendFrenchOrderDocumentsEmail: (orderId: number) => Promise<unknown>;
 };
 
@@ -111,6 +112,12 @@ export async function reconcilePayPalPayment(
   await dependencies.storage.updateOrder(local.id, { paymentTransactionId: captureId });
   const paid = await dependencies.storage.markOrderPaid(local.id);
   if (paid) {
+    try {
+      await dependencies.sendFrenchOrderConfirmationEmails(local.id);
+    } catch (error) {
+      console.error(`[PayPal ${requestId}] French order confirmation failed:`, error instanceof Error ? error.message : "unknown error");
+    }
+
     try {
       const invoiceService = await dependencies.getInvoiceService();
       await invoiceService.generateInvoiceAfterPayment(local.id, {

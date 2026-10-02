@@ -62,6 +62,7 @@ import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscript
 import { createPayPalOrder, getPayPalOrder, capturePayPalOrder, paypalApprovalUrl, paypalCreateRequestId, reconcilePayPalPayment, handlePayPalWebhook } from "./paypal";
 import { getRomanianSamedayShippingContext } from "./sameday-shipping";
 import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
+import { sendFrenchOrderConfirmationEmails } from "./fr-order-confirmation.js";
 import { buildPublicTrackingUrl, registerPublicTrackingRoute } from "./public-tracking.js";
 import {
   createPublicProductDetailHandler,
@@ -4863,6 +4864,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     ensureFrenchOrderAwb: async (orderId: number) => {
       await generateAWBForOrder(orderId);
     },
+    sendFrenchOrderConfirmationEmails: async (orderId: number) => {
+      const result = await sendFrenchOrderConfirmationEmails(orderId);
+      console.log(`FR order confirmation for PayPal order #${orderId}: customer=${result.customer}, company=${result.company}`);
+    },
     sendFrenchOrderDocumentsEmail: async (orderId: number) => {
       await sendFrenchOrderDocumentsEmail(orderId);
     },
@@ -4929,11 +4934,20 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                 } else {
 
                 console.log(`Viva payment verified and order ${orderId} updated to paid`);
+                let paidOrder: any;
                 try {
-                  const paidOrder = await storage.getOrder(orderId);
+                  paidOrder = await storage.getOrder(orderId);
                   await activateSubscriptionForOrder(paidOrder, String(transactionId));
                 } catch (subscriptionError) {
                   console.error(`Failed to activate subscription for Viva order ${orderId}:`, subscriptionError);
+                }
+                if (paidOrder?.market === "fr") {
+                  try {
+                    const result = await sendFrenchOrderConfirmationEmails(orderId);
+                    console.log(`FR order confirmation for Viva order #${orderId}: customer=${result.customer}, company=${result.company}`);
+                  } catch (emailError) {
+                    console.error(`Failed to send FR order confirmation for Viva order #${orderId}:`, emailError);
+                  }
                 }
 
                 let invoiceGenerated = false;
@@ -5138,11 +5152,20 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           if (!claimedOrder) {
             console.log(`Viva webhook: Order ${orderId} already processed (paid), skipping duplicate`);
           } else {
+            let paidOrder: any;
             try {
-              const paidOrder = await storage.getOrder(orderId);
+              paidOrder = await storage.getOrder(orderId);
               await activateSubscriptionForOrder(paidOrder, String(transactionId));
             } catch (subscriptionError) {
               console.error(`Failed to activate subscription for webhook order ${orderId}:`, subscriptionError);
+            }
+            if (paidOrder?.market === "fr") {
+              try {
+                const result = await sendFrenchOrderConfirmationEmails(orderId);
+                console.log(`FR order confirmation for Viva webhook order #${orderId}: customer=${result.customer}, company=${result.company}`);
+              } catch (emailError) {
+                console.error(`Failed to send FR order confirmation for Viva webhook order #${orderId}:`, emailError);
+              }
             }
             (async () => {
               try {
