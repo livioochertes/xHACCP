@@ -438,6 +438,23 @@ export function Extended() {
             justify-self: center;
           }
         }
+        @media (max-width: 640px) {
+          .fr-extended__hero {
+            grid-template-rows: minmax(0, .9fr) minmax(0, 1.15fr) minmax(86px, .4fr);
+            height: 100svh;
+            min-height: 100svh;
+            align-content: stretch;
+            padding-block: 0;
+            overflow: auto;
+          }
+          .fr-extended__photo {
+            height: auto;
+            min-height: 0;
+          }
+          .fr-extended__copy {
+            justify-content: space-evenly;
+          }
+        }
         @media (prefers-reduced-motion: reduce) {
           .fr-extended__mobile-cta { transition: none; }
         }
