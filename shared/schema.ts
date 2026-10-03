@@ -702,6 +702,7 @@ export const homepageHeroSlides = pgTable("homepage_hero_slides", {
   marketCode: varchar("market_code", { length: 10 }).notNull(),
   slideType: varchar("slide_type", { length: 20 }).notNull().default("text"), // text | image
   imageUrl: varchar("image_url", { length: 1000 }),
+  mobileImageUrl: varchar("mobile_image_url", { length: 1000 }),
   imageAlt: varchar("image_alt", { length: 255 }),
   title: varchar("title", { length: 500 }),
   subtitle: text("subtitle"),

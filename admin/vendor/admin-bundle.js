@@ -11281,6 +11281,9 @@
       destinationUrlPlaceholder: "/products?category=... or https://...",
       imageUrl: "Image URL (paste a URL or upload a file)",
       imageUrlPlaceholder: "https://...",
+      mobileImageUrl: "Separate mobile cover (optional)",
+      mobileImageHelp: "Shown on screens up to 767px. Use an almost-square layout (about 1.1:1) so it fills the mobile hero without cutting off text or QR codes.",
+      mobileImagePreview: "Mobile cover preview",
       uploading: "Uploading...",
       imageAlt: "Image alternative text",
       imageAltPlaceholder: "Accessibility description",
@@ -12322,6 +12325,9 @@
       destinationUrlPlaceholder: "/products?category=... sau https://...",
       imageUrl: "URL imagine (po\u021Bi lipi un URL sau \xEEnc\u0103rca un fi\u0219ier)",
       imageUrlPlaceholder: "https://...",
+      mobileImageUrl: "Cover separat pentru mobil (op\u021Bional)",
+      mobileImageHelp: "Se afi\u0219eaz\u0103 pe ecrane de p\xE2n\u0103 la 767 px. Folose\u0219te un layout aproape p\u0103trat (aprox. 1,1:1), ca s\u0103 umple Hero-ul mobil f\u0103r\u0103 s\u0103 taie textul sau codul QR.",
+      mobileImagePreview: "Previzualizare cover mobil",
       uploading: "Se \xEEncarc\u0103...",
       imageAlt: "Text alternativ imagine",
       imageAltPlaceholder: "Descriere pentru accesibilitate",
@@ -13363,6 +13369,9 @@
       destinationUrlPlaceholder: "/products?category=... ou https://...",
       imageUrl: "URL de l'image (collez une URL ou t\xE9l\xE9versez un fichier)",
       imageUrlPlaceholder: "https://...",
+      mobileImageUrl: "Cover mobile s\xE9par\xE9 (facultatif)",
+      mobileImageHelp: "Affich\xE9 sur les \xE9crans jusqu'\xE0 767 px. Utilisez un format presque carr\xE9 (environ 1,1:1) pour remplir le hero mobile sans couper le texte ni le QR code.",
+      mobileImagePreview: "Aper\xE7u du cover mobile",
       uploading: "T\xE9l\xE9versement...",
       imageAlt: "Texte alternatif de l'image",
       imageAltPlaceholder: "Description d'accessibilit\xE9",
@@ -16739,6 +16748,7 @@
     const emptyHeroSlide = () => ({
       slideType: "text",
       imageUrl: "",
+      mobileImageUrl: "",
       imageAlt: "",
       title: "",
       subtitle: "",
@@ -19041,6 +19051,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
       setHeroForm({
         slideType: slide.slideType || "text",
         imageUrl: slide.imageUrl || "",
+        mobileImageUrl: slide.mobileImageUrl || "",
         imageAlt: slide.imageAlt || "",
         title: slide.title || "",
         subtitle: slide.subtitle || "",
@@ -19084,7 +19095,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
       if (!response.ok) return alert(t2("homepageHero.error", { message: data.message || t2("homepageHero.reorderFailed") }));
       setHeroSlides(data);
     };
-    const uploadHeroImage = async (file) => {
+    const uploadHeroImage = async (file, imageField = "imageUrl") => {
       if (!file || !file.type.startsWith("image/")) return alert(t2("homepageHero.imageFileRequired"));
       setHeroUploading(true);
       try {
@@ -19097,7 +19108,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
         });
         const data = await response.json();
         if (!response.ok || !data.file?.url) throw new Error(data.message || t2("homepageHero.uploadFailed"));
-        setHeroForm((prev) => ({ ...prev, imageUrl: data.file.url }));
+        setHeroForm((prev) => ({ ...prev, [imageField]: data.file.url }));
       } catch (error2) {
         alert(t2("homepageHero.error", { message: error2.message }));
       } finally {
@@ -22028,6 +22039,18 @@ This action cannot be undone.`)) {
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("input", { type: "file", accept: ".jpg,.jpeg,.png,.webp", disabled: heroUploading, onChange: (e2) => uploadHeroImage(e2.target.files?.[0]) }),
                     heroUploading && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: t2("homepageHero.uploading") })
                   ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "16px", padding: "14px", border: "1px solid #dee2e6", borderRadius: "6px", background: "#f8f9fa" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { fontSize: "13px", color: "#495057" }, children: [
+                      t2("homepageHero.mobileImageUrl"),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("input", { value: heroForm.mobileImageUrl, onChange: (e2) => setHeroForm({ ...heroForm, mobileImageUrl: e2.target.value }), placeholder: t2("homepageHero.imageUrlPlaceholder"), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", flexWrap: "wrap" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("input", { type: "file", accept: ".jpg,.jpeg,.png,.webp", disabled: heroUploading, onChange: (e2) => uploadHeroImage(e2.target.files?.[0], "mobileImageUrl") }),
+                      heroUploading && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { fontSize: "12px", color: "#6c757d" }, children: t2("homepageHero.uploading") })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginTop: "7px" }, children: t2("homepageHero.mobileImageHelp") }),
+                    heroForm.mobileImageUrl && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("img", { src: heroForm.mobileImageUrl, alt: t2("homepageHero.mobileImagePreview"), style: { display: "block", width: "110px", height: "100px", objectFit: "contain", marginTop: "10px", border: "1px solid #dee2e6", borderRadius: "4px", background: "#fff" } })
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { display: "block", marginTop: "10px", fontSize: "13px", color: "#495057" }, children: [
                     t2("homepageHero.imageAlt"),
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("input", { value: heroForm.imageAlt, onChange: (e2) => setHeroForm({ ...heroForm, imageAlt: e2.target.value }), placeholder: t2("homepageHero.imageAltPlaceholder"), style: { display: "block", width: "100%", marginTop: "5px", padding: "9px", border: "1px solid #ced4da", borderRadius: "4px", boxSizing: "border-box" } })
@@ -22046,6 +22069,7 @@ This action cannot be undone.`)) {
                 heroSlides.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { padding: "25px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", color: "#6c757d" }, children: t2("homepageHero.emptySlides") }),
                 heroSlides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", gap: "15px", alignItems: "center", padding: "12px", border: "1px solid #dee2e6", borderRadius: "8px", opacity: slide.isActive ? 1 : 0.55, flexWrap: "wrap" }, children: [
                   slide.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("img", { src: slide.imageUrl, alt: slide.imageAlt || slide.title || t2("homepageHero.previewAlt"), style: { width: "150px", height: "48px", objectFit: "contain", borderRadius: "5px", background: "#e9ecef" } }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { width: "150px", height: "80px", borderRadius: "5px", background: "linear-gradient(135deg,#102a43,#1f5f8b)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "8px", boxSizing: "border-box", fontSize: "12px" }, children: slide.title || t2("homepageHero.textSlide") }),
+                  slide.mobileImageUrl && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("img", { src: slide.mobileImageUrl, alt: t2("homepageHero.mobileImagePreview"), title: t2("homepageHero.mobileImagePreview"), style: { width: "40px", height: "48px", objectFit: "contain", borderRadius: "5px", background: "#e9ecef" } }),
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { flex: 1, minWidth: "220px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("strong", { style: { color: "#333" }, children: [
                       index + 1,

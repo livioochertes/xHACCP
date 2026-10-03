@@ -470,6 +470,7 @@ import {
       const emptyHeroSlide = () => ({
         slideType: 'text',
         imageUrl: '',
+        mobileImageUrl: '',
         imageAlt: '',
         title: '',
         subtitle: '',
@@ -3024,6 +3025,7 @@ import {
         setHeroForm({
           slideType: slide.slideType || 'text',
           imageUrl: slide.imageUrl || '',
+          mobileImageUrl: slide.mobileImageUrl || '',
           imageAlt: slide.imageAlt || '',
           title: slide.title || '',
           subtitle: slide.subtitle || '',
@@ -3070,7 +3072,7 @@ import {
         setHeroSlides(data);
       };
 
-      const uploadHeroImage = async (file) => {
+      const uploadHeroImage = async (file, imageField = 'imageUrl') => {
         if (!file || !file.type.startsWith('image/')) return alert(t('homepageHero.imageFileRequired'));
         setHeroUploading(true);
         try {
@@ -3083,7 +3085,7 @@ import {
           });
           const data = await response.json();
           if (!response.ok || !data.file?.url) throw new Error(data.message || t('homepageHero.uploadFailed'));
-          setHeroForm(prev => ({ ...prev, imageUrl: data.file.url }));
+          setHeroForm(prev => ({ ...prev, [imageField]: data.file.url }));
         } catch (error) {
           alert(t('homepageHero.error', { message: error.message }));
         } finally {
@@ -5865,6 +5867,17 @@ import {
                           <input type="file" accept=".jpg,.jpeg,.png,.webp" disabled={heroUploading} onChange={e => uploadHeroImage(e.target.files?.[0])} />
                           {heroUploading && <span style={{fontSize: '12px', color: '#6c757d'}}>{t('homepageHero.uploading')}</span>}
                         </div>
+                        <div style={{marginTop: '16px', padding: '14px', border: '1px solid #dee2e6', borderRadius: '6px', background: '#f8f9fa'}}>
+                          <label style={{fontSize: '13px', color: '#495057'}}>{t('homepageHero.mobileImageUrl')}
+                            <input value={heroForm.mobileImageUrl} onChange={e => setHeroForm({...heroForm, mobileImageUrl: e.target.value})} placeholder={t('homepageHero.imageUrlPlaceholder')} style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
+                          </label>
+                          <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', flexWrap: 'wrap'}}>
+                            <input type="file" accept=".jpg,.jpeg,.png,.webp" disabled={heroUploading} onChange={e => uploadHeroImage(e.target.files?.[0], 'mobileImageUrl')} />
+                            {heroUploading && <span style={{fontSize: '12px', color: '#6c757d'}}>{t('homepageHero.uploading')}</span>}
+                          </div>
+                          <div style={{fontSize: '12px', color: '#6c757d', marginTop: '7px'}}>{t('homepageHero.mobileImageHelp')}</div>
+                          {heroForm.mobileImageUrl && <img src={heroForm.mobileImageUrl} alt={t('homepageHero.mobileImagePreview')} style={{display: 'block', width: '110px', height: '100px', objectFit: 'contain', marginTop: '10px', border: '1px solid #dee2e6', borderRadius: '4px', background: '#fff'}} />}
+                        </div>
                         <label style={{display: 'block', marginTop: '10px', fontSize: '13px', color: '#495057'}}>{t('homepageHero.imageAlt')}
                           <input value={heroForm.imageAlt} onChange={e => setHeroForm({...heroForm, imageAlt: e.target.value})} placeholder={t('homepageHero.imageAltPlaceholder')} style={{display: 'block', width: '100%', marginTop: '5px', padding: '9px', border: '1px solid #ced4da', borderRadius: '4px', boxSizing: 'border-box'}} />
                         </label>
@@ -5883,6 +5896,7 @@ import {
                         {heroSlides.map((slide, index) => (
                           <div key={slide.id} style={{display: 'flex', gap: '15px', alignItems: 'center', padding: '12px', border: '1px solid #dee2e6', borderRadius: '8px', opacity: slide.isActive ? 1 : 0.55, flexWrap: 'wrap'}}>
                             {slide.imageUrl ? <img src={slide.imageUrl} alt={slide.imageAlt || slide.title || t('homepageHero.previewAlt')} style={{width: '150px', height: '48px', objectFit: 'contain', borderRadius: '5px', background: '#e9ecef'}} /> : <div style={{width: '150px', height: '80px', borderRadius: '5px', background: 'linear-gradient(135deg,#102a43,#1f5f8b)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px', boxSizing: 'border-box', fontSize: '12px'}}>{slide.title || t('homepageHero.textSlide')}</div>}
+                            {slide.mobileImageUrl && <img src={slide.mobileImageUrl} alt={t('homepageHero.mobileImagePreview')} title={t('homepageHero.mobileImagePreview')} style={{width: '40px', height: '48px', objectFit: 'contain', borderRadius: '5px', background: '#e9ecef'}} />}
                             <div style={{flex: 1, minWidth: '220px'}}>
                               <strong style={{color: '#333'}}>{index + 1}. {slide.title || t('homepageHero.imageSlide')}</strong>
                               <div style={{fontSize: '12px', color: '#6c757d', marginTop: '4px'}}>{slide.subtitle || t('common.noDescription')} · {slide.isActive ? t('common.active') : t('common.inactive')}</div>

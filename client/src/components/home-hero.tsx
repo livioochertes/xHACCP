@@ -11,6 +11,7 @@ interface HeroSlide {
   id: number;
   slideType: "text" | "image";
   imageUrl?: string | null;
+  mobileImageUrl?: string | null;
   imageAlt?: string | null;
   title?: string | null;
   subtitle?: string | null;
@@ -168,6 +169,19 @@ export default function HomeHero() {
           const title = slide.title || t("home.hero.title");
           const subtitle = slide.subtitle || t("home.hero.subtitle");
           const label = slide.ctaLabel || (slide.id <= 0 ? t("home.hero.shopNow") : "");
+          const coverImage = hasImage && slide.imageUrl ? (
+            <picture className="absolute inset-0 block h-full w-full">
+              {slide.mobileImageUrl?.trim() && (
+                <source media="(max-width: 767px)" srcSet={slide.mobileImageUrl} />
+              )}
+              <img
+                src={slide.imageUrl}
+                alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
+                className={`absolute inset-0 h-full w-full ${fullCover ? "object-contain" : "object-cover"}`}
+                onLoad={(event) => rememberCoverBackdrop(slide.id, event.currentTarget)}
+              />
+            </picture>
+          ) : null;
           return (
             <div
               key={slide.id}
@@ -180,27 +194,17 @@ export default function HomeHero() {
               aria-label={`${index + 1} of ${slides.length}`}
               style={fullCover && hasImage ? { backgroundColor: coverBackdropColors[slide.id] || "#f1efe5" } : undefined}
             >
-              {hasImage && slide.imageUrl ? (
+              {coverImage ? (
                 <>
                   {(slide.destinationUrl || (slide.destinationType === "none" && slide.ctaType !== "quote" && slide.ctaUrl)) ? (
                     <HeroDestination
                       href={slide.destinationUrl || slide.ctaUrl as string}
                       label={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
                     >
-                      <img
-                        src={slide.imageUrl}
-                        alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
-                        className={`absolute inset-0 h-full w-full ${fullCover ? "object-contain" : "object-cover"}`}
-                        onLoad={(event) => rememberCoverBackdrop(slide.id, event.currentTarget)}
-                      />
+                      {coverImage}
                     </HeroDestination>
                   ) : (
-                    <img
-                      src={slide.imageUrl}
-                      alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
-                      className={`absolute inset-0 h-full w-full ${fullCover ? "object-contain" : "object-cover"}`}
-                      onLoad={(event) => rememberCoverBackdrop(slide.id, event.currentTarget)}
-                    />
+                    coverImage
                   )}
                   {!fullCover && (
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-slate-950/10" />

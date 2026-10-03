@@ -5632,6 +5632,9 @@ export async function registerAdminRoutes(app: Express) {
       marketCode,
       slideType,
       imageUrl: typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null,
+      mobileImageUrl: typeof body.mobileImageUrl === "string" && body.mobileImageUrl.trim()
+        ? body.mobileImageUrl.trim().slice(0, 1000)
+        : null,
       imageAlt: typeof body.imageAlt === "string" ? body.imageAlt.trim().slice(0, 255) : null,
       title: typeof body.title === "string" ? body.title.trim().slice(0, 500) : null,
       subtitle: typeof body.subtitle === "string" ? body.subtitle.trim() : null,
