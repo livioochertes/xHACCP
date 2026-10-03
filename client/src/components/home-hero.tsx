@@ -181,16 +181,16 @@ export default function HomeHero() {
   const ratioSource = isMobileViewport && (!ratioSlide || ratioSlide.mobileImageUrl?.trim())
     ? "mobile"
     : "desktop";
-  const fallbackAspectRatio = ratioSource === "mobile" ? 780 / 720 : 3420 / 820;
   const roHeroAspectRatio = market === "ro" && ratioSlide
-    ? coverAspectRatios[`${ratioSlide.id}:${ratioSource}`] || fallbackAspectRatio
-    : fallbackAspectRatio;
+    ? coverAspectRatios[`${ratioSlide.id}:${ratioSource}`]
+    : undefined;
+  const usesResponsiveHeroRatio = roHeroAspectRatio !== undefined;
 
   return (
     <section
       ref={heroRef}
-      className={`relative ${market === "ro" ? "h-auto" : "h-[360px] md:h-[410px]"} overflow-hidden bg-slate-950 text-white`}
-      style={market === "ro" ? { aspectRatio: roHeroAspectRatio } : undefined}
+      className={`relative ${usesResponsiveHeroRatio ? "h-auto" : "h-[360px] md:h-[410px]"} overflow-hidden bg-slate-950 text-white`}
+      style={usesResponsiveHeroRatio ? { aspectRatio: roHeroAspectRatio } : undefined}
       aria-roledescription="carousel"
       aria-label="Promotional highlights"
       onMouseEnter={() => setPaused(true)}
@@ -200,7 +200,7 @@ export default function HomeHero() {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
       }}
     >
-      <div className={`relative ${market === "ro" ? "h-full" : "h-[360px] md:h-[410px]"}`}>
+      <div className={`relative ${usesResponsiveHeroRatio ? "h-full" : "h-[360px] md:h-[410px]"}`}>
         {slides.map((slide, index) => {
           const isActive = index === activeIndex;
           const fullCover = isFullCoverSlide(slide);
@@ -208,6 +208,7 @@ export default function HomeHero() {
           const title = slide.title || t("home.hero.title");
           const subtitle = slide.subtitle || t("home.hero.subtitle");
           const label = slide.ctaLabel || (slide.id <= 0 ? t("home.hero.shopNow") : "");
+          const compactRoTextSlide = market === "ro" && usesResponsiveHeroRatio && !fullCover;
           const coverSource = isMobileViewport && slide.mobileImageUrl?.trim() ? "mobile" : "desktop";
           const coverImage = hasImage && slide.imageUrl ? (
             <picture className="absolute inset-0 block h-full w-full">
@@ -259,10 +260,33 @@ export default function HomeHero() {
                 <div className="absolute inset-0 hero-gradient" />
               )}
               {!fullCover && (
-                <div className={`container relative z-10 mx-auto flex items-center px-4 py-16 ${market === "ro" ? "min-h-0" : "min-h-[360px] md:min-h-[410px]"}`}>
+                <div
+                  className={`container relative z-10 mx-auto flex items-center px-4 ${compactRoTextSlide ? "h-full min-h-0" : "min-h-[360px] md:min-h-[410px] py-16"}`}
+                  style={compactRoTextSlide ? { paddingBlock: "clamp(8px, 1vw, 20px)" } : undefined}
+                >
                   <div className="mx-auto max-w-4xl text-center">
-                    <h1 className="mb-6 text-4xl font-bold md:text-5xl">{title}</h1>
-                    {subtitle && <p className="mb-8 text-xl text-slate-200">{subtitle}</p>}
+                    <h1
+                      className={`font-bold ${compactRoTextSlide ? "" : "mb-6 text-4xl md:text-5xl"}`}
+                      style={compactRoTextSlide ? {
+                        fontSize: "clamp(1.25rem, 3.2vw, 2.75rem)",
+                        lineHeight: 1.05,
+                        marginBottom: "clamp(8px, 1vw, 14px)",
+                      } : undefined}
+                    >
+                      {title}
+                    </h1>
+                    {subtitle && (
+                      <p
+                        className={`text-slate-200 ${compactRoTextSlide ? "" : "mb-8 text-xl"}`}
+                        style={compactRoTextSlide ? {
+                          fontSize: "clamp(0.8125rem, 1.4vw, 1.25rem)",
+                          lineHeight: 1.2,
+                          marginBottom: "clamp(8px, 1vw, 14px)",
+                        } : undefined}
+                      >
+                        {subtitle}
+                      </p>
+                    )}
                     {label && (
                       <div className="flex flex-col justify-center gap-4 sm:flex-row">
                         <HeroCta slide={slide}>
