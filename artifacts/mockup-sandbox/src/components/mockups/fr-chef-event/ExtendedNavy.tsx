@@ -371,8 +371,11 @@ export function ExtendedNavy() {
           .fr-extended-navy__hero {
             grid-template-columns: minmax(0, 1fr);
             grid-template-rows: minmax(0, .9fr) minmax(0, 1.15fr) minmax(86px, .4fr);
-            height: 100svh;
-            min-height: 100svh;
+            /* Follow mobile browser chrome changes; retain 100vh for older browsers. */
+            height: 100vh;
+            min-height: 100vh;
+            height: 100dvh;
+            min-height: 100dvh;
             align-content: stretch;
             gap: 10px;
             padding: 0 12px;
