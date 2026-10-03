@@ -327,7 +327,13 @@ export default function HomeHero() {
           >
             <ChevronRight aria-hidden="true" />
           </button>
-          <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 gap-2" role="tablist" aria-label="Promotions">
+          <div
+            className={`absolute bottom-5 z-20 flex gap-2 ${
+              market === "ro" ? "right-5" : "left-1/2 -translate-x-1/2"
+            }`}
+            role="tablist"
+            aria-label="Promotions"
+          >
             {slides.map((slide, index) => (
               <button
                 key={slide.id}
