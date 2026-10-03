@@ -118,7 +118,19 @@ export default function HomeHero() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [coverBackdropColors, setCoverBackdropColors] = useState<Record<number, string>>({});
+  const [coverAspectRatios, setCoverAspectRatios] = useState<Record<string, number>>({});
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
+  );
   const heroRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const mobileMediaQuery = window.matchMedia("(max-width: 767px)");
+    const updateViewport = () => setIsMobileViewport(mobileMediaQuery.matches);
+    updateViewport();
+    mobileMediaQuery.addEventListener("change", updateViewport);
+    return () => mobileMediaQuery.removeEventListener("change", updateViewport);
+  }, []);
 
   useEffect(() => {
     setActiveIndex((index) => Math.min(index, Math.max(0, slides.length - 1)));
@@ -148,10 +160,37 @@ export default function HomeHero() {
     );
   };
 
+  const rememberCoverAspectRatio = (
+    slideId: number,
+    source: "desktop" | "mobile",
+    image: HTMLImageElement,
+  ) => {
+    if (!image.naturalWidth || !image.naturalHeight) return;
+    const key = `${slideId}:${source}`;
+    const aspectRatio = image.naturalWidth / image.naturalHeight;
+    setCoverAspectRatios((current) =>
+      current[key] === aspectRatio ? current : { ...current, [key]: aspectRatio }
+    );
+  };
+
+  const activeSlide = slides[activeIndex];
+  const firstCoverSlide = slides.find((slide) => isFullCoverSlide(slide) && slide.imageUrl);
+  const ratioSlide = activeSlide && isFullCoverSlide(activeSlide) && activeSlide.imageUrl
+    ? activeSlide
+    : firstCoverSlide;
+  const ratioSource = isMobileViewport && (!ratioSlide || ratioSlide.mobileImageUrl?.trim())
+    ? "mobile"
+    : "desktop";
+  const fallbackAspectRatio = ratioSource === "mobile" ? 780 / 720 : 3420 / 820;
+  const roHeroAspectRatio = market === "ro" && ratioSlide
+    ? coverAspectRatios[`${ratioSlide.id}:${ratioSource}`] || fallbackAspectRatio
+    : fallbackAspectRatio;
+
   return (
     <section
       ref={heroRef}
-      className="relative h-[360px] overflow-hidden bg-slate-950 text-white md:h-[410px]"
+      className={`relative ${market === "ro" ? "h-auto" : "h-[360px] md:h-[410px]"} overflow-hidden bg-slate-950 text-white`}
+      style={market === "ro" ? { aspectRatio: roHeroAspectRatio } : undefined}
       aria-roledescription="carousel"
       aria-label="Promotional highlights"
       onMouseEnter={() => setPaused(true)}
@@ -161,7 +200,7 @@ export default function HomeHero() {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
       }}
     >
-      <div className="relative h-[360px] md:h-[410px]">
+      <div className={`relative ${market === "ro" ? "h-full" : "h-[360px] md:h-[410px]"}`}>
         {slides.map((slide, index) => {
           const isActive = index === activeIndex;
           const fullCover = isFullCoverSlide(slide);
@@ -169,6 +208,7 @@ export default function HomeHero() {
           const title = slide.title || t("home.hero.title");
           const subtitle = slide.subtitle || t("home.hero.subtitle");
           const label = slide.ctaLabel || (slide.id <= 0 ? t("home.hero.shopNow") : "");
+          const coverSource = isMobileViewport && slide.mobileImageUrl?.trim() ? "mobile" : "desktop";
           const coverImage = hasImage && slide.imageUrl ? (
             <picture className="absolute inset-0 block h-full w-full">
               {slide.mobileImageUrl?.trim() && (
@@ -178,7 +218,12 @@ export default function HomeHero() {
                 src={slide.imageUrl}
                 alt={slide.imageAlt || (fullCover ? "xHACCP France promotion" : title)}
                 className={`absolute inset-0 h-full w-full ${fullCover ? "object-contain" : "object-cover"}`}
-                onLoad={(event) => rememberCoverBackdrop(slide.id, event.currentTarget)}
+                onLoad={(event) => {
+                  rememberCoverBackdrop(slide.id, event.currentTarget);
+                  if (market === "ro") {
+                    rememberCoverAspectRatio(slide.id, coverSource, event.currentTarget);
+                  }
+                }}
               />
             </picture>
           ) : null;
@@ -214,7 +259,7 @@ export default function HomeHero() {
                 <div className="absolute inset-0 hero-gradient" />
               )}
               {!fullCover && (
-                <div className="container relative z-10 mx-auto flex min-h-[360px] items-center px-4 py-16 md:min-h-[410px]">
+                <div className={`container relative z-10 mx-auto flex items-center px-4 py-16 ${market === "ro" ? "min-h-0" : "min-h-[360px] md:min-h-[410px]"}`}>
                   <div className="mx-auto max-w-4xl text-center">
                     <h1 className="mb-6 text-4xl font-bold md:text-5xl">{title}</h1>
                     {subtitle && <p className="mb-8 text-xl text-slate-200">{subtitle}</p>}
