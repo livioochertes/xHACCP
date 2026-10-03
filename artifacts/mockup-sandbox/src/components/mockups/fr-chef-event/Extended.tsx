@@ -21,29 +21,33 @@ export function Extended() {
             </p>
           </div>
 
-          <p className="fr-extended__eyebrow">La Pétanque des Toqués</p>
-          <h1 id="fr-extended-title">
-            Le goût de se <em>retrouver.</em>
-          </h1>
-          <p className="fr-extended__subtitle">
-            xHACCP France célèbre les chefs de la Riviera.
-          </p>
-
-          <div className="fr-extended__offer">
-            <strong>−20<span>%</span></strong>
-            <p>
-              sur les produits xHACCP France
-              <b>pendant 1 an</b>
+          <div className="fr-extended__message">
+            <p className="fr-extended__eyebrow">La Pétanque des Toqués</p>
+            <h1 id="fr-extended-title">
+              Le goût de se <em>retrouver.</em>
+            </h1>
+            <p className="fr-extended__subtitle">
+              xHACCP France célèbre les chefs de la Riviera.
             </p>
           </div>
 
-          <p className="fr-extended__terms">
-            <span aria-hidden="true" />
-            <span>
-              Première commande validée sous 30 jours.
-              <small>Votre code personnel sera envoyé par e-mail.</small>
-            </span>
-          </p>
+          <div className="fr-extended__offer-panel">
+            <div className="fr-extended__offer">
+              <strong>−20<span>%</span></strong>
+              <p>
+                sur les produits xHACCP France
+                <b>pendant 1 an</b>
+              </p>
+            </div>
+
+            <p className="fr-extended__terms">
+              <span aria-hidden="true" />
+              <span>
+                Première commande validée sous 30 jours.
+                <small>Votre code personnel sera envoyé par e-mail.</small>
+              </span>
+            </p>
+          </div>
         </section>
 
         <aside className="fr-extended__action" aria-label="Découvrir l’offre">
@@ -147,17 +151,21 @@ export function Extended() {
           text-shadow: 0 1px 8px rgba(0,0,0,.35);
         }
         .fr-extended__copy {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
+          display: grid;
+          grid-template-columns: minmax(0, 1.12fr) minmax(230px, .88fr);
+          grid-template-rows: auto minmax(0, 1fr);
+          align-items: stretch;
+          column-gap: clamp(22px, 2vw, 34px);
+          row-gap: 18px;
           padding: clamp(18px, 2vw, 32px);
           background: rgba(250,249,243,.94);
         }
         .fr-extended__brand {
           display: flex;
+          grid-column: 1 / -1;
           align-items: center;
           gap: 12px;
-          margin-bottom: 15px;
+          margin: 0;
         }
         .fr-extended__brand img {
           display: block;
@@ -189,6 +197,14 @@ export function Extended() {
           letter-spacing: .18em;
           text-transform: uppercase;
         }
+        .fr-extended__message {
+          display: flex;
+          min-width: 0;
+          grid-column: 1;
+          grid-row: 2;
+          flex-direction: column;
+          justify-content: center;
+        }
         .fr-extended__copy h1 {
           margin: 0;
           color: #143448;
@@ -208,16 +224,29 @@ export function Extended() {
           font-size: clamp(11px, .92vw, 14px);
           line-height: 1.35;
         }
+        .fr-extended__offer-panel {
+          display: flex;
+          min-width: 0;
+          grid-column: 2;
+          grid-row: 2;
+          flex-direction: column;
+          justify-content: center;
+          padding: 20px clamp(16px, 1.5vw, 24px);
+          border-left: 2px solid rgba(48,133,119,.32);
+          border-radius: 14px;
+          background: rgba(232,241,235,.72);
+        }
         .fr-extended__offer {
           display: flex;
-          align-items: center;
-          gap: 13px;
-          margin-top: 13px;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+          margin: 0;
         }
         .fr-extended__offer > strong {
           color: #c27635;
           font-family: Georgia, "Times New Roman", serif;
-          font-size: clamp(34px, 2.7vw, 46px);
+          font-size: clamp(46px, 3.25vw, 60px);
           letter-spacing: -.06em;
           line-height: .9;
           white-space: nowrap;
@@ -229,7 +258,7 @@ export function Extended() {
         .fr-extended__offer p {
           margin: 0;
           color: #304c56;
-          font-size: clamp(10px, .84vw, 13px);
+          font-size: clamp(11px, .88vw, 14px);
           font-weight: 650;
           line-height: 1.25;
         }
@@ -242,9 +271,11 @@ export function Extended() {
           display: flex;
           align-items: flex-start;
           gap: 8px;
-          margin: 12px 0 0;
+          margin: 18px 0 0;
+          padding-top: 13px;
+          border-top: 1px solid rgba(23,55,70,.13);
           color: #4a6268;
-          font-size: 10px;
+          font-size: 11px;
           line-height: 1.4;
         }
         .fr-extended__terms > span:first-child {
@@ -257,6 +288,7 @@ export function Extended() {
         }
         .fr-extended__terms small {
           display: block;
+          margin-top: 3px;
           color: #73807b;
           font-size: inherit;
         }
@@ -345,11 +377,15 @@ export function Extended() {
             height: clamp(168px, 22svh, 205px);
           }
           .fr-extended__copy {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 13px;
             padding: 18px;
           }
           .fr-extended__brand {
             gap: 10px;
-            margin-bottom: 11px;
+            margin: 0;
           }
           .fr-extended__brand img {
             width: 70px;
@@ -365,6 +401,12 @@ export function Extended() {
             margin-bottom: 5px;
             font-size: 9px;
           }
+          .fr-extended__message {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            justify-content: center;
+          }
           .fr-extended__copy h1 {
             font-size: clamp(30px, 8.2vw, 38px);
           }
@@ -373,8 +415,19 @@ export function Extended() {
             font-size: 12px;
           }
           .fr-extended__offer {
+            flex-direction: row;
+            align-items: center;
             gap: 11px;
-            margin-top: 10px;
+            margin: 0;
+          }
+          .fr-extended__offer-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
           }
           .fr-extended__offer > strong {
             font-size: 38px;
@@ -385,6 +438,8 @@ export function Extended() {
           .fr-extended__terms {
             margin-top: 10px;
             font-size: 10px;
+            padding-top: 0;
+            border-top: 0;
           }
           .fr-extended__action {
             min-height: 86px;
@@ -436,6 +491,49 @@ export function Extended() {
             width: min(100%, 560px);
             height: clamp(260px, 34vw, 300px);
             justify-self: center;
+          }
+        }
+        @media (min-width: 901px) and (max-width: 1150px) {
+          .fr-extended__copy {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 9px;
+            padding: 18px;
+          }
+          .fr-extended__brand {
+            margin-bottom: 3px;
+          }
+          .fr-extended__message {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+          }
+          .fr-extended__offer-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+          }
+          .fr-extended__offer {
+            flex-direction: row;
+            align-items: center;
+            gap: 11px;
+          }
+          .fr-extended__offer > strong {
+            font-size: 38px;
+          }
+          .fr-extended__offer p {
+            font-size: 11px;
+          }
+          .fr-extended__terms {
+            margin-top: 8px;
+            padding-top: 0;
+            border-top: 0;
+            font-size: 10px;
           }
         }
         @media (max-width: 640px) {

@@ -24,30 +24,36 @@ export function ExtendedNavy() {
             </p>
           </div>
 
-          <p className="fr-extended-navy__eyebrow">
-            La Pétanque des Toqués · 10e édition
-          </p>
-          <h1 id="fr-extended-navy-title">
-            Un avantage
-            <br />
-            <em>qui dure.</em>
-          </h1>
+          <div className="fr-extended-navy__copy-grid">
+            <div className="fr-extended-navy__message">
+              <p className="fr-extended-navy__eyebrow">
+                La Pétanque des Toqués · 10e édition
+              </p>
+              <h1 id="fr-extended-navy-title">
+                Un avantage
+                <br />
+                <em>qui dure.</em>
+              </h1>
+            </div>
 
-          <div className="fr-extended-navy__offer">
-            <strong>−20<span>%</span></strong>
-            <p>
-              <b>pendant 1 an</b>
-              sur les produits xHACCP France
-            </p>
+            <div className="fr-extended-navy__offer-panel">
+              <div className="fr-extended-navy__offer">
+                <strong>−20<span>%</span></strong>
+                <p>
+                  <b>pendant 1 an</b>
+                  sur les produits xHACCP France
+                </p>
+              </div>
+
+              <p className="fr-extended-navy__terms">
+                <span aria-hidden="true" />
+                <span>
+                  Première commande validée sous 30 jours.
+                  <small>Votre code personnel sera envoyé par e-mail.</small>
+                </span>
+              </p>
+            </div>
           </div>
-
-          <p className="fr-extended-navy__terms">
-            <span aria-hidden="true" />
-            <span>
-              Première commande validée sous 30 jours.
-              <small>Votre code personnel sera envoyé par e-mail.</small>
-            </span>
-          </p>
         </section>
 
         <aside className="fr-extended-navy__action" aria-label="Inscription à l’offre">
@@ -151,19 +157,29 @@ export function ExtendedNavy() {
           text-shadow: 0 1px 8px rgba(0,0,0,.4);
         }
         .fr-extended-navy__copy {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
+          display: grid;
+          grid-template-rows: auto minmax(0, 1fr);
+          gap: 16px;
           padding: clamp(18px, 2vw, 32px);
           background:
             radial-gradient(ellipse at 92% 6%, rgba(53,127,150,.17), transparent 42%),
             linear-gradient(145deg, rgba(12,48,71,.97), rgba(5,30,49,.98));
         }
+        .fr-extended-navy__copy-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          align-items: center;
+          gap: clamp(20px, 2.2vw, 34px);
+          min-height: 0;
+        }
+        .fr-extended-navy__message {
+          min-width: 0;
+        }
         .fr-extended-navy__brand {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin-bottom: 13px;
+          margin-bottom: 0;
         }
         .fr-extended-navy__brand img {
           display: block;
@@ -192,7 +208,7 @@ export function ExtendedNavy() {
           letter-spacing: .11em;
         }
         .fr-extended-navy__eyebrow {
-          margin: 0 0 6px;
+          margin: 0 0 10px;
           color: #78c8cc;
           font-size: 9px;
           font-weight: 800;
@@ -212,11 +228,21 @@ export function ExtendedNavy() {
           color: #8fd7d4;
           font-weight: 600;
         }
+        .fr-extended-navy__offer-panel {
+          min-width: 0;
+          padding: clamp(18px, 1.8vw, 27px);
+          border: 1px solid rgba(227,173,66,.23);
+          border-radius: 15px;
+          background:
+            radial-gradient(ellipse at 100% 0%, rgba(227,173,66,.1), transparent 52%),
+            linear-gradient(145deg, rgba(18,59,78,.9), rgba(7,34,52,.86));
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+        }
         .fr-extended-navy__offer {
           display: flex;
           align-items: center;
           gap: 13px;
-          margin-top: 10px;
+          margin-top: 0;
         }
         .fr-extended-navy__offer > strong {
           color: #e3ad42;
@@ -357,12 +383,27 @@ export function ExtendedNavy() {
             min-height: 0;
           }
           .fr-extended-navy__copy {
+            display: flex;
+            flex-direction: column;
             justify-content: space-evenly;
             padding: 18px;
           }
+          .fr-extended-navy__copy-grid {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            justify-content: space-evenly;
+            gap: 12px;
+          }
+          .fr-extended-navy__offer-panel {
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: none;
+            box-shadow: none;
+          }
           .fr-extended-navy__brand {
             gap: 10px;
-            margin-bottom: 8px;
           }
           .fr-extended-navy__brand img {
             width: 68px;
@@ -375,7 +416,7 @@ export function ExtendedNavy() {
             font-size: 7px;
           }
           .fr-extended-navy__eyebrow {
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             font-size: 8px;
           }
           .fr-extended-navy__copy h1 {
@@ -383,7 +424,6 @@ export function ExtendedNavy() {
           }
           .fr-extended-navy__offer {
             gap: 11px;
-            margin-top: 8px;
           }
           .fr-extended-navy__offer > strong {
             font-size: 37px;

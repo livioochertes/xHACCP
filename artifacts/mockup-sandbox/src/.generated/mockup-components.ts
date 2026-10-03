@@ -3,17 +3,17 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/admin-dashboard-shortcuts/Current.tsx": () => import("../components/mockups/admin-dashboard-shortcuts/Current.tsx"),
   "./components/mockups/admin-dashboard-shortcuts/Refined.tsx": () => import("../components/mockups/admin-dashboard-shortcuts/Refined.tsx"),
+  "./components/mockups/admin-navigation/Current.tsx": () => import("../components/mockups/admin-navigation/Current.tsx"),
+  "./components/mockups/admin-navigation/Grouped.tsx": () => import("../components/mockups/admin-navigation/Grouped.tsx"),
+  "./components/mockups/admin-navigation/GroupedMobile.tsx": () => import("../components/mockups/admin-navigation/GroupedMobile.tsx"),
   "./components/mockups/chef-event/ChefEventQrCard.tsx": () => import("../components/mockups/chef-event/ChefEventQrCard.tsx"),
   "./components/mockups/chef-home/Offer.tsx": () => import("../components/mockups/chef-home/Offer.tsx"),
   "./components/mockups/chef-home/OfferSharp.tsx": () => import("../components/mockups/chef-home/OfferSharp.tsx"),
   "./components/mockups/chef-home/Participation.tsx": () => import("../components/mockups/chef-home/Participation.tsx"),
-  "./components/mockups/admin-navigation/Current.tsx": () => import("../components/mockups/admin-navigation/Current.tsx"),
-  "./components/mockups/admin-navigation/Grouped.tsx": () => import("../components/mockups/admin-navigation/Grouped.tsx"),
-  "./components/mockups/admin-navigation/GroupedMobile.tsx": () => import("../components/mockups/admin-navigation/GroupedMobile.tsx"),
-  "./components/mockups/product-card-fr/Aligned.tsx": () => import("../components/mockups/product-card-fr/Aligned.tsx"),
-  "./components/mockups/product-card-fr/Current.tsx": () => import("../components/mockups/product-card-fr/Current.tsx"),
   "./components/mockups/fr-chef-event/Current.tsx": () => import("../components/mockups/fr-chef-event/Current.tsx"),
   "./components/mockups/fr-chef-event/Extended.tsx": () => import("../components/mockups/fr-chef-event/Extended.tsx"),
   "./components/mockups/fr-chef-event/ExtendedNavy.tsx": () => import("../components/mockups/fr-chef-event/ExtendedNavy.tsx"),
+  "./components/mockups/product-card-fr/Aligned.tsx": () => import("../components/mockups/product-card-fr/Aligned.tsx"),
+  "./components/mockups/product-card-fr/Current.tsx": () => import("../components/mockups/product-card-fr/Current.tsx"),
   "./components/mockups/wms-tab/WmsRestructure.tsx": () => import("../components/mockups/wms-tab/WmsRestructure.tsx")
 };
