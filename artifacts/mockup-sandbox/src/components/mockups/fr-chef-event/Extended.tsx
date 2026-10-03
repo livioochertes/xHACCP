@@ -538,19 +538,90 @@ export function Extended() {
         }
         @media (max-width: 640px) {
           .fr-extended__hero {
-            grid-template-rows: minmax(0, .9fr) minmax(0, 1.15fr) minmax(86px, .4fr);
-            height: 100svh;
-            min-height: 100svh;
+            grid-template-rows: 94px minmax(0, 1fr) 52px;
+            height: 360px;
+            min-height: 360px;
+            max-height: 360px;
             align-content: stretch;
-            padding-block: 0;
-            overflow: auto;
+            gap: 6px;
+            padding: 8px;
+            overflow: hidden;
           }
           .fr-extended__photo {
             height: auto;
             min-height: 0;
           }
           .fr-extended__copy {
-            justify-content: space-evenly;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            gap: 5px;
+            justify-content: stretch;
+            padding: 8px 12px;
+          }
+          .fr-extended__brand {
+            gap: 8px;
+          }
+          .fr-extended__brand img {
+            width: 60px;
+            max-height: 22px;
+          }
+          .fr-extended__brand p {
+            font-size: 7px;
+            line-height: 1.2;
+          }
+          .fr-extended__brand p span {
+            margin-top: 2px;
+            font-size: 6.5px;
+          }
+          .fr-extended__eyebrow {
+            margin-bottom: 3px;
+            font-size: 8px;
+          }
+          .fr-extended__copy h1 {
+            font-size: clamp(22px, 6.2vw, 26px);
+            line-height: .96;
+          }
+          .fr-extended__subtitle {
+            margin-top: 3px;
+            font-size: 9px;
+            line-height: 1.15;
+          }
+          .fr-extended__offer-panel {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 3px;
+          }
+          .fr-extended__offer {
+            gap: 8px;
+          }
+          .fr-extended__offer > strong {
+            font-size: 31px;
+          }
+          .fr-extended__offer p {
+            font-size: 9px;
+            line-height: 1.1;
+          }
+          .fr-extended__terms {
+            gap: 6px;
+            margin: 0;
+            font-size: 8px;
+            line-height: 1.2;
+          }
+          .fr-extended__action {
+            min-height: 0;
+            gap: 8px;
+            padding: 5px 10px;
+          }
+          .fr-extended__mobile-cta {
+            min-height: 40px;
+            gap: 8px;
+            padding: 0 13px;
+            font-size: 11px;
+          }
+          .fr-extended__eligibility {
+            max-width: 45%;
+            font-size: 8px;
+            line-height: 1.15;
           }
         }
         @media (prefers-reduced-motion: reduce) {
