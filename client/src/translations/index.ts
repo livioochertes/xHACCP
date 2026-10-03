@@ -2592,7 +2592,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'home.hero.quote': 'Demander un Devis B2B',
     'home.features.title': 'Pourquoi Choisir xHACCP?',
     'home.features.shipping': 'Livraison Gratuite au-dessus de {threshold}',
-    'home.features.compliant': 'Produits Conformes FDA',
+    'home.features.compliant': 'Produits Conformes HACCP',
     'home.features.certified': 'Certifié par l\'Industrie',
     'home.features.support': 'Support 24/7',
     'home.features.customers': 'Plus de 10,000 Clients Satisfaits',
