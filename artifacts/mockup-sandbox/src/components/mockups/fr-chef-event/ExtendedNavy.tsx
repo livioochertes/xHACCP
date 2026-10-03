@@ -6,7 +6,7 @@ export function ExtendedNavy() {
       <section className="fr-extended-navy__hero" aria-label="Offre spéciale chefs">
         <figure className="fr-extended-navy__photo">
           <img
-            src="/__mockup/images/chef-home/team.jpeg"
+            src="/__mockup/images/chef-home-offer-sharp-team-original.jpg"
             alt="Les trois participants à La Pétanque des Toqués, à Antibes"
           />
           <figcaption>Antibes · 10e édition · 2026</figcaption>

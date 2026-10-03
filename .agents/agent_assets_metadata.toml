@@ -292,28 +292,28 @@ content_type = "image/png"
 id = "qcmlnWIwgIKQ__3k9o5gg"
 uri = "file://artifacts/mockup-sandbox/public/hero-exports/fr-chef-event-desktop.png"
 type = "image"
-title = "Cover bleumarin — desktop"
-description = "Export PNG la 3420 × 820 px, densitate 2× pentru hero-ul de 1710 × 410 px."
+title = "French Chef Event — navy desktop cover"
+description = "Navy cover, 1710×410 layout exported as a 3420×820 px 2× PNG using the original group photo."
 logical_id = "3a578101-bf24-46cc-ab7d-03bcb2c6e5b6"
-content_hash = "sha256:59f9b574044d65a453ee0ac69877599dba362270ef265254f6b02d4ba5a66daf"
-size = 1562412
-mtime_ms = 1791022762617
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/3a578101-bf24-46cc-ab7d-03bcb2c6e5b6/32653cfb-093c-4e95-a529-a9bf88009c83"
-storage_version_token = "1791027668142873"
+content_hash = "sha256:ad30c043ef666a35d0fac61f907be0689dd08ba308298aa8434bd1fa998109d9"
+size = 1766423
+mtime_ms = 1791047575086
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/3a578101-bf24-46cc-ab7d-03bcb2c6e5b6/50932405-2db5-487e-aa71-f337cad117cd"
+storage_version_token = "1791047614317517"
 content_type = "image/png"
 
 [[outputs]]
 id = "WOkwAcqHV5-NKM1Zuy_ji"
 uri = "file://artifacts/mockup-sandbox/public/hero-exports/fr-chef-event-mobile.png"
 type = "image"
-title = "Cover bleumarin — mobil"
-description = "Export PNG la 780 × 720 px, densitate 2× pentru hero-ul mobil de 390 × 360 px."
+title = "French Chef Event — navy mobile cover"
+description = "Navy cover, 390×360 layout exported as a 780×720 px 2× PNG using the original group photo; all three participants remain visible."
 logical_id = "afcbd5f1-e933-4ba9-b141-6ccbf85061e8"
-content_hash = "sha256:e8475454535fe832d41580ba879144889825527e3c2952f8bc9dd6462215a87d"
-size = 444117
-mtime_ms = 1791022765071
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/afcbd5f1-e933-4ba9-b141-6ccbf85061e8/1d3a552b-db79-420a-b696-33adada6f81c"
-storage_version_token = "1791027668724703"
+content_hash = "sha256:a82d95d9050e4f5614c3290bf5adff8f9fbd028a50ac47ff4a65a9f2295b6e6a"
+size = 501104
+mtime_ms = 1791047577610
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/afcbd5f1-e933-4ba9-b141-6ccbf85061e8/74e6d3df-fff9-4732-a189-d8f53fdaf53d"
+storage_version_token = "1791047614941389"
 content_type = "image/png"
 
 [[outputs]]
