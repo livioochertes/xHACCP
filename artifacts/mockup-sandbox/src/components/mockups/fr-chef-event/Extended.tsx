@@ -538,7 +538,7 @@ export function Extended() {
         }
         @media (max-width: 640px) {
           .fr-extended__hero {
-            grid-template-rows: 94px minmax(0, 1fr) 52px;
+            grid-template-rows: 116px minmax(0, 1fr) 52px;
             height: 360px;
             min-height: 360px;
             max-height: 360px;
@@ -550,6 +550,9 @@ export function Extended() {
           .fr-extended__photo {
             height: auto;
             min-height: 0;
+          }
+          .fr-extended__photo img {
+            object-position: center 32%;
           }
           .fr-extended__copy {
             display: grid;
