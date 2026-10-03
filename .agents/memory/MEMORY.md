@@ -13,6 +13,7 @@
 - [Product URL import metadata](product-url-import-metadata.md) — prefer Product JSON-LD and page headings; xHACCP product pages can expose a generic og:title.
 - [Product description formatting](product-description-formatting.md) — keep editable source text plain; generate storefront HTML deterministically when products are saved.
 - [Promotional banner QR assets](promotional-banner-qr-assets.md) — preserve copy/QR and match the measured Hero viewport ratio by extending only background.
+- [French Chef Event cover variants](french-chef-event-cover-variants.md) — confirm light vs navy from the selected visual before exporting or replacing campaign files.
 - [Admin numeric form fields](admin-numeric-form-fields.md) — optional numeric inputs can arrive as empty strings; normalize them server-side before database writes.
 - [Product bulk-action UX](product-bulk-action-ux.md) — expose actions in a dropdown, keep required inputs inline, and confirm explicitly before execution.
 - [French product-card layout](french-product-card-layout.md) — show full product photos without cropping; preserve frame size and align price/discount rows.

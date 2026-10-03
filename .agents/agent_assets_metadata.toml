@@ -292,26 +292,54 @@ content_type = "image/png"
 id = "qcmlnWIwgIKQ__3k9o5gg"
 uri = "file://artifacts/mockup-sandbox/public/hero-exports/fr-chef-event-desktop.png"
 type = "image"
-title = "Hero xHACCP France — desktop"
-description = "PNG 3420×820 (2× pentru cadrul de 1710×410). Include fotografia, textul, oferta și codul QR. Încarcă în câmpul URL imagine al slide-ului FR."
+title = "Cover bleumarin — desktop"
+description = "Export PNG la 3420 × 820 px, densitate 2× pentru hero-ul de 1710 × 410 px."
 logical_id = "3a578101-bf24-46cc-ab7d-03bcb2c6e5b6"
 content_hash = "sha256:59f9b574044d65a453ee0ac69877599dba362270ef265254f6b02d4ba5a66daf"
 size = 1562412
 mtime_ms = 1791022762617
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/3a578101-bf24-46cc-ab7d-03bcb2c6e5b6/9fc1121f-6d4a-4af4-9356-9aa555c110b8"
-storage_version_token = "1791022800988519"
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/3a578101-bf24-46cc-ab7d-03bcb2c6e5b6/32653cfb-093c-4e95-a529-a9bf88009c83"
+storage_version_token = "1791027668142873"
 content_type = "image/png"
 
 [[outputs]]
 id = "WOkwAcqHV5-NKM1Zuy_ji"
 uri = "file://artifacts/mockup-sandbox/public/hero-exports/fr-chef-event-mobile.png"
 type = "image"
-title = "Hero xHACCP France — mobil"
-description = "PNG 780×720 (2× pentru cadrul mobil de 390×360, raport 1,08:1). Include butonul S’inscrire în artwork; setează în admin destinația clickului la https://xhaccp.fr/chef-event."
+title = "Cover bleumarin — mobil"
+description = "Export PNG la 780 × 720 px, densitate 2× pentru hero-ul mobil de 390 × 360 px."
 logical_id = "afcbd5f1-e933-4ba9-b141-6ccbf85061e8"
 content_hash = "sha256:e8475454535fe832d41580ba879144889825527e3c2952f8bc9dd6462215a87d"
 size = 444117
 mtime_ms = 1791022765071
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/afcbd5f1-e933-4ba9-b141-6ccbf85061e8/5c5c397c-2146-4f11-8435-7101f1d29779"
-storage_version_token = "1791022801631209"
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/afcbd5f1-e933-4ba9-b141-6ccbf85061e8/1d3a552b-db79-420a-b696-33adada6f81c"
+storage_version_token = "1791027668724703"
+content_type = "image/png"
+
+[[outputs]]
+id = "Gs-TGgaYlIzdbog3YsZhG"
+uri = "file://artifacts/mockup-sandbox/public/hero-exports/fr-chef-event-light-desktop-1710x410.png"
+type = "image"
+title = "Cover deschis — desktop"
+description = "PNG 3420 × 820 px (2×), pentru dimensiunea hero 1710 × 410 px."
+logical_id = "7838d179-cd51-4f4a-a88e-80d05cf18420"
+content_hash = "sha256:ba74d56ce011a6a363b2af2605d6a65132b55f7984b9374f48b052c2c3bb1e59"
+size = 1055740
+mtime_ms = 1791027716212
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/7838d179-cd51-4f4a-a88e-80d05cf18420/b32bb5a8-c3b1-4766-978f-8fbaf0f207fa"
+storage_version_token = "1791027770282940"
+content_type = "image/png"
+
+[[outputs]]
+id = "hMpLGCNbea59oahf088IM"
+uri = "file://artifacts/mockup-sandbox/public/hero-exports/fr-chef-event-light-mobile-390x360.png"
+type = "image"
+title = "Cover deschis — mobil"
+description = "PNG 780 × 720 px (2×), pentru dimensiunea hero mobil 390 × 360 px."
+logical_id = "12904baf-f628-4808-8487-379f132fb262"
+content_hash = "sha256:29bffc679a202ebdbd68df3d9213bdb6f04b9a7716e840f29a7a7273f83fac78"
+size = 320167
+mtime_ms = 1791027719358
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/12904baf-f628-4808-8487-379f132fb262/0b6711e8-8324-4327-b5f4-3baa81bbeec7"
+storage_version_token = "1791027770846071"
 content_type = "image/png"
