@@ -287,3 +287,31 @@ mtime_ms = 1790848658028
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/ea2d5a46-9618-4631-937a-245a5e8436df/7ccbd595-f395-4c17-b977-0efca1d90265"
 storage_version_token = "1790848824305570"
 content_type = "image/png"
+
+[[outputs]]
+id = "qcmlnWIwgIKQ__3k9o5gg"
+uri = "file://artifacts/mockup-sandbox/public/hero-exports/fr-chef-event-desktop.png"
+type = "image"
+title = "Hero xHACCP France — desktop"
+description = "PNG 3420×820 (2× pentru cadrul de 1710×410). Include fotografia, textul, oferta și codul QR. Încarcă în câmpul URL imagine al slide-ului FR."
+logical_id = "3a578101-bf24-46cc-ab7d-03bcb2c6e5b6"
+content_hash = "sha256:59f9b574044d65a453ee0ac69877599dba362270ef265254f6b02d4ba5a66daf"
+size = 1562412
+mtime_ms = 1791022762617
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/3a578101-bf24-46cc-ab7d-03bcb2c6e5b6/9fc1121f-6d4a-4af4-9356-9aa555c110b8"
+storage_version_token = "1791022800988519"
+content_type = "image/png"
+
+[[outputs]]
+id = "WOkwAcqHV5-NKM1Zuy_ji"
+uri = "file://artifacts/mockup-sandbox/public/hero-exports/fr-chef-event-mobile.png"
+type = "image"
+title = "Hero xHACCP France — mobil"
+description = "PNG 780×720 (2× pentru cadrul mobil de 390×360, raport 1,08:1). Include butonul S’inscrire în artwork; setează în admin destinația clickului la https://xhaccp.fr/chef-event."
+logical_id = "afcbd5f1-e933-4ba9-b141-6ccbf85061e8"
+content_hash = "sha256:e8475454535fe832d41580ba879144889825527e3c2952f8bc9dd6462215a87d"
+size = 444117
+mtime_ms = 1791022765071
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:fbccb686-2dab-4ad2-b6c6-056c7e51a6d6/afcbd5f1-e933-4ba9-b141-6ccbf85061e8/5c5c397c-2146-4f11-8435-7101f1d29779"
+storage_version_token = "1791022801631209"
+content_type = "image/png"
