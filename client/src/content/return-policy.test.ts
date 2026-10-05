@@ -27,6 +27,7 @@ test("return-policy legal text and sources follow the storefront market, not UI 
 test("the French seller and return destination are isolated to the French storefront", () => {
   const contact = {
     name: "Other market seller",
+    phone: "+40 721 000 000",
     address: "Other market address",
     zipCode: "12345",
     city: "Other City",
@@ -37,6 +38,7 @@ test("the French seller and return destination are isolated to the French storef
 
   const french = getReturnPolicySellerDetails("fr", contact);
   assert.equal(french.name, "Yetique SAS");
+  assert.equal(french.phone, "+33 6 31 36 15 77");
   assert.deepEqual(french.postalAddress, ["122 RUE AMELOT", "75011 PARIS", "France"]);
   assert.equal(french.registrationNumber, "108 196 536 00016");
   assert.equal(french.vatNumber, "FR72108196536");
@@ -50,6 +52,7 @@ test("the French seller and return destination are isolated to the French storef
 
   const romanian = getReturnPolicySellerDetails("ro", contact);
   assert.equal(romanian.name, "Other market seller");
+  assert.equal(romanian.phone, "+40 721 000 000");
   assert.equal(romanian.registrationNumber, "OTHER-REG");
   assert.equal(romanian.vatNumber, "OTHER-VAT");
   assert.deepEqual(romanian.returnAddress, []);

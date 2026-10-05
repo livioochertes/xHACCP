@@ -36,6 +36,7 @@ export interface ReturnPolicyCopy {
   sellerTitle: string;
   sellerAddress: string;
   sellerEmail: string;
+  sellerPhone: string;
   registrationNumberLabel: string;
   vatNumberLabel: string;
   returnAddressTitle: string;
@@ -149,6 +150,7 @@ const COPY: Record<"fr" | "ro" | "en", ReturnPolicyCopy> = {
     sellerTitle: "Coordonnées du vendeur",
     sellerAddress: "Adresse postale",
     sellerEmail: "E-mail",
+    sellerPhone: "Téléphone",
     registrationNumberLabel: "SIRET",
     vatNumberLabel: "N° de TVA intracommunautaire",
     returnAddressTitle: "Adresse de retour",
@@ -264,6 +266,7 @@ const COPY: Record<"fr" | "ro" | "en", ReturnPolicyCopy> = {
     sellerTitle: "Datele vânzătorului",
     sellerAddress: "Adresă poștală",
     sellerEmail: "E-mail",
+    sellerPhone: "Telefon",
     registrationNumberLabel: "Număr de înregistrare",
     vatNumberLabel: "Cod de TVA",
     returnAddressTitle: "Adresa de retur",
@@ -379,6 +382,7 @@ const COPY: Record<"fr" | "ro" | "en", ReturnPolicyCopy> = {
     sellerTitle: "Seller contact details",
     sellerAddress: "Postal address",
     sellerEmail: "Email",
+    sellerPhone: "Phone",
     registrationNumberLabel: "Company registration number",
     vatNumberLabel: "VAT number",
     returnAddressTitle: "Return address",
@@ -586,6 +590,7 @@ export function getReturnPolicyCopy(language: string, market?: string): ReturnPo
 
 export interface ReturnPolicyContact {
   name?: string;
+  phone?: string;
   address?: string;
   zipCode?: string;
   city?: string;
@@ -596,6 +601,7 @@ export interface ReturnPolicyContact {
 
 export interface ReturnPolicySellerDetails {
   name: string;
+  phone: string;
   postalAddress: string[];
   registrationNumber: string;
   vatNumber: string;
@@ -609,6 +615,7 @@ export function getReturnPolicySellerDetails(
   if (market === "fr") {
     return {
       name: "Yetique SAS",
+      phone: "+33 6 31 36 15 77",
       postalAddress: ["122 RUE AMELOT", "75011 PARIS", "France"],
       registrationNumber: "108 196 536 00016",
       vatNumber: "FR72108196536",
@@ -625,6 +632,7 @@ export function getReturnPolicySellerDetails(
   const locality = [contact.zipCode, contact.city].filter(Boolean).join(" ");
   return {
     name: contact.name ?? "",
+    phone: contact.phone ?? "",
     postalAddress: [contact.address, locality, contact.country].filter(
       (line): line is string => Boolean(line),
     ),

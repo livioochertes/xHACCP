@@ -8,6 +8,7 @@ import {
   Mail,
   MapPin,
   PackageCheck,
+  Phone,
   RotateCcw,
   ShieldCheck,
   UserRound,
@@ -341,15 +342,33 @@ export default function Returns() {
                   </div>
                 </div>
               )}
-              {contact.email && (
-                <div className="flex items-start gap-3">
-                  <Mail className="mt-1 h-5 w-5 shrink-0 text-secondary" aria-hidden="true" />
-                  <div>
-                    <p className="font-semibold text-primary">{copy.sellerEmail}</p>
-                    <a className="text-secondary underline" href={`mailto:${contact.email}`}>
-                      {contact.email}
-                    </a>
-                  </div>
+              {(contact.email || seller.phone) && (
+                <div className="space-y-4">
+                  {contact.email && (
+                    <div className="flex items-start gap-3">
+                      <Mail className="mt-1 h-5 w-5 shrink-0 text-secondary" aria-hidden="true" />
+                      <div>
+                        <p className="font-semibold text-primary">{copy.sellerEmail}</p>
+                        <a className="text-secondary underline" href={`mailto:${contact.email}`}>
+                          {contact.email}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {seller.phone && (
+                    <div className="flex items-start gap-3">
+                      <Phone className="mt-1 h-5 w-5 shrink-0 text-secondary" aria-hidden="true" />
+                      <div>
+                        <p className="font-semibold text-primary">{copy.sellerPhone}</p>
+                        <a
+                          className="text-secondary underline"
+                          href={`tel:${seller.phone.replace(/[^\d+]/g, "")}`}
+                        >
+                          {seller.phone}
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {!contact.email && (
