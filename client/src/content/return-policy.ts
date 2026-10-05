@@ -414,6 +414,7 @@ const MARKET_POLICY: Record<PolicyMarket, {
   onlineWithdrawalNotice?: Record<PolicyLanguage, string>;
   returnAddressNote?: Record<PolicyLanguage, string>;
   refundProcessingNotice?: Record<PolicyLanguage, string>;
+  returnedGoodsConditionNotice?: Record<PolicyLanguage, string>;
   internationalScopeNote?: Record<PolicyLanguage, string>;
   withdrawalSectionTitle?: Record<PolicyLanguage, string>;
   sourceKeys: PolicySourceKey[];
@@ -452,6 +453,11 @@ const MARKET_POLICY: Record<PolicyMarket, {
       fr: "Lorsque le remboursement d’un retour de biens est différé jusqu’à la réception du colis, nous le traitons dans un délai maximal de 5 jours ouvrés après réception, sans dépasser tout délai légal plus court applicable.",
       ro: "Dacă rambursarea bunurilor returnate este amânată până la primirea coletului, o procesăm în cel mult 5 zile lucrătoare de la recepția acestuia, fără a depăși vreun termen legal mai scurt aplicabil.",
       en: "When a refund for returned goods is deferred until we receive the parcel, we process it within 5 business days of receipt and no later than any shorter applicable statutory deadline.",
+    },
+    returnedGoodsConditionNotice: {
+      fr: "Les produits à l’intérieur de la boîte doivent être retournés inutilisés et non descellés. Pour les consommateurs, cela ne limite pas le droit de manipuler les biens dans la mesure nécessaire pour en vérifier la nature, les caractéristiques et le fonctionnement ; une dépréciation due à des manipulations excessives peut rester à leur charge selon la loi.",
+      ro: "Produsele din interiorul cutiei trebuie returnate nefolosite și nedesigilate. Pentru consumatori, această cerință nu limitează dreptul de a manipula bunurile atât cât este necesar pentru a le verifica natura, caracteristicile și funcționarea; diminuarea valorii cauzată de manipulări excesive poate rămâne în sarcina lor, conform legii.",
+      en: "Products inside the box must be returned unused and unopened. For consumers, this does not limit the right to handle goods as needed to establish their nature, characteristics and functioning; diminished value caused by handling beyond that may be their responsibility under applicable law.",
     },
     sourceKeys: ["frWithdrawal", "frOnlineWithdrawal", "euReturns"],
   },
@@ -591,6 +597,19 @@ export function getReturnPolicyCopy(language: string, market?: string): ReturnPo
       ...bullets.slice(0, 2),
       refundProcessingNotice,
       ...bullets.slice(2),
+    ];
+  }
+  const returnedGoodsConditionNotice =
+    marketPolicy.returnedGoodsConditionNotice?.[normalizedLanguage];
+  const returnSection = sections.find(({ title }) =>
+    /^(Retour des biens|Returnarea bunurilor|Returning goods)$/i.test(title),
+  );
+  if (returnedGoodsConditionNotice && returnSection) {
+    const bullets = returnSection.bullets ?? [];
+    returnSection.bullets = [
+      ...bullets.slice(0, 1),
+      returnedGoodsConditionNotice,
+      ...bullets.slice(1),
     ];
   }
 

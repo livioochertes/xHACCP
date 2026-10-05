@@ -57,6 +57,47 @@ test("the five-business-day returned-parcel refund term applies only to the Fren
   }
 });
 
+test("the unused and unopened product condition applies only to the French storefront", () => {
+  const frenchMarketCopy = [
+    getReturnPolicyCopy("fr", "fr"),
+    getReturnPolicyCopy("ro", "fr"),
+    getReturnPolicyCopy("en", "fr"),
+  ];
+  const expectedPhrases = [
+    /retournés inutilisés et non descellés/,
+    /returnate nefolosite și nedesigilate/,
+    /returned unused and unopened/,
+  ];
+  const inspectionRights = [
+    /manipuler les biens dans la mesure nécessaire/,
+    /manipula bunurile atât cât este necesar/,
+    /handle goods as needed/,
+  ];
+
+  frenchMarketCopy.forEach((copy, index) => {
+    const returnSection = copy.sections.find(({ title }) =>
+      /^(Retour des biens|Returnarea bunurilor|Returning goods)$/i.test(title),
+    );
+    assert.ok(returnSection?.bullets);
+    assert.match(returnSection.bullets.join(" "), expectedPhrases[index]);
+    assert.match(returnSection.bullets.join(" "), inspectionRights[index]);
+  });
+
+  for (const market of ["ro", "com"]) {
+    for (const language of ["fr", "ro", "en"]) {
+      const copy = getReturnPolicyCopy(language, market);
+      const returnSection = copy.sections.find(({ title }) =>
+        /^(Retour des biens|Returnarea bunurilor|Returning goods)$/i.test(title),
+      );
+      assert.ok(returnSection?.bullets);
+      assert.doesNotMatch(
+        returnSection.bullets.join(" "),
+        /retournés inutilisés et non descellés|returnate nefolosite și nedesigilate|returned unused and unopened/,
+      );
+    }
+  }
+});
+
 test("the French seller and return destination are isolated to the French storefront", () => {
   const frenchContact = {
     name: "French company from settings",
