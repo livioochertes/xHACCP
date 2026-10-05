@@ -413,6 +413,7 @@ const MARKET_POLICY: Record<PolicyMarket, {
   warrantyParagraphs: Record<PolicyLanguage, string[]>;
   onlineWithdrawalNotice?: Record<PolicyLanguage, string>;
   returnAddressNote?: Record<PolicyLanguage, string>;
+  refundProcessingNotice?: Record<PolicyLanguage, string>;
   internationalScopeNote?: Record<PolicyLanguage, string>;
   withdrawalSectionTitle?: Record<PolicyLanguage, string>;
   sourceKeys: PolicySourceKey[];
@@ -446,6 +447,11 @@ const MARKET_POLICY: Record<PolicyMarket, {
       fr: "Après avoir notifié votre rétractation, renvoyez les biens à l’adresse de retour indiquée ci-dessous dans le délai légal de 14 jours.",
       ro: "După notificarea retragerii, trimiteți bunurile la adresa de retur afișată mai jos, în termenul legal de 14 zile.",
       en: "After notifying us of your withdrawal, send the goods to the return address shown below within the statutory 14-day period.",
+    },
+    refundProcessingNotice: {
+      fr: "Lorsque le remboursement d’un retour de biens est différé jusqu’à la réception du colis, nous le traitons dans un délai maximal de 5 jours ouvrés après réception, sans dépasser tout délai légal plus court applicable.",
+      ro: "Dacă rambursarea bunurilor returnate este amânată până la primirea coletului, o procesăm în cel mult 5 zile lucrătoare de la recepția acestuia, fără a depăși vreun termen legal mai scurt aplicabil.",
+      en: "When a refund for returned goods is deferred until we receive the parcel, we process it within 5 business days of receipt and no later than any shorter applicable statutory deadline.",
     },
     sourceKeys: ["frWithdrawal", "frOnlineWithdrawal", "euReturns"],
   },
@@ -574,6 +580,18 @@ export function getReturnPolicyCopy(language: string, market?: string): ReturnPo
   const onlineNotice = marketPolicy.onlineWithdrawalNotice?.[normalizedLanguage];
   if (onlineNotice) {
     sections[2].paragraphs = [...(sections[2].paragraphs ?? []), onlineNotice];
+  }
+  const refundProcessingNotice = marketPolicy.refundProcessingNotice?.[normalizedLanguage];
+  const refundSection = sections.find(({ title }) =>
+    /^(Remboursement|Rambursarea|Refunds)$/i.test(title),
+  );
+  if (refundProcessingNotice && refundSection) {
+    const bullets = refundSection.bullets ?? [];
+    refundSection.bullets = [
+      ...bullets.slice(0, 2),
+      refundProcessingNotice,
+      ...bullets.slice(2),
+    ];
   }
 
   const sources = marketPolicy.sourceKeys;

@@ -24,6 +24,39 @@ test("return-policy legal text and sources follow the storefront market, not UI 
   assert.equal(internationalMarketEnglish.sourceUrls?.length, internationalMarketEnglish.sources.length);
 });
 
+test("the five-business-day returned-parcel refund term applies only to the French storefront", () => {
+  const frenchMarketCopy = [
+    getReturnPolicyCopy("fr", "fr"),
+    getReturnPolicyCopy("ro", "fr"),
+    getReturnPolicyCopy("en", "fr"),
+  ];
+  const expectedPhrases = [
+    /5 jours ouvrés après réception/,
+    /5 zile lucrătoare de la recepția/,
+    /5 business days of receipt/,
+  ];
+
+  frenchMarketCopy.forEach((copy, index) => {
+    const refundSection = copy.sections.find(({ title }) =>
+      /^(Remboursement|Rambursarea|Refunds)$/i.test(title),
+    );
+    assert.ok(refundSection?.bullets);
+    assert.match(refundSection.bullets.join(" "), expectedPhrases[index]);
+    assert.match(refundSection.bullets.join(" "), /shorter|plus court|mai scurt/);
+  });
+
+  for (const market of ["ro", "com"]) {
+    for (const language of ["fr", "ro", "en"]) {
+      const copy = getReturnPolicyCopy(language, market);
+      const refundSection = copy.sections.find(({ title }) =>
+        /^(Remboursement|Rambursarea|Refunds)$/i.test(title),
+      );
+      assert.ok(refundSection?.bullets);
+      assert.doesNotMatch(refundSection.bullets.join(" "), /5 (?:jours ouvrés|zile lucrătoare|business days)/);
+    }
+  }
+});
+
 test("the French seller and return destination are isolated to the French storefront", () => {
   const frenchContact = {
     name: "French company from settings",
