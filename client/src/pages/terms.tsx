@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge";
 import { useCompanySettings } from "../hooks/useCompanySettings";
 import { formatCompanyPhone, getTelHref } from "../lib/company-contact";
+import { getTermsJurisdictionCopy } from "../content/market-legal-copy";
 
 export default function Terms() {
   const { t } = useTranslation();
@@ -95,11 +96,11 @@ export default function Terms() {
       id: "jurisdiction",
       icon: MapPin,
       title: t('terms.jurisdiction.title'),
-      content: [
+      content: getTermsJurisdictionCopy(market, [
         t('terms.jurisdiction.law'),
         t('terms.jurisdiction.disputes'),
         t('terms.jurisdiction.consumer')
-      ]
+      ])
     },
     {
       id: "privacy",

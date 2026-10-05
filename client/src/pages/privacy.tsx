@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 import { useCompanySettings } from "../hooks/useCompanySettings";
 import { formatCompanyPhone, getTelHref } from "../lib/company-contact";
+import {
+  FRENCH_PRIVACY_COMPLAINT_URL,
+  getPrivacyComplaintCopy,
+} from "../content/market-legal-copy";
 
 export default function Privacy() {
   const { t } = useTranslation();
@@ -124,7 +128,7 @@ export default function Privacy() {
         "• The right to data portability;",
         "• The right to object to processing;",
         "• The right not to be subject to a decision based solely on automated processing, including profiling;",
-        "• The right to lodge a complaint with the National Supervisory Authority for Personal Data Processing (www.dataprotection.ro) and to refer the matter to the courts.",
+        `• ${getPrivacyComplaintCopy(market, "The right to lodge a complaint with the National Supervisory Authority for Personal Data Processing (www.dataprotection.ro) and to refer the matter to the courts.")}`,
         `Individuals may exercise these rights by sending a written request to ${companyName}'s registered office${companyAddress ? ` (${companyAddress})` : ""}${contact.email ? `, by email at ${contact.email}` : ""}${companyPhone ? `, or by phone at ${companyPhone}` : ""}. The Data Protection Officer (DPO) services are outsourced and provided by GDPRComplet.`,
         "We will respond to your request within the legal timeframe of 30 days (with the possibility of extension if the request is complex, but we will inform you accordingly)."
       ]
@@ -259,7 +263,20 @@ export default function Privacy() {
                   <div className="space-y-4">
                     {section.content.map((paragraph, pIndex) => (
                       <p key={pIndex} className="text-slate-700 leading-relaxed">
-                        {paragraph}
+                        {market === "fr" && paragraph.includes(FRENCH_PRIVACY_COMPLAINT_URL) ? (
+                          <>
+                            {paragraph.slice(0, paragraph.indexOf(FRENCH_PRIVACY_COMPLAINT_URL))}
+                            <a
+                              href={FRENCH_PRIVACY_COMPLAINT_URL}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-secondary underline"
+                            >
+                              {FRENCH_PRIVACY_COMPLAINT_URL}
+                            </a>
+                            {paragraph.slice(paragraph.indexOf(FRENCH_PRIVACY_COMPLAINT_URL) + FRENCH_PRIVACY_COMPLAINT_URL.length)}
+                          </>
+                        ) : paragraph}
                       </p>
                     ))}
                   </div>
