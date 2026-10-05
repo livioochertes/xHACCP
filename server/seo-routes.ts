@@ -9,6 +9,7 @@ import { buildCatalogBody } from "./public-catalog";
 import fs from "fs";
 import path from "path";
 import { getProductSku } from "@shared/product-sku";
+import type { CompanySettings } from "@shared/schema";
 import type { IStorage } from "./storage";
 
 export interface MarketHelpers {
@@ -52,6 +53,26 @@ function escapeHtml(str: string): string {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+function buildFrenchCompanyInfoHtml(company: CompanySettings | undefined): string {
+  if (!company) return "";
+
+  const addressLines = [
+    company.address,
+    [company.zipCode, company.city].filter(Boolean).join(" "),
+    company.country,
+  ].filter((line): line is string => Boolean(line));
+  const details = [
+    company.name ? `<p>${escapeHtml(company.name)}</p>` : "",
+    ...addressLines.map((line) => `<p>${escapeHtml(line)}</p>`),
+    company.registrationNumber
+      ? `<p>SIRET : ${escapeHtml(company.registrationNumber)}</p>`
+      : "",
+    company.vatNumber ? `<p>TVA : ${escapeHtml(company.vatNumber)}</p>` : "",
+  ].filter(Boolean);
+
+  return details.join("\n");
 }
 
 /**
@@ -405,8 +426,14 @@ function getStaticMeta(route: string, base: string, lang: string): StaticMetaFn 
 // Localised static body HTML (crawler-visible content)
 // ---------------------------------------------------------------------------
 
-function buildStaticBodyHtml(route: string, base: string, lang: string): string {
+function buildStaticBodyHtml(
+  route: string,
+  base: string,
+  lang: string,
+  companySettings?: CompanySettings,
+): string {
   if (lang === "fr") {
+    const companyInfoHtml = buildFrenchCompanyInfoHtml(companySettings);
     switch (route) {
       case "/":
         return `
@@ -462,12 +489,14 @@ function buildStaticBodyHtml(route: string, base: string, lang: string): string 
 <main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
   <h1>Conditions Générales d'Utilisation xHACCP</h1>
   <p>Ce document décrit les conditions générales d'utilisation de la plateforme xHACCP, y compris les informations sur les achats, la livraison, les retours et les garanties.</p>
+  ${companyInfoHtml ? `<h2>Informations sur la société</h2>${companyInfoHtml}` : ""}
 </main>`;
       case "/privacy":
         return `
 <main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
   <h1>Politique de Confidentialité xHACCP</h1>
   <p>Informations sur la façon dont xHACCP collecte, utilise et protège les données personnelles des utilisateurs, conformément au Règlement RGPD.</p>
+  ${companyInfoHtml ? `<h2>Informations sur la société</h2>${companyInfoHtml}` : ""}
 </main>`;
       case "/returns":
         return `
@@ -475,8 +504,7 @@ function buildStaticBodyHtml(route: string, base: string, lang: string): string 
   <h1>Politique de retour et de remboursement</h1>
   <p>Cette version s’applique aux commandes passées sur le domaine français. Les consommateurs peuvent notifier leur rétractation dans le délai légal de 14 jours et doivent ensuite renvoyer les biens dans les 14 jours suivant leur notification.</p>
   <p>Depuis le 19 juin 2026, le droit français impose une fonctionnalité gratuite de rétractation en ligne pour les contrats conclus au moyen d’une interface en ligne. Le formulaire de cette page permet de transmettre votre déclaration.</p>
-  <h2>Vendeur</h2><p>Yetique SAS — 122 RUE AMELOT, 75011 PARIS, France</p>
-  <p>SIRET : 108 196 536 00016 — TVA : FR72108196536</p>
+  ${companyInfoHtml ? `<h2>Vendeur</h2>${companyInfoHtml}` : ""}
   <h2>Adresse de retour</h2><p>Saint Laurent Logistic, ZI SECTEUR D, 30 ALLEE DES GEOMETRES, 06700 SAINT-LAURENT-DU-VAR, France</p>
   <p><a href="${base}/returns">Consulter la politique et confirmer la rétractation</a></p>
 </main>`;
@@ -702,7 +730,11 @@ export function registerSeoRoutes(
         if (!metaFn) return next();
         const meta = metaFn(base);
         const catalog = route === "/products" ? await buildCatalogBody(req, storage, marketHelpers, base, market, lang) : null;
-        const bodyHtml = catalog?.html ?? buildStaticBodyHtml(route, base, lang);
+        const isFrenchLegalPage = lang === "fr" && ["/returns", "/privacy", "/terms"].includes(route);
+        const companySettings = isFrenchLegalPage
+          ? await storage.getCompanySettingsByMarket(market)
+          : undefined;
+        const bodyHtml = catalog?.html ?? buildStaticBodyHtml(route, base, lang, companySettings);
         if (catalog) meta.canonical = catalog.canonical;
         const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml);
         res.setHeader("Content-Type", "text/html; charset=utf-8");

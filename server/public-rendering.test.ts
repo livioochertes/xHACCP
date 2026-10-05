@@ -27,6 +27,15 @@ const storage = {
   getProducts: async () => products,
   getCategories: async () => [{ id: 1, slug: "food-labels", name: "Étiquettes", description: "Étiquettes alimentaires", showOnMainShop: true }],
   getProductTranslation: async (id: number, language: string) => language === "fr" ? { name: `Produit ${id}`, slug: `produit-${id}` } : null,
+  getCompanySettingsByMarket: async (market: string) => market === "fr" ? {
+    name: "French company from settings",
+    address: "1 Rue Example",
+    zipCode: "75001",
+    city: "Paris",
+    country: "France",
+    registrationNumber: "108 196 536 00016",
+    vatNumber: "FR72108196536",
+  } as any : undefined,
   getBlogPosts: async (options: any) => posts.filter(p => p.marketCode === options.marketCode && p.published),
   getBlogPostBySlug: async (slug: string, market: string) => posts.find(p => p.slug === slug && p.marketCode === market),
   getBlogPostTranslations: async () => [],
@@ -77,6 +86,34 @@ test("complete semantic content is retained and executable HTML removed", () => 
   assert.match(markdown, /<li>Step two/);
   assert.match(markdown, /href="\/products"/);
   assert.ok(markdown.length > 2000);
+});
+
+test("French legal SEO pages render seller registration details from French company settings only", async () => {
+  const app = express();
+  app.use((req: any, _res, next) => { req.market = req.headers["x-market"] || "fr"; next(); });
+  registerSeoRoutes(app, storage);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>(resolve => server.once("listening", resolve));
+  const address = server.address() as { port: number };
+  const get = async (pathname: string, market = "fr") => {
+    const response = await fetch(`http://127.0.0.1:${address.port}${pathname}`, {
+      headers: { Accept: "text/html", "X-Market": market, "X-Forwarded-Host": `xhaccp.${market === "com" ? "com" : market}` },
+    });
+    return load(await response.text());
+  };
+
+  try {
+    for (const pathname of ["/returns", "/privacy", "/terms"]) {
+      const $ = await get(pathname);
+      assert.match($("#public-root").text(), /108 196 536 00016/, pathname);
+      assert.match($("#public-root").text(), /French company from settings/, pathname);
+    }
+
+    const romanianReturns = await get("/returns", "ro");
+    assert.doesNotMatch(romanianReturns("#public-root").text(), /108 196 536 00016/);
+  } finally {
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  }
 });
 
 test("public HTML includes real localized content, pagination and metadata", async () => {
