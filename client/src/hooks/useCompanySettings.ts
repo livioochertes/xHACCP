@@ -19,8 +19,9 @@ function getCurrentMarket(): 'ro' | 'fr' | 'com' {
     const hostname = window.location.hostname;
     if (hostname === 'xhaccp.ro' || hostname.endsWith('.xhaccp.ro')) return 'ro';
     if (hostname === 'xhaccp.fr' || hostname.endsWith('.xhaccp.fr')) return 'fr';
+    if (hostname === 'xhaccp.com' || hostname.endsWith('.xhaccp.com')) return 'com';
   } catch {}
-  return 'com';
+  return 'ro';
 }
 
 export function useCompanySettings() {

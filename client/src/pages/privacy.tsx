@@ -17,10 +17,18 @@ import {
   Phone
 } from "lucide-react";
 import { useCompanySettings } from "../hooks/useCompanySettings";
+import { formatCompanyPhone, getTelHref } from "../lib/company-contact";
 
 export default function Privacy() {
   const { t } = useTranslation();
-  const { contact } = useCompanySettings();
+  const { contact, market } = useCompanySettings();
+  const companyName = contact.name || "NAMARTE";
+  const companyPhone = formatCompanyPhone(contact.phone, market);
+  const companyAddress = [
+    contact.address,
+    [contact.zipCode, contact.city].filter(Boolean).join(" "),
+    contact.country,
+  ].filter(Boolean).join(", ");
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -32,7 +40,7 @@ export default function Privacy() {
       icon: User,
       title: "Who Are We?",
       content: [
-        "NAMARTE (hereinafter referred to as the \"Company\" or \"We\") is a company capable of providing an app for fidelize the clients from the HORECA industry. We have pooled all our knowledge and energy to create a high-level app for for the food industry.",
+        `${companyName} (hereinafter referred to as the "Company" or "We") provides software and services for the HORECA industry.`,
         "Our vision: a complete solution for restaurants is possible!",
         "We believe that food should be prepared using the best ingredients, be affordable, diverse, and served or delivered under the best conditions. Waste can be controlled and reduced through good supply chain management."
       ]
@@ -42,7 +50,7 @@ export default function Privacy() {
       icon: Database,
       title: "How Do We Process Your Personal Data?",
       content: [
-        "NAMARTE, in its capacity as a Controller, processes personal data of candidates applying for available positions, employees, customers who are legal entities, contractual partners, collaborators, as well as data of other natural persons who interact with the Company and are engaged in contractual relationships with it.",
+        `${companyName}, in its capacity as a Controller, processes personal data of candidates applying for available positions, employees, customers who are legal entities, contractual partners, collaborators, and other natural persons who interact with the Company.`,
         "Personal data are:",
         "• processed lawfully, fairly, and in a transparent manner in relation to the data subject;",
         "• collected for specified, explicit, and legitimate purposes and are not subsequently processed in a manner incompatible with those purposes;",
@@ -57,7 +65,7 @@ export default function Privacy() {
       icon: FileText,
       title: "What Types of Personal Data Are Processed and For What Purpose?",
       content: [
-        "When completing and submitting the contact form (\"Any Questions? Send Us a Message\") on the main page of the Company's website www.xhaccp.com, we process the following types of personal data: first and last name, email address, phone number, as well as any other data provided at the data subject's initiative regarding the services marketed by the Company, in the \"Your message\" field.",
+        "When completing and submitting the contact form (\"Any Questions? Send Us a Message\") on the main page of the Company's website, we process the following types of personal data: first and last name, email address, phone number, as well as any other data provided at the data subject's initiative regarding the services marketed by the Company, in the \"Your message\" field.",
         "You must check the box stating \"I have read and agree to the Privacy Policy\" – and then click the \"Send message\" button.",
         "For visitors of the website, we may collect data through cookies or similar technologies, such as: IP address, internet browser, location, web pages accessed on our website, time spent on the website, internet network, and device used. For more details on this, please consult our Cookies Policy.",
         "We do not use your personal data to send you marketing communications, such as newsletters, unless you have given your explicit consent for such communications by ticking a corresponding consent box. In this respect, we only process your email address, and we ensure that you have a simple option to unsubscribe at any time, i.e., to withdraw your consent regarding these types of communications."
@@ -72,7 +80,7 @@ export default function Privacy() {
         "• conclude and perform various contracts;",
         "• fulfill the legal obligations incumbent upon us;",
         "• do so based on the prior consent requested and/or provided (in the context of staff recruitment, for sending marketing communications, etc.);",
-        "• pursue the Company's legitimate interests (e.g., taking measures to protect and secure our employees, exercising certain rights and legitimate interests of the Company in contentious or non-contentious proceedings, etc.)."
+        `• pursue ${companyName}'s legitimate interests (e.g., taking measures to protect and secure our employees and exercising the Company's rights in contentious or non-contentious proceedings).`
       ]
     },
     {
@@ -89,8 +97,8 @@ export default function Privacy() {
       title: "Who Do We Disclose Your Personal Data To?",
       content: [
         "We will not disclose or transfer to any third party any personal data collected from or about you, except for:",
-        "• Public authorities and institutions – when there is a legal obligation to do so or for a legitimate interest (defending the Company's rights in contentious or non-contentious proceedings, etc.)",
-        "• The Company's contractual partners or collaborators who provide services such as: web hosting NAMECHAP, website development (NAMARTE), website maintenance (NAMARTE), online marketing (NAMARTE), marketing communications (MailChimp), etc.",
+        "• Public authorities and institutions – when there is a legal obligation to do so or for a legitimate interest (including defending the Company's rights in contentious or non-contentious proceedings)",
+        `• ${companyName}'s contractual partners or collaborators who provide services such as web hosting, website development and maintenance, online marketing, and marketing communications.`,
         "• Any third party – if you have given your explicit and specific consent for that particular situation and for the respective data.",
         "The personal data processed by the Company are not transferred by the Company (directly or through its contractual partners/collaborators) outside Romania or the European Economic Area (EEA)."
       ]
@@ -117,7 +125,7 @@ export default function Privacy() {
         "• The right to object to processing;",
         "• The right not to be subject to a decision based solely on automated processing, including profiling;",
         "• The right to lodge a complaint with the National Supervisory Authority for Personal Data Processing (www.dataprotection.ro) and to refer the matter to the courts.",
-        "Individuals may exercise these rights by sending a written request either to the headquarters of NAMARTE (Bucharest, Sector 2, Calea Moșilor no. 158, Romania) or electronically to the Data Protection Officer's email address: info@xhaccp.com, or by phone at: +40740000520. The Data Protection Officer (DPO) services are outsourced and provided by GDPRComplet.",
+        `Individuals may exercise these rights by sending a written request to ${companyName}'s registered office${companyAddress ? ` (${companyAddress})` : ""}${contact.email ? `, by email at ${contact.email}` : ""}${companyPhone ? `, or by phone at ${companyPhone}` : ""}. The Data Protection Officer (DPO) services are outsourced and provided by GDPRComplet.`,
         "We will respond to your request within the legal timeframe of 30 days (with the possibility of extension if the request is complex, but we will inform you accordingly)."
       ]
     }
@@ -209,15 +217,15 @@ export default function Privacy() {
                       <div className="flex items-center space-x-3">
                         <Mail className="h-5 w-5 text-secondary" />
                         <div>
-                          <p className="text-slate-600">{contact.email}</p>
+                          <a className="text-slate-600 underline" href={`mailto:${contact.email}`}>{contact.email}</a>
                         </div>
                       </div>
                     )}
-                    {contact.phone && (
+                    {companyPhone && (
                       <div className="flex items-center space-x-3">
                         <Phone className="h-5 w-5 text-secondary" />
                         <div>
-                          <p className="text-slate-600">{contact.phone}</p>
+                          <a className="text-slate-600 underline" href={getTelHref(companyPhone)}>{companyPhone}</a>
                         </div>
                       </div>
                     )}
@@ -279,12 +287,14 @@ export default function Privacy() {
               >
                 Contact Support
               </Link>
-              <a 
-                href={`mailto:${contact.email || 'info@xhaccp.com'}`}
-                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-secondary transition-colors"
-              >
-                Email Us
-              </a>
+              {contact.email && (
+                <a
+                  href={`mailto:${contact.email}`}
+                  className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-secondary transition-colors"
+                >
+                  Email Us
+                </a>
+              )}
             </div>
           </div>
         </div>

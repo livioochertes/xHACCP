@@ -612,23 +612,6 @@ export function getReturnPolicySellerDetails(
   market: string,
   contact: ReturnPolicyContact,
 ): ReturnPolicySellerDetails {
-  if (market === "fr") {
-    return {
-      name: "Yetique SAS",
-      phone: "+33 6 31 36 15 77",
-      postalAddress: ["122 RUE AMELOT", "75011 PARIS", "France"],
-      registrationNumber: "108 196 536 00016",
-      vatNumber: "FR72108196536",
-      returnAddress: [
-        "Saint Laurent Logistic",
-        "ZI SECTEUR D",
-        "30 ALLEE DES GEOMETRES",
-        "06700 SAINT-LAURENT-DU-VAR",
-        "France",
-      ],
-    };
-  }
-
   const locality = [contact.zipCode, contact.city].filter(Boolean).join(" ");
   return {
     name: contact.name ?? "",
@@ -638,6 +621,14 @@ export function getReturnPolicySellerDetails(
     ),
     registrationNumber: contact.registrationNumber ?? "",
     vatNumber: contact.vatNumber ?? "",
-    returnAddress: [],
+    returnAddress: market === "fr"
+      ? [
+          "Saint Laurent Logistic",
+          "ZI SECTEUR D",
+          "30 ALLEE DES GEOMETRES",
+          "06700 SAINT-LAURENT-DU-VAR",
+          "France",
+        ]
+      : [],
   };
 }

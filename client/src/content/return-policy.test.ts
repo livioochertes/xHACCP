@@ -25,23 +25,23 @@ test("return-policy legal text and sources follow the storefront market, not UI 
 });
 
 test("the French seller and return destination are isolated to the French storefront", () => {
-  const contact = {
-    name: "Other market seller",
-    phone: "+40 721 000 000",
-    address: "Other market address",
-    zipCode: "12345",
-    city: "Other City",
-    country: "Other Country",
-    registrationNumber: "OTHER-REG",
-    vatNumber: "OTHER-VAT",
+  const frenchContact = {
+    name: "French company from settings",
+    phone: "0123456789",
+    address: "1 Rue Example",
+    zipCode: "75001",
+    city: "Paris",
+    country: "France",
+    registrationNumber: "FR-REG",
+    vatNumber: "FR-VAT",
   };
 
-  const french = getReturnPolicySellerDetails("fr", contact);
-  assert.equal(french.name, "Yetique SAS");
-  assert.equal(french.phone, "+33 6 31 36 15 77");
-  assert.deepEqual(french.postalAddress, ["122 RUE AMELOT", "75011 PARIS", "France"]);
-  assert.equal(french.registrationNumber, "108 196 536 00016");
-  assert.equal(french.vatNumber, "FR72108196536");
+  const french = getReturnPolicySellerDetails("fr", frenchContact);
+  assert.equal(french.name, "French company from settings");
+  assert.equal(french.phone, "0123456789");
+  assert.deepEqual(french.postalAddress, ["1 Rue Example", "75001 Paris", "France"]);
+  assert.equal(french.registrationNumber, "FR-REG");
+  assert.equal(french.vatNumber, "FR-VAT");
   assert.deepEqual(french.returnAddress, [
     "Saint Laurent Logistic",
     "ZI SECTEUR D",
@@ -50,7 +50,16 @@ test("the French seller and return destination are isolated to the French storef
     "France",
   ]);
 
-  const romanian = getReturnPolicySellerDetails("ro", contact);
+  const romanian = getReturnPolicySellerDetails("ro", {
+    name: "Other market seller",
+    phone: "+40 721 000 000",
+    address: "Other market address",
+    zipCode: "12345",
+    city: "Other City",
+    country: "Romania",
+    registrationNumber: "OTHER-REG",
+    vatNumber: "OTHER-VAT",
+  });
   assert.equal(romanian.name, "Other market seller");
   assert.equal(romanian.phone, "+40 721 000 000");
   assert.equal(romanian.registrationNumber, "OTHER-REG");

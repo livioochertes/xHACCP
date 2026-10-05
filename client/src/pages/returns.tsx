@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../contexts/language-context";
 import { useCompanySettings } from "../hooks/useCompanySettings";
+import { formatCompanyPhone, getTelHref } from "../lib/company-contact";
 import {
   getReturnPolicyCopy,
   getReturnPolicySellerDetails,
@@ -47,6 +48,7 @@ export default function Returns() {
   const { contact, market } = useCompanySettings();
   const copy = getReturnPolicyCopy(language, market);
   const seller = getReturnPolicySellerDetails(market, contact);
+  const sellerPhone = formatCompanyPhone(seller.phone, market);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -355,16 +357,13 @@ export default function Returns() {
                       </div>
                     </div>
                   )}
-                  {seller.phone && (
+                  {sellerPhone && (
                     <div className="flex items-start gap-3">
                       <Phone className="mt-1 h-5 w-5 shrink-0 text-secondary" aria-hidden="true" />
                       <div>
                         <p className="font-semibold text-primary">{copy.sellerPhone}</p>
-                        <a
-                          className="text-secondary underline"
-                          href={`tel:${seller.phone.replace(/[^\d+]/g, "")}`}
-                        >
-                          {seller.phone}
+                        <a className="text-secondary underline" href={getTelHref(sellerPhone)}>
+                          {sellerPhone}
                         </a>
                       </div>
                     </div>

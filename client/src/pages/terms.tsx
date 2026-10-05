@@ -5,10 +5,13 @@ import { Calendar, Mail, Phone, MapPin, FileText, Shield, Users, Globe } from "l
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { useCompanySettings } from "../hooks/useCompanySettings";
+import { formatCompanyPhone, getTelHref } from "../lib/company-contact";
 
 export default function Terms() {
   const { t } = useTranslation();
-  const { contact } = useCompanySettings();
+  const { contact, market } = useCompanySettings();
+  const companyName = contact.name || "NAMARTE";
+  const companyPhone = formatCompanyPhone(contact.phone, market);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -109,6 +112,10 @@ export default function Terms() {
       ]
     }
   ];
+  const displayedSections = sections.map((section) => ({
+    ...section,
+    content: section.content.map((paragraph) => paragraph.replaceAll("NAMARTE", companyName)),
+  }));
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -178,15 +185,15 @@ export default function Terms() {
                       <div className="flex items-center space-x-3">
                         <Mail className="h-5 w-5 text-secondary" />
                         <div>
-                          <p className="text-slate-600">{contact.email}</p>
+                          <a className="text-slate-600 underline" href={`mailto:${contact.email}`}>{contact.email}</a>
                         </div>
                       </div>
                     )}
-                    {contact.phone && (
+                    {companyPhone && (
                       <div className="flex items-center space-x-3">
                         <Phone className="h-5 w-5 text-secondary" />
                         <div>
-                          <p className="text-slate-600">{contact.phone}</p>
+                          <a className="text-slate-600 underline" href={getTelHref(companyPhone)}>{companyPhone}</a>
                         </div>
                       </div>
                     )}
@@ -202,7 +209,7 @@ export default function Terms() {
       <section className="py-16 kitchen-pro-muted">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto space-y-8">
-            {sections.map((section, index) => (
+            {displayedSections.map((section, index) => (
               <Card key={section.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-3">
@@ -245,9 +252,11 @@ export default function Terms() {
                     {t('terms.footer.support')}
                   </Link>
                   <span className="hidden sm:inline text-slate-400">|</span>
-                  <a href={`mailto:${contact.email || 'info@xhaccp.com'}`} className="text-secondary hover:text-secondary/80 font-medium">
-                    {t('terms.footer.privacy')}
-                  </a>
+                  {contact.email && (
+                    <a href={`mailto:${contact.email}`} className="text-secondary hover:text-secondary/80 font-medium">
+                      {t('terms.footer.privacy')}
+                    </a>
+                  )}
                 </div>
               </CardContent>
             </Card>
