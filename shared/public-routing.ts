@@ -6,6 +6,7 @@ const PUBLIC_SPA_EXACT_PATHS = new Set([
   "/b2b",
   "/terms",
   "/privacy",
+  "/returns",
   "/ai-assistant",
   "/chef-event",
   "/cart",

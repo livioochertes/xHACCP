@@ -43,6 +43,7 @@ import {
   isValidEmailAddress,
   type ContactMarket,
 } from './contact-email.js';
+import { parseConsumerWithdrawalInput } from "./consumer-withdrawal.js";
 import {
   buildVivaCheckoutPayload,
   getVivaCredentials,
@@ -86,6 +87,13 @@ const eventVoucherRegistrationLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Trop de tentatives. Veuillez réessayer plus tard." },
+});
+const consumerWithdrawalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "too_many_requests" },
 });
 const paypalCreateOrderLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -903,6 +911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { url: '/about', priority: '0.7', changefreq: 'monthly' },
         { url: '/terms', priority: '0.4', changefreq: 'yearly' },
         { url: '/privacy', priority: '0.4', changefreq: 'yearly' },
+        { url: '/returns', priority: '0.5', changefreq: 'yearly' },
       ];
       const market = getMarketFromRequest(req);
       if (market === "fr") {
@@ -3721,6 +3730,68 @@ ${product.description}`;
     } catch (error) {
       console.error("Get admin orders error:", error);
       res.status(500).json({ message: "Failed to get orders" });
+    }
+  });
+
+  // Consumer withdrawal notice. The timestamp and reference returned to the
+  // customer are generated before email delivery so they match the submitted notice.
+  app.post("/api/consumer-withdrawal", consumerWithdrawalLimiter, async (req, res) => {
+    const market = getMarketFromRequest(req) as ContactMarket;
+    const parsed = parseConsumerWithdrawalInput(req.body, market);
+    if (!parsed.ok) {
+      return res.status(400).json({
+        success: false,
+        message: market === "fr"
+          ? "Veuillez vérifier les informations saisies."
+          : market === "ro"
+            ? "Vă rugăm să verificați datele introduse."
+            : "Please check the information you entered.",
+      });
+    }
+
+    const submittedAt = new Date();
+    try {
+      const companySettings = await storage.getCompanySettingsByMarket(market);
+      const businessEmails = collectContactRecipients(companySettings);
+      const emailResults = await sendContactFormEmails(parsed.data, {
+        market,
+        businessEmails,
+        createdAt: submittedAt,
+        suppressRecipientLogging: true,
+      });
+
+      if (!emailResults.toBusinessSent) {
+        console.error("Consumer withdrawal notice could not be delivered to a market recipient", {
+          market,
+          configuredRecipients: businessEmails.length,
+        });
+        return res.status(503).json({
+          success: false,
+          message: market === "fr"
+            ? "Votre déclaration n'a pas pu être enregistrée. Veuillez réessayer."
+            : market === "ro"
+              ? "Declarația nu a putut fi înregistrată. Vă rugăm să încercați din nou."
+              : "Your notice could not be recorded. Please try again.",
+        });
+      }
+
+      return res.json({
+        success: true,
+        noticeReceived: true,
+        ticketId: emailResults.ticketId,
+        submittedAt: emailResults.submittedAt,
+        receiptSent: emailResults.toCustomerSent,
+      });
+    } catch {
+      console.error("Consumer withdrawal handling failed", { market });
+      return res.status(503).json({
+        success: false,
+        message: market === "fr"
+          ? "Votre déclaration n'a pas pu être enregistrée. Veuillez réessayer."
+          : market === "ro"
+            ? "Declarația nu a putut fi înregistrată. Vă rugăm să încercați din nou."
+            : "Your notice could not be recorded. Please try again.",
+      });
     }
   });
 

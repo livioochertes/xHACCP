@@ -251,6 +251,12 @@ const STATIC_META_BY_LANG: Record<string, Record<string, StaticMetaFn>> = {
         "Informații despre modul în care xHACCP colectează, utilizează și protejează datele personale ale utilizatorilor, în conformitate cu GDPR.",
       canonical: base + "/privacy",
     }),
+    "/returns": (base) => ({
+      title: "Politica de retur și rambursare | xHACCP",
+      description:
+        "Informații despre dreptul legal de retragere, retururi și rambursări pentru consumatorii din Franța și Uniunea Europeană, inclusiv formularul online de retragere.",
+      canonical: base + "/returns",
+    }),
     "/blog": (base) => ({
       title: "Blog HACCP & HoReCa – Resurse pentru siguranța alimentară | xHACCP",
       description:
@@ -306,6 +312,12 @@ const STATIC_META_BY_LANG: Record<string, Record<string, StaticMetaFn>> = {
         "Informations sur la façon dont xHACCP collecte, utilise et protège les données personnelles des utilisateurs, conformément au RGPD.",
       canonical: base + "/privacy",
     }),
+    "/returns": (base) => ({
+      title: "Politique de retour et de remboursement | xHACCP",
+      description:
+        "Délais et conditions du droit légal de rétractation des consommateurs en France et dans l’Union européenne, avec formulaire de rétractation en ligne.",
+      canonical: base + "/returns",
+    }),
     "/blog": (base) => ({
       title: "Blog HACCP & Restauration – Ressources pour la sécurité alimentaire | xHACCP",
       description:
@@ -360,6 +372,12 @@ const STATIC_META_BY_LANG: Record<string, Record<string, StaticMetaFn>> = {
       description:
         "Information on how xHACCP collects, uses and protects users' personal data in accordance with GDPR.",
       canonical: base + "/privacy",
+    }),
+    "/returns": (base) => ({
+      title: "Return and Refund Policy | xHACCP",
+      description:
+        "Statutory consumer withdrawal periods, return and refund terms for France and the European Union, including an online withdrawal form.",
+      canonical: base + "/returns",
     }),
     "/blog": (base) => ({
       title: "HACCP & Foodservice Blog – Food Safety Resources | xHACCP",
@@ -451,6 +469,14 @@ function buildStaticBodyHtml(route: string, base: string, lang: string): string 
   <h1>Politique de Confidentialité xHACCP</h1>
   <p>Informations sur la façon dont xHACCP collecte, utilise et protège les données personnelles des utilisateurs, conformément au Règlement RGPD.</p>
 </main>`;
+      case "/returns":
+        return `
+<main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
+  <h1>Politique de retour et de remboursement</h1>
+  <p>Les consommateurs peuvent notifier leur rétractation dans les 14 jours prévus par la loi. Les biens doivent ensuite être renvoyés dans les 14 jours suivant la notification. Les remboursements sont effectués selon les délais et conditions légaux applicables.</p>
+  <p>Pour les contrats conclus en ligne, utilisez le formulaire de rétractation disponible sur cette page.</p>
+  <p><a href="${base}/returns">Consulter la politique et confirmer la rétractation</a></p>
+</main>`;
     }
   }
 
@@ -516,6 +542,14 @@ function buildStaticBodyHtml(route: string, base: string, lang: string): string 
 <main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
   <h1>xHACCP Privacy Policy</h1>
   <p>Information on how xHACCP collects, uses and protects users' personal data in accordance with the GDPR Regulation.</p>
+</main>`;
+      case "/returns":
+        return `
+<main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
+  <h1>Return and Refund Policy</h1>
+  <p>Consumers may notify us that they are withdrawing within the statutory 14-day period. Goods must then be sent back within 14 days after notice. Refunds are made under the applicable statutory deadlines and conditions.</p>
+  <p>For online contracts, use the withdrawal form available on this page.</p>
+  <p><a href="${base}/returns">Read the policy and confirm your withdrawal</a></p>
 </main>`;
     }
   }
@@ -583,6 +617,14 @@ function buildStaticBodyHtml(route: string, base: string, lang: string): string 
   <h1>Politica de Confidențialitate xHACCP</h1>
   <p>Informații despre modul în care xHACCP colectează, utilizează și protejează datele personale ale utilizatorilor, în conformitate cu Regulamentul GDPR.</p>
 </main>`;
+    case "/returns":
+      return `
+<main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
+  <h1>Politica de retur și rambursare</h1>
+  <p>Consumatorii pot notifica retragerea în termenul legal de 14 zile. Bunurile trebuie trimise înapoi în următoarele 14 zile de la notificare. Rambursările se efectuează în condițiile și termenele legale aplicabile.</p>
+  <p>Pentru contractele încheiate online, folosiți formularul de retragere disponibil pe această pagină.</p>
+  <p><a href="${base}/returns">Consultați politica și confirmați retragerea</a></p>
+</main>`;
     default:
       return "";
   }
@@ -642,7 +684,7 @@ export function registerSeoRoutes(
   storage: IStorage,
   marketHelpers?: MarketHelpers
 ) {
-  const routes = ["/", "/products", "/about", "/b2b", "/terms", "/privacy", "/ai-assistant"];
+  const routes = ["/", "/products", "/about", "/b2b", "/terms", "/privacy", "/returns", "/ai-assistant"];
 
   for (const route of routes) {
     app.get(route, async (req, res, next) => {

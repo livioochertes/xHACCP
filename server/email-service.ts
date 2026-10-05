@@ -76,6 +76,7 @@ interface EmailParams {
   html?: string;
   replyTo?: string;
   attachments?: EmailAttachment[];
+  suppressRecipientLog?: boolean;
 }
 
 export interface EmailSendOptions {
@@ -88,7 +89,11 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     return false;
   }
   try {
-    console.log(`Attempting to send email: from=${params.from}, to=${params.to}, subject=${params.subject.substring(0, 50)}...`);
+    if (params.suppressRecipientLog) {
+      console.log("Attempting to send a privacy-sensitive email notification");
+    } else {
+      console.log(`Attempting to send email: from=${params.from}, to=${params.to}, subject=${params.subject.substring(0, 50)}...`);
+    }
     
     const emailData: any = {
       to: params.to,
@@ -107,20 +112,30 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     }
     
     await mailService.send(emailData);
-    console.log(`✅ Email sent successfully to: ${params.to}`);
+    if (params.suppressRecipientLog) {
+      console.log("✅ Privacy-sensitive email notification sent successfully");
+    } else {
+      console.log(`✅ Email sent successfully to: ${params.to}`);
+    }
     return true;
   } catch (error: any) {
-    console.error('❌ SendGrid email error:', {
-      code: error.code,
-      message: error.message,
-      response: error.response?.body,
-      to: params.to,
-      from: params.from
-    });
-    
-    // More detailed error information for debugging
-    if (error.response?.body?.errors) {
-      console.error('SendGrid error details:', error.response.body.errors);
+    if (params.suppressRecipientLog) {
+      console.error("❌ Privacy-sensitive email notification failed:", {
+        code: error.code,
+      });
+    } else {
+      console.error('❌ SendGrid email error:', {
+        code: error.code,
+        message: error.message,
+        response: error.response?.body,
+        to: params.to,
+        from: params.from
+      });
+
+      // More detailed error information for debugging
+      if (error.response?.body?.errors) {
+        console.error('SendGrid error details:', error.response.body.errors);
+      }
     }
     
     return false;
@@ -997,6 +1012,8 @@ export interface ContactEmailOptions {
   market: ContactMarket;
   businessEmails: string[];
   send?: typeof sendEmail;
+  createdAt?: Date;
+  suppressRecipientLogging?: boolean;
 }
 
 export interface ContactEmailResults {
@@ -1007,6 +1024,7 @@ export interface ContactEmailResults {
   businessRecipientsAttempted: number;
   businessRecipientsSent: number;
   businessRecipientsFailed: number;
+  submittedAt: string;
 }
 
 // Send independently to every configured market recipient, then confirm to the
@@ -1015,13 +1033,15 @@ export async function sendContactFormEmails(
   data: ContactFormData,
   options: ContactEmailOptions,
 ): Promise<ContactEmailResults> {
-  const ticketId = `TICKET_${Date.now()}`;
+  const createdAt = options.createdAt || new Date();
+  const ticketId = `TICKET_${createdAt.getTime()}`;
   const sender = options.send || sendEmail;
   const businessEmails = dedupeEmailAddresses(options.businessEmails);
   const templates = buildContactEmailTemplates(
     data,
     options.market,
     ticketId,
+    createdAt,
   );
 
   console.log("📧 Sending contact form notifications", {
@@ -1039,6 +1059,7 @@ export async function sendContactFormEmails(
           text: templates.business.text,
           html: templates.business.html,
           replyTo: data.email,
+           suppressRecipientLog: options.suppressRecipientLogging,
         });
       } catch (error) {
         console.error("Contact notification send failed for one configured recipient");
@@ -1059,6 +1080,7 @@ export async function sendContactFormEmails(
         subject: templates.customer.subject,
         text: templates.customer.text,
         html: templates.customer.html,
+        suppressRecipientLog: options.suppressRecipientLogging,
       });
     } catch (error) {
       console.error("Contact confirmation email failed");
@@ -1073,6 +1095,7 @@ export async function sendContactFormEmails(
     businessRecipientsAttempted: businessEmails.length,
     businessRecipientsSent,
     businessRecipientsFailed: businessEmails.length - businessRecipientsSent,
+    submittedAt: createdAt.toISOString(),
   };
   console.log("📧 Contact form delivery summary", results);
   return results;

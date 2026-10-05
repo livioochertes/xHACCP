@@ -59,6 +59,28 @@ test("builds French and English versions for the FR domain", () => {
   assert.doesNotMatch(templates.customer.text, /@xhaccp\.(?:ro|fr|com)/);
 });
 
+test("withdrawal receipts include the submitted declaration and exact localized timestamp", () => {
+  const submittedAt = new Date("2026-08-19T10:00:00.000Z");
+  const withdrawalForm: ContactFormData = {
+    ...form,
+    subject: "Déclaration de rétractation",
+    category: "withdrawal",
+    message: "Je vous notifie ma décision de me rétracter de la commande FR-100.",
+  };
+  const templates = buildContactEmailTemplates(
+    withdrawalForm,
+    "fr",
+    "TICKET_TEST",
+    submittedAt,
+  );
+
+  assert.match(templates.customer.html, /Nous avons bien reçu votre déclaration de rétractation/);
+  assert.match(templates.customer.html, /Date et heure d’envoi \(heure de Paris\)/);
+  assert.match(templates.customer.html, /12:00:00/);
+  assert.match(templates.customer.text, /Je vous notifie ma décision de me rétracter de la commande FR-100/);
+  assert.match(templates.business.text, /Cette demande constitue une déclaration de rétractation/);
+});
+
 test("does not duplicate English content for the COM domain", () => {
   const templates = buildContactEmailTemplates(
     form,

@@ -739,7 +739,8 @@ export default function Home() {
             <p className="text-slate-300">
               &copy; 2025 xHACCP. All rights reserved. | 
               <Link href="/privacy" className="hover:text-white ml-2">Privacy Policy</Link> | 
-              <Link href="/terms" className="hover:text-white ml-2">Terms & Conditions</Link>
+              <Link href="/terms" className="hover:text-white ml-2">Terms & Conditions</Link> |
+              <Link href="/returns" className="hover:text-white ml-2">Return &amp; Refund Policy</Link>
             </p>
           </div>
         </div>

@@ -19,6 +19,7 @@ const Account = lazy(() => import("@/pages/account"));
 const AIAssistant = lazy(() => import("@/pages/ai-assistant"));
 const About = lazy(() => import("@/pages/about"));
 const B2B = lazy(() => import("@/pages/b2b"));
+const Returns = lazy(() => import("@/pages/returns"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
 const Invoice = lazy(() => import("@/pages/invoice"));
@@ -76,6 +77,7 @@ function Router() {
           <Route path="/ai-assistant" component={AIAssistant} />
           <Route path="/about" component={About} />
           <Route path="/b2b" component={B2B} />
+          <Route path="/returns" component={Returns} />
           <Route path="/terms" component={Terms} />
           <Route path="/privacy" component={Privacy} />
           <Route path="/invoice/:invoiceId" component={Invoice} />
