@@ -6,9 +6,15 @@ import "./index.css";
 const publicRoot = document.getElementById("public-root");
 const appRoot = document.getElementById("root")!;
 const content = publicRoot?.querySelector(".public-content");
-const prerender = content
+const isHomeFallback = publicRoot?.hasAttribute("data-home-fallback") ?? false;
+const prerender = content && !isHomeFallback
   ? hydrateRoot(publicRoot!, <PublicPage html={content.innerHTML} />)
   : null;
+if (isHomeFallback) {
+  // Show the app's loading state instead of flashing the crawler-only home copy.
+  publicRoot?.remove();
+  appRoot.hidden = false;
+}
 window.addEventListener("public-page-ready", () => {
   // A ready event may come from a React effect; unmount the other root only
   // after that render/effect cycle has finished.
