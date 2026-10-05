@@ -179,7 +179,7 @@ test("public HTML includes real localized content, pagination and metadata", asy
     assert.match($("#public-root").text(), /Équipements et consommables professionnels HACCP/);
     assert.match($("head style").text(), /#public-root\[data-home-fallback\]\{display:none\}/);
     assert.match(home.html, /<noscript><style>#public-root\[data-home-fallback\]\{display:block\}<\/style><\/noscript>/);
-    assert.equal($("#root").attr("hidden"), "");
+    assert.equal($("#root").attr("hidden"), "hidden");
     assert.equal((await get("/products/missing")).response.status, 404);
     assert.equal((await get("/products/produit-1/")).response.status, 404);
     assert.equal((await get("/about/")).response.status, 404);

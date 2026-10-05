@@ -66,6 +66,10 @@ test("public content stays visible without JavaScript and during data loading, t
     await waitFor("!!document.querySelector('#public-root a[href^=\"/products/\"]')");
     assert.equal(await evaluate("document.querySelector('#public-root').getBoundingClientRect().height > 100"), true);
     assert.equal(await evaluate("document.querySelector('#root').hidden"), true);
+    await send("Page.navigate", { url: `${base}/` });
+    await waitFor("!!document.querySelector('#public-root[data-home-fallback] .public-content h1')");
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('#public-root')).display !== 'none'"), true);
+    assert.equal(await evaluate("document.querySelector('#root').hidden"), true);
     await send("Emulation.setScriptExecutionDisabled", { value: false });
     await send("Fetch.enable", { patterns: [{ urlPattern: "*/api/products?*", requestStage: "Request" }] });
     await send("Page.navigate", { url: `${base}/products` });
@@ -74,6 +78,9 @@ test("public content stays visible without JavaScript and during data loading, t
     await send("Fetch.disable");
     await waitFor("!document.getElementById('public-root') && document.querySelector('#root').hidden === false");
     assert.equal(await evaluate("document.querySelectorAll('#root a[href^=\"/products/\"]').length > 0"), true);
+    await send("Page.navigate", { url: `${base}/` });
+    await waitFor("!document.getElementById('public-root') && !!document.querySelector('#root h1') && !document.querySelector('#root').hidden");
+    assert.equal(await evaluate("document.querySelector('#root').innerText.includes('Furnizor premium')"), false);
     await send("Page.navigate", { url: `${base}/chef-event` });
     await waitFor("!document.getElementById('public-root') && !!document.querySelector('input[name=\"email\"], input[type=\"email\"]')");
     assert.match(await evaluate("document.title"), /20 %/);
