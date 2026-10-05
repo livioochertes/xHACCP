@@ -254,7 +254,7 @@ const STATIC_META_BY_LANG: Record<string, Record<string, StaticMetaFn>> = {
     "/returns": (base) => ({
       title: "Politica de retur și rambursare | xHACCP",
       description:
-        "Informații despre dreptul legal de retragere, retururi și rambursări pentru consumatorii din Franța și Uniunea Europeană, inclusiv formularul online de retragere.",
+        "Drepturile consumatorilor din România privind retragerea, retururile și rambursările, potrivit legislației române și normelor UE aplicabile.",
       canonical: base + "/returns",
     }),
     "/blog": (base) => ({
@@ -315,7 +315,7 @@ const STATIC_META_BY_LANG: Record<string, Record<string, StaticMetaFn>> = {
     "/returns": (base) => ({
       title: "Politique de retour et de remboursement | xHACCP",
       description:
-        "Délais et conditions du droit légal de rétractation des consommateurs en France et dans l’Union européenne, avec formulaire de rétractation en ligne.",
+        "Droit de rétractation et retours des consommateurs en France. Formulaire en ligne gratuit conformément aux règles applicables depuis le 19 juin 2026.",
       canonical: base + "/returns",
     }),
     "/blog": (base) => ({
@@ -376,7 +376,7 @@ const STATIC_META_BY_LANG: Record<string, Record<string, StaticMetaFn>> = {
     "/returns": (base) => ({
       title: "Return and Refund Policy | xHACCP",
       description:
-        "Statutory consumer withdrawal periods, return and refund terms for France and the European Union, including an online withdrawal form.",
+        "Consumer withdrawal and refund information for the .com storefront, with EU protections where applicable and mandatory local rights preserved.",
       canonical: base + "/returns",
     }),
     "/blog": (base) => ({
@@ -473,8 +473,11 @@ function buildStaticBodyHtml(route: string, base: string, lang: string): string 
         return `
 <main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
   <h1>Politique de retour et de remboursement</h1>
-  <p>Les consommateurs peuvent notifier leur rétractation dans les 14 jours prévus par la loi. Les biens doivent ensuite être renvoyés dans les 14 jours suivant la notification. Les remboursements sont effectués selon les délais et conditions légaux applicables.</p>
-  <p>Pour les contrats conclus en ligne, utilisez le formulaire de rétractation disponible sur cette page.</p>
+  <p>Cette version s’applique aux commandes passées sur le domaine français. Les consommateurs peuvent notifier leur rétractation dans le délai légal de 14 jours et doivent ensuite renvoyer les biens dans les 14 jours suivant leur notification.</p>
+  <p>Depuis le 19 juin 2026, le droit français impose une fonctionnalité gratuite de rétractation en ligne pour les contrats conclus au moyen d’une interface en ligne. Le formulaire de cette page permet de transmettre votre déclaration.</p>
+  <h2>Vendeur</h2><p>Yetique SAS — 122 RUE AMELOT, 75011 PARIS, France</p>
+  <p>SIRET : 108 196 536 00016 — TVA : FR72108196536</p>
+  <h2>Adresse de retour</h2><p>Saint Laurent Logistic, ZI SECTEUR D, 30 ALLEE DES GEOMETRES, 06700 SAINT-LAURENT-DU-VAR, France</p>
   <p><a href="${base}/returns">Consulter la politique et confirmer la rétractation</a></p>
 </main>`;
     }
@@ -547,8 +550,9 @@ function buildStaticBodyHtml(route: string, base: string, lang: string): string 
         return `
 <main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
   <h1>Return and Refund Policy</h1>
-  <p>Consumers may notify us that they are withdrawing within the statutory 14-day period. Goods must then be sent back within 14 days after notice. Refunds are made under the applicable statutory deadlines and conditions.</p>
-  <p>For online contracts, use the withdrawal form available on this page.</p>
+  <p>This version applies to orders placed through the .com storefront. It summarizes EU consumer protections where they apply and does not limit mandatory consumer rights under the law of your country of residence.</p>
+  <p>Where applicable, consumers may notify us of withdrawal within the statutory 14-day period and must then send goods back within 14 days after notice. Refunds follow the applicable statutory deadlines and conditions.</p>
+  <p>You may use the online form on this page to submit your withdrawal declaration.</p>
   <p><a href="${base}/returns">Read the policy and confirm your withdrawal</a></p>
 </main>`;
     }
@@ -621,7 +625,8 @@ function buildStaticBodyHtml(route: string, base: string, lang: string): string 
       return `
 <main style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1rem">
   <h1>Politica de retur și rambursare</h1>
-  <p>Consumatorii pot notifica retragerea în termenul legal de 14 zile. Bunurile trebuie trimise înapoi în următoarele 14 zile de la notificare. Rambursările se efectuează în condițiile și termenele legale aplicabile.</p>
+  <p>Această versiune se aplică comenzilor plasate pe domeniul românesc. Dreptul de retragere pentru contractele la distanță este reglementat de OUG nr. 34/2014. Consumatorii pot notifica retragerea în termenul legal de 14 zile, iar bunurile trebuie trimise înapoi în următoarele 14 zile de la notificare.</p>
+  <p>Garanția legală de conformitate pentru bunurile de consum este reglementată în România, între altele, de OUG nr. 140/2021.</p>
   <p>Pentru contractele încheiate online, folosiți formularul de retragere disponibil pe această pagină.</p>
   <p><a href="${base}/returns">Consultați politica și confirmați retragerea</a></p>
 </main>`;

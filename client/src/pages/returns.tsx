@@ -14,7 +14,10 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../contexts/language-context";
 import { useCompanySettings } from "../hooks/useCompanySettings";
-import { getReturnPolicyCopy } from "../content/return-policy";
+import {
+  getReturnPolicyCopy,
+  getReturnPolicySellerDetails,
+} from "../content/return-policy";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -40,8 +43,9 @@ const SECTION_ICONS = [
 
 export default function Returns() {
   const { language } = useLanguage();
-  const copy = getReturnPolicyCopy(language);
   const { contact, market } = useCompanySettings();
+  const copy = getReturnPolicyCopy(language, market);
+  const seller = getReturnPolicySellerDetails(market, contact);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -300,21 +304,38 @@ export default function Returns() {
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-5 text-slate-700 sm:grid-cols-2">
-              {(contact.name || contact.address || contact.city || contact.zipCode) && (
+              {(seller.name || seller.postalAddress.length > 0) && (
                 <div className="flex items-start gap-3">
                   <MapPin className="mt-1 h-5 w-5 shrink-0 text-secondary" aria-hidden="true" />
                   <div>
-                    {contact.name && <p className="font-semibold text-primary">{contact.name}</p>}
-                    {contact.address && (
+                    {seller.name && <p className="font-semibold text-primary">{seller.name}</p>}
+                    {seller.postalAddress.length > 0 && (
                       <>
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                           {copy.sellerAddress}
                         </p>
-                        <p>{contact.address}</p>
+                        {seller.postalAddress.map((line) => <p key={line}>{line}</p>)}
                       </>
                     )}
-                    {(contact.zipCode || contact.city || contact.country) && (
-                      <p>{[contact.zipCode, contact.city, contact.country].filter(Boolean).join(", ")}</p>
+                    {seller.registrationNumber && (
+                      <p className="mt-2">
+                        <span className="font-medium">{copy.registrationNumberLabel}:</span>{" "}
+                        {seller.registrationNumber}
+                      </p>
+                    )}
+                    {seller.vatNumber && (
+                      <p>
+                        <span className="font-medium">{copy.vatNumberLabel}:</span>{" "}
+                        {seller.vatNumber}
+                      </p>
+                    )}
+                    {seller.returnAddress.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          {copy.returnAddressTitle}
+                        </p>
+                        {seller.returnAddress.map((line) => <p key={line}>{line}</p>)}
+                      </div>
                     )}
                     <p className="mt-3 text-sm text-slate-600">{copy.returnAddressNote}</p>
                   </div>
@@ -352,36 +373,18 @@ export default function Returns() {
             </CardHeader>
             <CardContent>
               <ul className="list-disc space-y-2 pl-6 text-sm text-slate-600">
-                <li>
-                  <a
-                    className="text-secondary underline"
-                    href="https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000006069565/LEGISCTA000032221365/"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {copy.sources[0]}
-                  </a>
-                </li>
-                <li>
-                  <a
-                    className="text-secondary underline"
-                    href="https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053303365"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {copy.sources[1]}
-                  </a>
-                </li>
-                <li>
-                  <a
-                    className="text-secondary underline"
-                    href="https://europa.eu/youreurope/citizens/consumers/shopping/returns/index_en.htm"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {copy.sources[2]}
-                  </a>
-                </li>
+                {copy.sources.map((source, index) => (
+                  <li key={source}>
+                    <a
+                      className="text-secondary underline"
+                      href={copy.sourceUrls?.[index] ?? "https://europa.eu/youreurope/citizens/consumers/shopping/returns/index_en.htm"}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {source}
+                    </a>
+                  </li>
+                ))}
               </ul>
               <div className="mt-5 border-t border-slate-200 pt-4 text-sm text-slate-600">
                 <Link className="text-secondary underline" href="/privacy">Privacy Policy</Link>

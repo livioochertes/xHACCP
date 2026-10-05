@@ -36,9 +36,13 @@ export interface ReturnPolicyCopy {
   sellerTitle: string;
   sellerAddress: string;
   sellerEmail: string;
+  registrationNumberLabel: string;
+  vatNumberLabel: string;
+  returnAddressTitle: string;
   returnAddressNote: string;
   sourcesTitle: string;
   sources: string[];
+  sourceUrls?: string[];
 }
 
 const COPY: Record<"fr" | "ro" | "en", ReturnPolicyCopy> = {
@@ -145,6 +149,9 @@ const COPY: Record<"fr" | "ro" | "en", ReturnPolicyCopy> = {
     sellerTitle: "Coordonnées du vendeur",
     sellerAddress: "Adresse postale",
     sellerEmail: "E-mail",
+    registrationNumberLabel: "SIRET",
+    vatNumberLabel: "N° de TVA intracommunautaire",
+    returnAddressTitle: "Adresse de retour",
     returnAddressNote:
       "Si les documents de votre commande ne précisent pas l’adresse de renvoi, contactez-nous avant l’expédition afin d’obtenir les instructions de retour. N’attendez pas pour notifier votre rétractation.",
     sourcesTitle: "Sources officielles",
@@ -257,6 +264,9 @@ const COPY: Record<"fr" | "ro" | "en", ReturnPolicyCopy> = {
     sellerTitle: "Datele vânzătorului",
     sellerAddress: "Adresă poștală",
     sellerEmail: "E-mail",
+    registrationNumberLabel: "Număr de înregistrare",
+    vatNumberLabel: "Cod de TVA",
+    returnAddressTitle: "Adresa de retur",
     returnAddressNote:
       "Dacă documentele comenzii nu indică adresa de retur, contactați-ne înainte de expediere pentru instrucțiuni. Nu amânați notificarea retragerii.",
     sourcesTitle: "Surse oficiale",
@@ -369,6 +379,9 @@ const COPY: Record<"fr" | "ro" | "en", ReturnPolicyCopy> = {
     sellerTitle: "Seller contact details",
     sellerAddress: "Postal address",
     sellerEmail: "Email",
+    registrationNumberLabel: "Company registration number",
+    vatNumberLabel: "VAT number",
+    returnAddressTitle: "Return address",
     returnAddressNote:
       "If your order documents do not show the return address, contact us before dispatch for instructions. Do not delay notifying us that you are withdrawing.",
     sourcesTitle: "Official sources",
@@ -380,9 +393,243 @@ const COPY: Record<"fr" | "ro" | "en", ReturnPolicyCopy> = {
   }
 };
 
-export function getReturnPolicyCopy(language: string): ReturnPolicyCopy {
-  if (language === "fr" || language === "ro" || language === "en") {
-    return COPY[language];
+type PolicyLanguage = "fr" | "ro" | "en";
+type PolicyMarket = "fr" | "ro" | "com";
+type PolicySourceKey =
+  | "frWithdrawal"
+  | "frOnlineWithdrawal"
+  | "roWithdrawal"
+  | "roGuarantee"
+  | "euConsumerRights"
+  | "euGoodsGuarantee"
+  | "euReturns";
+
+const MARKET_POLICY: Record<PolicyMarket, {
+  subtitle: Record<PolicyLanguage, string>;
+  warrantyParagraphs: Record<PolicyLanguage, string[]>;
+  onlineWithdrawalNotice?: Record<PolicyLanguage, string>;
+  returnAddressNote?: Record<PolicyLanguage, string>;
+  internationalScopeNote?: Record<PolicyLanguage, string>;
+  withdrawalSectionTitle?: Record<PolicyLanguage, string>;
+  sourceKeys: PolicySourceKey[];
+}> = {
+  fr: {
+    subtitle: {
+      fr: "Cette version s’applique aux commandes passées sur le domaine français, selon les règles françaises et européennes applicables. Elle ne limite aucun droit impératif supplémentaire.",
+      ro: "Această versiune se aplică comenzilor plasate pe domeniul francez, potrivit normelor franceze și europene aplicabile. Nu limitează niciun drept obligatoriu suplimentar.",
+      en: "This version applies to orders placed on the French storefront under applicable French and EU rules. It does not limit any additional mandatory rights.",
+    },
+    warrantyParagraphs: {
+      fr: [
+        "En France, la garantie légale de conformité des biens de consommation s’exerce pendant au moins deux ans à compter de leur délivrance, dans les conditions prévues par la loi.",
+        "Si un produit est défectueux ou ne correspond pas au contrat, contactez-nous en décrivant le problème. Les recours et délais prévus par les garanties légales restent applicables indépendamment de cette politique.",
+      ],
+      ro: [
+        "În Franța, garanția legală de conformitate pentru bunurile de consum se aplică cel puțin doi ani de la livrare, în condițiile prevăzute de lege.",
+        "Dacă un produs este defect sau nu corespunde contractului, contactați-ne și descrieți problema. Remediile și termenele garanțiilor legale rămân aplicabile independent de această politică.",
+      ],
+      en: [
+        "In France, the legal guarantee of conformity for consumer goods applies for at least two years from delivery, subject to statutory conditions.",
+        "If a product is faulty or does not match the contract, contact us and describe the issue. Statutory remedies and deadlines apply independently of this policy.",
+      ],
+    },
+    onlineWithdrawalNotice: {
+      fr: "Depuis le 19 juin 2026, la loi française impose une fonctionnalité gratuite de rétractation en ligne pour les contrats conclus au moyen d’une interface en ligne. Le formulaire ci-dessus permet de transmettre votre déclaration.",
+      ro: "Începând cu 19 iunie 2026, legislația franceză impune o funcție online gratuită de retragere pentru contractele încheiate printr-o interfață online. Formularul de mai sus permite transmiterea declarației.",
+      en: "Since 19 June 2026, French law requires a free online withdrawal functionality for contracts concluded through an online interface. Use the form above to submit your declaration.",
+    },
+    returnAddressNote: {
+      fr: "Après avoir notifié votre rétractation, renvoyez les biens à l’adresse de retour indiquée ci-dessous dans le délai légal de 14 jours.",
+      ro: "După notificarea retragerii, trimiteți bunurile la adresa de retur afișată mai jos, în termenul legal de 14 zile.",
+      en: "After notifying us of your withdrawal, send the goods to the return address shown below within the statutory 14-day period.",
+    },
+    sourceKeys: ["frWithdrawal", "frOnlineWithdrawal", "euReturns"],
+  },
+  ro: {
+    subtitle: {
+      fr: "Cette version s’applique aux commandes passées sur le domaine roumain, conformément au droit roumain et aux règles européennes applicables.",
+      ro: "Această versiune se aplică comenzilor plasate pe domeniul românesc, potrivit legislației române și normelor europene aplicabile.",
+      en: "This version applies to orders placed on the Romanian storefront under Romanian and applicable EU law.",
+    },
+    warrantyParagraphs: {
+      fr: [
+        "En Roumanie, la garantie légale de conformité des biens de consommation est régie notamment par l’ordonnance d’urgence nº 140/2021. Le vendeur répond des défauts de conformité qui apparaissent dans le délai légal de deux ans à compter de la livraison, sous réserve des conditions prévues par la loi.",
+        "Si un produit est défectueux ou ne correspond pas au contrat, contactez-nous en décrivant le problème. Les recours et délais prévus par la législation roumaine restent applicables indépendamment de cette politique.",
+      ],
+      ro: [
+        "În România, garanția legală de conformitate pentru bunurile de consum este reglementată, între altele, de OUG nr. 140/2021. Vânzătorul răspunde pentru neconformitățile care apar în termenul legal de doi ani de la livrare, cu respectarea condițiilor prevăzute de lege.",
+        "Dacă un produs este defect sau nu corespunde contractului, contactați-ne și descrieți problema. Remediile și termenele din legislația română se aplică independent de această politică.",
+      ],
+      en: [
+        "In Romania, the statutory conformity guarantee for consumer goods is governed in particular by Emergency Ordinance No. 140/2021. The seller is liable for lack of conformity that becomes apparent within the statutory two-year period from delivery, subject to the conditions set by law.",
+        "If a product is faulty or does not match the contract, contact us and describe the issue. Remedies and deadlines under Romanian law apply independently of this policy.",
+      ],
+    },
+    sourceKeys: ["roWithdrawal", "roGuarantee", "euReturns"],
+  },
+  com: {
+    subtitle: {
+      fr: "Cette version concerne les commandes passées sur le domaine .com. Elle résume les protections européennes lorsqu’elles s’appliquent et ne limite pas les droits impératifs prévus dans votre pays de résidence.",
+      ro: "Această versiune se aplică comenzilor plasate pe domeniul .com. Rezumă protecțiile europene acolo unde se aplică și nu limitează drepturile obligatorii din țara dumneavoastră de reședință.",
+      en: "This version covers orders placed through the .com storefront. It summarizes EU protections where they apply and does not limit mandatory consumer rights in your country of residence.",
+    },
+    warrantyParagraphs: {
+      fr: [
+        "Les garanties légales et les recours applicables dépendent du pays concerné. Cette politique ne limite pas les protections impératives accordées aux consommateurs par la loi applicable dans leur pays de résidence.",
+        "Si un produit est défectueux ou ne correspond pas au contrat, contactez-nous en décrivant le problème. Les garanties légales applicables restent distinctes du droit de rétractation.",
+      ],
+      ro: [
+        "Garanțiile legale și remediile disponibile depind de țara aplicabilă. Această politică nu limitează protecțiile obligatorii acordate consumatorilor de legea aplicabilă în țara lor de reședință.",
+        "Dacă un produs este defect sau nu corespunde contractului, contactați-ne și descrieți problema. Garanțiile legale aplicabile sunt distincte de dreptul de retragere.",
+      ],
+      en: [
+        "Statutory guarantees and available remedies depend on the applicable country law. This policy does not limit mandatory consumer protections in your country of residence.",
+        "If a product is faulty or does not match the contract, contact us and describe the issue. Applicable statutory guarantees are separate from the right to withdraw.",
+      ],
+    },
+    internationalScopeNote: {
+      fr: "Les délais européens de 14 jours ci-dessous s’appliquent lorsque le droit européen régit la commande. La loi impérative du pays de résidence peut prévoir d’autres délais ou protections plus favorables.",
+      ro: "Termenele europene de 14 zile de mai jos se aplică atunci când dreptul UE guvernează comanda. Legea obligatorie din țara de reședință poate prevedea termene diferite sau protecții suplimentare.",
+      en: "The 14-day periods below describe the EU baseline and apply where EU consumer law governs the order. Mandatory law in your country of residence may provide different deadlines or additional rights.",
+    },
+    withdrawalSectionTitle: {
+      fr: "Délais de rétractation applicables",
+      ro: "Termene de retragere aplicabile",
+      en: "Applicable withdrawal periods",
+    },
+    sourceKeys: ["euConsumerRights", "euGoodsGuarantee", "euReturns"],
+  },
+};
+
+const SOURCE_URLS: Record<PolicySourceKey, string> = {
+  frWithdrawal: "https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000006069565/LEGISCTA000032221365/",
+  frOnlineWithdrawal: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000053303365",
+  roWithdrawal: "https://legislatie.just.ro/Public/DetaliiDocument/204058",
+  roGuarantee: "https://legislatie.just.ro/Public/DetaliiDocument/268151",
+  euConsumerRights: "https://eur-lex.europa.eu/eli/dir/2011/83/oj/eng",
+  euGoodsGuarantee: "https://eur-lex.europa.eu/eli/dir/2019/771/oj/eng",
+  euReturns: "https://europa.eu/youreurope/citizens/consumers/shopping/returns/index_en.htm",
+};
+
+const SOURCE_LABELS: Record<PolicyLanguage, Record<PolicySourceKey, string>> = {
+  fr: {
+    frWithdrawal: "Code de la consommation français — articles L. 221-18 à L. 221-28",
+    frOnlineWithdrawal: "Code de la consommation français — article D. 221-5 (fonctionnalité en ligne depuis le 19 juin 2026)",
+    roWithdrawal: "Roumanie — OUG nº 34/2014 sur les contrats de consommation",
+    roGuarantee: "Roumanie — OUG nº 140/2021 sur les ventes de biens aux consommateurs",
+    euConsumerRights: "Directive 2011/83/UE relative aux droits des consommateurs",
+    euGoodsGuarantee: "Directive (UE) 2019/771 sur les contrats de vente de biens",
+    euReturns: "Union européenne — Your Europe : retours et droit de rétractation",
+  },
+  ro: {
+    frWithdrawal: "Codul francez al consumului — articolele L. 221-18–L. 221-28",
+    frOnlineWithdrawal: "Codul francez al consumului — articolul D. 221-5 (funcție online din 19 iunie 2026)",
+    roWithdrawal: "România — OUG nr. 34/2014 privind contractele încheiate cu consumatorii",
+    roGuarantee: "România — OUG nr. 140/2021 privind contractele de vânzare de bunuri",
+    euConsumerRights: "Directiva 2011/83/UE privind drepturile consumatorilor",
+    euGoodsGuarantee: "Directiva (UE) 2019/771 privind contractele de vânzare de bunuri",
+    euReturns: "Uniunea Europeană — Your Europe: retururi și dreptul de retragere",
+  },
+  en: {
+    frWithdrawal: "French Consumer Code — Articles L. 221-18 to L. 221-28",
+    frOnlineWithdrawal: "French Consumer Code — Article D. 221-5 (online feature effective 19 June 2026)",
+    roWithdrawal: "Romania — Emergency Ordinance No. 34/2014 on consumer contracts",
+    roGuarantee: "Romania — Emergency Ordinance No. 140/2021 on consumer sales",
+    euConsumerRights: "Directive 2011/83/EU on consumer rights",
+    euGoodsGuarantee: "Directive (EU) 2019/771 on contracts for the sale of goods",
+    euReturns: "European Union — Your Europe: returns and the right of withdrawal",
+  },
+};
+
+export function getReturnPolicyCopy(language: string, market?: string): ReturnPolicyCopy {
+  const normalizedLanguage: PolicyLanguage =
+    language === "fr" || language === "ro" || language === "en" ? language : "en";
+  const inferredMarket = normalizedLanguage === "fr" || normalizedLanguage === "ro"
+    ? normalizedLanguage
+    : "com";
+  const normalizedMarket: PolicyMarket =
+    market === "fr" || market === "ro" || market === "com" ? market : inferredMarket;
+  const localizedCopy = COPY[normalizedLanguage];
+  const marketPolicy = MARKET_POLICY[normalizedMarket];
+  const sections = localizedCopy.sections.map((section) => ({
+    ...section,
+    paragraphs: section.paragraphs ? [...section.paragraphs] : undefined,
+    bullets: section.bullets ? [...section.bullets] : undefined,
+  }));
+
+  // The market's law determines the legal claims; the selected language only
+  // determines how those claims and labels are presented.
+  if (marketPolicy.withdrawalSectionTitle) {
+    sections[1].title = marketPolicy.withdrawalSectionTitle[normalizedLanguage];
   }
-  return COPY.en;
+  if (marketPolicy.internationalScopeNote) {
+    const scopeNote = marketPolicy.internationalScopeNote[normalizedLanguage];
+    sections[1].paragraphs = [scopeNote, ...(sections[1].paragraphs ?? [])];
+  }
+  sections[6].paragraphs = [...marketPolicy.warrantyParagraphs[normalizedLanguage]];
+  const onlineNotice = marketPolicy.onlineWithdrawalNotice?.[normalizedLanguage];
+  if (onlineNotice) {
+    sections[2].paragraphs = [...(sections[2].paragraphs ?? []), onlineNotice];
+  }
+
+  const sources = marketPolicy.sourceKeys;
+  return {
+    ...localizedCopy,
+    subtitle: marketPolicy.subtitle[normalizedLanguage],
+    sections,
+    returnAddressNote:
+      marketPolicy.returnAddressNote?.[normalizedLanguage] ?? localizedCopy.returnAddressNote,
+    sources: sources.map((key) => SOURCE_LABELS[normalizedLanguage][key]),
+    sourceUrls: sources.map((key) => SOURCE_URLS[key]),
+  };
+}
+
+export interface ReturnPolicyContact {
+  name?: string;
+  address?: string;
+  zipCode?: string;
+  city?: string;
+  country?: string;
+  registrationNumber?: string;
+  vatNumber?: string;
+}
+
+export interface ReturnPolicySellerDetails {
+  name: string;
+  postalAddress: string[];
+  registrationNumber: string;
+  vatNumber: string;
+  returnAddress: string[];
+}
+
+export function getReturnPolicySellerDetails(
+  market: string,
+  contact: ReturnPolicyContact,
+): ReturnPolicySellerDetails {
+  if (market === "fr") {
+    return {
+      name: "Yetique SAS",
+      postalAddress: ["122 RUE AMELOT", "75011 PARIS", "France"],
+      registrationNumber: "108 196 536 00016",
+      vatNumber: "FR72108196536",
+      returnAddress: [
+        "Saint Laurent Logistic",
+        "ZI SECTEUR D",
+        "30 ALLEE DES GEOMETRES",
+        "06700 SAINT-LAURENT-DU-VAR",
+        "France",
+      ],
+    };
+  }
+
+  const locality = [contact.zipCode, contact.city].filter(Boolean).join(" ");
+  return {
+    name: contact.name ?? "",
+    postalAddress: [contact.address, locality, contact.country].filter(
+      (line): line is string => Boolean(line),
+    ),
+    registrationNumber: contact.registrationNumber ?? "",
+    vatNumber: contact.vatNumber ?? "",
+    returnAddress: [],
+  };
 }

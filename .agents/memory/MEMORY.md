@@ -48,3 +48,4 @@
 - [Admin dashboard date windows](admin-dashboard-date-windows.md) — daily and monthly dashboard counts use explicit UTC calendar boundaries to avoid host-timezone drift.
 - [Dependency override verification](dependency-override-verification.md) — a successful npm install can retain an old nested version after adding an override; check the resolved tree and both lockfiles.
 - [UUID security upgrade compatibility](uuid-upgrade-compatibility.md) — ExcelJS needs a patched UUID release that still supports CommonJS; test extended conditional formatting.
+- [Market-specific legal pages](market-specific-legal-pages.md) — select legal copy and seller/return details by storefront market, independently of UI language.
