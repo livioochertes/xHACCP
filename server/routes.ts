@@ -2212,6 +2212,7 @@ Sitemap: ${baseUrl}/sitemap.xml
 
   // Public homepage hero configuration for the detected marketplace.
   app.get("/api/homepage-hero", async (req, res) => {
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
     try {
       const market = getMarketFromRequest(req);
       const [storedSlides, settings] = await Promise.all([
@@ -2230,14 +2231,13 @@ Sitemap: ${baseUrl}/sitemap.xml
             : slide.ctaUrl,
         };
       }));
-      res.set("Cache-Control", "no-cache, no-store, must-revalidate");
       res.json({
         slides,
         autoplaySeconds: Math.min(30, Math.max(3, settings?.autoplaySeconds || 5)),
       });
     } catch (error) {
       console.error("Error fetching public homepage hero:", error);
-      res.json({ slides: [], autoplaySeconds: 5 });
+      res.status(503).json({ message: "Homepage hero is temporarily unavailable" });
     }
   });
 

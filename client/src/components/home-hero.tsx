@@ -90,14 +90,23 @@ export default function HomeHero() {
   const market = getMarketFromHostname();
   const { data, isFetched } = useQuery<HeroResponse>({
     queryKey: ["/api/homepage-hero", market],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const response = await fetch("/api/homepage-hero", {
         headers: { "X-Market": market },
+        cache: "no-store",
+        signal,
       });
       if (!response.ok) throw new Error("Failed to load homepage hero");
-      return response.json();
+      const payload: HeroResponse = await response.json();
+      if (!Array.isArray(payload.slides)) {
+        throw new Error("Invalid homepage hero response");
+      }
+      return payload;
     },
     staleTime: 60 * 1000,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    refetchOnWindowFocus: true,
   });
   const slides = useMemo<HeroSlide[]>(() => {
     if (!data && !isFetched) return [];

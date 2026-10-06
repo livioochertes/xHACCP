@@ -5619,7 +5619,7 @@ export async function registerAdminRoutes(app: Express) {
     }
   };
 
-  const normalizeHeroSlide = (body: any, marketCode: string) => {
+  const normalizeHeroSlide = (body: any, marketCode: string, fallbackSortOrder = 0) => {
     const slideType = body.slideType === "image" ? "image" : "text";
     const ctaType = body.ctaType === "quote" ? "quote" : "link";
     const destinationType = ["category", "product", "custom"].includes(body.destinationType)
@@ -5646,7 +5646,9 @@ export async function registerAdminRoutes(app: Express) {
       destinationUrl: destinationType === "custom" && typeof body.destinationUrl === "string"
         ? body.destinationUrl.trim().slice(0, 1000)
         : null,
-      sortOrder: Number.isInteger(Number(body.sortOrder)) ? Math.max(0, Number(body.sortOrder)) : 0,
+      sortOrder: body.sortOrder !== undefined && body.sortOrder !== null && body.sortOrder !== "" && Number.isInteger(Number(body.sortOrder))
+        ? Math.max(0, Number(body.sortOrder))
+        : fallbackSortOrder,
       isActive: body.isActive !== false,
     };
   };
@@ -5770,7 +5772,7 @@ export async function registerAdminRoutes(app: Express) {
       const slides = await storage.getHomepageHeroSlides(market, true);
       const existing = slides.find(slide => slide.id === id);
       if (!existing) return res.status(404).json({ message: "Hero slide not found" });
-      const slide = normalizeHeroSlide(req.body, market);
+      const slide = normalizeHeroSlide(req.body, market, existing.sortOrder);
       if (slide.slideType === "image" && !slide.imageUrl) {
         return res.status(400).json({ message: "An image URL is required for image slides" });
       }
