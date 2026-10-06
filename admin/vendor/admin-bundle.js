@@ -11246,7 +11246,7 @@
     homepageHero: {
       navLabel: "Homepage Cover",
       title: "Homepage promotional cover",
-      description: "Add up to 3 slides; the original hero always remains in the carousel.",
+      description: "The newest active slide appears first; the original hero stays at the end of the carousel.",
       reload: "Reload",
       selectMarket: "Select a specific marketplace from the bar above to manage its cover.",
       displaySettings: "Display settings",
@@ -12290,7 +12290,7 @@
     homepageHero: {
       navLabel: "Cover Home",
       title: "Cover promo\u021Bional Home",
-      description: "Configureaz\u0103 p\xE2n\u0103 la 3 slide-uri suplimentare; hero-ul original r\u0103m\xE2ne \xEEn carusel.",
+      description: "Slide-ul activ ad\u0103ugat cel mai recent apare primul; hero-ul original r\u0103m\xE2ne la finalul caruselului.",
       reload: "Re\xEEncarc\u0103",
       selectMarket: "Selecteaz\u0103 un marketplace concret din bara de sus pentru a administra cover-ul.",
       displaySettings: "Set\u0103ri afi\u0219are",
@@ -13334,7 +13334,7 @@
     homepageHero: {
       navLabel: "Cover de la page d'accueil",
       title: "Cover promotionnel de la page d'accueil",
-      description: "Ajoutez jusqu'\xE0 3 slides ; le hero d'origine reste toujours dans le carrousel.",
+      description: "Le nouveau slide actif appara\xEEt en premier ; le hero d'origine reste \xE0 la fin du carrousel.",
       reload: "Actualiser",
       selectMarket: "S\xE9lectionnez un march\xE9 pr\xE9cis dans la barre ci-dessus pour g\xE9rer son cover.",
       displaySettings: "Param\xE8tres d'affichage",
