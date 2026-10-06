@@ -227,6 +227,7 @@ export interface IStorage {
   // Company settings operations
   getHomepageHeroSlides(market: string, includeInactive?: boolean): Promise<HomepageHeroSlide[]>;
   createHomepageHeroSlide(slide: InsertHomepageHeroSlide): Promise<HomepageHeroSlide>;
+  createHomepageHeroSlideAtFront(slide: InsertHomepageHeroSlide): Promise<HomepageHeroSlide>;
   updateHomepageHeroSlide(id: number, slide: Partial<InsertHomepageHeroSlide>): Promise<HomepageHeroSlide>;
   deleteHomepageHeroSlide(id: number): Promise<void>;
   getHomepageHeroSettings(market: string): Promise<HomepageHeroSettings | undefined>;
@@ -1712,6 +1713,24 @@ export class DatabaseStorage implements IStorage {
   async createHomepageHeroSlide(slide: InsertHomepageHeroSlide): Promise<HomepageHeroSlide> {
     const [created] = await db.insert(homepageHeroSlides).values(slide).returning();
     return created;
+  }
+
+  async createHomepageHeroSlideAtFront(slide: InsertHomepageHeroSlide): Promise<HomepageHeroSlide> {
+    return db.transaction(async (tx) => {
+      await tx
+        .update(homepageHeroSlides)
+        .set({
+          sortOrder: sql`${homepageHeroSlides.sortOrder} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(homepageHeroSlides.marketCode, slide.marketCode));
+
+      const [created] = await tx
+        .insert(homepageHeroSlides)
+        .values({ ...slide, sortOrder: 0 })
+        .returning();
+      return created;
+    });
   }
 
   async updateHomepageHeroSlide(id: number, slide: Partial<InsertHomepageHeroSlide>): Promise<HomepageHeroSlide> {

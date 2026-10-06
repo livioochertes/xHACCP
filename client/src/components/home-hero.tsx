@@ -88,7 +88,7 @@ function HeroDestination({ href, children, label }: { href: string; children: Re
 export default function HomeHero() {
   const { t } = useTranslation();
   const market = getMarketFromHostname();
-  const { data } = useQuery<HeroResponse>({
+  const { data, isFetched } = useQuery<HeroResponse>({
     queryKey: ["/api/homepage-hero", market],
     queryFn: async () => {
       const response = await fetch("/api/homepage-hero", {
@@ -100,11 +100,13 @@ export default function HomeHero() {
     staleTime: 60 * 1000,
   });
   const slides = useMemo<HeroSlide[]>(() => {
+    if (!data && !isFetched) return [];
+
     const configured = (data?.slides || []).filter((slide) =>
       isFullCoverSlide(slide) ||
       (slide.slideType === "image" ? Boolean(slide.imageUrl) : Boolean(slide.title || slide.subtitle))
     );
-    return [{
+    const defaultSlide: HeroSlide = {
       id: 0,
       slideType: "text",
       title: t("home.hero.title"),
@@ -112,8 +114,9 @@ export default function HomeHero() {
       ctaLabel: t("home.hero.shopNow"),
       ctaUrl: "/products",
       ctaType: "link",
-    }, ...configured];
-  }, [data?.slides, t]);
+    };
+    return configured.length > 0 ? [...configured, defaultSlide] : [defaultSlide];
+  }, [data, isFetched, t]);
   const autoplaySeconds = Math.min(30, Math.max(3, data?.autoplaySeconds || 5));
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -193,6 +196,7 @@ export default function HomeHero() {
       style={usesResponsiveHeroRatio ? { aspectRatio: roHeroAspectRatio } : undefined}
       aria-roledescription="carousel"
       aria-label="Promotional highlights"
+      aria-busy={!isFetched}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -200,7 +204,7 @@ export default function HomeHero() {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
       }}
     >
-      <div className={`relative ${usesResponsiveHeroRatio ? "h-full" : "h-[360px] md:h-[410px]"}`}>
+      <div className={`relative ${usesResponsiveHeroRatio ? "h-full" : "h-[360px] md:h-[410px]"} ${slides.length === 0 ? "hero-gradient" : ""}`}>
         {slides.map((slide, index) => {
           const isActive = index === activeIndex;
           const fullCover = isFullCoverSlide(slide);

@@ -819,7 +819,7 @@
   "homepageHero": {
     "navLabel": "Cover de la page d'accueil",
     "title": "Cover promotionnel de la page d'accueil",
-    "description": "Ajoutez jusqu'à 3 slides ; le hero d'origine reste toujours dans le carrousel.",
+    "description": "Le nouveau slide actif apparaît en premier ; le hero d'origine reste à la fin du carrousel.",
     "reload": "Actualiser",
     "selectMarket": "Sélectionnez un marché précis dans la barre ci-dessus pour gérer son cover.",
     "displaySettings": "Paramètres d'affichage",

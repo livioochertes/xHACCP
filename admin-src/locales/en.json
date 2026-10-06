@@ -819,7 +819,7 @@
   "homepageHero": {
     "navLabel": "Homepage Cover",
     "title": "Homepage promotional cover",
-    "description": "Add up to 3 slides; the original hero always remains in the carousel.",
+    "description": "The newest active slide appears first; the original hero stays at the end of the carousel.",
     "reload": "Reload",
     "selectMarket": "Select a specific marketplace from the bar above to manage its cover.",
     "displaySettings": "Display settings",

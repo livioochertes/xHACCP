@@ -110,6 +110,8 @@ test("public pages expose labels; inactive hero controls cannot focus; mobile di
     ` });
     await send("Page.navigate", { url: `${baseUrl}/` });
     await wait(() => evaluate(`document.querySelectorAll('[aria-roledescription="slide"]').length > 1`));
+    assert.match(await evaluate(`document.querySelector('[aria-roledescription="slide"][aria-hidden="false"]')?.textContent || ''`),
+      /Accessibility test promotion/);
     assert.equal(await evaluate(`(() => {
       const slides = [...document.querySelectorAll('[aria-roledescription="slide"]')];
       return slides.filter(s => !s.inert && s.getAttribute('aria-hidden') === 'false').length;

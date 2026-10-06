@@ -5723,7 +5723,7 @@ export async function registerAdminRoutes(app: Express) {
       }
       const destinationError = await validateHeroDestination(slide, market);
       if (destinationError) return res.status(400).json({ message: destinationError });
-      const created = await storage.createHomepageHeroSlide({ ...slide, sortOrder: existing.length });
+      const created = await storage.createHomepageHeroSlideAtFront({ ...slide, sortOrder: 0 });
       res.status(201).json(created);
     } catch (error) {
       console.error("Error creating homepage hero slide:", error);
