@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
+import { apiRequest, ApiRequestError, getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { Loader2 } from "lucide-react";
 import paypalOfficialLogo from "@/assets/paypal-official-logo.png";
@@ -37,6 +37,16 @@ export default function PayPalPayment({ amount, cartItems, voucherCode, orderDat
       } catch {}
       window.location.href = data.approvalUrl;
     } catch (error: any) {
+      if (
+        error instanceof ApiRequestError &&
+        typeof error.responseData === "object" &&
+        error.responseData !== null &&
+        "code" in error.responseData &&
+        error.responseData.code === "PAYPAL_CREATE_REJECTED" &&
+        attempt.current?.id === attemptId
+      ) {
+        attempt.current = null;
+      }
       toast({ title: t("checkout.paymentFailed"), description: error.message || t("checkout.paypalStartFailed"), variant: "destructive" });
       setLoading(false);
     }

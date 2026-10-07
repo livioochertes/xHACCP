@@ -10,6 +10,7 @@ import {
   isPayPalOrderBindingValid,
   PayPalApiError,
   PayPalCreateOutcomeUnknownError,
+  isConfirmedPermanentPayPalCreateRejection,
   paypalCaptureRequestId,
   paypalCheckoutFingerprint,
   paypalCreateRequestId,
@@ -229,6 +230,129 @@ test("PayPal create keeps an uncertain result pending and does not retry definit
     PayPalApiError,
   );
   assert.equal(attempts, 1);
+});
+
+test("PayPal sequential retries rotate identity only after a permanent rejection", async () => {
+  const localOrders = new Map<string, {
+    id: number;
+    paymentStatus: "pending" | "failed";
+    paypalCheckoutFingerprint: string;
+  }>();
+  const providerOrders = new Map<string, ReturnType<typeof createdPayPalOrder>>();
+  const requestIds: string[] = [];
+  let nextOrderId = 42;
+  let acceptedProviderOrders = 0;
+
+  const runAttempt = async (attemptId: string) => {
+    const localOrder = await resolvePayPalCheckoutAttempt(
+      attemptId,
+      "same-checkout",
+      async id => localOrders.get(id),
+      async id => {
+        const order = {
+          id: nextOrderId++,
+          paymentStatus: "pending" as const,
+          paypalCheckoutFingerprint: "same-checkout",
+        };
+        localOrders.set(id, order);
+        return order;
+      },
+    );
+    try {
+      const result = await createPayPalOrderWithRecovery({
+        ...paypalCreateInput,
+        orderId: localOrder.id,
+        requestId: paypalCreateRequestId("", localOrder.id),
+      }, async input => {
+        requestIds.push(input.requestId);
+        if (localOrder.id === 42) throw new PayPalApiError(422);
+        const existing = providerOrders.get(input.requestId);
+        if (existing) return existing;
+        const accepted = createdPayPalOrder("P-accepted");
+        providerOrders.set(input.requestId, accepted);
+        acceptedProviderOrders++;
+        return accepted;
+      });
+      return { result, newAttemptRequired: false };
+    } catch (error) {
+      if (isConfirmedPermanentPayPalCreateRejection(error)) {
+        localOrder.paymentStatus = "failed";
+        return { newAttemptRequired: true };
+      }
+      throw error;
+    }
+  };
+
+  const rejected = await runAttempt("attempt-rejected");
+  assert.equal(rejected.newAttemptRequired, true);
+  const acceptedAttempt = await runAttempt("attempt-fresh");
+  assert.equal(acceptedAttempt.newAttemptRequired, false);
+  assert.equal("result" in acceptedAttempt && acceptedAttempt.result.id, "P-accepted");
+  const sequentialRetry = await runAttempt("attempt-fresh");
+  assert.equal("result" in sequentialRetry && sequentialRetry.result.id, "P-accepted");
+
+  assert.equal(localOrders.size, 2);
+  assert.equal(localOrders.get("attempt-rejected")?.paymentStatus, "failed");
+  assert.equal(acceptedProviderOrders, 1);
+  assert.deepEqual(requestIds, [
+    paypalCreateRequestId("", 42),
+    paypalCreateRequestId("", 43),
+    paypalCreateRequestId("", 43),
+  ]);
+});
+
+test("PayPal sequential ambiguous retries keep the original attempt and provider key", async () => {
+  const localOrders = new Map<string, { id: number; paypalCheckoutFingerprint: string }>();
+  const providerOrders = new Map<string, ReturnType<typeof createdPayPalOrder>>();
+  const requestIds: string[] = [];
+  let localOrderCreations = 0;
+  let acceptedProviderOrders = 0;
+  let firstRequestAttempts = 0;
+
+  const runAttempt = async () => {
+    const localOrder = await resolvePayPalCheckoutAttempt(
+      "attempt-ambiguous",
+      "same-checkout",
+      async id => localOrders.get(id),
+      async id => {
+        localOrderCreations++;
+        const order = { id: 42, paypalCheckoutFingerprint: "same-checkout" };
+        localOrders.set(id, order);
+        return order;
+      },
+    );
+    return createPayPalOrderWithRecovery({
+      ...paypalCreateInput,
+      orderId: localOrder.id,
+      requestId: paypalCreateRequestId("", localOrder.id),
+    }, async input => {
+      requestIds.push(input.requestId);
+      const existing = providerOrders.get(input.requestId);
+      if (existing && firstRequestAttempts >= 2) return existing;
+      firstRequestAttempts++;
+      if (!existing) {
+        providerOrders.set(input.requestId, createdPayPalOrder("P-recovered"));
+        acceptedProviderOrders++;
+      }
+      throw new TypeError("PayPal response unavailable");
+    });
+  };
+
+  await assert.rejects(runAttempt(), PayPalCreateOutcomeUnknownError);
+  const recovered = await runAttempt();
+  assert.equal(recovered.id, "P-recovered");
+  assert.equal(localOrderCreations, 1);
+  assert.equal(acceptedProviderOrders, 1);
+  assert.equal(providerOrders.size, 1);
+  assert.deepEqual(requestIds, Array(3).fill(paypalCreateRequestId("", 42)));
+});
+
+test("only permanent PayPal create rejections authorize a new checkout attempt", () => {
+  assert.equal(isConfirmedPermanentPayPalCreateRejection(new PayPalApiError(422)), true);
+  assert.equal(isConfirmedPermanentPayPalCreateRejection(new PayPalApiError(408)), false);
+  assert.equal(isConfirmedPermanentPayPalCreateRejection(new PayPalApiError(429)), false);
+  assert.equal(isConfirmedPermanentPayPalCreateRejection(new PayPalApiError(500)), false);
+  assert.equal(isConfirmedPermanentPayPalCreateRejection(new TypeError("network failed")), false);
 });
 
 test("PayPal webhook headers and order ids use signed transmission fields", () => {

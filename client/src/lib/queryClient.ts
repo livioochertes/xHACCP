@@ -23,10 +23,12 @@ async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()).trim();
     let message = "";
+    let responseData: unknown;
 
     if (text) {
       try {
         const parsed = JSON.parse(text);
+        responseData = parsed;
         if (typeof parsed?.message === "string") {
           message = parsed.message;
         } else if (typeof parsed?.error === "string") {
@@ -42,7 +44,22 @@ async function throwIfResNotOk(res: Response) {
       message = text.slice(0, 300);
     }
 
-    throw new Error(`${res.status}: ${message || res.statusText || "Request failed"}`);
+    throw new ApiRequestError(
+      `${res.status}: ${message || res.statusText || "Request failed"}`,
+      res.status,
+      responseData,
+    );
+  }
+}
+
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly responseData: unknown,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
   }
 }
 

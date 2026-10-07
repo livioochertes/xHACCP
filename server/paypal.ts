@@ -89,6 +89,12 @@ export class PayPalCreateOutcomeUnknownError extends Error {
   }
 }
 
+export function isConfirmedPermanentPayPalCreateRejection(error: unknown): error is PayPalApiError {
+  return error instanceof PayPalApiError &&
+    error.status >= 400 && error.status < 500 &&
+    error.status !== 408 && error.status !== 429;
+}
+
 type PayPalWebhookRequest = {
   body: unknown;
   headers: Record<string, string | string[] | undefined>;
@@ -446,8 +452,7 @@ export async function createPayPalOrder(input: PayPalCreateOrderInput): Promise<
 }
 
 function isAmbiguousPayPalCreateError(error: unknown) {
-  if (!(error instanceof PayPalApiError)) return true;
-  return error.status === 408 || error.status >= 500;
+  return !isConfirmedPermanentPayPalCreateRejection(error);
 }
 
 export async function createPayPalOrderWithRecovery(

@@ -74,7 +74,7 @@ import {
   reconcilePayPalPayment,
   expirePayPalOrderIfProviderConfirms,
   handlePayPalWebhook,
-  PayPalApiError,
+  isConfirmedPermanentPayPalCreateRejection,
 } from "./paypal";
 import { isVivaPaymentOrderNonPayable } from "./viva-payment-status";
 import { getRomanianSamedayShippingContext } from "./sameday-shipping";
@@ -4907,18 +4907,26 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         if (localOrder.paymentProviderOrderId) {
           paypalOrder = await getPayPalOrder(localOrder.paymentProviderOrderId, requestId);
         } else {
-          paypalOrder = await createPayPalOrderWithRecovery({
-            amount: Number(localOrder.totalAmount).toFixed(2), orderId: localOrder.id,
-            returnUrl: `${baseUrl}/api/payments/paypal/callback`,
-            cancelUrl: `${baseUrl}/api/payments/paypal/callback?cancel=1`,
-            requestId: paypalCreateRequestId(localOrder.publicOrderRef || "", localOrder.id),
-          });
+          try {
+            paypalOrder = await createPayPalOrderWithRecovery({
+              amount: Number(localOrder.totalAmount).toFixed(2), orderId: localOrder.id,
+              returnUrl: `${baseUrl}/api/payments/paypal/callback`,
+              cancelUrl: `${baseUrl}/api/payments/paypal/callback?cancel=1`,
+              requestId: paypalCreateRequestId(localOrder.publicOrderRef || "", localOrder.id),
+            });
+          } catch (error) {
+            if (isConfirmedPermanentPayPalCreateRejection(error)) {
+              await storage.markOrderPaymentFailed(localOrder.id);
+              return res.status(502).json({
+                message: "PayPal payment could not be started",
+                code: "PAYPAL_CREATE_REJECTED",
+              });
+            }
+            throw error;
+          }
         }
       } catch (error) {
         console.error(`[PayPal ${requestId}] order creation failed:`, error instanceof Error ? error.message : "unknown error");
-        if (error instanceof PayPalApiError && error.status >= 400 && error.status < 500 && error.status !== 408) {
-          await storage.markOrderPaymentFailed(localOrder.id);
-        }
         return res.status(502).json({ message: "PayPal payment could not be started" });
       }
       if ((localOrder.paymentProviderOrderId && localOrder.paymentProviderOrderId !== paypalOrder.id) ||

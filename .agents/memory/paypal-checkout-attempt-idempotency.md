@@ -7,4 +7,8 @@ A PayPal button retry must reuse a client attempt ID. Persist that ID with a uni
 
 **Why:** A timeout can hide a successful PayPal order creation. A new local order changes the provider idempotency key and can create a second checkout.
 
-**How to apply:** Keep the client attempt identity stable across retries of the same cart and address payload, make local order creation race-safe in the database, and recover provider orders by their stored ID when available.
+Only a confirmed permanent create rejection may fail the local attempt and authorize the client to use a new attempt ID. Keep the same attempt and provider key for timeouts, network failures, provider errors, and rate limits.
+
+**Why:** A rejected response proves the provider did not accept that create request; an uncertain response does not. Treating a transient response as permission to create a new checkout can duplicate orders or provider checkouts.
+
+**How to apply:** Keep the client attempt identity stable across retries of the same cart and address payload, make local order creation race-safe in the database, recover provider orders by their stored ID when available, and expose an explicit server signal only after a permanent rejection is recorded.
