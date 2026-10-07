@@ -8,7 +8,7 @@ import {
 } from "./public-routing";
 
 test("public SPA routing only permits exact public paths and one-segment detail routes", () => {
-  for (const path of ["/", "/products", "/blog", "/about", "/terms", "/privacy", "/returns", "/chef-event"]) {
+  for (const path of ["/", "/products", "/blog", "/about", "/terms", "/privacy", "/returns", "/chef-event", "/newsletter/subscribe"]) {
     assert.equal(isPublicSpaPath(path), true, `${path} should be a public SPA route`);
   }
   for (const path of ["/products/one", "/blog/one"]) {

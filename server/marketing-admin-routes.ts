@@ -8,6 +8,8 @@ import { db } from "./db";
 import { storage } from "./storage";
 import { authenticateAdmin, canAccessMarket } from "./admin-routes";
 import { getSenderForMarket, sendEmail } from "./email-service";
+import { buildProspectMarketingEmail } from "./prospect-marketing-security";
+import { markProspectInvitationSent } from "./prospect-marketing-db";
 import { getAIMarketCatalogForMarket } from "./routes";
 import { parseAIRecommendationCampaignInput } from "./ai-recommendation-campaign-validation";
 
@@ -367,6 +369,10 @@ export function registerMarketingAdminRoutes(
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          ...(user.source === "prospect" ? {
+            restaurantName: user.restaurantName,
+            city: user.city,
+          } : {}),
         })),
       });
     } catch (error) {
@@ -432,7 +438,15 @@ export function registerMarketingAdminRoutes(
       const segment = campaign.segmentId ? await storage.getMarketingSegment(campaign.segmentId) : undefined;
       if (!segment) return res.status(400).json({ message: "Campaign segment no longer exists" });
 
-      const recipients = await storage.getMarketingRecipients(segment.criteria || { market: campaign.market as any });
+      const criteria = segment.criteria || { market: campaign.market as any };
+      const prospectAudience = criteria.prospectAudience;
+      if (prospectAudience && campaign.market !== "fr") {
+        return res.status(400).json({ message: "Prospect campaigns are available only for the France market" });
+      }
+      const recipients = await storage.getMarketingRecipients(criteria);
+      if (recipients.length === 0) {
+        return res.status(400).json({ message: "There are no eligible recipients in this segment" });
+      }
       await storage.updateMarketingCampaign(campaign.id, {
         status: "sending",
         recipientCount: recipients.length,
@@ -442,16 +456,59 @@ export function registerMarketingAdminRoutes(
 
       let sentCount = 0;
       let failedCount = 0;
-      for (const recipient of recipients) {
-        const sent = await sendEmail({
-          to: recipient.email,
-          from: getSenderForMarket(campaign.market),
-          subject: campaign.subject,
-          html: campaign.htmlContent,
-          text: campaign.textContent || campaign.subject,
-        });
-        if (sent) sentCount++;
-        else failedCount++;
+      if (prospectAudience === "invitation" || prospectAudience === "newsletter") {
+        for (let offset = 0; offset < recipients.length; offset += 10) {
+          const batch = recipients.slice(offset, offset + 10);
+          const results = await Promise.all(batch.map(async (recipient) => {
+            if (!recipient.prospectId) return false;
+            try {
+              const personalized = buildProspectMarketingEmail({
+                htmlContent: campaign.htmlContent,
+                textContent: campaign.textContent,
+                recipient: {
+                  prospectId: recipient.prospectId,
+                  restaurantName: recipient.restaurantName,
+                  city: recipient.city,
+                },
+                audience: prospectAudience,
+              });
+              const sent = await sendEmail({
+                to: recipient.email,
+                from: getSenderForMarket("fr"),
+                subject: campaign.subject,
+                html: personalized.html,
+                text: personalized.text,
+                headers: personalized.headers,
+                suppressRecipientLog: true,
+              });
+              if (sent && prospectAudience === "invitation") {
+                try {
+                  await markProspectInvitationSent(recipient.prospectId);
+                } catch {
+                  console.error("Could not save prospect invitation delivery state");
+                }
+              }
+              return sent;
+            } catch {
+              console.error("Prospect marketing email could not be prepared");
+              return false;
+            }
+          }));
+          sentCount += results.filter(Boolean).length;
+          failedCount += results.filter((sent) => !sent).length;
+        }
+      } else {
+        for (const recipient of recipients) {
+          const sent = await sendEmail({
+            to: recipient.email,
+            from: getSenderForMarket(campaign.market),
+            subject: campaign.subject,
+            html: campaign.htmlContent,
+            text: campaign.textContent || campaign.subject,
+          });
+          if (sent) sentCount++;
+          else failedCount++;
+        }
       }
 
       const updated = await storage.updateMarketingCampaign(campaign.id, {

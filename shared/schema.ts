@@ -187,6 +187,8 @@ export type MarketingSegmentCriteria = {
   hasOrders?: "any" | "yes" | "no";
   hasAbandonedCart?: "any" | "yes" | "no";
   eventVoucherCampaign?: "any" | "chef-event-fr";
+  prospectListId?: number;
+  prospectAudience?: "invitation" | "newsletter";
 };
 
 export const marketingSegments = pgTable("marketing_segments", {
@@ -799,6 +801,56 @@ export const eventVoucherRegistrations = pgTable("event_voucher_registrations", 
   campaignEmailUnique: uniqueIndex("event_voucher_campaign_email_unique").on(table.campaignId, table.email),
 }));
 
+export const marketingProspectLists = pgTable("marketing_prospect_lists", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 160 }).notNull(),
+  market: varchar("market", { length: 10 }).notNull().default("fr"),
+  sourceFile: varchar("source_file", { length: 255 }).notNull(),
+  contactBasis: varchar("contact_basis", { length: 60 }).notNull(),
+  basisConfirmedAt: timestamp("basis_confirmed_at").notNull(),
+  basisConfirmedBy: integer("basis_confirmed_by").references(() => users.id, { onDelete: "set null" }),
+  totalContacts: integer("total_contacts").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  marketingProspectListMarketIdx: index("marketing_prospect_lists_market_idx").on(table.market),
+}));
+
+export const marketingProspects = pgTable("marketing_prospects", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+  market: varchar("market", { length: 10 }).notNull().default("fr"),
+  restaurantName: varchar("restaurant_name", { length: 255 }),
+  city: varchar("city", { length: 160 }),
+  address: text("address"),
+  phone: varchar("phone", { length: 50 }),
+  website: text("website"),
+  foodSafetyNote: text("food_safety_note"),
+  legalRepresentative: varchar("legal_representative", { length: 255 }),
+  siret: varchar("siret", { length: 32 }),
+  source: text("source"),
+  subscriptionStatus: varchar("subscription_status", { length: 24 }).notNull().default("not_subscribed"),
+  invitationSentAt: timestamp("invitation_sent_at"),
+  newsletterConsentAt: timestamp("newsletter_consent_at"),
+  newsletterConsentVersion: varchar("newsletter_consent_version", { length: 60 }),
+  newsletterVoucherId: integer("newsletter_voucher_id").references(() => vouchers.id, { onDelete: "set null" }),
+  voucherEmailSentAt: timestamp("voucher_email_sent_at"),
+  unsubscribedAt: timestamp("unsubscribed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  marketingProspectEmailMarketUnique: uniqueIndex("marketing_prospects_email_market_unique").on(table.email, table.market),
+  marketingProspectMarketStatusIdx: index("marketing_prospects_market_status_idx").on(table.market, table.subscriptionStatus),
+}));
+
+export const marketingProspectListContacts = pgTable("marketing_prospect_list_contacts", {
+  listId: integer("list_id").notNull().references(() => marketingProspectLists.id, { onDelete: "cascade" }),
+  prospectId: integer("prospect_id").notNull().references(() => marketingProspects.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  marketingProspectListContactPk: primaryKey({ columns: [table.listId, table.prospectId] }),
+  marketingProspectListContactProspectIdx: index("marketing_prospect_list_contacts_prospect_idx").on(table.prospectId),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
@@ -1169,6 +1221,8 @@ export type MarketingSegment = typeof marketingSegments.$inferSelect;
 export type InsertMarketingSegment = typeof marketingSegments.$inferInsert;
 export type MarketingCampaign = typeof marketingCampaigns.$inferSelect;
 export type InsertMarketingCampaign = typeof marketingCampaigns.$inferInsert;
+export type MarketingProspectList = typeof marketingProspectLists.$inferSelect;
+export type MarketingProspect = typeof marketingProspects.$inferSelect;
 export type ProductMarket = typeof productMarkets.$inferSelect;
 export type InsertProductMarket = z.infer<typeof insertProductMarketsSchema>;
 export type GoogleMerchantFeed = typeof googleMerchantFeeds.$inferSelect;

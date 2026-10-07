@@ -555,6 +555,12 @@ import {
       const [eventVoucherContacts, setEventVoucherContacts] = useState([]);
       const [eventVoucherContactsLoading, setEventVoucherContactsLoading] = useState(false);
       const [eventVoucherContactSearch, setEventVoucherContactSearch] = useState('');
+      const [prospectLists, setProspectLists] = useState([]);
+      const [prospectCsvFile, setProspectCsvFile] = useState(null);
+      const [prospectListName, setProspectListName] = useState('');
+      const [prospectB2bConfirmed, setProspectB2bConfirmed] = useState(false);
+      const [prospectPreview, setProspectPreview] = useState(null);
+      const [prospectBusy, setProspectBusy] = useState(false);
       const [marketingSegmentForm, setMarketingSegmentForm] = useState({
         name: '', hasOrders: 'any', hasAbandonedCart: 'any', eventVoucherCampaign: 'any'
       });
@@ -1740,11 +1746,14 @@ import {
         setEventVoucherContactsLoading(isFranceVisible);
         try {
           const market = selectedMarketTab || 'all';
-          const [segmentsRes, campaignsRes, contactsRes] = await Promise.all([
+          const [segmentsRes, campaignsRes, contactsRes, prospectListsRes] = await Promise.all([
             fetch(`/admin/api/marketing/segments?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
             fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
             isFranceVisible
               ? fetch('/admin/api/marketing/event-voucher-contacts?campaign=chef-event-fr', { headers: { 'Authorization': `Bearer ${token}` } })
+              : Promise.resolve(null),
+            isFranceVisible
+              ? fetch('/admin/api/marketing/prospects/lists?market=fr', { headers: { 'Authorization': `Bearer ${token}` } })
               : Promise.resolve(null)
           ]);
           if (segmentsRes.ok) setMarketingSegments(await segmentsRes.json());
@@ -1755,12 +1764,73 @@ import {
           } else if (!isFranceVisible) {
             setEventVoucherContacts([]);
           }
+          if (prospectListsRes?.ok) setProspectLists(await prospectListsRes.json());
+          else if (!isFranceVisible) setProspectLists([]);
         } catch (err) {
           console.error('Error fetching marketing data:', err);
           alert(t('marketing.loadFailed'));
         } finally {
           setMarketingLoading(false);
           setEventVoucherContactsLoading(false);
+        }
+      };
+
+      const previewProspectCsv = async () => {
+        if (!prospectCsvFile) return alert(t('marketing.prospectChooseCsv'));
+        setProspectBusy(true);
+        try {
+          const formData = new FormData();
+          formData.append('file', prospectCsvFile);
+          const res = await fetch('/admin/api/marketing/prospects/preview', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || t('marketing.prospectPreviewFailed'));
+          setProspectPreview(data);
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+        } finally {
+          setProspectBusy(false);
+        }
+      };
+
+      const importProspectCsv = async () => {
+        if (!prospectCsvFile || !prospectListName.trim() || !prospectB2bConfirmed || !prospectPreview?.validRows) {
+          return alert(t('marketing.prospectImportRequired'));
+        }
+        if (!window.confirm(t('marketing.prospectImportConfirm', { count: prospectPreview.validRows }))) return;
+        setProspectBusy(true);
+        try {
+          const formData = new FormData();
+          formData.append('file', prospectCsvFile);
+          formData.append('name', prospectListName.trim());
+          formData.append('confirmB2bBasis', 'true');
+          const res = await fetch('/admin/api/marketing/prospects/import', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || t('marketing.prospectImportFailed'));
+          alert(t('marketing.prospectImported', {
+            created: data.createdContacts,
+            existing: data.existingContacts,
+            invalid: data.invalidRows,
+            duplicates: data.duplicateRows
+          }));
+          setProspectCsvFile(null);
+          setProspectListName('');
+          setProspectB2bConfirmed(false);
+          setProspectPreview(null);
+          const input = document.getElementById('marketing-prospect-csv');
+          if (input) input.value = '';
+          fetchMarketing();
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+        } finally {
+          setProspectBusy(false);
         }
       };
 
@@ -6005,6 +6075,107 @@ import {
                   </section>
                 )}
 
+                {(selectedMarketTab === 'fr' || selectedMarketTab === 'all') && (
+                  <section style={{background: '#f5f3ff', border: '1px solid #d8ccff', borderRadius: '8px', padding: '20px', marginBottom: '24px'}}>
+                    <h4 style={{margin: '0 0 6px', color: '#5b3aa6'}}>📇 {t('marketing.prospectsTitle')}</h4>
+                    <p style={{fontSize: '13px', color: '#51456f', margin: '0 0 16px'}}>{t('marketing.prospectsDescription')}</p>
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', alignItems: 'end'}}>
+                      <label style={{fontSize: '12px', color: '#495057'}}>
+                        {t('marketing.prospectListName')}
+                        <input
+                          value={prospectListName}
+                          maxLength={160}
+                          onChange={e => setProspectListName(e.target.value)}
+                          placeholder={t('marketing.prospectListNamePlaceholder')}
+                          style={{display: 'block', width: '100%', boxSizing: 'border-box', marginTop: '4px', padding: '8px', border: '1px solid #cfc4ec', borderRadius: '4px'}}
+                        />
+                      </label>
+                      <label style={{fontSize: '12px', color: '#495057'}}>
+                        {t('marketing.prospectCsvLabel')}
+                        <input
+                          id="marketing-prospect-csv"
+                          type="file"
+                          accept=".csv,text/csv"
+                          onChange={e => {
+                            setProspectCsvFile(e.target.files?.[0] || null);
+                            setProspectPreview(null);
+                          }}
+                          style={{display: 'block', width: '100%', boxSizing: 'border-box', marginTop: '4px', padding: '6px', border: '1px solid #cfc4ec', borderRadius: '4px', background: 'white'}}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={previewProspectCsv}
+                        disabled={prospectBusy || !prospectCsvFile}
+                        style={{background: prospectBusy || !prospectCsvFile ? '#a89ac7' : '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 12px', cursor: prospectBusy || !prospectCsvFile ? 'not-allowed' : 'pointer'}}
+                      >{prospectBusy ? t('marketing.loading') : t('marketing.prospectPreview')}</button>
+                    </div>
+                    <label style={{display: 'flex', gap: '8px', alignItems: 'flex-start', margin: '14px 0', fontSize: '13px', color: '#41375b'}}>
+                      <input type="checkbox" checked={prospectB2bConfirmed} onChange={e => setProspectB2bConfirmed(e.target.checked)} style={{marginTop: '3px'}} />
+                      <span>{t('marketing.prospectB2bConfirmation')}</span>
+                    </label>
+                    {prospectPreview && (
+                      <div style={{background: 'white', border: '1px solid #ded5ef', borderRadius: '6px', padding: '12px', marginBottom: '14px'}}>
+                        <strong>{t('marketing.prospectPreviewSummary', {
+                          total: prospectPreview.totalRows,
+                          valid: prospectPreview.validRows,
+                          duplicates: prospectPreview.duplicateRows,
+                          invalid: prospectPreview.invalidRows
+                        })}</strong>
+                        {prospectPreview.sample?.length > 0 && (
+                          <div style={{overflowX: 'auto', marginTop: '10px'}}>
+                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                              <thead><tr>{['restaurantName', 'email', 'city', 'source'].map(key => <th key={key} style={{padding: '6px', textAlign: 'left', borderBottom: '1px solid #e5e7eb'}}>{t(`marketing.prospectColumn.${key}`)}</th>)}</tr></thead>
+                              <tbody>{prospectPreview.sample.map((row, index) => (
+                                <tr key={`${row.email}-${index}`}>
+                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.restaurantName || '—'}</td>
+                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.email}</td>
+                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.city || '—'}</td>
+                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.source || '—'}</td>
+                                </tr>
+                              ))}</tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={importProspectCsv}
+                      disabled={prospectBusy || !prospectPreview?.validRows || !prospectListName.trim() || !prospectB2bConfirmed}
+                      style={{background: prospectBusy || !prospectPreview?.validRows || !prospectListName.trim() || !prospectB2bConfirmed ? '#a89ac7' : '#4b2c91', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 14px', cursor: prospectBusy || !prospectPreview?.validRows || !prospectListName.trim() || !prospectB2bConfirmed ? 'not-allowed' : 'pointer'}}
+                    >{t('marketing.prospectImport')}</button>
+
+                    <div style={{marginTop: '18px'}}>
+                      <strong style={{fontSize: '13px', color: '#41375b'}}>{t('marketing.prospectSavedLists')}</strong>
+                      {marketingLoading ? <p style={{fontSize: '13px', color: '#6c757d'}}>{t('marketing.loading')}</p> : prospectLists.length === 0 ? (
+                        <p style={{fontSize: '13px', color: '#6c757d'}}>{t('marketing.prospectNoLists')}</p>
+                      ) : (
+                        <div style={{overflowX: 'auto', marginTop: '8px'}}>
+                          <table style={{width: '100%', borderCollapse: 'collapse', background: 'white', fontSize: '12px'}}>
+                            <thead style={{background: '#ede7f6'}}><tr>
+                              <th style={{padding: '8px', textAlign: 'left'}}>{t('marketing.prospectListName')}</th>
+                              <th style={{padding: '8px', textAlign: 'right'}}>{t('marketing.prospectTotal')}</th>
+                              <th style={{padding: '8px', textAlign: 'right'}}>{t('marketing.prospectInvitable')}</th>
+                              <th style={{padding: '8px', textAlign: 'right'}}>{t('marketing.prospectSubscribers')}</th>
+                              <th style={{padding: '8px', textAlign: 'right'}}>{t('marketing.prospectUnsubscribed')}</th>
+                            </tr></thead>
+                            <tbody>{prospectLists.map(list => (
+                              <tr key={list.id} style={{borderTop: '1px solid #ede7f6'}}>
+                                <td style={{padding: '8px'}}><strong>{list.name}</strong><div style={{color: '#64748b', marginTop: '2px'}}>{list.sourceFile}</div></td>
+                                <td style={{padding: '8px', textAlign: 'right'}}>{list.totalContacts}</td>
+                                <td style={{padding: '8px', textAlign: 'right'}}>{list.invitationEligible}</td>
+                                <td style={{padding: '8px', textAlign: 'right'}}>{list.newsletterSubscribers}</td>
+                                <td style={{padding: '8px', textAlign: 'right'}}>{list.unsubscribed}</td>
+                              </tr>
+                            ))}</tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )}
+
                 <section style={{background: '#f0f7ff', border: '1px solid #b8d7ff', borderRadius: '8px', padding: '20px', marginBottom: '24px'}}>
                   <h4 style={{margin: '0 0 6px', color: '#145da0'}}>⏱️ {t('marketing.thresholdsTitle')}</h4>
                   <p style={{fontSize: '13px', color: '#495057', margin: '0 0 16px'}}>
@@ -6077,6 +6248,10 @@ import {
                 <section style={{background: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '8px', padding: '20px'}}>
                   <h4 style={{margin: '0 0 6px', color: '#333'}}>✉️ {t('marketing.campaignsTitle')}</h4>
                   <p style={{fontSize: '13px', color: '#6c757d', margin: '0 0 16px'}}>{t('marketing.campaignsDescription')}</p>
+                  <p style={{fontSize: '12px', color: '#6c757d', margin: '-8px 0 14px'}}>
+                    {t('marketing.prospectCampaignHelp')}{' '}
+                    <code>{'{{restaurant_name}}'}</code>, <code>{'{{city}}'}</code>, <code>{'{{newsletter_signup_url}}'}</code>, <code>{'{{unsubscribe_url}}'}</code>
+                  </p>
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))', gap: '8px', marginBottom: '8px'}}>
                     <input value={marketingCampaignForm.name} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, name: e.target.value})} placeholder={t('marketing.campaignNamePlaceholder')} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} />
                     <select value={marketingCampaignForm.market} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, market: e.target.value, segmentId: ''})} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}}>{['ro', 'fr', 'com'].filter(m => selectedMarketTab === 'all' || selectedMarketTab === m).map(m => <option key={m} value={m}>{t('marketing.marketplace', { market: m })}</option>)}</select>

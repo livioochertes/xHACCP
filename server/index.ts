@@ -6,6 +6,8 @@ import { registerRoutes } from "./routes";
 import { registerAdminRoutes } from "./admin-routes";
 import { registerWmsRoutes } from "./wms-routes";
 import { registerMarketingAdminRoutes } from "./marketing-admin-routes";
+import { registerProspectMarketingAdminRoutes } from "./prospect-marketing-admin-routes";
+import { registerProspectMarketingPublicRoutes } from "./prospect-marketing-public-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase, seedCategoryTranslations, seedMarketSettings } from "./sample-data";
 import { loadAllDataIntoMemory } from "./routes";
@@ -134,6 +136,8 @@ app.use((req, res, next) => {
   await registerAdminRoutes(app);
   registerWmsRoutes(app);
   registerMarketingAdminRoutes(app);
+  registerProspectMarketingAdminRoutes(app);
+  registerProspectMarketingPublicRoutes(app);
   
   const server = await registerRoutes(app);
 

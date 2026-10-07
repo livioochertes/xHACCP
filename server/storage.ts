@@ -22,6 +22,9 @@ import {
   marketSettings,
   marketingSegments,
   marketingCampaigns,
+  marketingProspects,
+  marketingProspectLists,
+  marketingProspectListContacts,
   productMarkets,
   compositeProductComponents,
   fulfillmentPartners,
@@ -90,7 +93,7 @@ import crypto from "node:crypto";
 import { compositeConfigurationKey } from "./composite-products";
 import { filterPublicReviews } from "./review-validation";
 import { addDays, EVENT_VOUCHER_ACTIVATION_DAYS } from "./voucher-validity";
-import { eq, desc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, notExists } from "drizzle-orm";
+import { eq, desc, asc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, notExists } from "drizzle-orm";
 
 export interface AbandonedCartCandidate {
   userId: number;
@@ -119,7 +122,10 @@ export interface MarketingRecipient {
   email: string;
   firstName: string | null;
   lastName: string | null;
-  source?: "account" | "event_voucher";
+  source?: "account" | "event_voucher" | "prospect";
+  prospectId?: number;
+  restaurantName?: string | null;
+  city?: string | null;
 }
 
 export interface EventVoucherMarketingContact extends EventVoucherRegistration {
@@ -2289,6 +2295,60 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<MarketingRecipient[]> {
+    if (criteria.prospectAudience) {
+      const listId = Number(criteria.prospectListId);
+      if (!Number.isSafeInteger(listId) || listId <= 0) return [];
+      const listConditions = [
+        eq(marketingProspectListContacts.listId, listId),
+        eq(marketingProspectLists.market, "fr"),
+        eq(marketingProspects.market, "fr"),
+        isNull(marketingProspects.unsubscribedAt),
+      ];
+      if (criteria.prospectAudience === "invitation") {
+        listConditions.push(
+          eq(marketingProspectLists.contactBasis, "documented_b2b_basis") as any,
+          eq(marketingProspects.subscriptionStatus, "not_subscribed"),
+          isNull(marketingProspects.invitationSentAt),
+          isNull(marketingProspects.newsletterConsentAt),
+        );
+      } else if (criteria.prospectAudience === "newsletter") {
+        listConditions.push(
+          eq(marketingProspects.subscriptionStatus, "subscribed"),
+          isNotNull(marketingProspects.newsletterConsentAt),
+        );
+      } else {
+        return [];
+      }
+
+      const prospects = await db.select({
+        id: marketingProspects.id,
+        email: marketingProspects.email,
+        restaurantName: marketingProspects.restaurantName,
+        city: marketingProspects.city,
+      })
+        .from(marketingProspects)
+        .innerJoin(
+          marketingProspectListContacts,
+          eq(marketingProspectListContacts.prospectId, marketingProspects.id),
+        )
+        .innerJoin(
+          marketingProspectLists,
+          eq(marketingProspectLists.id, marketingProspectListContacts.listId),
+        )
+        .where(and(...listConditions))
+        .orderBy(asc(marketingProspects.id));
+      return prospects.map((prospect) => ({
+        id: prospect.id,
+        prospectId: prospect.id,
+        email: prospect.email,
+        firstName: null,
+        lastName: null,
+        restaurantName: prospect.restaurantName,
+        city: prospect.city,
+        source: "prospect" as const,
+      }));
+    }
+
     if (criteria.eventVoucherCampaign && criteria.eventVoucherCampaign !== "any") {
       if (criteria.market && criteria.market !== "all" && criteria.market !== "fr") {
         return [];

@@ -8,6 +8,7 @@ import {
   type ContactMarket,
 } from './contact-email.js';
 import { buildPublicTrackingUrl } from './public-tracking.js';
+import { getProspectUnsubscribeUrl } from './prospect-marketing-security';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const VERIFIED_SENDER: string = process.env.SENDGRID_FROM_EMAIL || 'noreply@xhaccp.com';
@@ -76,6 +77,7 @@ interface EmailParams {
   html?: string;
   replyTo?: string;
   attachments?: EmailAttachment[];
+  headers?: Record<string, string>;
   suppressRecipientLog?: boolean;
 }
 
@@ -102,6 +104,10 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       text: params.text || '',
       html: params.html || '',
     };
+
+    if (params.headers) {
+      emailData.headers = params.headers;
+    }
     
     if (params.replyTo) {
       emailData.replyTo = params.replyTo;
@@ -231,6 +237,34 @@ export async function sendEventVoucherEmail(data: {
   discountValue: string;
 }): Promise<boolean> {
   return sendEmail(buildEventVoucherEmail(data));
+}
+
+export async function sendProspectNewsletterVoucherEmail(data: {
+  prospectId: number;
+  to: string;
+  restaurantName: string;
+  code: string;
+  validUntil: Date;
+}): Promise<boolean> {
+  const safeRestaurant = escapeVoucherEmail(data.restaurantName || "votre restaurant");
+  const safeCode = escapeVoucherEmail(data.code);
+  const validUntil = new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "long",
+    timeZone: "Europe/Paris",
+  }).format(data.validUntil);
+  const unsubscribeUrl = getProspectUnsubscribeUrl(data.prospectId);
+  return sendEmail({
+    to: data.to,
+    from: getSenderForMarket("fr"),
+    subject: "Votre voucher de bienvenue xHACCP France (-20%)",
+    text: `Bonjour ${data.restaurantName || "à l'équipe"}, votre inscription à la newsletter xHACCP France est confirmée. Votre code de réduction de 20% : ${data.code}. Valable jusqu'au ${validUntil}.\n\nSe désabonner : ${unsubscribeUrl}`,
+    html: `<div style="font-family:Arial,sans-serif;color:#1f2937;max-width:600px;margin:0 auto;padding:24px"><h1 style="color:#0f766e">Merci pour votre inscription, ${safeRestaurant} !</h1><p>Votre inscription à la newsletter xHACCP France est confirmée.</p><p>Voici votre voucher de bienvenue :</p><p style="font-size:24px;font-weight:700;letter-spacing:2px;background:#f0fdfa;border:1px dashed #0f766e;padding:16px;text-align:center">${safeCode}</p><p>Il vous donne droit à <strong>20% de réduction</strong> sur votre commande sur xhaccp.fr. Valable jusqu'au ${validUntil}, pour une utilisation.</p><p>Pour ne plus recevoir nos communications : <a href="${unsubscribeUrl}">se désabonner</a>.</p><p style="color:#64748b;font-size:12px">L'équipe xHACCP France</p></div>`,
+    headers: {
+      "List-Unsubscribe": `<${unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+    suppressRecipientLog: true,
+  });
 }
 
 export async function sendSubscriptionRenewalEmail(

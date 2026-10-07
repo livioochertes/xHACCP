@@ -11412,6 +11412,34 @@
       eventContactsActivated: "Activated",
       eventContactsPending: "Pending",
       eventContactsEmpty: "No contacts match this filter.",
+      prospectsTitle: ".fr prospects",
+      prospectsDescription: "Import professional contacts from CSV. Import does not subscribe them: send the initial invitation only after confirming the documented B2B basis, and send newsletters only after explicit opt-in.",
+      prospectListName: "List name",
+      prospectListNamePlaceholder: "E.g. Paris restaurants",
+      prospectCsvLabel: "CSV file (5 MB maximum)",
+      prospectChooseCsv: "Choose a CSV file first.",
+      prospectPreview: "Preview CSV",
+      prospectPreviewFailed: "The CSV file could not be previewed.",
+      prospectB2bConfirmation: "I confirm that I have a documented B2B contact basis, that the contact source is recorded, and that the invitation is relevant to each recipient's professional activity.",
+      prospectPreviewSummary: "{{total}} rows \xB7 {{valid}} valid emails \xB7 {{duplicates}} duplicates in file \xB7 {{invalid}} invalid",
+      prospectImport: "Import list and create segments",
+      prospectImportRequired: "Enter a list name, preview the CSV, and confirm the B2B basis.",
+      prospectImportConfirm: "Import {{count}} contacts? No email will be sent in this step.",
+      prospectImportFailed: "The prospect list could not be imported.",
+      prospectImported: "Import complete. New: {{created}}; already existed: {{existing}}; invalid emails: {{invalid}}; duplicates in file: {{duplicates}}. Invitation and newsletter segments were created.",
+      prospectSavedLists: "Imported lists",
+      prospectNoLists: "No prospect lists have been imported.",
+      prospectTotal: "Contacts",
+      prospectInvitable: "Eligible for invitation",
+      prospectSubscribers: "Newsletter subscribers",
+      prospectUnsubscribed: "Unsubscribed",
+      prospectCampaignHelp: "Prospect segments automatically get signup and unsubscribe links. Personalize the restaurant, city, and links using these placeholders:",
+      prospectColumn: {
+        restaurantName: "Restaurant",
+        email: "Email",
+        city: "City",
+        source: "Source"
+      },
       thresholdsTitle: "Abandoned-cart thresholds",
       thresholdsDescription: "Thresholds are measured in hours since the cart was last changed. Leave a field empty to disable that reminder. Values must be strictly increasing.",
       reminder: "Reminder {{number}}",
@@ -11420,7 +11448,7 @@
       thresholdsSaved: "Thresholds for .{{market}} were saved.",
       thresholdsSaveFailed: "The thresholds could not be saved.",
       segmentsTitle: "Recipient segments",
-      segmentsDescription: "Only users who enabled both email notifications and promotions are included.",
+      segmentsDescription: "Audiences are kept separate: account users follow their consent settings, invitations use the confirmed B2B basis, and newsletters include only explicit subscribers.",
       segmentName: "Segment name",
       segmentNamePlaceholder: "E.g. Customers without an order",
       audienceSource: "Audience source",
@@ -12456,6 +12484,34 @@
       eventContactsActivated: "Activat",
       eventContactsPending: "\xCEn a\u0219teptare",
       eventContactsEmpty: "Nu exist\u0103 contacte pentru filtrul ales.",
+      prospectsTitle: "Prospecte .fr",
+      prospectsDescription: "Import\u0103 contacte profesionale din CSV. Importul nu le aboneaz\u0103: invita\u021Bia ini\u021Bial\u0103 se trimite doar dup\u0103 confirmarea bazei B2B documentate, iar newsletterul numai dup\u0103 acordul explicit.",
+      prospectListName: "Nume list\u0103",
+      prospectListNamePlaceholder: "Ex. Restaurante Paris",
+      prospectCsvLabel: "Fi\u0219ier CSV (maximum 5 MB)",
+      prospectChooseCsv: "Alege mai \xEEnt\xE2i un fi\u0219ier CSV.",
+      prospectPreview: "Previzualizeaz\u0103 CSV",
+      prospectPreviewFailed: "Fi\u0219ierul CSV nu a putut fi previzualizat.",
+      prospectB2bConfirmation: "Confirm c\u0103 am o baz\u0103 B2B documentat\u0103, c\u0103 sursa contactelor este \xEEnregistrat\u0103 \u0219i c\u0103 invita\u021Bia este relevant\u0103 pentru activitatea profesional\u0103 a destinatarilor.",
+      prospectPreviewSummary: "{{total}} r\xE2nduri \xB7 {{valid}} emailuri valide \xB7 {{duplicates}} duplicate \xEEn fi\u0219ier \xB7 {{invalid}} invalide",
+      prospectImport: "Import\u0103 lista \u0219i creeaz\u0103 segmentele",
+      prospectImportRequired: "Completeaz\u0103 numele listei, previzualizeaz\u0103 CSV-ul \u0219i confirm\u0103 baza B2B.",
+      prospectImportConfirm: "Importi {{count}} contacte? Nu se trimite niciun email \xEEn acest pas.",
+      prospectImportFailed: "Lista de prospecte nu a putut fi importat\u0103.",
+      prospectImported: "Import finalizat. Noi: {{created}}; deja existente: {{existing}}; emailuri invalide: {{invalid}}; duplicate \xEEn fi\u0219ier: {{duplicates}}. Segmentele pentru invita\u021Bie \u0219i newsletter au fost create.",
+      prospectSavedLists: "Liste importate",
+      prospectNoLists: "Nu exist\u0103 liste de prospecte importate.",
+      prospectTotal: "Contacte",
+      prospectInvitable: "Eligibile pentru invita\u021Bie",
+      prospectSubscribers: "Abona\u021Bi newsletter",
+      prospectUnsubscribed: "Dezabona\u021Bi",
+      prospectCampaignHelp: "Pentru segmentele de prospecte, linkurile de \xEEnscriere \u0219i dezabonare se adaug\u0103 automat. Po\u021Bi personaliza restaurantul, ora\u0219ul \u0219i aceste linkuri folosind variabilele:",
+      prospectColumn: {
+        restaurantName: "Restaurant",
+        email: "Email",
+        city: "Ora\u0219",
+        source: "Surs\u0103"
+      },
       thresholdsTitle: "Praguri abandoned-cart",
       thresholdsDescription: "Pragurile sunt num\u0103rul de ore de la ultima modificare a co\u0219ului. Las\u0103 un c\xE2mp gol pentru a dezactiva reminderul respectiv. Valorile trebuie s\u0103 fie strict cresc\u0103toare.",
       reminder: "Reminder {{number}}",
@@ -12464,7 +12520,7 @@
       thresholdsSaved: "Pragurile pentru .{{market}} au fost salvate.",
       thresholdsSaveFailed: "Nu s-au putut salva pragurile.",
       segmentsTitle: "Segmente de destinatari",
-      segmentsDescription: "Sunt inclu\u0219i numai utilizatorii care au activat at\xE2t notific\u0103rile email, c\xE2t \u0219i promo\u021Biile.",
+      segmentsDescription: "Audien\u021Bele sunt separate: conturile respect\u0103 consim\u021B\u0103mintele lor, invita\u021Biile folosesc baza B2B confirmat\u0103, iar newsletterul include numai abona\u021Bii explici\u021Bi.",
       segmentName: "Nume segment",
       segmentNamePlaceholder: "Ex. Clien\u021Bi f\u0103r\u0103 comand\u0103",
       audienceSource: "Surs\u0103 audien\u021B\u0103",
@@ -13500,6 +13556,34 @@
       eventContactsActivated: "Activ\xE9",
       eventContactsPending: "En attente",
       eventContactsEmpty: "Aucun contact pour ce filtre.",
+      prospectsTitle: "Prospects .fr",
+      prospectsDescription: "Importez des contacts professionnels depuis un CSV. L'import ne les abonne pas : l'invitation initiale part uniquement apr\xE8s confirmation de la base B2B document\xE9e, et la newsletter apr\xE8s accord explicite.",
+      prospectListName: "Nom de la liste",
+      prospectListNamePlaceholder: "Ex. Restaurants Paris",
+      prospectCsvLabel: "Fichier CSV (5 Mo maximum)",
+      prospectChooseCsv: "Choisissez d'abord un fichier CSV.",
+      prospectPreview: "Pr\xE9visualiser le CSV",
+      prospectPreviewFailed: "Impossible de pr\xE9visualiser le fichier CSV.",
+      prospectB2bConfirmation: "Je confirme que je dispose d'une base B2B document\xE9e, que la source des contacts est enregistr\xE9e et que l'invitation est pertinente pour leur activit\xE9 professionnelle.",
+      prospectPreviewSummary: "{{total}} lignes \xB7 {{valid}} emails valides \xB7 {{duplicates}} doublons dans le fichier \xB7 {{invalid}} invalides",
+      prospectImport: "Importer la liste et cr\xE9er les segments",
+      prospectImportRequired: "Renseignez le nom de la liste, pr\xE9visualisez le CSV et confirmez la base B2B.",
+      prospectImportConfirm: "Importer {{count}} contacts ? Aucun email ne sera envoy\xE9 \xE0 cette \xE9tape.",
+      prospectImportFailed: "Impossible d'importer la liste de prospects.",
+      prospectImported: "Import termin\xE9. Nouveaux : {{created}} ; d\xE9j\xE0 existants : {{existing}} ; emails invalides : {{invalid}} ; doublons dans le fichier : {{duplicates}}. Les segments invitation et newsletter ont \xE9t\xE9 cr\xE9\xE9s.",
+      prospectSavedLists: "Listes import\xE9es",
+      prospectNoLists: "Aucune liste de prospects import\xE9e.",
+      prospectTotal: "Contacts",
+      prospectInvitable: "\xC9ligibles \xE0 l'invitation",
+      prospectSubscribers: "Abonn\xE9s newsletter",
+      prospectUnsubscribed: "D\xE9sabonn\xE9s",
+      prospectCampaignHelp: "Pour les segments prospects, les liens d'inscription et de d\xE9sabonnement sont ajout\xE9s automatiquement. Personnalisez le restaurant, la ville et les liens \xE0 l'aide des variables suivantes :",
+      prospectColumn: {
+        restaurantName: "Restaurant",
+        email: "Email",
+        city: "Ville",
+        source: "Source"
+      },
       thresholdsTitle: "Seuils de panier abandonn\xE9",
       thresholdsDescription: "Les seuils indiquent le nombre d'heures depuis la derni\xE8re modification du panier. Laissez un champ vide pour d\xE9sactiver le rappel correspondant. Les valeurs doivent \xEAtre strictement croissantes.",
       reminder: "Rappel {{number}}",
@@ -13508,7 +13592,7 @@
       thresholdsSaved: "Les seuils pour .{{market}} ont \xE9t\xE9 enregistr\xE9s.",
       thresholdsSaveFailed: "Impossible d'enregistrer les seuils.",
       segmentsTitle: "Segments de destinataires",
-      segmentsDescription: "Seuls les utilisateurs ayant activ\xE9 les notifications email et les promotions sont inclus.",
+      segmentsDescription: "Les audiences sont s\xE9par\xE9es : les comptes suivent leurs consentements, les invitations utilisent la base B2B confirm\xE9e et la newsletter ne comprend que les abonn\xE9s explicites.",
       segmentName: "Nom du segment",
       segmentNamePlaceholder: "Ex. Clients sans commande",
       audienceSource: "Source de l'audience",
@@ -16830,6 +16914,12 @@
     const [eventVoucherContacts, setEventVoucherContacts] = (0, import_react21.useState)([]);
     const [eventVoucherContactsLoading, setEventVoucherContactsLoading] = (0, import_react21.useState)(false);
     const [eventVoucherContactSearch, setEventVoucherContactSearch] = (0, import_react21.useState)("");
+    const [prospectLists, setProspectLists] = (0, import_react21.useState)([]);
+    const [prospectCsvFile, setProspectCsvFile] = (0, import_react21.useState)(null);
+    const [prospectListName, setProspectListName] = (0, import_react21.useState)("");
+    const [prospectB2bConfirmed, setProspectB2bConfirmed] = (0, import_react21.useState)(false);
+    const [prospectPreview, setProspectPreview] = (0, import_react21.useState)(null);
+    const [prospectBusy, setProspectBusy] = (0, import_react21.useState)(false);
     const [marketingSegmentForm, setMarketingSegmentForm] = (0, import_react21.useState)({
       name: "",
       hasOrders: "any",
@@ -17901,10 +17991,11 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
       setEventVoucherContactsLoading(isFranceVisible);
       try {
         const market = selectedMarketTab || "all";
-        const [segmentsRes, campaignsRes, contactsRes] = await Promise.all([
+        const [segmentsRes, campaignsRes, contactsRes, prospectListsRes] = await Promise.all([
           fetch(`/admin/api/marketing/segments?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } }),
           fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } }),
-          isFranceVisible ? fetch("/admin/api/marketing/event-voucher-contacts?campaign=chef-event-fr", { headers: { "Authorization": `Bearer ${token}` } }) : Promise.resolve(null)
+          isFranceVisible ? fetch("/admin/api/marketing/event-voucher-contacts?campaign=chef-event-fr", { headers: { "Authorization": `Bearer ${token}` } }) : Promise.resolve(null),
+          isFranceVisible ? fetch("/admin/api/marketing/prospects/lists?market=fr", { headers: { "Authorization": `Bearer ${token}` } }) : Promise.resolve(null)
         ]);
         if (segmentsRes.ok) setMarketingSegments(await segmentsRes.json());
         if (campaignsRes.ok) setMarketingCampaigns(await campaignsRes.json());
@@ -17914,12 +18005,71 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         } else if (!isFranceVisible) {
           setEventVoucherContacts([]);
         }
+        if (prospectListsRes?.ok) setProspectLists(await prospectListsRes.json());
+        else if (!isFranceVisible) setProspectLists([]);
       } catch (err) {
         console.error("Error fetching marketing data:", err);
         alert(t2("marketing.loadFailed"));
       } finally {
         setMarketingLoading(false);
         setEventVoucherContactsLoading(false);
+      }
+    };
+    const previewProspectCsv = async () => {
+      if (!prospectCsvFile) return alert(t2("marketing.prospectChooseCsv"));
+      setProspectBusy(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", prospectCsvFile);
+        const res = await fetch("/admin/api/marketing/prospects/preview", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || t2("marketing.prospectPreviewFailed"));
+        setProspectPreview(data);
+      } catch (err) {
+        alert(`\u274C ${err.message}`);
+      } finally {
+        setProspectBusy(false);
+      }
+    };
+    const importProspectCsv = async () => {
+      if (!prospectCsvFile || !prospectListName.trim() || !prospectB2bConfirmed || !prospectPreview?.validRows) {
+        return alert(t2("marketing.prospectImportRequired"));
+      }
+      if (!window.confirm(t2("marketing.prospectImportConfirm", { count: prospectPreview.validRows }))) return;
+      setProspectBusy(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", prospectCsvFile);
+        formData.append("name", prospectListName.trim());
+        formData.append("confirmB2bBasis", "true");
+        const res = await fetch("/admin/api/marketing/prospects/import", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || t2("marketing.prospectImportFailed"));
+        alert(t2("marketing.prospectImported", {
+          created: data.createdContacts,
+          existing: data.existingContacts,
+          invalid: data.invalidRows,
+          duplicates: data.duplicateRows
+        }));
+        setProspectCsvFile(null);
+        setProspectListName("");
+        setProspectB2bConfirmed(false);
+        setProspectPreview(null);
+        const input = document.getElementById("marketing-prospect-csv");
+        if (input) input.value = "";
+        fetchMarketing();
+      } catch (err) {
+        alert(`\u274C ${err.message}`);
+      } finally {
+        setProspectBusy(false);
       }
     };
     const saveReminderThresholds = async (market) => {
@@ -22189,6 +22339,107 @@ This action cannot be undone.`)) {
                 ] })
               ] }) })
             ] }),
+            (selectedMarketTab === "fr" || selectedMarketTab === "all") && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("section", { style: { background: "#f5f3ff", border: "1px solid #d8ccff", borderRadius: "8px", padding: "20px", marginBottom: "24px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("h4", { style: { margin: "0 0 6px", color: "#5b3aa6" }, children: [
+                "\u{1F4C7} ",
+                t2("marketing.prospectsTitle")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "13px", color: "#51456f", margin: "0 0 16px" }, children: t2("marketing.prospectsDescription") }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px", alignItems: "end" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { fontSize: "12px", color: "#495057" }, children: [
+                  t2("marketing.prospectListName"),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    "input",
+                    {
+                      value: prospectListName,
+                      maxLength: 160,
+                      onChange: (e2) => setProspectListName(e2.target.value),
+                      placeholder: t2("marketing.prospectListNamePlaceholder"),
+                      style: { display: "block", width: "100%", boxSizing: "border-box", marginTop: "4px", padding: "8px", border: "1px solid #cfc4ec", borderRadius: "4px" }
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { fontSize: "12px", color: "#495057" }, children: [
+                  t2("marketing.prospectCsvLabel"),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    "input",
+                    {
+                      id: "marketing-prospect-csv",
+                      type: "file",
+                      accept: ".csv,text/csv",
+                      onChange: (e2) => {
+                        setProspectCsvFile(e2.target.files?.[0] || null);
+                        setProspectPreview(null);
+                      },
+                      style: { display: "block", width: "100%", boxSizing: "border-box", marginTop: "4px", padding: "6px", border: "1px solid #cfc4ec", borderRadius: "4px", background: "white" }
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: previewProspectCsv,
+                    disabled: prospectBusy || !prospectCsvFile,
+                    style: { background: prospectBusy || !prospectCsvFile ? "#a89ac7" : "#6f42c1", color: "white", border: "none", borderRadius: "4px", padding: "9px 12px", cursor: prospectBusy || !prospectCsvFile ? "not-allowed" : "pointer" },
+                    children: prospectBusy ? t2("marketing.loading") : t2("marketing.prospectPreview")
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { display: "flex", gap: "8px", alignItems: "flex-start", margin: "14px 0", fontSize: "13px", color: "#41375b" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("input", { type: "checkbox", checked: prospectB2bConfirmed, onChange: (e2) => setProspectB2bConfirmed(e2.target.checked), style: { marginTop: "3px" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: t2("marketing.prospectB2bConfirmation") })
+              ] }),
+              prospectPreview && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { background: "white", border: "1px solid #ded5ef", borderRadius: "6px", padding: "12px", marginBottom: "14px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: t2("marketing.prospectPreviewSummary", {
+                  total: prospectPreview.totalRows,
+                  valid: prospectPreview.validRows,
+                  duplicates: prospectPreview.duplicateRows,
+                  invalid: prospectPreview.invalidRows
+                }) }),
+                prospectPreview.sample?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { overflowX: "auto", marginTop: "10px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "12px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tr", { children: ["restaurantName", "email", "city", "source"].map((key) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "6px", textAlign: "left", borderBottom: "1px solid #e5e7eb" }, children: t2(`marketing.prospectColumn.${key}`) }, key)) }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tbody", { children: prospectPreview.sample.map((row, index) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.restaurantName || "\u2014" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.email }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.city || "\u2014" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.source || "\u2014" })
+                  ] }, `${row.email}-${index}`)) })
+                ] }) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                "button",
+                {
+                  type: "button",
+                  onClick: importProspectCsv,
+                  disabled: prospectBusy || !prospectPreview?.validRows || !prospectListName.trim() || !prospectB2bConfirmed,
+                  style: { background: prospectBusy || !prospectPreview?.validRows || !prospectListName.trim() || !prospectB2bConfirmed ? "#a89ac7" : "#4b2c91", color: "white", border: "none", borderRadius: "4px", padding: "9px 14px", cursor: prospectBusy || !prospectPreview?.validRows || !prospectListName.trim() || !prospectB2bConfirmed ? "not-allowed" : "pointer" },
+                  children: t2("marketing.prospectImport")
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "18px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { style: { fontSize: "13px", color: "#41375b" }, children: t2("marketing.prospectSavedLists") }),
+                marketingLoading ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "13px", color: "#6c757d" }, children: t2("marketing.loading") }) : prospectLists.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "13px", color: "#6c757d" }, children: t2("marketing.prospectNoLists") }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { overflowX: "auto", marginTop: "8px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "12px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { style: { background: "#ede7f6" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: t2("marketing.prospectListName") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "right" }, children: t2("marketing.prospectTotal") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "right" }, children: t2("marketing.prospectInvitable") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "right" }, children: t2("marketing.prospectSubscribers") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "right" }, children: t2("marketing.prospectUnsubscribed") })
+                  ] }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tbody", { children: prospectLists.map((list) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { style: { borderTop: "1px solid #ede7f6" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("td", { style: { padding: "8px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: list.name }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { color: "#64748b", marginTop: "2px" }, children: list.sourceFile })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "right" }, children: list.totalContacts }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "right" }, children: list.invitationEligible }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "right" }, children: list.newsletterSubscribers }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "right" }, children: list.unsubscribed })
+                  ] }, list.id)) })
+                ] }) })
+              ] })
+            ] }),
             /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("section", { style: { background: "#f0f7ff", border: "1px solid #b8d7ff", borderRadius: "8px", padding: "20px", marginBottom: "24px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("h4", { style: { margin: "0 0 6px", color: "#145da0" }, children: [
                 "\u23F1\uFE0F ",
@@ -22303,6 +22554,17 @@ This action cannot be undone.`)) {
                 t2("marketing.campaignsTitle")
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "13px", color: "#6c757d", margin: "0 0 16px" }, children: t2("marketing.campaignsDescription") }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("p", { style: { fontSize: "12px", color: "#6c757d", margin: "-8px 0 14px" }, children: [
+                t2("marketing.prospectCampaignHelp"),
+                " ",
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{restaurant_name}}" }),
+                ", ",
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{city}}" }),
+                ", ",
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{newsletter_signup_url}}" }),
+                ", ",
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{unsubscribe_url}}" })
+              ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, minmax(180px, 1fr))", gap: "8px", marginBottom: "8px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("input", { value: marketingCampaignForm.name, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, name: e2.target.value }), placeholder: t2("marketing.campaignNamePlaceholder"), style: { padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" } }),
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("select", { value: marketingCampaignForm.market, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, market: e2.target.value, segmentId: "" }), style: { padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" }, children: ["ro", "fr", "com"].filter((m) => selectedMarketTab === "all" || selectedMarketTab === m).map((m) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: m, children: t2("marketing.marketplace", { market: m }) }, m)) }),

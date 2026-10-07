@@ -26,7 +26,7 @@
 - [Invoice order cardinality](invoice-order-cardinality.md) — one order can retain multiple invoice records across fallback, issuance, and reissuance flows.
 - [Admin order currency display](admin-order-currency-display.md) — use each order's market currency consistently in amounts and exports; never relabel values as lei.
 - [Abandoned cart reminders](abandoned-cart-reminders.md) — send one market-specific reminder after 24h of cart inactivity; cart changes reset eligibility.
-- [Marketing automation](marketing-automation.md) — reminder thresholds, segments, and campaigns are market-scoped and require both email and promotions consent.
+- [Marketing automation](marketing-automation.md) — account campaigns require both consents; imported FR B2B prospects need documented basis for invitations and explicit opt-in for newsletters.
 - [Review query URL convention](review-query-keys.md) — nested review endpoints must be complete in queryKey[0]; extra key segments are not converted into URL paths.
 - [Development schema sync](dev-schema-sync.md) — use development database tooling when Drizzle push cannot receive its interactive confirmation.
 - [App database environment identity](app-database-environment-identity.md) — this workspace's Replit Production pane is confirmed to target live Neon; don't generalize to other environments.
