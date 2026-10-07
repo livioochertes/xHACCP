@@ -80,6 +80,7 @@
     "compression": "^1.8.0",
     "connect-pg-simple": "^10.0.0",
     "crypto": "^1.0.1",
+    "csv-parse": "^7.0.3",
     "date-fns": "^3.6.0",
     "drizzle-orm": "^0.45.3",
     "drizzle-zod": "^0.7.0",
