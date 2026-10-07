@@ -13,6 +13,25 @@ import {
   subscribeToCategoryTranslationUpdates,
 } from "./categoryTranslationSync.js";
 
+const MARKETING_PREVIEW_PAGE_SIZE = 50;
+
+function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const from = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, totalItems);
+
+  return (
+    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '10px', fontSize: '12px'}}>
+      <span>{t('marketing.previewRange', {from, to, total: totalItems})}</span>
+      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+        <button type="button" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>{t('marketing.previewPrevious')}</button>
+        <span>{t('marketing.previewPage', {current: page, total: totalPages})}</span>
+        <button type="button" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>{t('marketing.previewNext')}</button>
+      </div>
+    </div>
+  );
+}
+
     
     // Define global functions first before React components
     console.log('Defining uploadCategoryImage function on window object');
@@ -560,7 +579,9 @@ import {
       const [prospectListName, setProspectListName] = useState('');
       const [prospectB2bConfirmed, setProspectB2bConfirmed] = useState(false);
       const [prospectPreview, setProspectPreview] = useState(null);
+      const [prospectPreviewPage, setProspectPreviewPage] = useState(1);
       const [prospectBusy, setProspectBusy] = useState(false);
+      const [marketingPreviewPage, setMarketingPreviewPage] = useState(1);
       const [marketingSegmentForm, setMarketingSegmentForm] = useState({
         name: '', hasOrders: 'any', hasAbandonedCart: 'any', eventVoucherCampaign: 'any'
       });
@@ -1788,6 +1809,7 @@ import {
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.message || t('marketing.prospectPreviewFailed'));
+          setProspectPreviewPage(1);
           setProspectPreview(data);
         } catch (err) {
           alert(`❌ ${err.message}`);
@@ -1888,6 +1910,7 @@ import {
 
       const previewMarketingSegment = async (segment) => {
         try {
+          setMarketingPreviewPage(1);
           const res = await fetch(`/admin/api/marketing/segments/${segment.id}/recipients`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -6099,6 +6122,7 @@ import {
                           onChange={e => {
                             setProspectCsvFile(e.target.files?.[0] || null);
                             setProspectPreview(null);
+                            setProspectPreviewPage(1);
                           }}
                           style={{display: 'block', width: '100%', boxSizing: 'border-box', marginTop: '4px', padding: '6px', border: '1px solid #cfc4ec', borderRadius: '4px', background: 'white'}}
                         />
@@ -6122,20 +6146,32 @@ import {
                           duplicates: prospectPreview.duplicateRows,
                           invalid: prospectPreview.invalidRows
                         })}</strong>
-                        {prospectPreview.sample?.length > 0 && (
-                          <div style={{overflowX: 'auto', marginTop: '10px'}}>
-                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                              <thead><tr>{['restaurantName', 'email', 'city', 'source'].map(key => <th key={key} style={{padding: '6px', textAlign: 'left', borderBottom: '1px solid #e5e7eb'}}>{t(`marketing.prospectColumn.${key}`)}</th>)}</tr></thead>
-                              <tbody>{prospectPreview.sample.map((row, index) => (
-                                <tr key={`${row.email}-${index}`}>
-                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.restaurantName || '—'}</td>
-                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.email}</td>
-                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.city || '—'}</td>
-                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.source || '—'}</td>
-                                </tr>
-                              ))}</tbody>
-                            </table>
-                          </div>
+                        {prospectPreview.rows?.length > 0 && (
+                          <>
+                            <div style={{overflowX: 'auto', marginTop: '10px'}}>
+                              <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                                <thead><tr>{['restaurantName', 'email', 'city', 'source'].map(key => <th key={key} style={{padding: '6px', textAlign: 'left', borderBottom: '1px solid #e5e7eb'}}>{t(`marketing.prospectColumn.${key}`)}</th>)}</tr></thead>
+                                <tbody>{prospectPreview.rows.slice(
+                                  (prospectPreviewPage - 1) * MARKETING_PREVIEW_PAGE_SIZE,
+                                  prospectPreviewPage * MARKETING_PREVIEW_PAGE_SIZE
+                                ).map((row, index) => (
+                                  <tr key={`${row.email}-${index}`}>
+                                    <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.restaurantName || '—'}</td>
+                                    <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.email}</td>
+                                    <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.city || '—'}</td>
+                                    <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{row.source || '—'}</td>
+                                  </tr>
+                                ))}</tbody>
+                              </table>
+                            </div>
+                            <MarketingPagination
+                              page={prospectPreviewPage}
+                              totalItems={prospectPreview.rows.length}
+                              pageSize={MARKETING_PREVIEW_PAGE_SIZE}
+                              onPageChange={setProspectPreviewPage}
+                              t={t}
+                            />
+                          </>
                         )}
                       </div>
                     )}
@@ -6240,7 +6276,38 @@ import {
                   {marketingPreview && (
                     <div style={{marginTop: '14px', background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: '5px', padding: '12px', fontSize: '13px'}}>
                       <strong>{t('marketing.eligibleRecipients', { name: marketingPreview.segment.name, count: marketingPreview.count })}</strong>
-                      <div style={{marginTop: '6px', color: '#495057', maxHeight: '80px', overflow: 'auto'}}>{marketingPreview.recipients?.slice(0, 20).map(user => user.email).join(', ') || t('marketing.noRecipients')}</div>
+                      {marketingPreview.count > 0 ? (
+                        <>
+                          <div style={{overflowX: 'auto', marginTop: '10px'}}>
+                            <table style={{width: '100%', borderCollapse: 'collapse', background: 'white', fontSize: '12px'}}>
+                              <thead><tr>
+                                <th style={{padding: '6px', textAlign: 'left', borderBottom: '1px solid #d8e5d8'}}>{t('marketing.recipientName')}</th>
+                                <th style={{padding: '6px', textAlign: 'left', borderBottom: '1px solid #d8e5d8'}}>{t('marketing.prospectColumn.email')}</th>
+                                <th style={{padding: '6px', textAlign: 'left', borderBottom: '1px solid #d8e5d8'}}>{t('marketing.prospectColumn.restaurantName')}</th>
+                                <th style={{padding: '6px', textAlign: 'left', borderBottom: '1px solid #d8e5d8'}}>{t('marketing.prospectColumn.city')}</th>
+                              </tr></thead>
+                              <tbody>{marketingPreview.recipients?.slice(
+                                (marketingPreviewPage - 1) * MARKETING_PREVIEW_PAGE_SIZE,
+                                marketingPreviewPage * MARKETING_PREVIEW_PAGE_SIZE
+                              ).map((recipient, index) => (
+                                <tr key={`${recipient.id || recipient.email}-${index}`}>
+                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{[recipient.firstName, recipient.lastName].filter(Boolean).join(' ') || '—'}</td>
+                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{recipient.email}</td>
+                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{recipient.restaurantName || '—'}</td>
+                                  <td style={{padding: '6px', borderBottom: '1px solid #f1f1f1'}}>{recipient.city || '—'}</td>
+                                </tr>
+                              ))}</tbody>
+                            </table>
+                          </div>
+                          <MarketingPagination
+                            page={marketingPreviewPage}
+                            totalItems={marketingPreview.count}
+                            pageSize={MARKETING_PREVIEW_PAGE_SIZE}
+                            onPageChange={setMarketingPreviewPage}
+                            t={t}
+                          />
+                        </>
+                      ) : <div style={{marginTop: '6px', color: '#495057'}}>{t('marketing.noRecipients')}</div>}
                     </div>
                   )}
                 </section>

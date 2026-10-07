@@ -72,7 +72,12 @@ export function registerProspectMarketingAdminRoutes(
           validRows: result.rows.length,
           invalidRows: result.invalidRows,
           duplicateRows: result.duplicateRows,
-          sample: result.sample,
+          rows: result.rows.map(({ email, restaurantName, city, source }) => ({
+            email,
+            restaurantName,
+            city,
+            source,
+          })),
         });
       } catch (error) {
         res.status(400).json({

@@ -11465,6 +11465,11 @@
       loading: "Loading...",
       noSegments: "No segments.",
       previewRecipients: "Preview recipients",
+      previewRange: "Showing {{from}}\u2013{{to}} of {{total}}",
+      previewPage: "Page {{current}} of {{total}}",
+      previewPrevious: "Previous",
+      previewNext: "Next",
+      recipientName: "Name",
       delete: "Delete",
       deleteConfirm: "Delete this segment?",
       eligibleRecipients: "{{name}}: {{count}} eligible recipients",
@@ -12537,6 +12542,11 @@
       loading: "Se \xEEncarc\u0103...",
       noSegments: "Nu exist\u0103 segmente.",
       previewRecipients: "Preview destinatari",
+      previewRange: "Afi\u0219ez {{from}}\u2013{{to}} din {{total}}",
+      previewPage: "Pagina {{current}} din {{total}}",
+      previewPrevious: "\xCEnapoi",
+      previewNext: "\xCEnainte",
+      recipientName: "Nume",
       delete: "\u0218terge",
       deleteConfirm: "\u0218tergi acest segment?",
       eligibleRecipients: "{{name}}: {{count}} destinatari eligibili",
@@ -13609,6 +13619,11 @@
       loading: "Chargement...",
       noSegments: "Aucun segment.",
       previewRecipients: "Aper\xE7u des destinataires",
+      previewRange: "Affichage de {{from}} \xE0 {{to}} sur {{total}}",
+      previewPage: "Page {{current}} sur {{total}}",
+      previewPrevious: "Pr\xE9c\xE9dent",
+      previewNext: "Suivant",
+      recipientName: "Nom",
       delete: "Supprimer",
       deleteConfirm: "Supprimer ce segment ?",
       eligibleRecipients: "{{name}} : {{count}} destinataires \xE9ligibles",
@@ -16392,6 +16407,20 @@
 
   // admin-src/AdminApp.jsx
   var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
+  var MARKETING_PREVIEW_PAGE_SIZE = 50;
+  function MarketingPagination({ page, totalItems, pageSize, onPageChange, t: t2 }) {
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const from = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+    const to = Math.min(page * pageSize, totalItems);
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap", marginTop: "10px", fontSize: "12px" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: t2("marketing.previewRange", { from, to, total: totalItems }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { type: "button", disabled: page <= 1, onClick: () => onPageChange(page - 1), children: t2("marketing.previewPrevious") }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: t2("marketing.previewPage", { current: page, total: totalPages }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { type: "button", disabled: page >= totalPages, onClick: () => onPageChange(page + 1), children: t2("marketing.previewNext") })
+      ] })
+    ] });
+  }
   console.log("Defining uploadCategoryImage function on window object");
   window.uploadCategoryImage = async (categoryId, file) => {
     try {
@@ -16919,7 +16948,9 @@
     const [prospectListName, setProspectListName] = (0, import_react21.useState)("");
     const [prospectB2bConfirmed, setProspectB2bConfirmed] = (0, import_react21.useState)(false);
     const [prospectPreview, setProspectPreview] = (0, import_react21.useState)(null);
+    const [prospectPreviewPage, setProspectPreviewPage] = (0, import_react21.useState)(1);
     const [prospectBusy, setProspectBusy] = (0, import_react21.useState)(false);
+    const [marketingPreviewPage, setMarketingPreviewPage] = (0, import_react21.useState)(1);
     const [marketingSegmentForm, setMarketingSegmentForm] = (0, import_react21.useState)({
       name: "",
       hasOrders: "any",
@@ -18028,6 +18059,7 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || t2("marketing.prospectPreviewFailed"));
+        setProspectPreviewPage(1);
         setProspectPreview(data);
       } catch (err) {
         alert(`\u274C ${err.message}`);
@@ -18122,6 +18154,7 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
     };
     const previewMarketingSegment = async (segment) => {
       try {
+        setMarketingPreviewPage(1);
         const res = await fetch(`/admin/api/marketing/segments/${segment.id}/recipients`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
@@ -22370,6 +22403,7 @@ This action cannot be undone.`)) {
                       onChange: (e2) => {
                         setProspectCsvFile(e2.target.files?.[0] || null);
                         setProspectPreview(null);
+                        setProspectPreviewPage(1);
                       },
                       style: { display: "block", width: "100%", boxSizing: "border-box", marginTop: "4px", padding: "6px", border: "1px solid #cfc4ec", borderRadius: "4px", background: "white" }
                     }
@@ -22397,15 +22431,30 @@ This action cannot be undone.`)) {
                   duplicates: prospectPreview.duplicateRows,
                   invalid: prospectPreview.invalidRows
                 }) }),
-                prospectPreview.sample?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { overflowX: "auto", marginTop: "10px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "12px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tr", { children: ["restaurantName", "email", "city", "source"].map((key) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "6px", textAlign: "left", borderBottom: "1px solid #e5e7eb" }, children: t2(`marketing.prospectColumn.${key}`) }, key)) }) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tbody", { children: prospectPreview.sample.map((row, index) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.restaurantName || "\u2014" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.email }),
-                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.city || "\u2014" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.source || "\u2014" })
-                  ] }, `${row.email}-${index}`)) })
-                ] }) })
+                prospectPreview.rows?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { overflowX: "auto", marginTop: "10px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "12px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tr", { children: ["restaurantName", "email", "city", "source"].map((key) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "6px", textAlign: "left", borderBottom: "1px solid #e5e7eb" }, children: t2(`marketing.prospectColumn.${key}`) }, key)) }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tbody", { children: prospectPreview.rows.slice(
+                      (prospectPreviewPage - 1) * MARKETING_PREVIEW_PAGE_SIZE,
+                      prospectPreviewPage * MARKETING_PREVIEW_PAGE_SIZE
+                    ).map((row, index) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.restaurantName || "\u2014" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.email }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.city || "\u2014" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: row.source || "\u2014" })
+                    ] }, `${row.email}-${index}`)) })
+                  ] }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    MarketingPagination,
+                    {
+                      page: prospectPreviewPage,
+                      totalItems: prospectPreview.rows.length,
+                      pageSize: MARKETING_PREVIEW_PAGE_SIZE,
+                      onPageChange: setProspectPreviewPage,
+                      t: t2
+                    }
+                  )
+                ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                 "button",
@@ -22545,7 +22594,35 @@ This action cannot be undone.`)) {
               ] }, segment.id)) }),
               marketingPreview && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "14px", background: "#e8f5e9", border: "1px solid #a5d6a7", borderRadius: "5px", padding: "12px", fontSize: "13px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: t2("marketing.eligibleRecipients", { name: marketingPreview.segment.name, count: marketingPreview.count }) }),
-                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "6px", color: "#495057", maxHeight: "80px", overflow: "auto" }, children: marketingPreview.recipients?.slice(0, 20).map((user) => user.email).join(", ") || t2("marketing.noRecipients") })
+                marketingPreview.count > 0 ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { overflowX: "auto", marginTop: "10px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "12px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "6px", textAlign: "left", borderBottom: "1px solid #d8e5d8" }, children: t2("marketing.recipientName") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "6px", textAlign: "left", borderBottom: "1px solid #d8e5d8" }, children: t2("marketing.prospectColumn.email") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "6px", textAlign: "left", borderBottom: "1px solid #d8e5d8" }, children: t2("marketing.prospectColumn.restaurantName") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "6px", textAlign: "left", borderBottom: "1px solid #d8e5d8" }, children: t2("marketing.prospectColumn.city") })
+                    ] }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tbody", { children: marketingPreview.recipients?.slice(
+                      (marketingPreviewPage - 1) * MARKETING_PREVIEW_PAGE_SIZE,
+                      marketingPreviewPage * MARKETING_PREVIEW_PAGE_SIZE
+                    ).map((recipient, index) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: [recipient.firstName, recipient.lastName].filter(Boolean).join(" ") || "\u2014" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: recipient.email }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: recipient.restaurantName || "\u2014" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "6px", borderBottom: "1px solid #f1f1f1" }, children: recipient.city || "\u2014" })
+                    ] }, `${recipient.id || recipient.email}-${index}`)) })
+                  ] }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    MarketingPagination,
+                    {
+                      page: marketingPreviewPage,
+                      totalItems: marketingPreview.count,
+                      pageSize: MARKETING_PREVIEW_PAGE_SIZE,
+                      onPageChange: setMarketingPreviewPage,
+                      t: t2
+                    }
+                  )
+                ] }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "6px", color: "#495057" }, children: t2("marketing.noRecipients") })
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("section", { style: { background: "#f8f9fa", border: "1px solid #dee2e6", borderRadius: "8px", padding: "20px" }, children: [
