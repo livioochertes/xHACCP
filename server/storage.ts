@@ -212,6 +212,13 @@ export interface IStorage {
   getOrder(id: number): Promise<OrderWithItems | undefined>;
   getOrderByPublicOrderRef(publicOrderRef: string): Promise<OrderWithItems | undefined>;
   createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order>;
+  getOrderByPayPalAttemptId(attemptId: string): Promise<Order | undefined>;
+  createPayPalOrderForAttempt(
+    order: InsertOrder,
+    items: InsertOrderItem[],
+    attemptId: string,
+    fingerprint: string,
+  ): Promise<Order>;
   updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order>;
   getOrderByPaymentProviderOrderId(providerOrderId: string): Promise<Order | undefined>;
   bindPaymentProviderOrder(id: number, providerOrderId: string): Promise<Order | undefined>;
@@ -1045,6 +1052,41 @@ export class DatabaseStorage implements IStorage {
 
       return newOrder;
     });
+  }
+
+  async getOrderByPayPalAttemptId(attemptId: string): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders)
+      .where(eq(orders.paypalCheckoutAttemptId, attemptId))
+      .limit(1);
+    return order;
+  }
+
+  async createPayPalOrderForAttempt(
+    order: InsertOrder,
+    items: InsertOrderItem[],
+    attemptId: string,
+    fingerprint: string,
+  ): Promise<Order> {
+    const existing = await this.getOrderByPayPalAttemptId(attemptId);
+    if (existing) return existing;
+
+    try {
+      return await this.createOrder({
+        ...order,
+        paypalCheckoutAttemptId: attemptId,
+        paypalCheckoutFingerprint: fingerprint,
+      }, items);
+    } catch (error) {
+      // Another request may have committed this attempt while this request
+      // was validating its voucher or inserting the unique attempt key.
+      try {
+        const racedOrder = await this.getOrderByPayPalAttemptId(attemptId);
+        if (racedOrder) return racedOrder;
+      } catch {
+        // Preserve the original failure; the caller can retry with the same key.
+      }
+      throw error;
+    }
   }
 
   async updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order> {

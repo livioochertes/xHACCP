@@ -36,6 +36,11 @@ async function migrate() {
       );
       CREATE INDEX IF NOT EXISTS customer_password_setup_tokens_user_idx
         ON customer_password_setup_tokens(user_id);
+      ALTER TABLE orders
+        ADD COLUMN IF NOT EXISTS paypal_checkout_attempt_id VARCHAR(36),
+        ADD COLUMN IF NOT EXISTS paypal_checkout_fingerprint VARCHAR(64);
+      CREATE UNIQUE INDEX IF NOT EXISTS orders_paypal_checkout_attempt_id_unique
+        ON orders(paypal_checkout_attempt_id);
     \`);
     console.log('DB migration OK');
   } finally {

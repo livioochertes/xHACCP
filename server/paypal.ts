@@ -299,6 +299,39 @@ export function paypalCreateRequestId(_publicOrderRef: string, orderId: number):
   return `xhaccp-create-${orderId}`;
 }
 
+export function paypalCheckoutFingerprint(value: unknown): string {
+  const canonicalize = (input: any): any => {
+    if (Array.isArray(input)) return input.map(canonicalize);
+    if (input && typeof input === "object") {
+      return Object.fromEntries(
+        Object.keys(input).sort().map(key => [key, canonicalize(input[key])]),
+      );
+    }
+    return input;
+  };
+  return crypto.createHash("sha256").update(JSON.stringify(canonicalize(value))).digest("hex");
+}
+
+export class PayPalCheckoutAttemptConflictError extends Error {
+  constructor() {
+    super("This PayPal checkout attempt was already used with different checkout details");
+    this.name = "PayPalCheckoutAttemptConflictError";
+  }
+}
+
+export async function resolvePayPalCheckoutAttempt<T extends { paypalCheckoutFingerprint?: string | null }>(
+  attemptId: string,
+  fingerprint: string,
+  findOrder: (attemptId: string) => Promise<T | undefined>,
+  createOrder: (attemptId: string, fingerprint: string) => Promise<T>,
+): Promise<T> {
+  const order = await findOrder(attemptId) || await createOrder(attemptId, fingerprint);
+  if (order.paypalCheckoutFingerprint !== fingerprint) {
+    throw new PayPalCheckoutAttemptConflictError();
+  }
+  return order;
+}
+
 export function paypalCaptureRequestId(providerOrderId: string): string {
   return `xhaccp-capture-${providerOrderId}`;
 }

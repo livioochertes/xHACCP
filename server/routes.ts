@@ -67,6 +67,9 @@ import {
   capturePayPalOrder,
   paypalApprovalUrl,
   paypalCreateRequestId,
+  paypalCheckoutFingerprint,
+  resolvePayPalCheckoutAttempt,
+  PayPalCheckoutAttemptConflictError,
   isPayPalOrderForLocalOrder,
   reconcilePayPalPayment,
   expirePayPalOrderIfProviderConfirms,
@@ -4810,88 +4813,107 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     const requestId = crypto.randomUUID().slice(0, 12);
     try {
       if (getMarketFromRequest(req) !== "fr") return res.status(400).json({ message: "PayPal is only available on the French marketplace" });
-      const { cartItems, voucherCode, orderData } = req.body;
+      const { attemptId, cartItems, voucherCode, orderData } = req.body;
+      if (typeof attemptId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(attemptId)) {
+        return res.status(400).json({ message: "A valid PayPal checkout attempt ID is required" });
+      }
       if (!Array.isArray(cartItems) || cartItems.length === 0) return res.status(400).json({ message: "Cart items are required" });
       if (!orderData || typeof orderData !== "object") return res.status(400).json({ message: "Order data is required" });
-      const shipping = orderData.shippingAddress;
-      const billing = orderData.billingAddress;
-      const email = shipping?.email || billing?.email;
-      const required = [shipping?.firstName, shipping?.lastName, shipping?.address, shipping?.city, shipping?.state, shipping?.zipCode, shipping?.country, shipping?.phone, billing?.firstName, billing?.lastName, billing?.address, billing?.city, billing?.state, billing?.zipCode, billing?.country];
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email)) || required.some(value => typeof value !== "string" || !value.trim())) {
-        return res.status(400).json({ message: "Complete shipping, billing and email details are required" });
-      }
-      const account = req.userId ? await storage.getUser(req.userId) : undefined;
-      if ((marketSettingsMap.get("fr")?.currency || "EUR").toUpperCase() !== "EUR") return res.status(503).json({ message: "French marketplace currency is not configured for EUR" });
-      const validatedItems = await Promise.all(cartItems.map((item: any) => validateOrderItemForMarket(item, "fr")));
-      if (validatedItems.some((item: any) => item.productType === "subscription")) {
-        return res.status(400).json({ message: "Subscriptions require Viva recurring payment" });
-      }
-      const subtotal = validatedItems.reduce((sum: number, item: any) => sum + Number(item.displayTotalPrice), 0);
-      const setting = marketSettingsMap.get("fr");
-      const vatPercentage = Number(setting?.vatPercentage ?? 0);
-      const company = await storage.getCompanySettingsByMarket("fr");
-      const freeThreshold = setting?.freeShippingThreshold ? Number(setting.freeShippingThreshold) : Number(company?.freeShippingThreshold || 200);
-      const shippingCost = calculateShippingQuote(
-        validatedItems,
-        freeThreshold,
-        Number(setting?.standardShippingCost ?? company?.standardShippingCost ?? 12),
-      ).shippingCost;
-      let discountAmount = 0;
-      let voucher: any = null;
-      if (voucherCode) {
-        voucher = await storage.getVoucherByCode(voucherCode, "fr");
-        if (voucher) {
-          const ownerError = account
-            ? getVoucherOwnershipError(voucher, account.id, account.email)
-            : null;
-          const orderEmailError = getVoucherOwnershipError(voucher, account?.id, String(email));
-          if (ownerError || orderEmailError) {
-            return res.status(403).json({ message: ownerError || orderEmailError });
+      const attemptFingerprint = paypalCheckoutFingerprint({ cartItems, voucherCode: voucherCode || null, orderData });
+      const localOrder = await resolvePayPalCheckoutAttempt(
+        attemptId,
+        attemptFingerprint,
+        (id) => storage.getOrderByPayPalAttemptId(id),
+        async (id, fingerprint) => {
+          const shipping = orderData.shippingAddress;
+          const billing = orderData.billingAddress;
+          const email = shipping?.email || billing?.email;
+          const required = [shipping?.firstName, shipping?.lastName, shipping?.address, shipping?.city, shipping?.state, shipping?.zipCode, shipping?.country, shipping?.phone, billing?.firstName, billing?.lastName, billing?.address, billing?.city, billing?.state, billing?.zipCode, billing?.country];
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email)) || required.some(value => typeof value !== "string" || !value.trim())) {
+            throw Object.assign(new Error("Complete shipping, billing and email details are required"), { status: 400 });
           }
-        }
-        if (voucher && voucher.isActive && !getVoucherValidityError(voucher, new Date()) &&
-          (!voucher.maxUses || (voucher.usedCount || 0) < voucher.maxUses) &&
-          (!voucher.minOrderAmount || subtotal >= Number(voucher.minOrderAmount))) {
-          discountAmount = voucher.discountType === "percentage"
-            ? subtotal * Number(voucher.discountValue) / 100
-            : Number(voucher.discountValue);
-        } else voucher = null;
-      }
-      const taxSnapshot = calculateOrderTaxSnapshot(
-        validatedItems.map((item: any) => ({ ...item, totalPriceGross: item.totalPrice })),
-        discountAmount,
-        shippingCost,
-        vatPercentage,
-        defaultPriceDisplayMode("fr"),
+          const account = req.userId ? await storage.getUser(req.userId) : undefined;
+          if ((marketSettingsMap.get("fr")?.currency || "EUR").toUpperCase() !== "EUR") {
+            throw Object.assign(new Error("French marketplace currency is not configured for EUR"), { status: 503 });
+          }
+          const validatedItems = await Promise.all(cartItems.map((item: any) => validateOrderItemForMarket(item, "fr")));
+          if (validatedItems.some((item: any) => item.productType === "subscription")) {
+            throw Object.assign(new Error("Subscriptions require Viva recurring payment"), { status: 400 });
+          }
+          const subtotal = validatedItems.reduce((sum: number, item: any) => sum + Number(item.displayTotalPrice), 0);
+          const setting = marketSettingsMap.get("fr");
+          const vatPercentage = Number(setting?.vatPercentage ?? 0);
+          const company = await storage.getCompanySettingsByMarket("fr");
+          const freeThreshold = setting?.freeShippingThreshold ? Number(setting.freeShippingThreshold) : Number(company?.freeShippingThreshold || 200);
+          const shippingCost = calculateShippingQuote(
+            validatedItems,
+            freeThreshold,
+            Number(setting?.standardShippingCost ?? company?.standardShippingCost ?? 12),
+          ).shippingCost;
+          let discountAmount = 0;
+          let voucher: any = null;
+          if (voucherCode) {
+            voucher = await storage.getVoucherByCode(voucherCode, "fr");
+            if (voucher) {
+              const ownerError = account
+                ? getVoucherOwnershipError(voucher, account.id, account.email)
+                : null;
+              const orderEmailError = getVoucherOwnershipError(voucher, account?.id, String(email));
+              if (ownerError || orderEmailError) {
+                throw Object.assign(new Error(ownerError || orderEmailError || "Voucher cannot be used for this checkout"), { status: 403 });
+              }
+            }
+            if (voucher && voucher.isActive && !getVoucherValidityError(voucher, new Date()) &&
+              (!voucher.maxUses || (voucher.usedCount || 0) < voucher.maxUses) &&
+              (!voucher.minOrderAmount || subtotal >= Number(voucher.minOrderAmount))) {
+              discountAmount = voucher.discountType === "percentage"
+                ? subtotal * Number(voucher.discountValue) / 100
+                : Number(voucher.discountValue);
+            } else voucher = null;
+          }
+          const taxSnapshot = calculateOrderTaxSnapshot(
+            validatedItems.map((item: any) => ({ ...item, totalPriceGross: item.totalPrice })),
+            discountAmount,
+            shippingCost,
+            vatPercentage,
+            defaultPriceDisplayMode("fr"),
+          );
+          discountAmount = Number(taxSnapshot.discountAmount);
+          const total = Number(taxSnapshot.totalAmount);
+          if (!Number.isFinite(total) || total < 0.01) {
+            throw Object.assign(new Error("Order total is invalid"), { status: 400 });
+          }
+          const notes = `${orderData.notes || ""}${voucher ? `${orderData.notes ? "\n" : ""}Voucher: ${voucher.code} (-${discountAmount.toFixed(2)})` : ""}`;
+          return storage.createPayPalOrderForAttempt({
+            userId: getVoucherOrderUserId(voucher, req.userId), market: "fr", currency: "EUR", status: "pending",
+            totalAmount: total.toFixed(2), shippingCost: taxSnapshot.shippingGrossAmount,
+            subtotalNet: taxSnapshot.subtotalNet,
+            subtotalGross: taxSnapshot.subtotalGross,
+            vatPercentage: moneyString(vatPercentage),
+            vatAmount: taxSnapshot.vatAmount,
+            shippingNetAmount: taxSnapshot.shippingNetAmount,
+            shippingVatAmount: taxSnapshot.shippingVatAmount,
+            voucherCode: voucher?.code, discountAmount: discountAmount ? taxSnapshot.discountAmount : undefined,
+            discountNetAmount: discountAmount ? taxSnapshot.discountNetAmount : undefined,
+            discountGrossAmount: discountAmount ? taxSnapshot.discountGrossAmount : undefined,
+            shippingAddress: { ...(orderData.shippingAddress || {}), email }, billingAddress: orderData.billingAddress || {},
+            paymentMethod: "paypal", paymentStatus: "pending", notes: notes || undefined,
+          }, validatedItems, id, fingerprint);
+        },
       );
-      discountAmount = Number(taxSnapshot.discountAmount);
-      const total = Number(taxSnapshot.totalAmount);
-      if (!Number.isFinite(total) || total < 0.01) return res.status(400).json({ message: "Order total is invalid" });
-      const notes = `${orderData.notes || ""}${voucher ? `${orderData.notes ? "\n" : ""}Voucher: ${voucher.code} (-${discountAmount.toFixed(2)})` : ""}`;
-      const localOrder = await storage.createOrder({
-        userId: getVoucherOrderUserId(voucher, req.userId), market: "fr", currency: "EUR", status: "pending",
-        totalAmount: total.toFixed(2), shippingCost: taxSnapshot.shippingGrossAmount,
-        subtotalNet: taxSnapshot.subtotalNet,
-        subtotalGross: taxSnapshot.subtotalGross,
-        vatPercentage: moneyString(vatPercentage),
-        vatAmount: taxSnapshot.vatAmount,
-        shippingNetAmount: taxSnapshot.shippingNetAmount,
-        shippingVatAmount: taxSnapshot.shippingVatAmount,
-        voucherCode: voucher?.code, discountAmount: discountAmount ? taxSnapshot.discountAmount : undefined,
-        discountNetAmount: discountAmount ? taxSnapshot.discountNetAmount : undefined,
-        discountGrossAmount: discountAmount ? taxSnapshot.discountGrossAmount : undefined,
-        shippingAddress: { ...(orderData.shippingAddress || {}), email }, billingAddress: orderData.billingAddress || {},
-        paymentMethod: "paypal", paymentStatus: "pending", notes: notes || undefined,
-      }, validatedItems);
       const baseUrl = "https://www.xhaccp.fr";
       let paypalOrder;
       try {
-        paypalOrder = await createPayPalOrderWithRecovery({
-          amount: total.toFixed(2), orderId: localOrder.id,
-          returnUrl: `${baseUrl}/api/payments/paypal/callback`,
-          cancelUrl: `${baseUrl}/api/payments/paypal/callback?cancel=1`,
-          requestId: paypalCreateRequestId(localOrder.publicOrderRef || "", localOrder.id),
-        });
+        if (localOrder.paymentProviderOrderId) {
+          paypalOrder = await getPayPalOrder(localOrder.paymentProviderOrderId, requestId);
+        } else {
+          paypalOrder = await createPayPalOrderWithRecovery({
+            amount: Number(localOrder.totalAmount).toFixed(2), orderId: localOrder.id,
+            returnUrl: `${baseUrl}/api/payments/paypal/callback`,
+            cancelUrl: `${baseUrl}/api/payments/paypal/callback?cancel=1`,
+            requestId: paypalCreateRequestId(localOrder.publicOrderRef || "", localOrder.id),
+          });
+        }
       } catch (error) {
         console.error(`[PayPal ${requestId}] order creation failed:`, error instanceof Error ? error.message : "unknown error");
         if (error instanceof PayPalApiError && error.status >= 400 && error.status < 500 && error.status !== 408) {
@@ -4899,7 +4921,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         }
         return res.status(502).json({ message: "PayPal payment could not be started" });
       }
-      if (!isPayPalOrderForLocalOrder(paypalOrder, localOrder)) {
+      if ((localOrder.paymentProviderOrderId && localOrder.paymentProviderOrderId !== paypalOrder.id) ||
+          !isPayPalOrderForLocalOrder(paypalOrder, localOrder)) {
         console.error(`[PayPal ${requestId}] Created order did not match local order ${localOrder.id}`);
         return res.status(502).json({ message: "PayPal payment could not be started" });
       }
@@ -4928,6 +4951,15 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       console.error(`[PayPal ${requestId}] create-order failed:`, error instanceof Error ? error.message : "unknown error");
       if (error instanceof VoucherReservationConflictError) {
         return res.status(409).json({ message: error.message });
+      }
+      if (error instanceof PayPalCheckoutAttemptConflictError) {
+        return res.status(409).json({ message: error.message });
+      }
+      if (typeof error === "object" && error !== null && "status" in error && typeof error.status === "number") {
+        const message = "message" in error && typeof error.message === "string"
+          ? error.message
+          : "Unable to start PayPal payment";
+        return res.status(error.status).json({ message });
       }
       return res.status(500).json({ message: "Unable to start PayPal payment" });
     }

@@ -11,10 +11,12 @@ import {
   PayPalApiError,
   PayPalCreateOutcomeUnknownError,
   paypalCaptureRequestId,
+  paypalCheckoutFingerprint,
   paypalCreateRequestId,
   paypalWebhookHeaders,
   paypalWebhookOrderId,
   reconcilePayPalPayment,
+  resolvePayPalCheckoutAttempt,
   type PayPalLocalOrder,
 } from "./paypal";
 
@@ -51,6 +53,89 @@ test("PayPal idempotency keys are stable", () => {
   assert.equal(paypalCreateRequestId("ord_abc", 7).length <= 38, true);
   assert.notEqual(paypalCreateRequestId("ord_abc", 7), paypalCreateRequestId("ord_def", 8));
   assert.equal(paypalCaptureRequestId("P-1"), "xhaccp-capture-P-1");
+});
+
+test("parallel and sequential PayPal retries reuse one local order and provider checkout", async () => {
+  type AttemptOrder = {
+    id: number;
+    paypalCheckoutFingerprint: string;
+    paymentProviderOrderId: string | null;
+    paymentMethod: string;
+    market: string;
+    currency: string;
+    totalAmount: string;
+  };
+  const orders = new Map<string, AttemptOrder>();
+  const providerOrders = new Map<string, ReturnType<typeof createdPayPalOrder>>();
+  let localOrderCreations = 0;
+  let providerOrderCreations = 0;
+  const fingerprint = paypalCheckoutFingerprint({
+    cartItems: [{ productId: 3, quantity: 2 }],
+    orderData: { shippingAddress: { email: "customer@example.com" }, notes: "deliver before noon" },
+  });
+  const findOrder = async (attemptId: string) => orders.get(attemptId);
+  const createLocalOrder = async (attemptId: string, submittedFingerprint: string) => {
+    // Represents the database's unique attempt-ID insert; a racing insert
+    // returns the row that won instead of creating a second order.
+    await Promise.resolve();
+    const existing = orders.get(attemptId);
+    if (existing) return existing;
+    const created: AttemptOrder = {
+      id: 42,
+      paypalCheckoutFingerprint: submittedFingerprint,
+      paymentProviderOrderId: null,
+      paymentMethod: "paypal",
+      market: "fr",
+      currency: "EUR",
+      totalAmount: "12.30",
+    };
+    orders.set(attemptId, created);
+    localOrderCreations++;
+    return created;
+  };
+  const attemptId = "b7f5b4da-a841-4f29-943d-35908e8e482f";
+  const resolveAttempt = () => resolvePayPalCheckoutAttempt(
+    attemptId, fingerprint, findOrder, createLocalOrder,
+  );
+
+  const ensureProviderCheckout = async (localOrder: AttemptOrder) => createPayPalOrderWithRecovery({
+    ...paypalCreateInput,
+    orderId: localOrder.id,
+    requestId: paypalCreateRequestId("", localOrder.id),
+  }, async (input) => {
+    const prior = providerOrders.get(input.requestId);
+    if (prior) return prior;
+    const accepted = createdPayPalOrder();
+    providerOrders.set(input.requestId, accepted);
+    providerOrderCreations++;
+    // Simulate PayPal accepting the first request while its response is lost.
+    throw new TypeError("response lost after provider acceptance");
+  });
+
+  const parallelOrders = await Promise.all([resolveAttempt(), resolveAttempt()]);
+  await Promise.all(parallelOrders.map(ensureProviderCheckout));
+  const sequentialRetry = await resolveAttempt();
+  await ensureProviderCheckout(sequentialRetry);
+
+  assert.equal(localOrderCreations, 1);
+  assert.equal(providerOrderCreations, 1);
+  assert.equal(orders.size, 1);
+  assert.equal(providerOrders.size, 1);
+  assert.equal(parallelOrders[0].id, parallelOrders[1].id);
+  assert.equal(sequentialRetry.id, parallelOrders[0].id);
+});
+
+test("a PayPal attempt cannot be reused for changed checkout data", async () => {
+  const fingerprint = paypalCheckoutFingerprint({ total: "12.30", email: "one@example.com" });
+  const existing = { paypalCheckoutFingerprint: fingerprint };
+  await assert.rejects(
+    resolvePayPalCheckoutAttempt(
+      "attempt", paypalCheckoutFingerprint({ total: "99.00", email: "two@example.com" }),
+      async () => existing,
+      async () => { throw new Error("existing attempt should not create a new order"); },
+    ),
+    /already used with different checkout details/,
+  );
 });
 
 const paypalCreateInput = {

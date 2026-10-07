@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -12,14 +12,21 @@ export default function PayPalPayment({ amount, cartItems, voucherCode, orderDat
   amount: number; cartItems: any[]; voucherCode?: string | null; orderData: any; disabled?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
+  const attempt = useRef<{ signature: string; id: string } | null>(null);
   const { toast } = useToast();
   const { t } = useTranslation();
   const pay = async () => {
     if (loading || disabled) return;
+    const payload = { cartItems, voucherCode: voucherCode || null, orderData };
+    const signature = JSON.stringify(payload);
+    if (!attempt.current || attempt.current.signature !== signature) {
+      attempt.current = { signature, id: crypto.randomUUID() };
+    }
+    const attemptId = attempt.current.id;
     setLoading(true);
     try {
       const response = await apiRequest("POST", "/api/payments/paypal/create-order", {
-        cartItems, voucherCode: voucherCode || null, orderData,
+        ...payload, attemptId,
       });
       const data = await response.json();
       if (!data.approvalUrl) throw new Error(t("checkout.paypalStartFailed"));

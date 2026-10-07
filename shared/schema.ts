@@ -330,6 +330,8 @@ export const orders = pgTable("orders", {
   billingAddress: jsonb("billing_address").notNull(),
   paymentMethod: varchar("payment_method", { length: 50 }).notNull(),
   paymentProviderOrderId: varchar("payment_provider_order_id", { length: 120 }),
+  paypalCheckoutAttemptId: varchar("paypal_checkout_attempt_id", { length: 36 }),
+  paypalCheckoutFingerprint: varchar("paypal_checkout_fingerprint", { length: 64 }),
   paymentTransactionId: varchar("payment_transaction_id", { length: 120 }),
   paymentStatus: varchar("payment_status", { length: 50 }).notNull().default("pending"),
   notes: text("notes"),
@@ -352,6 +354,7 @@ export const orders = pgTable("orders", {
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
   paymentProviderOrderIdUnique: uniqueIndex("orders_payment_provider_order_id_unique").on(table.paymentProviderOrderId),
+  paypalCheckoutAttemptIdUnique: uniqueIndex("orders_paypal_checkout_attempt_id_unique").on(table.paypalCheckoutAttemptId),
   paymentTransactionIdUnique: uniqueIndex("orders_payment_transaction_id_unique").on(table.paymentTransactionId),
 }));
 

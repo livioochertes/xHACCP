@@ -37,6 +37,7 @@
 - [Event voucher activation window](event-voucher-activation-window.md) — paid first redemption within 30 days starts 12 months; later first redemption is a one-order discount.
 - [MyFlyingBox address contract](myflyingbox-address-contract.md) — French checkout uses ISO country codes and one official-code département field; Romanian county remains market-specific.
 - [PayPal capture recovery](paypal-capture-recovery.md) — direct PayPal payments need verified webhook reconciliation because a capture can succeed while the browser callback is lost.
+- [PayPal checkout attempt idempotency](paypal-checkout-attempt-idempotency.md) — retries must reuse one persisted local order and its stable PayPal request ID.
 - [Shared auth loading state](shared-auth-loading-state.md) — late subscribers must sync with global auth state or parent UI can remain in an endless loading state.
 - [WMS origin ownership](wms-origin-ownership.md) — logistics origins are market-scoped WMS data, not commercial company settings or environment fallbacks.
 - [Autoscale startup readiness](deployment-readiness.md) — bind the HTTP port before slow database warm-up so publishing health checks can pass.
