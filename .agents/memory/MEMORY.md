@@ -33,7 +33,7 @@
 - [WMS credential monitoring](wms-monitoring.md) — scheduled WMS checks need durable shared alert state and credential-safe notifications outside the autoscaled web process.
 - [WMS partner guide DOCX](wms-partner-guide-docx.md) — the existing guide may lack Word heading styles; preserve it with python-docx when Pandoc is unavailable.
 - [Event voucher production seeding](event-voucher-production-seeding.md) — production may have campaign tables without seed rows; provision fixed campaigns idempotently at the public boundary.
-- [Event voucher activation window](event-voucher-activation-window.md) — a first paid purchase within 30 days preserves the original 12-month validity.
+- [Event voucher activation window](event-voucher-activation-window.md) — paid first redemption within 30 days starts 12 months; later first redemption is a one-order discount.
 - [MyFlyingBox address contract](myflyingbox-address-contract.md) — French checkout uses ISO country codes and one official-code département field; Romanian county remains market-specific.
 - [PayPal capture recovery](paypal-capture-recovery.md) — direct PayPal payments need verified webhook reconciliation because a capture can succeed while the browser callback is lost.
 - [Shared auth loading state](shared-auth-loading-state.md) — late subscribers must sync with global auth state or parent UI can remain in an endless loading state.
