@@ -62,11 +62,12 @@ import {
 } from "./composite-products";
 import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
 import {
-  createPayPalOrder,
+  createPayPalOrderWithRecovery,
   getPayPalOrder,
   capturePayPalOrder,
   paypalApprovalUrl,
   paypalCreateRequestId,
+  isPayPalOrderForLocalOrder,
   reconcilePayPalPayment,
   expirePayPalOrderIfProviderConfirms,
   handlePayPalWebhook,
@@ -4885,7 +4886,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const baseUrl = "https://www.xhaccp.fr";
       let paypalOrder;
       try {
-        paypalOrder = await createPayPalOrder({
+        paypalOrder = await createPayPalOrderWithRecovery({
           amount: total.toFixed(2), orderId: localOrder.id,
           returnUrl: `${baseUrl}/api/payments/paypal/callback`,
           cancelUrl: `${baseUrl}/api/payments/paypal/callback?cancel=1`,
@@ -4898,11 +4899,16 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         }
         return res.status(502).json({ message: "PayPal payment could not be started" });
       }
+      if (!isPayPalOrderForLocalOrder(paypalOrder, localOrder)) {
+        console.error(`[PayPal ${requestId}] Created order did not match local order ${localOrder.id}`);
+        return res.status(502).json({ message: "PayPal payment could not be started" });
+      }
       const bound = await storage.bindPaymentProviderOrder(localOrder.id, paypalOrder.id);
       if (!bound) {
         const existing = await storage.getOrderByPaymentProviderOrderId(paypalOrder.id);
         if (!existing || existing.id !== localOrder.id) {
-          if (existing) await storage.markOrderPaymentFailed(localOrder.id);
+          // A binding conflict does not prove the remote checkout is terminal.
+          // Keep the local voucher reservation until provider confirmation.
           return res.status(409).json({ message: "PayPal order is already linked" });
         }
       }

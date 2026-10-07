@@ -2,11 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   completedPayPalCapture,
+  createPayPalOrderWithRecovery,
   expirePayPalOrderIfProviderConfirms,
   handlePayPalWebhook,
   isAllowedPayPalApprovalUrl,
+  isPayPalOrderForLocalOrder,
   isPayPalOrderBindingValid,
   PayPalApiError,
+  PayPalCreateOutcomeUnknownError,
   paypalCaptureRequestId,
   paypalCreateRequestId,
   paypalWebhookHeaders,
@@ -28,9 +31,12 @@ test("PayPal binding validates provider id, amount and currency", () => {
     market: "fr", currency: "EUR", totalAmount: "12.30",
   };
   const remote = { id: "P-1", purchase_units: [{ custom_id: "42", invoice_id: "xhaccp-42", amount: { currency_code: "EUR", value: "12.30" } }] };
+  assert.equal(isPayPalOrderForLocalOrder(remote, { ...order, paymentProviderOrderId: null }), true);
   assert.equal(isPayPalOrderBindingValid(remote, order), true);
   assert.equal(isPayPalOrderBindingValid({ ...remote, id: "P-2" }, order), false);
+  assert.equal(isPayPalOrderForLocalOrder({ ...remote, id: "P-2" }, order), true);
   assert.equal(isPayPalOrderBindingValid({ ...remote, purchase_units: [{ ...remote.purchase_units[0], amount: { currency_code: "USD", value: "12.30" } }] }, order), false);
+  assert.equal(isPayPalOrderForLocalOrder({ ...remote, purchase_units: [{ ...remote.purchase_units[0], amount: { currency_code: "USD", value: "12.30" } }] }, order), false);
 });
 
 test("completed capture extraction supports callback replay without recapture", () => {
@@ -41,7 +47,103 @@ test("completed capture extraction supports callback replay without recapture", 
 
 test("PayPal idempotency keys are stable", () => {
   assert.equal(paypalCreateRequestId("ord_abc", 7), paypalCreateRequestId("ord_abc", 7));
+  assert.equal(paypalCreateRequestId("ord_changed", 7), paypalCreateRequestId("ord_abc", 7));
+  assert.equal(paypalCreateRequestId("ord_abc", 7).length <= 38, true);
+  assert.notEqual(paypalCreateRequestId("ord_abc", 7), paypalCreateRequestId("ord_def", 8));
   assert.equal(paypalCaptureRequestId("P-1"), "xhaccp-capture-P-1");
+});
+
+const paypalCreateInput = {
+  amount: "12.30",
+  returnUrl: "https://xhaccp.fr/api/payments/paypal/callback",
+  cancelUrl: "https://xhaccp.fr/api/payments/paypal/callback?cancel=1",
+  orderId: 42,
+  requestId: paypalCreateRequestId("fr-paypal-42", 42),
+};
+
+function createdPayPalOrder(id = "P-1") {
+  return {
+    id,
+    status: "CREATED",
+    purchase_units: [{
+      custom_id: String(paypalCreateInput.orderId),
+      invoice_id: `xhaccp-${paypalCreateInput.orderId}`,
+      amount: { currency_code: "EUR", value: paypalCreateInput.amount },
+    }],
+    links: [{ href: "https://www.paypal.com/checkoutnow?token=P-1", rel: "approve" }],
+  };
+}
+
+test("PayPal create retries with the same key when the request fails before acceptance", async () => {
+  let attempts = 0;
+  const requestIds: string[] = [];
+
+  const result = await createPayPalOrderWithRecovery(paypalCreateInput, async (input) => {
+    attempts++;
+    requestIds.push(input.requestId);
+    if (attempts === 1) throw new TypeError("network failed before provider acceptance");
+    return createdPayPalOrder();
+  });
+
+  assert.equal(attempts, 2);
+  assert.deepEqual(requestIds, [paypalCreateInput.requestId, paypalCreateInput.requestId]);
+  assert.equal(result.id, "P-1");
+});
+
+test("PayPal create recovers the accepted checkout after its response is lost", async () => {
+  let attempts = 0;
+  let createdCount = 0;
+  const idempotentResponses = new Map<string, ReturnType<typeof createdPayPalOrder>>();
+
+  const result = await createPayPalOrderWithRecovery(paypalCreateInput, async (input) => {
+    attempts++;
+    const previous = idempotentResponses.get(input.requestId);
+    if (previous) return previous;
+
+    const accepted = createdPayPalOrder();
+    idempotentResponses.set(input.requestId, accepted);
+    createdCount++;
+    if (attempts === 1) throw new TypeError("response lost after provider acceptance");
+    return accepted;
+  });
+
+  assert.equal(attempts, 2);
+  assert.equal(createdCount, 1);
+  assert.equal(result.id, "P-1");
+
+  const local = {
+    id: 42,
+    paymentProviderOrderId: null as string | null,
+    paymentMethod: "paypal",
+    market: "fr",
+    currency: "EUR",
+    totalAmount: "12.30",
+  };
+  assert.equal(isPayPalOrderForLocalOrder(result, local), true);
+  local.paymentProviderOrderId = result.id;
+  assert.equal(isPayPalOrderBindingValid(result, local), true);
+});
+
+test("PayPal create keeps an uncertain result pending and does not retry definitive rejection", async () => {
+  let attempts = 0;
+  await assert.rejects(
+    createPayPalOrderWithRecovery(paypalCreateInput, async () => {
+      attempts++;
+      throw new TypeError("response unavailable");
+    }),
+    PayPalCreateOutcomeUnknownError,
+  );
+  assert.equal(attempts, 2);
+
+  attempts = 0;
+  await assert.rejects(
+    createPayPalOrderWithRecovery(paypalCreateInput, async () => {
+      attempts++;
+      throw new PayPalApiError(422);
+    }),
+    PayPalApiError,
+  );
+  assert.equal(attempts, 1);
 });
 
 test("PayPal webhook headers and order ids use signed transmission fields", () => {

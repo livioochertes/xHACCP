@@ -14,6 +14,13 @@ export type PayPalOrder = {
   }>;
   links?: PayPalLink[];
 };
+export type PayPalCreateOrderInput = {
+  amount: string;
+  returnUrl: string;
+  cancelUrl: string;
+  orderId: number;
+  requestId: string;
+};
 export type PayPalWebhookEvent = { event_type?: string; resource?: any; supplementary_data?: any };
 export type PayPalLocalOrder = {
   id: number;
@@ -72,6 +79,13 @@ export class PayPalApiError extends Error {
   constructor(readonly status: number) {
     super(`PayPal request failed (${status})`);
     this.name = "PayPalApiError";
+  }
+}
+
+export class PayPalCreateOutcomeUnknownError extends Error {
+  constructor() {
+    super("PayPal order creation outcome is unknown");
+    this.name = "PayPalCreateOutcomeUnknownError";
   }
 }
 
@@ -279,8 +293,10 @@ export function isAllowedPayPalApprovalUrl(value: unknown): value is string {
   } catch { return false; }
 }
 
-export function paypalCreateRequestId(publicOrderRef: string, orderId: number): string {
-  return `xhaccp-create-${publicOrderRef || orderId}`;
+export function paypalCreateRequestId(_publicOrderRef: string, orderId: number): string {
+  // The database order ID is unique and stable across retries, while keeping
+  // PayPal's idempotency header within its 38-character limit.
+  return `xhaccp-create-${orderId}`;
 }
 
 export function paypalCaptureRequestId(providerOrderId: string): string {
@@ -297,9 +313,17 @@ export function isPayPalOrderBindingValid(order: PayPalOrder, local: {
   id: number; paymentProviderOrderId?: string | null; paymentMethod: string | null;
   market: string | null; currency: string | null; totalAmount: string | number;
 }) {
+  return local.paymentProviderOrderId === order.id && isPayPalOrderForLocalOrder(order, local);
+}
+
+export function isPayPalOrderForLocalOrder(order: PayPalOrder, local: {
+  id: number; paymentMethod: string | null; market: string | null;
+  currency: string | null; totalAmount: string | number;
+}) {
   const unit = order.purchase_units?.[0];
-  return !!unit && local.paymentMethod === "paypal" && local.market === "fr" &&
-    local.currency === "EUR" && local.paymentProviderOrderId === order.id &&
+  return typeof order.id === "string" && !!order.id && !!unit &&
+    local.paymentMethod === "paypal" && local.market === "fr" &&
+    local.currency === "EUR" &&
     unit.custom_id === String(local.id) && unit.invoice_id === `xhaccp-${local.id}` &&
     unit.amount?.currency_code === "EUR" &&
     Number.isFinite(Number(unit.amount.value)) &&
@@ -367,13 +391,7 @@ export async function verifyPayPalWebhook(input: {
   return result.verification_status === "SUCCESS";
 }
 
-export async function createPayPalOrder(input: {
-  amount: string;
-  returnUrl: string;
-  cancelUrl: string;
-  orderId: number;
-  requestId: string;
-}): Promise<PayPalOrder> {
+export async function createPayPalOrder(input: PayPalCreateOrderInput): Promise<PayPalOrder> {
   return paypalRequest<PayPalOrder>("/v2/checkout/orders", {
     method: "POST",
     body: JSON.stringify({
@@ -392,6 +410,32 @@ export async function createPayPalOrder(input: {
       },
     }),
   }, input.requestId);
+}
+
+function isAmbiguousPayPalCreateError(error: unknown) {
+  if (!(error instanceof PayPalApiError)) return true;
+  return error.status === 408 || error.status >= 500;
+}
+
+export async function createPayPalOrderWithRecovery(
+  input: PayPalCreateOrderInput,
+  createOrder: typeof createPayPalOrder = createPayPalOrder,
+): Promise<PayPalOrder> {
+  try {
+    return await createOrder(input);
+  } catch (firstError) {
+    if (!isAmbiguousPayPalCreateError(firstError)) throw firstError;
+
+    try {
+      // Reusing the same PayPal-Request-Id makes this a replay/recovery of the
+      // original create, not a second checkout.
+      return await createOrder(input);
+    } catch {
+      // The first attempt may have succeeded even if both responses were lost.
+      // Keep the local order pending so its voucher hold cannot be released.
+      throw new PayPalCreateOutcomeUnknownError();
+    }
+  }
 }
 
 export function paypalApprovalUrl(order: PayPalOrder): string | undefined {
