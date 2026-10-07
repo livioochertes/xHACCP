@@ -23,6 +23,19 @@ export function addMonths(date: Date, months: number): Date {
   return result;
 }
 
+export function getVoucherReservationCapacity(
+  voucher: Pick<Voucher, "ownerUserId" | "activationDeadline" | "activatedAt" | "maxUses" | "usedCount">,
+): number | null {
+  if (voucher.ownerUserId == null || !voucher.activationDeadline || voucher.activatedAt) {
+    return null;
+  }
+
+  // An unactivated personal event voucher can only have one first payment.
+  // A successful payment inside the activation window removes this limit by
+  // setting activatedAt and maxUses to null.
+  return Math.max((voucher.maxUses ?? 1) - (voucher.usedCount ?? 0), 0);
+}
+
 export function getVoucherSuccessfulPaymentUpdate(
   voucher: Pick<Voucher, "usedCount" | "maxUses" | "activationDeadline" | "activatedAt" | "activationMonths" | "validUntil" | "ownerUserId">,
   now = new Date(),

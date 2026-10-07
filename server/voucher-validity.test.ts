@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addDays,
+  getVoucherReservationCapacity,
   getVoucherSuccessfulPaymentUpdate,
   getVoucherValidityError,
 } from "./voucher-validity";
@@ -68,6 +69,40 @@ test("an unused personal voucher remains usable after 30 days for one later paid
     getVoucherValidityError(voucher({ ownerUserId: 42 }), new Date("2026-10-11T10:00:00.000Z")),
     null,
   );
+});
+
+test("an unactivated personal voucher reserves only its remaining first-use capacity", () => {
+  assert.equal(getVoucherReservationCapacity({
+    ownerUserId: 42,
+    activationDeadline,
+    activatedAt: null,
+    maxUses: 1,
+    usedCount: 0,
+  }), 1);
+  assert.equal(getVoucherReservationCapacity({
+    ownerUserId: 42,
+    activationDeadline,
+    activatedAt: null,
+    maxUses: 1,
+    usedCount: 1,
+  }), 0);
+});
+
+test("activated and non-personal vouchers do not reserve first-payment capacity", () => {
+  assert.equal(getVoucherReservationCapacity({
+    ownerUserId: 42,
+    activationDeadline,
+    activatedAt: new Date("2026-10-10T10:00:00.000Z"),
+    maxUses: null,
+    usedCount: 1,
+  }), null);
+  assert.equal(getVoucherReservationCapacity({
+    ownerUserId: null,
+    activationDeadline,
+    activatedAt: null,
+    maxUses: 1,
+    usedCount: 0,
+  }), null);
 });
 
 test("the first paid redemption within 30 days starts the configured 12-month period at payment time", () => {

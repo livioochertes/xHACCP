@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, VoucherReservationConflictError } from "./storage";
 import {
   authenticateToken,
   JWT_SIGNING_SECRET,
@@ -2915,6 +2915,9 @@ Sitemap: ${baseUrl}/sitemap.xml
       res.json(order);
     } catch (error: any) {
       console.error("Create order error:", error);
+      if (error instanceof VoucherReservationConflictError) {
+        return res.status(409).json({ message: error.message });
+      }
       const errorMessage = error?.message || "Failed to create order";
       res.status(400).json({ message: errorMessage });
     }
@@ -4090,6 +4093,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   app.post("/api/payments/viva/create-order", optionalAuth, async (req: AuthRequest, res) => {
     const requestId = crypto.randomUUID().slice(0, 12);
     const vivaMarket = getMarketFromRequest(req);
+    let localVivaOrderId: number | null = null;
 
     try {
       const { currency, cartItems, voucherCode, orderData } = req.body;
@@ -4259,8 +4263,12 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         }, orderItems);
 
         dbOrderId = newOrder.id;
+        localVivaOrderId = dbOrderId;
         console.log(`Created order ${dbOrderId} for Viva payment`);
       } catch (orderError) {
+        if (orderError instanceof VoucherReservationConflictError) {
+          return res.status(409).json({ message: orderError.message });
+        }
         console.error("Error creating order for Viva payment:", orderError);
         return res.status(500).json({ message: "Failed to create order" });
       }
@@ -4350,6 +4358,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (!vivaResponse.ok) {
         const errorText = (await vivaResponse.text()).replace(/\s+/g, " ").slice(0, 500);
         console.error(`[Viva ${requestId}] create order error:`, vivaResponse.status, errorText);
+        await storage.markOrderPaymentFailed(dbOrderId);
         return res.status(502).json({
           message: vivaMarket === "fr"
             ? "Le service de paiement n’a pas pu préparer la commande. Réessayez dans quelques instants."
@@ -4361,6 +4370,16 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
       const vivaOrder = await vivaResponse.json() as any;
       const orderCode = vivaOrder.orderCode;
+      if (orderCode == null || !(await storage.bindPaymentProviderOrder(dbOrderId, String(orderCode)))) {
+        await storage.markOrderPaymentFailed(dbOrderId);
+        return res.status(502).json({
+          message: vivaMarket === "fr"
+            ? "Le service de paiement n’a pas pu préparer la commande. Réessayez dans quelques instants."
+            : "The payment service could not prepare the order. Please try again shortly.",
+          code: "VIVA_CREATE_ORDER_FAILED",
+          requestId,
+        });
+      }
 
       console.log(`Viva payment order created: ${orderCode} for DB order ${dbOrderId}`);
 
@@ -4375,6 +4394,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       });
     } catch (error) {
       console.error(`[Viva ${requestId}] Error creating payment order:`, error);
+      if (localVivaOrderId != null) {
+        await storage.markOrderPaymentFailed(localVivaOrderId).catch(markError => {
+          console.error(`[Viva ${requestId}] Could not release failed checkout voucher reservation:`, markError);
+        });
+      }
       const errorMessage = error instanceof Error ? error.message : "";
       if (errorMessage.includes("Viva authentication failed: 403")) {
         return res.status(502).json({
@@ -4838,18 +4862,28 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         });
       } catch (error) {
         console.error(`[PayPal ${requestId}] order creation failed:`, error instanceof Error ? error.message : "unknown error");
+        await storage.markOrderPaymentFailed(localOrder.id);
         return res.status(502).json({ message: "PayPal payment could not be started" });
       }
       const bound = await storage.bindPaymentProviderOrder(localOrder.id, paypalOrder.id);
       if (!bound) {
         const existing = await storage.getOrderByPaymentProviderOrderId(paypalOrder.id);
-        if (!existing || existing.id !== localOrder.id) return res.status(409).json({ message: "PayPal order is already linked" });
+        if (!existing || existing.id !== localOrder.id) {
+          await storage.markOrderPaymentFailed(localOrder.id);
+          return res.status(409).json({ message: "PayPal order is already linked" });
+        }
       }
       const approvalUrl = paypalApprovalUrl(paypalOrder);
-      if (!approvalUrl) return res.status(502).json({ message: "PayPal returned no approval URL" });
+      if (!approvalUrl) {
+        await storage.markOrderPaymentFailed(localOrder.id);
+        return res.status(502).json({ message: "PayPal returned no approval URL" });
+      }
       return res.json({ approvalUrl, paypalOrderId: paypalOrder.id, dbOrderId: localOrder.id });
     } catch (error) {
       console.error(`[PayPal ${requestId}] create-order failed:`, error instanceof Error ? error.message : "unknown error");
+      if (error instanceof VoucherReservationConflictError) {
+        return res.status(409).json({ message: error.message });
+      }
       return res.status(500).json({ message: "Unable to start PayPal payment" });
     }
   });
@@ -4886,8 +4920,14 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     const requestId = crypto.randomUUID().slice(0, 12);
     const failed = () => res.redirect("/merci?payment=failed");
     try {
-      if (req.query.cancel) return failed();
       const token = typeof req.query.token === "string" ? req.query.token : "";
+      if (req.query.cancel) {
+        if (token) {
+          const order = await storage.getOrderByPaymentProviderOrderId(token);
+          if (order) await storage.markOrderPaymentFailed(order.id);
+        }
+        return failed();
+      }
       if (!token) return failed();
       const orderId = await reconcilePayPalPayment(token, requestId, paypalReconciliationDependencies);
       return orderId ? res.redirect(`/merci?payment=paypal&orderId=${orderId}`) : failed();
@@ -5122,6 +5162,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         })();
       } else {
         console.log("Viva callback without transactionId - payment likely failed/cancelled");
+        if (typeof vivaOrderCode === "string") {
+          const order = await storage.getOrderByPaymentProviderOrderId(vivaOrderCode);
+          if (order) await storage.markOrderPaymentFailed(order.id);
+        }
         res.redirect(`${resultPath}?payment=failed`);
       }
     } catch (error) {
@@ -5351,10 +5395,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           const orderId = parseInt(orderIdMatch[1]);
           console.log(`Viva webhook: Payment failed for order ${orderId}`);
           
-          await storage.updateOrder(orderId, {
-            paymentStatus: 'failed',
-            status: 'cancelled',
-          });
+          await storage.markOrderPaymentFailed(orderId);
         }
       }
 

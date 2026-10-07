@@ -30,6 +30,7 @@ export type PayPalReconciliationStorage = {
   getOrderByPaymentProviderOrderId(providerOrderId: string): Promise<PayPalLocalOrder | undefined>;
   updateOrder(id: number, order: { paymentTransactionId: string }): Promise<unknown>;
   markOrderPaid(id: number): Promise<PayPalLocalOrder | null>;
+  markOrderPaymentFailed?(id: number): Promise<unknown>;
   getOrder(id: number): Promise<PayPalLocalOrder | undefined>;
   claimInvoiceEmail?(id: number): Promise<unknown>;
 };
@@ -80,10 +81,10 @@ export function paypalWebhookHeaders(headers: Record<string, string | string[] |
 }
 
 export function paypalWebhookOrderId(event: PayPalWebhookEvent): string | undefined {
-  if (event.event_type === "CHECKOUT.ORDER.APPROVED") {
+  if (event.event_type === "CHECKOUT.ORDER.APPROVED" || event.event_type === "CHECKOUT.ORDER.VOIDED") {
     return typeof event.resource?.id === "string" ? event.resource.id : undefined;
   }
-  if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+  if (event.event_type === "PAYMENT.CAPTURE.COMPLETED" || event.event_type === "PAYMENT.CAPTURE.DENIED") {
     const id = event.resource?.supplementary_data?.related_ids?.order_id ??
       event.supplementary_data?.related_ids?.order_id;
     return typeof id === "string" ? id : undefined;
@@ -170,7 +171,10 @@ export async function handlePayPalWebhook(
     return;
   }
   const webhookEvent = event as PayPalWebhookEvent;
-  if (webhookEvent.event_type !== "CHECKOUT.ORDER.APPROVED" &&
+  const failedEvent = webhookEvent.event_type === "CHECKOUT.ORDER.VOIDED" ||
+    webhookEvent.event_type === "PAYMENT.CAPTURE.DENIED";
+  if (!failedEvent &&
+      webhookEvent.event_type !== "CHECKOUT.ORDER.APPROVED" &&
       webhookEvent.event_type !== "PAYMENT.CAPTURE.COMPLETED") {
     res.sendStatus(200);
     return;
@@ -181,7 +185,12 @@ export async function handlePayPalWebhook(
     return;
   }
   try {
-    await reconcilePayPalPayment(providerOrderId, requestId, dependencies);
+    if (failedEvent) {
+      const localOrder = await dependencies.storage.getOrderByPaymentProviderOrderId(providerOrderId);
+      if (localOrder) await dependencies.storage.markOrderPaymentFailed?.(localOrder.id);
+    } else {
+      await reconcilePayPalPayment(providerOrderId, requestId, dependencies);
+    }
     res.sendStatus(200);
   } catch (error) {
     console.error(`[PayPal ${requestId}] webhook finalization failed:`, error instanceof Error ? error.message : "unknown error");

@@ -95,6 +95,7 @@ import { filterPublicReviews } from "./review-validation";
 import {
   addDays,
   EVENT_VOUCHER_ACTIVATION_DAYS,
+  getVoucherReservationCapacity,
   getVoucherSuccessfulPaymentUpdate,
 } from "./voucher-validity";
 import {
@@ -102,6 +103,15 @@ import {
   createOrFindMarketingClientAccount,
 } from "./marketing-client-account";
 import { eq, desc, asc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, notExists } from "drizzle-orm";
+
+export class VoucherReservationConflictError extends Error {
+  readonly code = "VOUCHER_RESERVATION_CONFLICT";
+
+  constructor(message = "This personal voucher is already in use in another pending checkout") {
+    super(message);
+    this.name = "VoucherReservationConflictError";
+  }
+}
 
 export interface AbandonedCartCandidate {
   userId: number;
@@ -200,6 +210,7 @@ export interface IStorage {
   getOrderByPaymentProviderOrderId(providerOrderId: string): Promise<Order | undefined>;
   bindPaymentProviderOrder(id: number, providerOrderId: string): Promise<Order | undefined>;
   markOrderPaid(id: number): Promise<Order | null>;
+  markOrderPaymentFailed(id: number): Promise<Order | null>;
   updateOrderStatus(id: number, status: string): Promise<Order>;
   acceptOrder(id: number): Promise<Order | null>;
   linkGuestOrdersToUser(email: string, userId: number): Promise<number>;
@@ -981,19 +992,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order> {
-    const [newOrder] = await db.insert(orders).values({
-      ...order,
-      publicOrderRef: order.publicOrderRef || `ord_${crypto.randomBytes(18).toString("base64url")}`,
-    }).returning();
-    
-    const orderItemsWithOrderId = items.map(item => ({
-      ...item,
-      orderId: newOrder.id,
-    }));
-    
-    await db.insert(orderItems).values(orderItemsWithOrderId);
-    
-    return newOrder;
+    return db.transaction(async (tx) => {
+      const voucherCode = order.voucherCode?.toUpperCase();
+      if (voucherCode) {
+        const [voucher] = await tx.select().from(vouchers)
+          .where(eq(vouchers.code, voucherCode))
+          .limit(1)
+          .for("update");
+        const capacity = voucher ? getVoucherReservationCapacity(voucher) : null;
+        if (capacity !== null) {
+          if (capacity <= 0) {
+            throw new VoucherReservationConflictError("This personal voucher has already been used");
+          }
+          const pendingOrders = await tx.select({ id: orders.id })
+            .from(orders)
+            .where(and(
+              sql`UPPER(${orders.voucherCode}) = ${voucherCode}`,
+              eq(orders.paymentStatus, "pending"),
+            ))
+            .orderBy(asc(orders.id))
+            .limit(capacity);
+          if (pendingOrders.length >= capacity) {
+            throw new VoucherReservationConflictError();
+          }
+        }
+      }
+
+      const [newOrder] = await tx.insert(orders).values({
+        ...order,
+        voucherCode,
+        publicOrderRef: order.publicOrderRef || `ord_${crypto.randomBytes(18).toString("base64url")}`,
+      }).returning();
+
+      const orderItemsWithOrderId = items.map(item => ({
+        ...item,
+        orderId: newOrder.id,
+      }));
+
+      await tx.insert(orderItems).values(orderItemsWithOrderId);
+
+      return newOrder;
+    });
   }
 
   async updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order> {
@@ -1022,8 +1061,47 @@ export class DatabaseStorage implements IStorage {
     // Callback and webhook can arrive at the same time. Claim the transition
     // atomically so only one of them performs invoice/email side effects.
     return db.transaction(async (tx) => {
-      const [current] = await tx.select().from(orders).where(eq(orders.id, id)).limit(1);
-      if (!current || current.paymentStatus === "paid") return null;
+      const [current] = await tx.select().from(orders)
+        .where(eq(orders.id, id))
+        .limit(1)
+        .for("update");
+      if (!current || current.paymentStatus !== "pending") return null;
+
+      let voucher: Voucher | undefined;
+      let belongsToOrderClient = false;
+      if (current.voucherCode) {
+        [voucher] = await tx.select().from(vouchers)
+          .where(and(
+            eq(vouchers.code, current.voucherCode.toUpperCase()),
+            sql`(${vouchers.marketCode} IS NULL OR ${vouchers.marketCode} = ${current.market || "ro"})`,
+          ))
+          .limit(1)
+          .for("update");
+        if (voucher) {
+          const capacity = getVoucherReservationCapacity(voucher);
+          if (capacity !== null) {
+            if (capacity <= 0) return null;
+            const pendingOrders = await tx.select({ id: orders.id })
+              .from(orders)
+              .where(and(
+                sql`UPPER(${orders.voucherCode}) = ${voucher.code}`,
+                eq(orders.paymentStatus, "pending"),
+              ))
+              .orderBy(asc(orders.id))
+              .limit(capacity);
+            if (!pendingOrders.some(order => order.id === current.id)) return null;
+          }
+
+          const orderEmail = String(
+            (current.shippingAddress as any)?.email || (current.billingAddress as any)?.email || "",
+          ).trim().toLowerCase();
+          belongsToOrderClient = !voucher.ownerUserId || (
+            current.userId === voucher.ownerUserId
+            && (!voucher.ownerEmail || orderEmail === voucher.ownerEmail.trim().toLowerCase())
+          );
+        }
+      }
+
       const [route] = await tx
         .select({ partnerId: marketFulfillment.partnerId })
         .from(marketFulfillment)
@@ -1047,40 +1125,42 @@ export class DatabaseStorage implements IStorage {
           confirmedAt: current.confirmedAt || (partnerId ? now : null),
           updatedAt: now,
         })
-        .where(and(eq(orders.id, id), ne(orders.paymentStatus, "paid")))
+        .where(and(eq(orders.id, id), eq(orders.paymentStatus, "pending")))
         .returning();
-      if (updatedOrder && current.voucherCode) {
-        const [voucher] = await tx.select().from(vouchers)
-          .where(and(
-            eq(vouchers.code, current.voucherCode.toUpperCase()),
-            sql`(${vouchers.marketCode} IS NULL OR ${vouchers.marketCode} = ${current.market || "ro"})`,
-          ))
-          .limit(1)
-          .for("update");
-        const orderEmail = String(
-          (current.shippingAddress as any)?.email || (current.billingAddress as any)?.email || "",
-        ).trim().toLowerCase();
-        const belongsToOrderClient = !voucher?.ownerUserId || (
-          current.userId === voucher.ownerUserId
-          && (!voucher.ownerEmail || orderEmail === voucher.ownerEmail.trim().toLowerCase())
-        );
-        if (voucher && belongsToOrderClient) {
-          await tx.update(vouchers)
-            .set({
-              ...getVoucherSuccessfulPaymentUpdate(voucher, now),
-              updatedAt: now,
-            })
-            .where(eq(vouchers.id, voucher.id));
-        }
+      if (updatedOrder && voucher && belongsToOrderClient) {
+        await tx.update(vouchers)
+          .set({
+            ...getVoucherSuccessfulPaymentUpdate(voucher, now),
+            updatedAt: now,
+          })
+          .where(eq(vouchers.id, voucher.id));
       }
       return updatedOrder ?? null;
     });
   }
 
+  async markOrderPaymentFailed(id: number): Promise<Order | null> {
+    const [updatedOrder] = await db.update(orders)
+      .set({
+        paymentStatus: "failed",
+        status: "cancelled",
+        updatedAt: new Date(),
+      })
+      .where(and(eq(orders.id, id), eq(orders.paymentStatus, "pending")))
+      .returning();
+    return updatedOrder ?? null;
+  }
+
   async updateOrderStatus(id: number, status: string): Promise<Order> {
     const [updatedOrder] = await db
       .update(orders)
-      .set({ status, updatedAt: new Date() })
+      .set({
+        status,
+        ...(status === "cancelled" || status === "canceled"
+          ? { paymentStatus: sql`CASE WHEN ${orders.paymentStatus} = 'pending' THEN 'cancelled' ELSE ${orders.paymentStatus} END` }
+          : {}),
+        updatedAt: new Date(),
+      })
       .where(eq(orders.id, id))
       .returning();
     return updatedOrder;

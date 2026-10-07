@@ -49,7 +49,9 @@ test("PayPal webhook headers and order ids use signed transmission fields", () =
   });
   assert.equal(headers.transmission_id, "t-1");
   assert.equal(paypalWebhookOrderId({ event_type: "CHECKOUT.ORDER.APPROVED", resource: { id: "P-1" } }), "P-1");
+  assert.equal(paypalWebhookOrderId({ event_type: "CHECKOUT.ORDER.VOIDED", resource: { id: "P-1" } }), "P-1");
   assert.equal(paypalWebhookOrderId({ event_type: "PAYMENT.CAPTURE.COMPLETED", resource: { supplementary_data: { related_ids: { order_id: "P-1" } } } }), "P-1");
+  assert.equal(paypalWebhookOrderId({ event_type: "PAYMENT.CAPTURE.DENIED", resource: { supplementary_data: { related_ids: { order_id: "P-1" } } } }), "P-1");
   assert.equal(paypalWebhookOrderId({ event_type: "PAYMENT.CAPTURE.COMPLETED", resource: { id: "C-1" } }), undefined);
 });
 
@@ -139,8 +141,13 @@ function reconciliationDependencies(sendResults: boolean[] = [true]) {
         paymentTransactionId = update.paymentTransactionId;
       },
       async markOrderPaid() {
-        if (paymentStatus === "paid") return null;
+        if (paymentStatus !== "pending") return null;
         paymentStatus = "paid";
+        return local;
+      },
+      async markOrderPaymentFailed() {
+        if (paymentStatus !== "pending") return null;
+        paymentStatus = "failed";
         return local;
       },
       async getOrder() {
@@ -363,4 +370,28 @@ test("invalid PayPal webhook signatures never change the order", async () => {
     captureCount: 0,
     sideEffects: [],
   });
+});
+
+test("verified PayPal failure webhooks release the pending order voucher hold", async () => {
+  const { dependencies, counts } = reconciliationDependencies();
+  const response = webhookResponse();
+
+  await handlePayPalWebhook(
+    {
+      headers: { "paypal-transmission-id": "t-failed" },
+      body: {
+        event_type: "PAYMENT.CAPTURE.DENIED",
+        resource: {
+          supplementary_data: { related_ids: { order_id: "P-1" } },
+        },
+      },
+    },
+    response,
+    { ...dependencies, verifyWebhook: async () => true },
+    "webhook-failed",
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(counts().paymentStatus, "failed");
+  assert.equal(counts().invoiceCount, 0);
 });
