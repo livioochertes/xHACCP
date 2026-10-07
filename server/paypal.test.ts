@@ -2,13 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   completedPayPalCapture,
+  expirePayPalOrderIfProviderConfirms,
   handlePayPalWebhook,
   isAllowedPayPalApprovalUrl,
   isPayPalOrderBindingValid,
+  PayPalApiError,
   paypalCaptureRequestId,
   paypalCreateRequestId,
   paypalWebhookHeaders,
   paypalWebhookOrderId,
+  reconcilePayPalPayment,
   type PayPalLocalOrder,
 } from "./paypal";
 
@@ -50,6 +53,7 @@ test("PayPal webhook headers and order ids use signed transmission fields", () =
   assert.equal(headers.transmission_id, "t-1");
   assert.equal(paypalWebhookOrderId({ event_type: "CHECKOUT.ORDER.APPROVED", resource: { id: "P-1" } }), "P-1");
   assert.equal(paypalWebhookOrderId({ event_type: "CHECKOUT.ORDER.VOIDED", resource: { id: "P-1" } }), "P-1");
+  assert.equal(paypalWebhookOrderId({ event_type: "CHECKOUT.PAYMENT-APPROVAL.REVERSED", resource: { id: "P-1" } }), "P-1");
   assert.equal(paypalWebhookOrderId({ event_type: "PAYMENT.CAPTURE.COMPLETED", resource: { supplementary_data: { related_ids: { order_id: "P-1" } } } }), "P-1");
   assert.equal(paypalWebhookOrderId({ event_type: "PAYMENT.CAPTURE.DENIED", resource: { supplementary_data: { related_ids: { order_id: "P-1" } } } }), "P-1");
   assert.equal(paypalWebhookOrderId({ event_type: "PAYMENT.CAPTURE.COMPLETED", resource: { id: "C-1" } }), undefined);
@@ -135,19 +139,25 @@ function reconciliationDependencies(sendResults: boolean[] = [true]) {
   const dependencies = {
     storage: {
       async getOrderByPaymentProviderOrderId() {
+        localWithShipping.paymentStatus = paymentStatus;
+        localWithShipping.paymentTransactionId = paymentTransactionId;
         return localWithShipping;
       },
       async updateOrder(_id: number, update: { paymentTransactionId: string }) {
         paymentTransactionId = update.paymentTransactionId;
       },
-      async markOrderPaid() {
+      async markOrderPaid(_id: number, transactionId?: string) {
         if (paymentStatus !== "pending") return null;
         paymentStatus = "paid";
+        paymentTransactionId = transactionId;
+        localWithShipping.paymentStatus = "paid";
+        localWithShipping.paymentTransactionId = transactionId;
         return local;
       },
       async markOrderPaymentFailed() {
         if (paymentStatus !== "pending") return null;
         paymentStatus = "failed";
+        localWithShipping.paymentStatus = "failed";
         return local;
       },
       async getOrder() {
@@ -372,7 +382,7 @@ test("invalid PayPal webhook signatures never change the order", async () => {
   });
 });
 
-test("verified PayPal failure webhooks release the pending order voucher hold", async () => {
+test("a PayPal capture-denied event alone does not release a still-payable order", async () => {
   const { dependencies, counts } = reconciliationDependencies();
   const response = webhookResponse();
 
@@ -392,6 +402,84 @@ test("verified PayPal failure webhooks release the pending order voucher hold", 
   );
 
   assert.equal(response.statusCode, 200);
+  assert.equal(counts().paymentStatus, "pending");
+  assert.equal(counts().invoiceCount, 0);
+});
+
+test("verified PayPal void events release the pending order voucher hold idempotently", async () => {
+  const { dependencies, counts } = reconciliationDependencies();
+  const request = () => ({
+    headers: { "paypal-transmission-id": "t-voided" },
+    body: { event_type: "CHECKOUT.ORDER.VOIDED", resource: { id: "P-1" } },
+  });
+  const first = webhookResponse();
+  const second = webhookResponse();
+
+  await handlePayPalWebhook(request(), first, { ...dependencies, verifyWebhook: async () => true }, "webhook-voided-1");
+  await handlePayPalWebhook(request(), second, { ...dependencies, verifyWebhook: async () => true }, "webhook-voided-2");
+
+  assert.equal(first.statusCode, 200);
+  assert.equal(second.statusCode, 200);
   assert.equal(counts().paymentStatus, "failed");
   assert.equal(counts().invoiceCount, 0);
+});
+
+test("PayPal expiry reconciliation requires a provider-confirmed terminal status", async () => {
+  const local: PayPalLocalOrder = {
+    id: 42,
+    paymentProviderOrderId: "P-1",
+    paymentMethod: "paypal",
+    paymentStatus: "pending",
+    market: "fr",
+    currency: "EUR",
+    totalAmount: "12.30",
+    createdAt: new Date("2026-10-07T00:00:00.000Z"),
+  };
+  let failedCount = 0;
+  const storage = {
+    async getOrderByPaymentProviderOrderId() { return local; },
+    async markOrderPaymentFailed() {
+      if (local.paymentStatus !== "pending") return null;
+      local.paymentStatus = "failed";
+      failedCount++;
+      return local;
+    },
+    async markOrderPaid() { return null; },
+    async getOrder() { return local; },
+  };
+
+  const voided = await expirePayPalOrderIfProviderConfirms("P-1", "expiry-test", {
+    storage,
+    getPayPalOrder: async () => ({ ...completedRemoteOrder(), status: "VOIDED" }),
+  }, new Date("2026-10-07T04:00:00.000Z"));
+  assert.equal(voided, true);
+  assert.equal(failedCount, 1);
+
+  local.paymentStatus = "pending";
+  const stillPayable = await expirePayPalOrderIfProviderConfirms("P-1", "expiry-test", {
+    storage,
+    getPayPalOrder: async () => ({ ...completedRemoteOrder(), status: "APPROVED" }),
+  }, new Date("2026-10-07T04:00:00.000Z"));
+  assert.equal(stillPayable, false);
+  assert.equal(failedCount, 1);
+
+  const reversed404 = await expirePayPalOrderIfProviderConfirms("P-1", "expiry-test", {
+    storage,
+    getPayPalOrder: async () => { throw new PayPalApiError(404); },
+  }, new Date("2026-10-07T04:00:00.000Z"));
+  assert.equal(reversed404, true);
+  assert.equal(failedCount, 2);
+});
+
+test("late PayPal success cannot revive a locally failed order", async () => {
+  const { dependencies, counts } = reconciliationDependencies();
+  await dependencies.storage.markOrderPaymentFailed(42);
+
+  const result = await reconcilePayPalPayment("P-1", "late-success", dependencies);
+
+  assert.equal(result, null);
+  assert.equal(counts().paymentStatus, "failed");
+  assert.equal(counts().paymentTransactionId, undefined);
+  assert.equal(counts().invoiceCount, 0);
+  assert.equal(counts().captureCount, 0);
 });

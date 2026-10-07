@@ -102,7 +102,7 @@ import {
   attachVoucherToMarketingClient,
   createOrFindMarketingClientAccount,
 } from "./marketing-client-account";
-import { eq, desc, asc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, notExists } from "drizzle-orm";
+import { eq, desc, asc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, gt, notExists } from "drizzle-orm";
 
 export class VoucherReservationConflictError extends Error {
   readonly code = "VOUCHER_RESERVATION_CONFLICT";
@@ -158,6 +158,12 @@ export interface EventVoucherMarketingContact extends EventVoucherRegistration {
   usedCount: number | null;
 }
 
+export type PendingProviderPaymentOrder = Pick<
+  Order,
+  "id" | "paymentMethod" | "market" | "currency" | "totalAmount" |
+  "paymentProviderOrderId" | "createdAt"
+>;
+
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -209,7 +215,13 @@ export interface IStorage {
   updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order>;
   getOrderByPaymentProviderOrderId(providerOrderId: string): Promise<Order | undefined>;
   bindPaymentProviderOrder(id: number, providerOrderId: string): Promise<Order | undefined>;
-  markOrderPaid(id: number): Promise<Order | null>;
+  listPendingProviderPaymentOrders(
+    afterId: number,
+    limit: number,
+    vivaBefore: Date,
+    paypalBefore: Date,
+  ): Promise<PendingProviderPaymentOrder[]>;
+  markOrderPaid(id: number, paymentTransactionId?: string): Promise<Order | null>;
   markOrderPaymentFailed(id: number): Promise<Order | null>;
   updateOrderStatus(id: number, status: string): Promise<Order>;
   acceptOrder(id: number): Promise<Order | null>;
@@ -1049,6 +1061,35 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
+  async listPendingProviderPaymentOrders(
+    afterId: number,
+    limit: number,
+    vivaBefore: Date,
+    paypalBefore: Date,
+  ): Promise<PendingProviderPaymentOrder[]> {
+    return db.select({
+      id: orders.id,
+      paymentMethod: orders.paymentMethod,
+      market: orders.market,
+      currency: orders.currency,
+      totalAmount: orders.totalAmount,
+      paymentProviderOrderId: orders.paymentProviderOrderId,
+      createdAt: orders.createdAt,
+    }).from(orders)
+      .where(and(
+        eq(orders.paymentStatus, "pending"),
+        inArray(orders.paymentMethod, ["viva", "paypal"]),
+        isNotNull(orders.paymentProviderOrderId),
+        gt(orders.id, afterId),
+        or(
+          and(eq(orders.paymentMethod, "viva"), lte(orders.createdAt, vivaBefore)),
+          and(eq(orders.paymentMethod, "paypal"), lte(orders.createdAt, paypalBefore)),
+        ),
+      ))
+      .orderBy(asc(orders.id))
+      .limit(Math.max(1, Math.min(limit, 200)));
+  }
+
   async bindPaymentProviderOrder(id: number, providerOrderId: string): Promise<Order | undefined> {
     const [order] = await db.update(orders)
       .set({ paymentProviderOrderId: providerOrderId, updatedAt: new Date() })
@@ -1057,7 +1098,7 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
-  async markOrderPaid(id: number): Promise<Order | null> {
+  async markOrderPaid(id: number, paymentTransactionId?: string): Promise<Order | null> {
     // Callback and webhook can arrive at the same time. Claim the transition
     // atomically so only one of them performs invoice/email side effects.
     return db.transaction(async (tx) => {
@@ -1118,6 +1159,7 @@ export class DatabaseStorage implements IStorage {
         .update(orders)
         .set({
           paymentStatus: "paid",
+          ...(paymentTransactionId ? { paymentTransactionId } : {}),
           status: "processing",
           fulfillmentPartnerId: partnerId,
           fulfillmentStatus: partnerId ? (current.fulfillmentStatus === "unassigned" ? "ready" : current.fulfillmentStatus) : "unassigned",

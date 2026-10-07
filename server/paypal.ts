@@ -19,17 +19,19 @@ export type PayPalLocalOrder = {
   id: number;
   paymentProviderOrderId?: string | null;
   paymentMethod: string | null;
+  paymentStatus?: string | null;
+  paymentTransactionId?: string | null;
   market: string | null;
   currency: string | null;
   totalAmount: string | number;
+  createdAt?: Date | string | null;
   shippingAddress?: unknown;
   billingAddress?: unknown;
 };
 
 export type PayPalReconciliationStorage = {
   getOrderByPaymentProviderOrderId(providerOrderId: string): Promise<PayPalLocalOrder | undefined>;
-  updateOrder(id: number, order: { paymentTransactionId: string }): Promise<unknown>;
-  markOrderPaid(id: number): Promise<PayPalLocalOrder | null>;
+  markOrderPaid(id: number, paymentTransactionId?: string): Promise<PayPalLocalOrder | null>;
   markOrderPaymentFailed?(id: number): Promise<unknown>;
   getOrder(id: number): Promise<PayPalLocalOrder | undefined>;
   claimInvoiceEmail?(id: number): Promise<unknown>;
@@ -54,6 +56,24 @@ export type PayPalReconciliationDependencies = {
   sendFrenchOrderConfirmationEmails: (orderId: number) => Promise<unknown>;
   sendFrenchOrderDocumentsEmail: (orderId: number) => Promise<unknown>;
 };
+
+export type PayPalExpiryDependencies = {
+  storage: Pick<
+    PayPalReconciliationStorage,
+    "getOrderByPaymentProviderOrderId" | "markOrderPaymentFailed"
+  >;
+  getPayPalOrder?: typeof getPayPalOrder;
+};
+
+export const PAYPAL_APPROVAL_REVERSAL_DELAY_MS = 3 * 60 * 60 * 1000;
+export const PAYPAL_REVERSAL_RECONCILIATION_GRACE_MS = 5 * 60 * 1000;
+
+export class PayPalApiError extends Error {
+  constructor(readonly status: number) {
+    super(`PayPal request failed (${status})`);
+    this.name = "PayPalApiError";
+  }
+}
 
 type PayPalWebhookRequest = {
   body: unknown;
@@ -81,7 +101,9 @@ export function paypalWebhookHeaders(headers: Record<string, string | string[] |
 }
 
 export function paypalWebhookOrderId(event: PayPalWebhookEvent): string | undefined {
-  if (event.event_type === "CHECKOUT.ORDER.APPROVED" || event.event_type === "CHECKOUT.ORDER.VOIDED") {
+  if (event.event_type === "CHECKOUT.ORDER.APPROVED" ||
+      event.event_type === "CHECKOUT.ORDER.VOIDED" ||
+      event.event_type === "CHECKOUT.PAYMENT-APPROVAL.REVERSED") {
     return typeof event.resource?.id === "string" ? event.resource.id : undefined;
   }
   if (event.event_type === "PAYMENT.CAPTURE.COMPLETED" || event.event_type === "PAYMENT.CAPTURE.DENIED") {
@@ -99,19 +121,28 @@ export async function reconcilePayPalPayment(
 ): Promise<number | null> {
   const local = await dependencies.storage.getOrderByPaymentProviderOrderId(providerOrderId);
   if (!local) return null;
+  if (local.paymentStatus && local.paymentStatus !== "pending" && local.paymentStatus !== "paid") {
+    return null;
+  }
   const getOrder = dependencies.getPayPalOrder || getPayPalOrder;
   const captureOrder = dependencies.capturePayPalOrder || capturePayPalOrder;
   const paypalOrder = await getOrder(providerOrderId, requestId);
   if (!isPayPalOrderBindingValid(paypalOrder, local)) return null;
   let capture = completedPayPalCapture(paypalOrder);
+  if (local.paymentStatus === "paid") {
+    return capture?.id &&
+      (!local.paymentTransactionId || local.paymentTransactionId === capture.id)
+      ? local.id
+      : null;
+  }
   if (!capture) {
+    if (paypalOrder.status === "VOIDED") return null;
     const captured = await captureOrder(providerOrderId, paypalCaptureRequestId(providerOrderId));
     capture = completedPayPalCapture(captured);
   }
   if (!capture?.id) return null;
   const captureId = capture.id;
-  await dependencies.storage.updateOrder(local.id, { paymentTransactionId: captureId });
-  const paid = await dependencies.storage.markOrderPaid(local.id);
+  const paid = await dependencies.storage.markOrderPaid(local.id, captureId);
   if (paid) {
     try {
       await dependencies.sendFrenchOrderConfirmationEmails(local.id);
@@ -145,6 +176,36 @@ export async function reconcilePayPalPayment(
   return local.id;
 }
 
+export async function expirePayPalOrderIfProviderConfirms(
+  providerOrderId: string,
+  requestId: string,
+  dependencies: PayPalExpiryDependencies,
+  now = new Date(),
+): Promise<boolean> {
+  const local = await dependencies.storage.getOrderByPaymentProviderOrderId(providerOrderId);
+  if (!local || (local.paymentStatus && local.paymentStatus !== "pending")) return false;
+
+  const getOrder = dependencies.getPayPalOrder || getPayPalOrder;
+  let providerOrder: PayPalOrder;
+  try {
+    providerOrder = await getOrder(providerOrderId, requestId);
+  } catch (error) {
+    const createdAt = local.createdAt ? new Date(local.createdAt).getTime() : Number.NaN;
+    const oldEnoughForProviderReversal = Number.isFinite(createdAt) &&
+      now.getTime() - createdAt >=
+        PAYPAL_APPROVAL_REVERSAL_DELAY_MS + PAYPAL_REVERSAL_RECONCILIATION_GRACE_MS;
+    if (!(error instanceof PayPalApiError && error.status === 404 && oldEnoughForProviderReversal)) {
+      throw error;
+    }
+    return Boolean(await dependencies.storage.markOrderPaymentFailed?.(local.id));
+  }
+
+  if (!isPayPalOrderBindingValid(providerOrder, local) || providerOrder.status !== "VOIDED") {
+    return false;
+  }
+  return Boolean(await dependencies.storage.markOrderPaymentFailed?.(local.id));
+}
+
 export async function handlePayPalWebhook(
   req: PayPalWebhookRequest,
   res: PayPalWebhookResponse,
@@ -172,6 +233,7 @@ export async function handlePayPalWebhook(
   }
   const webhookEvent = event as PayPalWebhookEvent;
   const failedEvent = webhookEvent.event_type === "CHECKOUT.ORDER.VOIDED" ||
+    webhookEvent.event_type === "CHECKOUT.PAYMENT-APPROVAL.REVERSED" ||
     webhookEvent.event_type === "PAYMENT.CAPTURE.DENIED";
   if (!failedEvent &&
       webhookEvent.event_type !== "CHECKOUT.ORDER.APPROVED" &&
@@ -187,7 +249,16 @@ export async function handlePayPalWebhook(
   try {
     if (failedEvent) {
       const localOrder = await dependencies.storage.getOrderByPaymentProviderOrderId(providerOrderId);
-      if (localOrder) await dependencies.storage.markOrderPaymentFailed?.(localOrder.id);
+      if (localOrder) {
+        if (webhookEvent.event_type === "CHECKOUT.ORDER.VOIDED" ||
+            webhookEvent.event_type === "CHECKOUT.PAYMENT-APPROVAL.REVERSED") {
+          // Signed provider events explicitly indicate that the checkout
+          // can no longer be paid. Capture-denied alone is not terminal.
+          await dependencies.storage.markOrderPaymentFailed?.(localOrder.id);
+        } else {
+          await expirePayPalOrderIfProviderConfirms(providerOrderId, requestId, dependencies);
+        }
+      }
     } else {
       await reconcilePayPalPayment(providerOrderId, requestId, dependencies);
     }
@@ -273,7 +344,7 @@ async function paypalRequest<T>(path: string, init: RequestInit, requestId: stri
   });
   if (!response.ok) {
     // Do not return PayPal response bodies: they may contain sensitive request metadata.
-    throw new Error(`PayPal request failed (${response.status})`);
+    throw new PayPalApiError(response.status);
   }
   return await response.json() as T;
 }

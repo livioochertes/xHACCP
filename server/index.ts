@@ -19,6 +19,7 @@ import { startBlogScheduler } from "./blog-scheduler";
 import { startGoogleMerchantFeedScheduler } from "./google-merchant-feed";
 import { startCartReminderScheduler } from "./cart-reminder";
 import { startSubscriptionScheduler } from "./subscription-scheduler";
+import { startPaymentExpiryScheduler } from "./payment-expiry-scheduler";
 import { startDbKeepAlive } from "./db";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -152,6 +153,7 @@ app.use((req, res, next) => {
   startGoogleMerchantFeedScheduler();
   startCartReminderScheduler();
   startSubscriptionScheduler();
+  startPaymentExpiryScheduler();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

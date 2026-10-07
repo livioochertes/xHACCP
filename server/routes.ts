@@ -61,7 +61,18 @@ import {
   type CompositeComponentSource,
 } from "./composite-products";
 import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
-import { createPayPalOrder, getPayPalOrder, capturePayPalOrder, paypalApprovalUrl, paypalCreateRequestId, reconcilePayPalPayment, handlePayPalWebhook } from "./paypal";
+import {
+  createPayPalOrder,
+  getPayPalOrder,
+  capturePayPalOrder,
+  paypalApprovalUrl,
+  paypalCreateRequestId,
+  reconcilePayPalPayment,
+  expirePayPalOrderIfProviderConfirms,
+  handlePayPalWebhook,
+  PayPalApiError,
+} from "./paypal";
+import { isVivaPaymentOrderNonPayable } from "./viva-payment-status";
 import { getRomanianSamedayShippingContext } from "./sameday-shipping";
 import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
 import { sendFrenchOrderConfirmationEmails } from "./fr-order-confirmation.js";
@@ -4089,11 +4100,29 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     return data.access_token;
   }
 
+  async function failVivaOrderOnlyIfProviderConfirms(
+    order: { id: number; market: string | null; paymentMethod: string | null; paymentStatus: string; paymentProviderOrderId: string | null },
+  ) {
+    if (
+      order.paymentStatus !== "pending" ||
+      order.paymentMethod !== "viva" ||
+      !order.paymentProviderOrderId
+    ) {
+      return null;
+    }
+    const market: VivaMarket = order.market === "fr" || order.market === "com" ? order.market : "ro";
+    if (!await isVivaPaymentOrderNonPayable(order.paymentProviderOrderId, market, order.id)) {
+      return null;
+    }
+    return storage.markOrderPaymentFailed(order.id);
+  }
+
   // Create Viva payment order and return checkout URL
   app.post("/api/payments/viva/create-order", optionalAuth, async (req: AuthRequest, res) => {
     const requestId = crypto.randomUUID().slice(0, 12);
     const vivaMarket = getMarketFromRequest(req);
     let localVivaOrderId: number | null = null;
+    let vivaOrderRequestStarted = false;
 
     try {
       const { currency, cartItems, voucherCode, orderData } = req.body;
@@ -4346,6 +4375,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }));
 
       // Create payment order via Viva API
+      vivaOrderRequestStarted = true;
       const vivaResponse = await fetch("https://api.vivapayments.com/checkout/v2/orders", {
         method: "POST",
         headers: {
@@ -4358,7 +4388,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (!vivaResponse.ok) {
         const errorText = (await vivaResponse.text()).replace(/\s+/g, " ").slice(0, 500);
         console.error(`[Viva ${requestId}] create order error:`, vivaResponse.status, errorText);
-        await storage.markOrderPaymentFailed(dbOrderId);
+        if (vivaResponse.status >= 400 && vivaResponse.status < 500) {
+          await storage.markOrderPaymentFailed(dbOrderId);
+        }
         return res.status(502).json({
           message: vivaMarket === "fr"
             ? "Le service de paiement n’a pas pu préparer la commande. Réessayez dans quelques instants."
@@ -4371,7 +4403,6 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const vivaOrder = await vivaResponse.json() as any;
       const orderCode = vivaOrder.orderCode;
       if (orderCode == null || !(await storage.bindPaymentProviderOrder(dbOrderId, String(orderCode)))) {
-        await storage.markOrderPaymentFailed(dbOrderId);
         return res.status(502).json({
           message: vivaMarket === "fr"
             ? "Le service de paiement n’a pas pu préparer la commande. Réessayez dans quelques instants."
@@ -4394,7 +4425,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       });
     } catch (error) {
       console.error(`[Viva ${requestId}] Error creating payment order:`, error);
-      if (localVivaOrderId != null) {
+      if (localVivaOrderId != null && !vivaOrderRequestStarted) {
         await storage.markOrderPaymentFailed(localVivaOrderId).catch(markError => {
           console.error(`[Viva ${requestId}] Could not release failed checkout voucher reservation:`, markError);
         });
@@ -4862,20 +4893,28 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         });
       } catch (error) {
         console.error(`[PayPal ${requestId}] order creation failed:`, error instanceof Error ? error.message : "unknown error");
-        await storage.markOrderPaymentFailed(localOrder.id);
+        if (error instanceof PayPalApiError && error.status >= 400 && error.status < 500 && error.status !== 408) {
+          await storage.markOrderPaymentFailed(localOrder.id);
+        }
         return res.status(502).json({ message: "PayPal payment could not be started" });
       }
       const bound = await storage.bindPaymentProviderOrder(localOrder.id, paypalOrder.id);
       if (!bound) {
         const existing = await storage.getOrderByPaymentProviderOrderId(paypalOrder.id);
         if (!existing || existing.id !== localOrder.id) {
-          await storage.markOrderPaymentFailed(localOrder.id);
+          if (existing) await storage.markOrderPaymentFailed(localOrder.id);
           return res.status(409).json({ message: "PayPal order is already linked" });
         }
       }
       const approvalUrl = paypalApprovalUrl(paypalOrder);
       if (!approvalUrl) {
-        await storage.markOrderPaymentFailed(localOrder.id);
+        await expirePayPalOrderIfProviderConfirms(
+          paypalOrder.id,
+          requestId,
+          { storage, getPayPalOrder },
+        ).catch(error => {
+          console.error(`[PayPal ${requestId}] Could not verify unapprovable order status:`, error instanceof Error ? error.message : "unknown error");
+        });
         return res.status(502).json({ message: "PayPal returned no approval URL" });
       }
       return res.json({ approvalUrl, paypalOrderId: paypalOrder.id, dbOrderId: localOrder.id });
@@ -4923,8 +4962,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const token = typeof req.query.token === "string" ? req.query.token : "";
       if (req.query.cancel) {
         if (token) {
-          const order = await storage.getOrderByPaymentProviderOrderId(token);
-          if (order) await storage.markOrderPaymentFailed(order.id);
+          await expirePayPalOrderIfProviderConfirms(token, requestId, paypalReconciliationDependencies);
         }
         return failed();
       }
@@ -4969,7 +5007,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
               if (orderIdMatch) {
                 const orderId = parseInt(orderIdMatch[1]);
                 
-                const claimedOrder = await storage.markOrderPaid(orderId);
+                const claimedOrder = await storage.markOrderPaid(orderId, String(transactionId));
                 if (!claimedOrder) {
                   console.log(`Viva callback: Order ${orderId} already processed (paid), skipping duplicate`);
                 } else {
@@ -5164,7 +5202,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         console.log("Viva callback without transactionId - payment likely failed/cancelled");
         if (typeof vivaOrderCode === "string") {
           const order = await storage.getOrderByPaymentProviderOrderId(vivaOrderCode);
-          if (order) await storage.markOrderPaymentFailed(order.id);
+          if (order) await failVivaOrderOnlyIfProviderConfirms(order);
         }
         res.redirect(`${resultPath}?payment=failed`);
       }
@@ -5193,7 +5231,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           const orderId = parseInt(orderIdMatch[1]);
           console.log(`Viva webhook: Payment succeeded for order ${orderId}, transaction ${transactionId}`);
 
-          const claimedOrder = await storage.markOrderPaid(orderId);
+          const claimedOrder = await storage.markOrderPaid(
+            orderId,
+            transactionId == null ? undefined : String(transactionId),
+          );
           if (!claimedOrder) {
             console.log(`Viva webhook: Order ${orderId} already processed (paid), skipping duplicate`);
           } else {
@@ -5394,8 +5435,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         if (orderIdMatch) {
           const orderId = parseInt(orderIdMatch[1]);
           console.log(`Viva webhook: Payment failed for order ${orderId}`);
-          
-          await storage.markOrderPaymentFailed(orderId);
+          const order = await storage.getOrder(orderId);
+          if (order) await failVivaOrderOnlyIfProviderConfirms(order);
         }
       }
 
