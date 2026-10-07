@@ -24,6 +24,9 @@ test("public registration requires consent, retries the same voucher and sends t
   let registerCalls = 0;
   const emailResults = [false, true];
   const emailCalls: any[] = [];
+  const passwordSetupResults = [false, true];
+  const passwordSetupCalls: any[] = [];
+  let passwordSetupComplete = false;
   const dependencies: EventVoucherPublicRouteDependencies = {
     getMarket: (req) => (req.get("x-market") === "fr" ? "fr" : "ro") as Market,
     getCampaign: async () => campaign,
@@ -31,7 +34,12 @@ test("public registration requires consent, retries the same voucher and sends t
     register: async (data) => {
       registerCalls++;
       if (registration && voucher) {
-        return { registration, voucher, alreadyRegistered: true };
+        return {
+          registration,
+          voucher,
+          alreadyRegistered: true,
+          passwordSetupToken: passwordSetupComplete ? null : `setup-token-${registerCalls}`,
+        };
       }
       const now = data.consentAt;
       voucherCreates++;
@@ -49,7 +57,12 @@ test("public registration requires consent, retries the same voucher and sends t
         ...data,
         emailStatus: "pending",
       };
-      return { registration, voucher, alreadyRegistered: false };
+      return {
+        registration,
+        voucher,
+        alreadyRegistered: false,
+        passwordSetupToken: `setup-token-${registerCalls}`,
+      };
     },
     markEmailSent: async () => {
       registration.emailStatus = "sent";
@@ -60,6 +73,12 @@ test("public registration requires consent, retries the same voucher and sends t
     sendVoucherEmail: async (email) => {
       emailCalls.push(email);
       return emailResults.shift() ?? false;
+    },
+    sendPasswordSetupEmail: async (email) => {
+      passwordSetupCalls.push(email);
+      const sent = passwordSetupResults.shift() ?? true;
+      if (sent) passwordSetupComplete = true;
+      return sent;
     },
     limiter: (_req, _res, next) => next(),
   };
@@ -129,16 +148,15 @@ test("public registration requires consent, retries the same voucher and sends t
       headers: { "content-type": "application/json", "x-market": "fr" },
       body: JSON.stringify({ ...contact, consent: true }),
     });
-    assert.equal(retry.status, 200);
-    const retryResult = await retry.json() as any;
-    assert.equal(retryResult.alreadyRegistered, true);
-    assert.match(retryResult.message, /7,50 €/);
+    assert.equal(retry.status, 502);
     assert.equal(registerCalls, 2);
     assert.equal(voucherCreates, 1);
     assert.equal(emailCalls.length, 2);
     assert.equal(emailCalls[0].code, emailCalls[1].code);
     assert.equal(emailCalls[1].discountType, "fixed");
     assert.equal(emailCalls[1].discountValue, "7.50");
+    assert.equal(passwordSetupCalls.length, 1);
+    assert.match(passwordSetupCalls[0].setupUrl, /#token=setup-token-2$/);
 
     const afterSuccessRetry = await fetch(`${baseUrl}/api/event-voucher/register`, {
       method: "POST",
@@ -146,8 +164,21 @@ test("public registration requires consent, retries the same voucher and sends t
       body: JSON.stringify({ ...contact, consent: true }),
     });
     assert.equal(afterSuccessRetry.status, 200);
+    const afterSuccessResult = await afterSuccessRetry.json() as any;
+    assert.equal(afterSuccessResult.alreadyRegistered, true);
+    assert.match(afterSuccessResult.message, /7,50 €/);
     assert.equal(voucherCreates, 1);
     assert.equal(emailCalls.length, 2);
+    assert.equal(passwordSetupCalls.length, 2);
+    assert.match(passwordSetupCalls[1].setupUrl, /#token=setup-token-3$/);
+
+    const completeRetry = await fetch(`${baseUrl}/api/event-voucher/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-market": "fr" },
+      body: JSON.stringify({ ...contact, consent: true }),
+    });
+    assert.equal(completeRetry.status, 200);
+    assert.equal(passwordSetupCalls.length, 2);
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }

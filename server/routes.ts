@@ -23,6 +23,7 @@ import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
 import { getMarketFromRequest, marketMatches } from "./market-routing.js";
 import { getVoucherValidityError } from "./voucher-validity.js";
+import { getVoucherOrderUserId, getVoucherOwnershipError } from "./voucher-ownership.js";
 import { registerSeoRoutes } from './seo-routes.js';
 import { canonicalBaseUrl } from "@shared/canonical-url";
 import {
@@ -1152,7 +1153,10 @@ Sitemap: ${baseUrl}/sitemap.xml
   // Auth routes
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      const userData = insertUserSchema.parse({
+        ...req.body,
+        email: typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : req.body?.email,
+      });
       
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(userData.email);
@@ -1203,6 +1207,9 @@ Sitemap: ${baseUrl}/sitemap.xml
       const user = await storage.getUserByEmail(email);
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
+      }
+      if (user.passwordSetupRequired) {
+        return res.status(401).json({ message: "Choose your password using the secure link sent to your email." });
       }
 
       const isValidPassword = await bcrypt.compare(password, user.password);
@@ -2599,7 +2606,7 @@ Sitemap: ${baseUrl}/sitemap.xml
   });
 
   // Voucher validation route (public for checkout)
-  app.post("/api/vouchers/validate", async (req, res) => {
+  app.post("/api/vouchers/validate", optionalAuth, async (req: AuthRequest, res) => {
     try {
       const { code, orderTotal } = req.body;
       
@@ -2612,6 +2619,21 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       if (!voucher) {
         return res.status(404).json({ valid: false, message: "Voucher code not found" });
+      }
+
+      if (voucher.ownerUserId !== null) {
+        const account = req.userId ? await storage.getUser(req.userId) : undefined;
+        const ownerError = account
+          ? getVoucherOwnershipError(voucher, account.id, account.email)
+          : null;
+        const checkoutEmailError = getVoucherOwnershipError(
+          voucher,
+          account?.id,
+          typeof req.body?.email === "string" ? req.body.email : account?.email,
+        );
+        if (ownerError || checkoutEmailError) {
+          return res.status(403).json({ valid: false, message: ownerError || checkoutEmailError });
+        }
       }
 
       const now = new Date();
@@ -2741,12 +2763,27 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       // Server-side voucher validation (do NOT trust client-provided discount amounts)
       let discountAmount = 0;
-      let validatedVoucher: { id: number; code: string; discountType: string; discountValue: string } | null = null;
+      let validatedVoucher: {
+        id: number;
+        code: string;
+        discountType: string;
+        discountValue: string;
+        ownerUserId: number | null;
+      } | null = null;
+      const guestEmail = String(bodyEmail || shippingAddress?.email || billingAddress?.email || "");
       
       if (voucherCode) {
         const orderMarket = getMarketFromRequest(req);
         const voucher = await storage.getVoucherByCode(voucherCode, orderMarket);
         if (voucher && voucher.isActive) {
+          const account = req.userId ? await storage.getUser(req.userId) : undefined;
+          const ownerError = getVoucherOwnershipError(voucher, account?.id, account?.email || guestEmail);
+          const checkoutEmailError = account
+            ? getVoucherOwnershipError(voucher, account.id, guestEmail || account.email)
+            : null;
+          if (ownerError || checkoutEmailError) {
+            return res.status(403).json({ message: ownerError || checkoutEmailError });
+          }
           const now = new Date();
           const validFrom = voucher.validFrom ? new Date(voucher.validFrom) : null;
           const validUntil = voucher.validUntil ? new Date(voucher.validUntil) : null;
@@ -2785,14 +2822,12 @@ Sitemap: ${baseUrl}/sitemap.xml
         orderNotes = `Voucher: ${validatedVoucher.code} (-${discountAmount.toFixed(2)})${orderNotes ? '\n' + orderNotes : ''}`;
       }
       
-      const guestEmail = bodyEmail || shippingAddress?.email || billingAddress?.email || '';
-      
       if (!req.userId && guestEmail) {
         orderNotes = `Guest email: ${guestEmail}${contactPhone ? ', Phone: ' + contactPhone : ''}${orderNotes ? '\n' + orderNotes : ''}`;
       }
 
       const orderData = {
-        userId: req.userId || null,
+        userId: getVoucherOrderUserId(validatedVoucher, req.userId),
         market: orderMarket,
         currency: marketSettingsMap.get(orderMarket)?.currency ?? (orderMarket === "ro" ? "RON" : "EUR"),
         status: "pending",
@@ -4052,7 +4087,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   }
 
   // Create Viva payment order and return checkout URL
-  app.post("/api/payments/viva/create-order", async (req, res) => {
+  app.post("/api/payments/viva/create-order", optionalAuth, async (req: AuthRequest, res) => {
     const requestId = crypto.randomUUID().slice(0, 12);
     const vivaMarket = getMarketFromRequest(req);
 
@@ -4081,14 +4116,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         });
       }
 
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      let userId: number | null = null;
-      if (token) {
-        try {
-          const decoded = jwt.verify(token, JWT_SIGNING_SECRET) as any;
-          userId = decoded.userId || decoded.id;
-        } catch (e) { }
-      }
+      const userId = req.userId ?? null;
+      const authenticatedAccount = userId ? await storage.getUser(userId) : undefined;
 
       const validatedVivaItems: any[] = [];
       let subscriptionItemCount = 0;
@@ -4135,10 +4164,22 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       ).shippingCost;
 
       let discountAmount = 0;
+      let voucherOwnerUserId: number | null = null;
       if (voucherCode) {
         const vivaOrderMarket = getMarketFromRequest(req);
         const voucher = await storage.getVoucherByCode(voucherCode, vivaOrderMarket);
         if (voucher && voucher.isActive) {
+          const orderEmail = String(orderData?.shippingAddress?.email
+            || orderData?.billingAddress?.email
+            || orderData?.email
+            || "");
+          const ownerError = authenticatedAccount
+            ? getVoucherOwnershipError(voucher, authenticatedAccount.id, authenticatedAccount.email)
+            : null;
+          const orderEmailError = getVoucherOwnershipError(voucher, authenticatedAccount?.id, orderEmail);
+          if (ownerError || orderEmailError) {
+            return res.status(403).json({ message: ownerError || orderEmailError });
+          }
           const now = new Date();
           const validFrom = voucher.validFrom ? new Date(voucher.validFrom) : null;
           const validUntil = voucher.validUntil ? new Date(voucher.validUntil) : null;
@@ -4154,6 +4195,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
             } else {
               discountAmount = parseFloat(voucher.discountValue);
             }
+            if (discountAmount > 0) voucherOwnerUserId = voucher.ownerUserId ?? null;
           }
         }
       }
@@ -4190,7 +4232,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         }
 
         const newOrder = await storage.createOrder({
-          userId: userId,
+          userId: getVoucherOrderUserId(
+            voucherOwnerUserId != null ? { ownerUserId: voucherOwnerUserId } : null,
+            userId,
+          ),
           market: vivaMarket,
           currency: serverCurrency,
           status: 'pending',
@@ -4719,6 +4764,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email)) || required.some(value => typeof value !== "string" || !value.trim())) {
         return res.status(400).json({ message: "Complete shipping, billing and email details are required" });
       }
+      const account = req.userId ? await storage.getUser(req.userId) : undefined;
       if ((marketSettingsMap.get("fr")?.currency || "EUR").toUpperCase() !== "EUR") return res.status(503).json({ message: "French marketplace currency is not configured for EUR" });
       const validatedItems = await Promise.all(cartItems.map((item: any) => validateOrderItemForMarket(item, "fr")));
       if (validatedItems.some((item: any) => item.productType === "subscription")) {
@@ -4738,6 +4784,15 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       let voucher: any = null;
       if (voucherCode) {
         voucher = await storage.getVoucherByCode(voucherCode, "fr");
+        if (voucher) {
+          const ownerError = account
+            ? getVoucherOwnershipError(voucher, account.id, account.email)
+            : null;
+          const orderEmailError = getVoucherOwnershipError(voucher, account?.id, String(email));
+          if (ownerError || orderEmailError) {
+            return res.status(403).json({ message: ownerError || orderEmailError });
+          }
+        }
         if (voucher && voucher.isActive && !getVoucherValidityError(voucher, new Date()) &&
           (!voucher.maxUses || (voucher.usedCount || 0) < voucher.maxUses) &&
           (!voucher.minOrderAmount || subtotal >= Number(voucher.minOrderAmount))) {
@@ -4758,7 +4813,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       if (!Number.isFinite(total) || total < 0.01) return res.status(400).json({ message: "Order total is invalid" });
       const notes = `${orderData.notes || ""}${voucher ? `${orderData.notes ? "\n" : ""}Voucher: ${voucher.code} (-${discountAmount.toFixed(2)})` : ""}`;
       const localOrder = await storage.createOrder({
-        userId: req.userId || null, market: "fr", currency: "EUR", status: "pending",
+        userId: getVoucherOrderUserId(voucher, req.userId), market: "fr", currency: "EUR", status: "pending",
         totalAmount: total.toFixed(2), shippingCost: taxSnapshot.shippingGrossAmount,
         subtotalNet: taxSnapshot.subtotalNet,
         subtotalGross: taxSnapshot.subtotalGross,

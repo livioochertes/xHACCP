@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { addDays, getVoucherValidityError } from "./voucher-validity";
+import {
+  addDays,
+  getVoucherSuccessfulPaymentUpdate,
+  getVoucherValidityError,
+} from "./voucher-validity";
 
 const registrationDate = new Date("2026-09-10T10:00:00.000Z");
 const activationDeadline = addDays(registrationDate, 30);
@@ -12,6 +16,7 @@ function voucher(overrides: Partial<{
   validUntil: Date;
   activationDeadline: Date;
   activatedAt: Date | null;
+  ownerUserId: number | null;
 }> = {}) {
   return {
     isActive: true,
@@ -19,6 +24,7 @@ function voucher(overrides: Partial<{
     validUntil,
     activationDeadline,
     activatedAt: null,
+    ownerUserId: null,
     ...overrides,
   };
 }
@@ -54,5 +60,69 @@ test("an activated event voucher still expires at the original 12-month limit", 
       new Date("2027-09-11T10:00:00.000Z"),
     ),
     "This voucher has expired",
+  );
+});
+
+test("an unused personal voucher remains usable after 30 days for one later paid order", () => {
+  assert.equal(
+    getVoucherValidityError(voucher({ ownerUserId: 42 }), new Date("2026-10-11T10:00:00.000Z")),
+    null,
+  );
+});
+
+test("the first paid redemption within 30 days starts the configured 12-month period at payment time", () => {
+  const paidAt = new Date("2026-10-10T10:00:00.000Z");
+  const updated = getVoucherSuccessfulPaymentUpdate({
+    usedCount: 0,
+    maxUses: 1,
+    activationDeadline,
+    activatedAt: null,
+    activationMonths: 12,
+    validUntil,
+    ownerUserId: 42,
+  }, paidAt);
+  assert.equal(updated.usedCount, 1);
+  assert.equal(updated.maxUses, null);
+  assert.equal(updated.activatedAt, paidAt);
+  assert.equal(updated.validUntil?.toISOString(), "2027-10-10T10:00:00.000Z");
+});
+
+test("a late first paid redemption remains one-time and does not activate repeat validity", () => {
+  const paidAt = new Date("2026-10-11T10:00:00.000Z");
+  const updated = getVoucherSuccessfulPaymentUpdate({
+    usedCount: 0,
+    maxUses: 1,
+    activationDeadline,
+    activatedAt: null,
+    activationMonths: 12,
+    validUntil,
+    ownerUserId: 42,
+  }, paidAt);
+  assert.equal(updated.usedCount, 1);
+  assert.equal(updated.maxUses, 1);
+  assert.equal(updated.activatedAt, null);
+  assert.equal(updated.validUntil, validUntil);
+});
+
+test("a repeated late payment notification cannot consume a one-use personal voucher again", () => {
+  const latePayment = new Date("2026-10-11T10:00:00.000Z");
+  const updated = getVoucherSuccessfulPaymentUpdate({
+    usedCount: 1,
+    maxUses: 1,
+    activationDeadline,
+    activatedAt: null,
+    activationMonths: 12,
+    validUntil,
+    ownerUserId: 42,
+  }, latePayment);
+  assert.equal(updated.usedCount, 1);
+  assert.equal(updated.maxUses, 1);
+  assert.equal(updated.activatedAt, null);
+});
+
+test("administrative vouchers keep the previous late-deadline behavior", () => {
+  assert.equal(
+    getVoucherValidityError(voucher({ ownerUserId: null }), new Date("2026-10-11T10:00:00.000Z")),
+    "This voucher had to be activated within 30 days of registration",
   );
 });

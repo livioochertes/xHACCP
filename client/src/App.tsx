@@ -27,6 +27,7 @@ const Blog = lazy(() => import("@/pages/blog"));
 const BlogPostPage = lazy(() => import("@/pages/blog-post"));
 const ChefEvent = lazy(() => import("@/pages/chef-event"));
 const NewsletterSignup = lazy(() => import("@/pages/newsletter-signup"));
+const SetPassword = lazy(() => import("@/pages/set-password"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 function useCanonical() {
@@ -86,6 +87,7 @@ function Router() {
           <Route path="/blog/:slug" component={BlogPostPage} />
           <Route path="/chef-event" component={ChefEvent} />
           <Route path="/newsletter/subscribe" component={NewsletterSignup} />
+          <Route path="/set-password" component={SetPassword} />
           <Route component={NotFound} />
         </Switch>
         <PublicPageMounted />

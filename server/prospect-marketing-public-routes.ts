@@ -7,7 +7,10 @@ import {
   unsubscribeProspect,
 } from "./prospect-marketing-db";
 import { verifyProspectMarketingToken } from "./prospect-marketing-security";
-import { sendProspectNewsletterVoucherEmail } from "./email-service";
+import {
+  sendClientPasswordSetupEmail,
+  sendProspectNewsletterVoucherEmail,
+} from "./email-service";
 import { formatEventVoucherDiscount } from "./event-voucher";
 
 const newsletterRegistrationLimiter = rateLimit({
@@ -79,6 +82,7 @@ export function registerProspectMarketingPublicRoutes(app: Express): void {
           activationDeadline: result.voucher.activationDeadline ?? undefined,
           discountType: result.voucher.discountType,
           discountValue: result.voucher.discountValue,
+          validMonths: result.voucher.activationMonths ?? undefined,
         });
         if (!sent) {
           return res.status(502).json({
@@ -88,10 +92,25 @@ export function registerProspectMarketingPublicRoutes(app: Express): void {
         await markProspectVoucherEmailSent(prospectId);
       }
 
+      let passwordSetupEmailSent = false;
+      if (result.passwordSetupToken) {
+        const setupUrl = `https://xhaccp.fr/set-password#token=${encodeURIComponent(result.passwordSetupToken)}`;
+        passwordSetupEmailSent = await sendClientPasswordSetupEmail({
+          to: result.prospect.email,
+          setupUrl,
+          market: "fr",
+        });
+        if (!passwordSetupEmailSent) {
+          return res.status(502).json({
+            message: "Votre inscription et votre voucher sont enregistrés, mais le lien pour choisir votre mot de passe n'a pas pu être envoyé. Réessayez.",
+          });
+        }
+      }
+
       res.json({
         success: true,
         alreadySubscribed: result.alreadySubscribed,
-        message: `Votre inscription est confirmée. Votre code personnel de ${formatEventVoucherDiscount(result.voucher.discountType, result.voucher.discountValue)} vient d'être envoyé par email.`,
+        message: `Votre inscription est confirmée. Votre code personnel de ${formatEventVoucherDiscount(result.voucher.discountType, result.voucher.discountValue)} vient d'être envoyé par email.${passwordSetupEmailSent ? " Le lien sécurisé pour choisir le mot de passe de votre compte client vous a également été envoyé." : ""}`,
       });
     } catch (error) {
       if (error instanceof Error && error.message === "This address has unsubscribed") {

@@ -14,6 +14,10 @@ import { db } from "./db";
 import type { ProspectCsvRow } from "./prospect-csv";
 import { EVENT_VOUCHER_ACTIVATION_DAYS, EVENT_VOUCHER_CAMPAIGN_SLUG } from "./event-voucher";
 import { addDays } from "./voucher-validity";
+import {
+  attachVoucherToMarketingClient,
+  createOrFindMarketingClientAccount,
+} from "./marketing-client-account";
 
 export const DOCUMENTED_B2B_CONTACT_BASIS = "documented_b2b_basis";
 
@@ -205,7 +209,12 @@ export async function unsubscribeProspect(prospectId: number): Promise<void> {
 
 export async function subscribeProspectAndCreateVoucher(
   prospectId: number,
-): Promise<{ prospect: MarketingProspect; voucher: typeof vouchers.$inferSelect; alreadySubscribed: boolean }> {
+): Promise<{
+  prospect: MarketingProspect;
+  voucher: typeof vouchers.$inferSelect;
+  alreadySubscribed: boolean;
+  passwordSetupToken: string | null;
+}> {
   return db.transaction(async (tx) => {
     const [prospect] = await tx.select().from(marketingProspects)
       .where(and(eq(marketingProspects.id, prospectId), eq(marketingProspects.market, "fr")))
@@ -215,12 +224,24 @@ export async function subscribeProspectAndCreateVoucher(
     if (prospect.subscriptionStatus === "unsubscribed" || prospect.unsubscribedAt) {
       throw new Error("This address has unsubscribed");
     }
+    const representativeParts = (prospect.legalRepresentative || "").trim().split(/\s+/).filter(Boolean);
+    const account = await createOrFindMarketingClientAccount(tx, {
+      email: prospect.email,
+      firstName: representativeParts[0] || prospect.restaurantName || null,
+      lastName: representativeParts.slice(1).join(" ") || null,
+    });
     if (prospect.newsletterVoucherId) {
       const [existingVoucher] = await tx.select().from(vouchers)
         .where(eq(vouchers.id, prospect.newsletterVoucherId))
         .limit(1);
       if (!existingVoucher) throw new Error("Newsletter voucher was not found");
-      return { prospect, voucher: existingVoucher, alreadySubscribed: true };
+      await attachVoucherToMarketingClient(tx, existingVoucher.id, account.userId, account.email);
+      return {
+        prospect,
+        voucher: { ...existingVoucher, ownerUserId: account.userId, ownerEmail: account.email },
+        alreadySubscribed: true,
+        passwordSetupToken: account.passwordSetupToken,
+      };
     }
 
     const [campaign] = await tx.select().from(eventVoucherCampaigns)
@@ -250,6 +271,9 @@ export async function subscribeProspectAndCreateVoucher(
         validFrom: now,
         validUntil,
         activationDeadline,
+        activationMonths: campaign.validMonths,
+        ownerUserId: account.userId,
+        ownerEmail: account.email,
         marketCode: "fr",
       }).onConflictDoNothing({ target: vouchers.code }).returning();
       createdVoucher = inserted;
@@ -264,7 +288,12 @@ export async function subscribeProspectAndCreateVoucher(
       updatedAt: now,
     }).where(eq(marketingProspects.id, prospectId)).returning();
     if (!updated) throw new Error("Newsletter subscription could not be saved");
-    return { prospect: updated, voucher: createdVoucher, alreadySubscribed: false };
+    return {
+      prospect: updated,
+      voucher: createdVoucher,
+      alreadySubscribed: false,
+      passwordSetupToken: account.passwordSetupToken,
+    };
   });
 }
 

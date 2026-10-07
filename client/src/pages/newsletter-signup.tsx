@@ -133,7 +133,7 @@ export default function NewsletterSignup() {
               )}
               {offer ? (
                 <p className="mb-4 rounded-lg bg-teal-50 p-3 text-center text-sm text-teal-900">
-                  Offre active : <strong>{offer.discountDisplay}</strong>. Première commande payée sous {offer.activationDays} jours ; code valable {offer.validMonths} mois à compter de l'inscription.
+                  Offre active : <strong>{offer.discountDisplay}</strong>. Première commande payée sous {offer.activationDays} jours pour activer {offer.validMonths} mois de réduction répétable. Ensuite, le code reste utilisable une fois jusqu'à la date d'expiration indiquée dans l'email.
                 </p>
               ) : (
                 <p className="mb-4 rounded-lg bg-amber-50 p-3 text-center text-sm text-amber-900">

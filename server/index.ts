@@ -9,6 +9,7 @@ import { registerMarketingAdminRoutes } from "./marketing-admin-routes";
 import { registerProspectMarketingAdminRoutes } from "./prospect-marketing-admin-routes";
 import { registerProspectMarketingPublicRoutes } from "./prospect-marketing-public-routes";
 import { registerEventVoucherPublicRoutes } from "./event-voucher-public-routes";
+import { registerCustomerPasswordSetupRoutes } from "./customer-password-setup-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase, seedCategoryTranslations, seedMarketSettings } from "./sample-data";
 import { loadAllDataIntoMemory } from "./routes";
@@ -140,6 +141,7 @@ app.use((req, res, next) => {
   registerProspectMarketingAdminRoutes(app);
   registerEventVoucherPublicRoutes(app);
   registerProspectMarketingPublicRoutes(app);
+  registerCustomerPasswordSetupRoutes(app);
   
   const server = await registerRoutes(app);
 

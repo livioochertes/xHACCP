@@ -6,7 +6,7 @@ import type {
   Voucher,
 } from "@shared/schema";
 import { getMarketFromRequest } from "./market-routing";
-import { sendEventVoucherEmail } from "./email-service";
+import { sendClientPasswordSetupEmail, sendEventVoucherEmail } from "./email-service";
 import { storage } from "./storage";
 import {
   EVENT_VOUCHER_ACTIVATION_DAYS,
@@ -19,6 +19,7 @@ type EventVoucherRegistrationResult = {
   registration: EventVoucherRegistration;
   voucher: Voucher;
   alreadyRegistered: boolean;
+  passwordSetupToken?: string | null;
 };
 
 export interface EventVoucherPublicRouteDependencies {
@@ -37,6 +38,7 @@ export interface EventVoucherPublicRouteDependencies {
   markEmailSent: (id: number) => Promise<unknown>;
   markEmailFailed: (id: number, error: string) => Promise<unknown>;
   sendVoucherEmail: typeof sendEventVoucherEmail;
+  sendPasswordSetupEmail?: typeof sendClientPasswordSetupEmail;
   limiter: RequestHandler;
 }
 
@@ -48,6 +50,7 @@ const defaultDependencies: EventVoucherPublicRouteDependencies = {
   markEmailSent: (id) => storage.markEventVoucherEmailSent(id),
   markEmailFailed: (id, error) => storage.markEventVoucherEmailFailed(id, error),
   sendVoucherEmail: sendEventVoucherEmail,
+  sendPasswordSetupEmail: sendClientPasswordSetupEmail,
   limiter: rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 10,
@@ -169,6 +172,7 @@ export function registerEventVoucherPublicRoutes(
             activationDeadline: result.voucher.activationDeadline ?? undefined,
             discountType: result.voucher.discountType,
             discountValue: result.voucher.discountValue,
+            validMonths: result.voucher.activationMonths ?? undefined,
           });
           if (sent) {
             await dependencies.markEmailSent(result.registration.id);
@@ -183,10 +187,25 @@ export function registerEventVoucherPublicRoutes(
           }
         }
 
+        let passwordSetupEmailSent = false;
+        if (result.passwordSetupToken) {
+          const setupUrl = `https://xhaccp.fr/set-password#token=${encodeURIComponent(result.passwordSetupToken)}`;
+          passwordSetupEmailSent = await (dependencies.sendPasswordSetupEmail || sendClientPasswordSetupEmail)({
+            to: result.registration.email,
+            setupUrl,
+            market: "fr",
+          });
+          if (!passwordSetupEmailSent) {
+            return res.status(502).json({
+              message: "Votre inscription et votre code sont enregistrés, mais le lien de création du mot de passe n'a pas pu être envoyé. Veuillez réessayer.",
+            });
+          }
+        }
+
         return res.json({
           success: true,
           alreadyRegistered: result.alreadyRegistered,
-          message: `Merci ! Votre code personnel de ${formatEventVoucherDiscount(result.voucher.discountType, result.voucher.discountValue)} vous a été envoyé par email.`,
+          message: `Merci ! Votre code personnel de ${formatEventVoucherDiscount(result.voucher.discountType, result.voucher.discountValue)} vous a été envoyé par email.${passwordSetupEmailSent ? " Choisissez aussi le mot de passe de votre compte client grâce au lien envoyé." : ""}`,
         });
       } catch {
         console.error("Register event voucher error");

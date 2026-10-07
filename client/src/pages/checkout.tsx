@@ -603,10 +603,17 @@ export default function Checkout() {
     try {
       const response = await fetch('/api/vouchers/validate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Market': getMarketFromHostname() },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Market': getMarketFromHostname(),
+          ...(localStorage.getItem("token")
+            ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
+            : {}),
+        },
         body: JSON.stringify({ 
           code: voucherCode.trim(), 
-          orderTotal: subtotal.toString() 
+          orderTotal: subtotal.toString(),
+          email: form.getValues("email"),
         })
       });
       

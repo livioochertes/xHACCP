@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   password: text("password").notNull(),
+  passwordSetupRequired: boolean("password_setup_required").notNull().default(false),
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
   isAdmin: boolean("is_admin").default(false),
@@ -763,10 +764,24 @@ export const vouchers = pgTable("vouchers", {
   validUntil: timestamp("valid_until"),
   activationDeadline: timestamp("activation_deadline"),
   activatedAt: timestamp("activated_at"),
+  activationMonths: integer("activation_months"),
+  ownerUserId: integer("owner_user_id").references(() => users.id, { onDelete: "restrict" }),
+  ownerEmail: varchar("owner_email", { length: 255 }),
   marketCode: varchar("market_code", { length: 10 }).default("ro").notNull(), // ro, fr, com
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const customerPasswordSetupTokens = pgTable("customer_password_setup_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  customerPasswordSetupUserIdx: index("customer_password_setup_tokens_user_idx").on(table.userId),
+}));
 
 // Public event voucher campaigns and registrations
 export const eventVoucherCampaigns = pgTable("event_voucher_campaigns", {
@@ -1008,6 +1023,7 @@ export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
+  passwordSetupRequired: true,
   createdAt: true,
   updatedAt: true,
 });

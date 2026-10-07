@@ -92,7 +92,15 @@ import { db } from "./db";
 import crypto from "node:crypto";
 import { compositeConfigurationKey } from "./composite-products";
 import { filterPublicReviews } from "./review-validation";
-import { addDays, EVENT_VOUCHER_ACTIVATION_DAYS } from "./voucher-validity";
+import {
+  addDays,
+  EVENT_VOUCHER_ACTIVATION_DAYS,
+  getVoucherSuccessfulPaymentUpdate,
+} from "./voucher-validity";
+import {
+  attachVoucherToMarketingClient,
+  createOrFindMarketingClientAccount,
+} from "./marketing-client-account";
 import { eq, desc, asc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, notExists } from "drizzle-orm";
 
 export interface AbandonedCartCandidate {
@@ -270,7 +278,12 @@ export interface IStorage {
     phone: string;
     email: string;
     consentAt: Date;
-  }): Promise<{ registration: EventVoucherRegistration; voucher: Voucher; alreadyRegistered: boolean }>;
+  }): Promise<{
+    registration: EventVoucherRegistration;
+    voucher: Voucher;
+    alreadyRegistered: boolean;
+    passwordSetupToken?: string | null;
+  }>;
   markEventVoucherEmailSent(id: number): Promise<EventVoucherRegistration>;
   markEventVoucherEmailFailed(id: number, error: string): Promise<EventVoucherRegistration>;
 
@@ -334,7 +347,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await db.select().from(users)
+      .where(sql`LOWER(${users.email}) = ${email.trim().toLowerCase()}`)
+      .orderBy(asc(users.id))
+      .limit(1);
     return user;
   }
 
@@ -1034,21 +1050,28 @@ export class DatabaseStorage implements IStorage {
         .where(and(eq(orders.id, id), ne(orders.paymentStatus, "paid")))
         .returning();
       if (updatedOrder && current.voucherCode) {
-        await tx.update(vouchers)
-          .set({
-            usedCount: sql`COALESCE(${vouchers.usedCount}, 0) + 1`,
-            activatedAt: sql`CASE
-              WHEN ${vouchers.activatedAt} IS NOT NULL THEN ${vouchers.activatedAt}
-              WHEN ${vouchers.activationDeadline} IS NULL OR ${vouchers.activationDeadline} >= ${now}
-                THEN ${now}
-              ELSE NULL
-            END`,
-            updatedAt: now,
-          })
+        const [voucher] = await tx.select().from(vouchers)
           .where(and(
             eq(vouchers.code, current.voucherCode.toUpperCase()),
             sql`(${vouchers.marketCode} IS NULL OR ${vouchers.marketCode} = ${current.market || "ro"})`,
-          ));
+          ))
+          .limit(1)
+          .for("update");
+        const orderEmail = String(
+          (current.shippingAddress as any)?.email || (current.billingAddress as any)?.email || "",
+        ).trim().toLowerCase();
+        const belongsToOrderClient = !voucher?.ownerUserId || (
+          current.userId === voucher.ownerUserId
+          && (!voucher.ownerEmail || orderEmail === voucher.ownerEmail.trim().toLowerCase())
+        );
+        if (voucher && belongsToOrderClient) {
+          await tx.update(vouchers)
+            .set({
+              ...getVoucherSuccessfulPaymentUpdate(voucher, now),
+              updatedAt: now,
+            })
+            .where(eq(vouchers.id, voucher.id));
+        }
       }
       return updatedOrder ?? null;
     });
@@ -2030,7 +2053,12 @@ export class DatabaseStorage implements IStorage {
     phone: string;
     email: string;
     consentAt: Date;
-  }): Promise<{ registration: EventVoucherRegistration; voucher: Voucher; alreadyRegistered: boolean }> {
+  }): Promise<{
+    registration: EventVoucherRegistration;
+    voucher: Voucher;
+    alreadyRegistered: boolean;
+    passwordSetupToken: string | null;
+  }> {
     const email = data.email.trim().toLowerCase();
 
     return db.transaction(async (tx) => {
@@ -2038,6 +2066,11 @@ export class DatabaseStorage implements IStorage {
         hashtext('event-voucher-registration'),
         hashtext(${`${data.campaignId}:${email}`})
       )`);
+      const account = await createOrFindMarketingClientAccount(tx, {
+        email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+      });
       const [existing] = await tx.select({
         registration: eventVoucherRegistrations,
         voucher: vouchers,
@@ -2051,10 +2084,16 @@ export class DatabaseStorage implements IStorage {
         .limit(1);
 
       if (existing?.voucher) {
+        await attachVoucherToMarketingClient(tx, existing.voucher.id, account.userId, account.email);
         return {
           registration: existing.registration,
-          voucher: existing.voucher,
+          voucher: {
+            ...existing.voucher,
+            ownerUserId: account.userId,
+            ownerEmail: account.email,
+          },
           alreadyRegistered: true,
+          passwordSetupToken: account.passwordSetupToken,
         };
       }
 
@@ -2081,11 +2120,14 @@ export class DatabaseStorage implements IStorage {
           discountType: campaign.discountType,
           discountValue: campaign.discountValue,
           minOrderAmount: null,
-          maxUses: null,
+          maxUses: 1,
           isActive: true,
           validFrom: data.consentAt,
           validUntil,
           activationDeadline,
+          activationMonths: campaign.validMonths,
+          ownerUserId: account.userId,
+          ownerEmail: account.email,
           marketCode: campaign.marketCode,
         }).onConflictDoNothing({ target: vouchers.code }).returning();
         voucher = inserted;
@@ -2115,7 +2157,12 @@ export class DatabaseStorage implements IStorage {
           ...registrationValues,
         }).returning();
 
-      return { registration, voucher, alreadyRegistered: false };
+      return {
+        registration,
+        voucher,
+        alreadyRegistered: false,
+        passwordSetupToken: account.passwordSetupToken,
+      };
     });
   }
 

@@ -41,6 +41,7 @@ export default function ChefEvent() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
   const discountDisplay = campaign?.discountDisplay || (campaign
     ? campaign.discountType === "percentage"
@@ -48,10 +49,10 @@ export default function ChefEvent() {
       : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(campaign.discountValue))
     : "");
   const validityTerms = campaign
-    ? `Le code est valable ${campaign.validMonths} mois à compter de votre inscription.`
+    ? `Si votre commande est payée dans le délai, votre offre est valable ${campaign.validMonths} mois à compter du paiement.`
     : "";
   const activationTerms = campaign
-    ? `Une première commande payée doit être effectuée dans les ${campaign.activationDays} jours suivant votre inscription. Sans achat payé dans ce délai, le code devient invalide.`
+    ? `Une première commande payée dans les ${campaign.activationDays} jours active l'offre répétable. Passé ce délai, le code reste utilisable une seule fois pour une première commande, jusqu'à sa date d'expiration indiquée dans l'email.`
     : "";
 
   usePageSeo({
@@ -82,6 +83,7 @@ export default function ChefEvent() {
     event.preventDefault();
     setError("");
     setSuccess(false);
+    setSuccessMessage("");
     if (!form.consent) {
       setError("Veuillez accepter le traitement de vos données et l'envoi de votre offre.");
       return;
@@ -97,6 +99,7 @@ export default function ChefEvent() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "Une erreur est survenue.");
       setSuccess(true);
+      setSuccessMessage(result.message || "");
       setForm(emptyForm);
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Une erreur est survenue. Veuillez réessayer.");
@@ -146,7 +149,7 @@ export default function ChefEvent() {
                   <CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-emerald-600" />
                   <h2 className="mb-3 text-2xl font-bold text-slate-900">Merci pour votre inscription !</h2>
                   <p className="text-slate-600">
-                    Le formulaire est terminé. Vérifiez votre boîte email pour retrouver votre code personnel de réduction.
+                    {successMessage || "Le formulaire est terminé. Vérifiez votre boîte email pour retrouver votre code personnel de réduction."}
                   </p>
                    <div className="mt-5 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-left text-sm text-amber-950">
                      <div className="flex items-start gap-3">
@@ -162,7 +165,7 @@ export default function ChefEvent() {
                   >
                     Découvrir les étiquettes alimentaires
                   </a>
-                  <Button className="mt-7" onClick={() => setSuccess(false)}>
+                   <Button className="mt-7" onClick={() => { setSuccess(false); setSuccessMessage(""); }}>
                     Inscrire une autre personne
                   </Button>
                 </div>
