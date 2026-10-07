@@ -9,6 +9,7 @@ import {
 } from './contact-email.js';
 import { buildPublicTrackingUrl } from './public-tracking.js';
 import { getProspectUnsubscribeUrl } from './prospect-marketing-security';
+import { formatEventVoucherDiscount, EVENT_VOUCHER_ACTIVATION_DAYS } from './event-voucher';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const VERIFIED_SENDER: string = process.env.SENDGRID_FROM_EMAIL || 'noreply@xhaccp.com';
@@ -164,6 +165,9 @@ export function buildEventVoucherEmail(data: {
   validUntil: Date;
   activationDeadline?: Date;
   discountValue: string;
+  discountType?: string;
+  activationDays?: number;
+  validMonths?: number;
 }) {
   const firstName = escapeVoucherEmail(data.firstName);
   const code = escapeVoucherEmail(data.code);
@@ -181,7 +185,14 @@ export function buildEventVoucherEmail(data: {
         timeZone: "Europe/Paris",
       })
     : null;
-  const discount = escapeVoucherEmail(data.discountValue);
+  const discount = escapeVoucherEmail(formatEventVoucherDiscount(data.discountType || "percentage", data.discountValue));
+  const activationDays = data.activationDays ?? EVENT_VOUCHER_ACTIVATION_DAYS;
+  const activationTerm = activationDeadline
+    ? `Effectuez une première commande payée dans les ${activationDays} jours suivant votre inscription, au plus tard le ${activationDeadline}. Sans achat payé dans ce délai, le code devient invalide.`
+    : "Votre code personnel est valable selon les conditions indiquées ci-dessous.";
+  const validityTerm = data.validMonths
+    ? `Valable ${data.validMonths} mois à compter de votre inscription, jusqu'au ${validUntil}.`
+    : `Valable jusqu'au ${validUntil}.`;
   const shopUrl = "https://xhaccp.fr";
   const foodLabelsUrl = "https://xhaccp.fr/products?category=etiquettes-alimentaires";
   const logoUrl = "https://xhaccp.fr/attached_assets/logo_xHACCP-S1_1772812623761.png";
@@ -189,8 +200,8 @@ export function buildEventVoucherEmail(data: {
   return {
     to: data.to,
     from: getSenderForMarket("fr"),
-    subject: "Votre offre xHACCP France — 20 % de réduction",
-    text: `Bonjour ${data.firstName},\n\nMerci pour votre inscription. Voici votre code personnel de réduction de ${data.discountValue} % : ${data.code}\n\nIMPORTANT — ACTIVATION PAR ACHAT : effectuez une première commande payée dans les 30 jours suivant votre inscription${activationDeadline ? `, au plus tard le ${activationDeadline}` : ""}. Sans achat dans ce délai, le code devient invalide. Après activation, il reste valable jusqu'au ${validUntil}, sans limite de commandes pendant sa période de validité.\n\nDécouvrir les étiquettes alimentaires : ${foodLabelsUrl}\n\nDécouvrir tous les produits : ${shopUrl}\n\nL'équipe xHACCP France`,
+    subject: `Votre offre xHACCP France — ${discount} de réduction`,
+    text: `Bonjour ${data.firstName},\n\nMerci pour votre inscription. Voici votre code personnel de réduction de ${formatEventVoucherDiscount(data.discountType || "percentage", data.discountValue)} : ${data.code}\n\n${activationDeadline ? "IMPORTANT — ACTIVATION PAR ACHAT : " : ""}${activationTerm} ${validityTerm} La date d'expiration ne se prolonge pas après activation.\n\nDécouvrir les étiquettes alimentaires : ${foodLabelsUrl}\n\nDécouvrir tous les produits : ${shopUrl}\n\nL'équipe xHACCP France`,
     html: `
       <!DOCTYPE html>
       <html lang="fr">
@@ -204,14 +215,14 @@ export function buildEventVoucherEmail(data: {
             </div>
             <div style="background:#fff;padding:30px 28px;border-radius:0 0 14px 14px;">
               <h1 style="margin:0 0 16px;color:#0f2747;font-size:25px;">Merci pour votre inscription, ${firstName} !</h1>
-              <p style="font-size:16px;line-height:1.6;">Profitez de <strong>${discount} % de réduction</strong> sur tous les produits de xHACCP France.</p>
+              <p style="font-size:16px;line-height:1.6;">Profitez de <strong>${discount} de réduction</strong> sur xHACCP France.</p>
               <div style="margin:26px 0;padding:20px;text-align:center;background:#eef6ff;border:2px dashed #1976d2;border-radius:12px;">
                 <div style="font-size:12px;color:#53657d;text-transform:uppercase;letter-spacing:1px;">Votre code personnel</div>
                 <div style="margin-top:8px;font-size:30px;font-weight:700;letter-spacing:3px;color:#0f2747;">${code}</div>
               </div>
               <div style="margin:24px 0;padding:17px 18px;background:#fff6df;border:2px solid #e6a817;border-radius:12px;">
                 <div style="font-size:14px;font-weight:700;color:#855400;text-transform:uppercase;letter-spacing:.4px;">Important — activation par achat</div>
-                <p style="margin:8px 0 0;line-height:1.6;color:#5c430e;">Effectuez une première commande payée dans les 30 jours suivant votre inscription${activationDeadline ? `, au plus tard le <strong>${activationDeadline}</strong>` : ""}. Sans achat dans ce délai, le code devient invalide. Après activation, il reste valable jusqu'au <strong>${validUntil}</strong>.</p>
+                <p style="margin:8px 0 0;line-height:1.6;color:#5c430e;">${escapeVoucherEmail(activationTerm)} ${escapeVoucherEmail(validityTerm)} La date d'expiration ne se prolonge pas après activation.</p>
               </div>
               <p style="text-align:center;margin:28px 0;">
                 <a href="${foodLabelsUrl}" style="display:inline-block;padding:14px 24px;border-radius:8px;background:#1976d2;color:#fff;text-decoration:none;font-weight:700;">Découvrir les étiquettes alimentaires</a>
@@ -235,6 +246,9 @@ export async function sendEventVoucherEmail(data: {
   validUntil: Date;
   activationDeadline?: Date;
   discountValue: string;
+  discountType?: string;
+  activationDays?: number;
+  validMonths?: number;
 }): Promise<boolean> {
   return sendEmail(buildEventVoucherEmail(data));
 }
@@ -245,6 +259,9 @@ export async function sendProspectNewsletterVoucherEmail(data: {
   restaurantName: string;
   code: string;
   validUntil: Date;
+  activationDeadline?: Date;
+  discountType: string;
+  discountValue: string;
 }): Promise<boolean> {
   const safeRestaurant = escapeVoucherEmail(data.restaurantName || "votre restaurant");
   const safeCode = escapeVoucherEmail(data.code);
@@ -252,13 +269,20 @@ export async function sendProspectNewsletterVoucherEmail(data: {
     dateStyle: "long",
     timeZone: "Europe/Paris",
   }).format(data.validUntil);
+  const activationDeadline = data.activationDeadline
+    ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(data.activationDeadline)
+    : null;
+  const discount = formatEventVoucherDiscount(data.discountType, data.discountValue);
+  const activationTerm = activationDeadline
+    ? `Effectuez une première commande payée dans les ${EVENT_VOUCHER_ACTIVATION_DAYS} jours suivant votre inscription, au plus tard le ${activationDeadline}, sinon le code devient invalide. `
+    : "";
   const unsubscribeUrl = getProspectUnsubscribeUrl(data.prospectId);
   return sendEmail({
     to: data.to,
     from: getSenderForMarket("fr"),
-    subject: "Votre voucher de bienvenue xHACCP France (-20%)",
-    text: `Bonjour ${data.restaurantName || "à l'équipe"}, votre inscription à la newsletter xHACCP France est confirmée. Votre code de réduction de 20% : ${data.code}. Valable jusqu'au ${validUntil}.\n\nSe désabonner : ${unsubscribeUrl}`,
-    html: `<div style="font-family:Arial,sans-serif;color:#1f2937;max-width:600px;margin:0 auto;padding:24px"><h1 style="color:#0f766e">Merci pour votre inscription, ${safeRestaurant} !</h1><p>Votre inscription à la newsletter xHACCP France est confirmée.</p><p>Voici votre voucher de bienvenue :</p><p style="font-size:24px;font-weight:700;letter-spacing:2px;background:#f0fdfa;border:1px dashed #0f766e;padding:16px;text-align:center">${safeCode}</p><p>Il vous donne droit à <strong>20% de réduction</strong> sur votre commande sur xhaccp.fr. Valable jusqu'au ${validUntil}, pour une utilisation.</p><p>Pour ne plus recevoir nos communications : <a href="${unsubscribeUrl}">se désabonner</a>.</p><p style="color:#64748b;font-size:12px">L'équipe xHACCP France</p></div>`,
+    subject: `Votre offre de bienvenue xHACCP France — ${discount}`,
+    text: `Bonjour ${data.restaurantName || "à l'équipe"}, votre inscription à la newsletter xHACCP France est confirmée. Votre code personnel : ${data.code}, soit ${discount} de réduction. ${activationTerm}Valable jusqu'au ${validUntil}, pour une utilisation.\n\nSe désabonner : ${unsubscribeUrl}`,
+    html: `<div style="font-family:Arial,sans-serif;color:#1f2937;max-width:600px;margin:0 auto;padding:24px"><h1 style="color:#0f766e">Merci pour votre inscription, ${safeRestaurant} !</h1><p>Votre inscription à la newsletter xHACCP France est confirmée.</p><p>Voici votre code personnel : <strong>${escapeVoucherEmail(discount)} de réduction</strong>.</p><p style="font-size:24px;font-weight:700;letter-spacing:2px;background:#f0fdfa;border:1px dashed #0f766e;padding:16px;text-align:center">${safeCode}</p><p>${escapeVoucherEmail(activationTerm)}Valable jusqu'au ${validUntil}, pour une utilisation.</p><p>Pour ne plus recevoir nos communications : <a href="${unsubscribeUrl}">se désabonner</a>.</p><p style="color:#64748b;font-size:12px">L'équipe xHACCP France</p></div>`,
     headers: {
       "List-Unsubscribe": `<${unsubscribeUrl}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",

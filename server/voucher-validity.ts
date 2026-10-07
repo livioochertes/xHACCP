@@ -1,6 +1,7 @@
 import type { Voucher } from "@shared/schema";
+import { EVENT_VOUCHER_ACTIVATION_DAYS } from "./event-voucher";
 
-export const EVENT_VOUCHER_ACTIVATION_DAYS = 30;
+export { EVENT_VOUCHER_ACTIVATION_DAYS };
 
 export function addDays(date: Date, days: number): Date {
   const result = new Date(date);

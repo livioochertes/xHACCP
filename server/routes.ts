@@ -20,9 +20,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import QRCode from "qrcode";
 import path from "path";
 import { createInvoiceService } from './invoice-service.js';
-import { sendNotificationPreferencesEmail, sendContactFormEmails, sendEventVoucherEmail } from './email-service.js';
+import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
 import { getMarketFromRequest, marketMatches } from "./market-routing.js";
-import { EVENT_VOUCHER_ACTIVATION_DAYS, getVoucherValidityError } from "./voucher-validity.js";
+import { getVoucherValidityError } from "./voucher-validity.js";
 import { registerSeoRoutes } from './seo-routes.js';
 import { canonicalBaseUrl } from "@shared/canonical-url";
 import {
@@ -71,23 +71,6 @@ import {
 } from "./public-product-detail";
 import { getActiveProductMarketRow } from "./product-market-availability";
 
-const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
-const EVENT_VOUCHER_CAMPAIGN_DEFAULTS = {
-  slug: EVENT_VOUCHER_CAMPAIGN_SLUG,
-  name: "Offre événement chefs FR",
-  marketCode: "fr",
-  discountType: "percentage",
-  discountValue: "20.00",
-  validMonths: 12,
-  isActive: true,
-} as const;
-const eventVoucherRegistrationLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Trop de tentatives. Veuillez réessayer plus tard." },
-});
 const consumerWithdrawalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
@@ -103,15 +86,6 @@ const paypalCreateOrderLimiter = rateLimit({
   keyGenerator: (req) => `paypal:${getMarketFromRequest(req)}:${req.ip}`,
   handler: (_req, res) => res.status(429).json({ message: "Too many PayPal payment attempts. Please try again later." }),
 });
-
-async function getPublicEventVoucherCampaign() {
-  let campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG);
-  if (!campaign) {
-    await storage.ensureEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_DEFAULTS);
-    campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG);
-  }
-  return campaign;
-}
 
 async function invoiceMatchesRequestMarket(invoice: { market?: string | null; orderId?: number | null }, market: "ro" | "fr" | "com"): Promise<boolean> {
   if (!marketMatches(invoice.market, market)) return false;
@@ -2684,101 +2658,6 @@ Sitemap: ${baseUrl}/sitemap.xml
     }
   });
 
-  app.get("/api/event-voucher/campaign", async (req, res) => {
-    try {
-      if (getMarketFromRequest(req) !== "fr") {
-        return res.status(404).json({ message: "Campaign not found" });
-      }
-      const campaign = await getPublicEventVoucherCampaign();
-      if (!campaign) {
-        return res.status(404).json({ message: "Campaign not found" });
-      }
-      res.json({
-        slug: campaign.slug,
-        name: campaign.name,
-        marketCode: campaign.marketCode,
-        discountType: campaign.discountType,
-        discountValue: campaign.discountValue,
-        validMonths: campaign.validMonths,
-        activationDays: EVENT_VOUCHER_ACTIVATION_DAYS,
-        landingPath: "/chef-event",
-      });
-    } catch (error) {
-      console.error("Get event voucher campaign error:", error);
-      res.status(500).json({ message: "Failed to load campaign" });
-    }
-  });
-
-  app.post("/api/event-voucher/register", eventVoucherRegistrationLimiter, async (req, res) => {
-    try {
-      if (getMarketFromRequest(req) !== "fr") {
-        return res.status(404).json({ message: "Campaign not found" });
-      }
-
-      const campaign = await getPublicEventVoucherCampaign();
-      if (!campaign) {
-        return res.status(404).json({ message: "Cette campagne n'est plus disponible." });
-      }
-
-      const firstName = typeof req.body?.firstName === "string" ? req.body.firstName.trim() : "";
-      const lastName = typeof req.body?.lastName === "string" ? req.body.lastName.trim() : "";
-      const restaurant = typeof req.body?.restaurant === "string" ? req.body.restaurant.trim() : "";
-      const phone = typeof req.body?.phone === "string" ? req.body.phone.trim() : "";
-      const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
-      const consent = req.body?.consent === true;
-
-      if (!firstName || firstName.length > 100 ||
-          !lastName || lastName.length > 100 ||
-          !restaurant || restaurant.length > 255 ||
-          !phone || phone.length > 40 ||
-          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 255) {
-        return res.status(400).json({ message: "Veuillez compléter correctement tous les champs obligatoires." });
-      }
-      if (!consent) {
-        return res.status(400).json({ message: "Votre consentement est nécessaire pour recevoir l'offre par email." });
-      }
-
-      const result = await storage.registerEventVoucher({
-        campaignId: campaign.id,
-        firstName,
-        lastName,
-        restaurant,
-        phone,
-        email,
-        consentAt: new Date(),
-      });
-
-      if (result.registration.emailStatus !== "sent") {
-        const sent = await sendEventVoucherEmail({
-          to: result.registration.email,
-          firstName: result.registration.firstName,
-          code: result.voucher.code,
-          validUntil: result.voucher.validUntil!,
-          activationDeadline: result.voucher.activationDeadline!,
-          discountValue: result.voucher.discountValue,
-        });
-        if (sent) {
-          await storage.markEventVoucherEmailSent(result.registration.id);
-        } else {
-          await storage.markEventVoucherEmailFailed(
-            result.registration.id,
-            "SendGrid did not accept the event voucher email",
-          );
-          return res.status(502).json({ message: "Votre inscription est enregistrée, mais l'email n'a pas pu être envoyé. Veuillez réessayer." });
-        }
-      }
-
-      res.json({
-        success: true,
-        alreadyRegistered: result.alreadyRegistered,
-        message: "Merci ! Votre code de réduction vous a été envoyé par email.",
-      });
-    } catch (error) {
-      console.error("Register event voucher error:", error);
-      res.status(500).json({ message: "Une erreur est survenue. Veuillez réessayer." });
-    }
-  });
-
   // Order routes
   app.get("/api/orders", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -2937,10 +2816,6 @@ Sitemap: ${baseUrl}/sitemap.xml
       };
 
       const order = await storage.createOrder(orderData, validatedItems);
-      
-      if (validatedVoucher && discountAmount > 0) {
-        await storage.incrementVoucherUsage(validatedVoucher.id);
-      }
       
       const fullOrder = await storage.getOrder(order.id);
       

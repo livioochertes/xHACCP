@@ -132,6 +132,8 @@ export interface EventVoucherMarketingContact extends EventVoucherRegistration {
   campaignSlug: string;
   campaignName: string;
   voucherCode: string | null;
+  voucherDiscountType: string | null;
+  voucherDiscountValue: string | null;
   validUntil: Date | null;
   activationDeadline: Date | null;
   activatedAt: Date | null;
@@ -1031,14 +1033,22 @@ export class DatabaseStorage implements IStorage {
         })
         .where(and(eq(orders.id, id), ne(orders.paymentStatus, "paid")))
         .returning();
-      if (updatedOrder && (current.paymentMethod === "viva" || current.paymentMethod === "paypal") && current.voucherCode) {
+      if (updatedOrder && current.voucherCode) {
         await tx.update(vouchers)
           .set({
             usedCount: sql`COALESCE(${vouchers.usedCount}, 0) + 1`,
-            activatedAt: sql`COALESCE(${vouchers.activatedAt}, NOW())`,
+            activatedAt: sql`CASE
+              WHEN ${vouchers.activatedAt} IS NOT NULL THEN ${vouchers.activatedAt}
+              WHEN ${vouchers.activationDeadline} IS NULL OR ${vouchers.activationDeadline} >= ${now}
+                THEN ${now}
+              ELSE NULL
+            END`,
             updatedAt: now,
           })
-          .where(eq(vouchers.code, current.voucherCode.toUpperCase()));
+          .where(and(
+            eq(vouchers.code, current.voucherCode.toUpperCase()),
+            sql`(${vouchers.marketCode} IS NULL OR ${vouchers.marketCode} = ${current.market || "ro"})`,
+          ));
       }
       return updatedOrder ?? null;
     });
@@ -1952,6 +1962,8 @@ export class DatabaseStorage implements IStorage {
       campaignSlug: eventVoucherCampaigns.slug,
       campaignName: eventVoucherCampaigns.name,
       voucherCode: vouchers.code,
+      voucherDiscountType: vouchers.discountType,
+      voucherDiscountValue: vouchers.discountValue,
       validUntil: vouchers.validUntil,
       activationDeadline: vouchers.activationDeadline,
       activatedAt: vouchers.activatedAt,
@@ -1963,11 +1975,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(eventVoucherRegistrations.campaignId, campaignId))
       .orderBy(desc(eventVoucherRegistrations.createdAt));
 
-    return rows.map(({ registration, campaignSlug, campaignName, voucherCode, validUntil, activationDeadline, activatedAt, usedCount }) => ({
+    return rows.map(({ registration, campaignSlug, campaignName, voucherCode, voucherDiscountType, voucherDiscountValue, validUntil, activationDeadline, activatedAt, usedCount }) => ({
       ...registration,
       campaignSlug,
       campaignName,
       voucherCode: voucherCode ?? null,
+      voucherDiscountType: voucherDiscountType ?? null,
+      voucherDiscountValue: voucherDiscountValue ?? null,
       validUntil: validUntil ?? null,
       activationDeadline: activationDeadline ?? null,
       activatedAt: activatedAt ?? null,
@@ -1981,6 +1995,8 @@ export class DatabaseStorage implements IStorage {
       campaignSlug: eventVoucherCampaigns.slug,
       campaignName: eventVoucherCampaigns.name,
       voucherCode: vouchers.code,
+      voucherDiscountType: vouchers.discountType,
+      voucherDiscountValue: vouchers.discountValue,
       validUntil: vouchers.validUntil,
       activationDeadline: vouchers.activationDeadline,
       activatedAt: vouchers.activatedAt,
@@ -1992,11 +2008,13 @@ export class DatabaseStorage implements IStorage {
       .where(campaignSlug ? eq(eventVoucherCampaigns.slug, campaignSlug) : undefined)
       .orderBy(desc(eventVoucherRegistrations.createdAt));
 
-    return rows.map(({ registration, campaignSlug: rowCampaignSlug, campaignName, voucherCode, validUntil, activationDeadline, activatedAt, usedCount }) => ({
+    return rows.map(({ registration, campaignSlug: rowCampaignSlug, campaignName, voucherCode, voucherDiscountType, voucherDiscountValue, validUntil, activationDeadline, activatedAt, usedCount }) => ({
       ...registration,
       campaignSlug: rowCampaignSlug,
       campaignName,
       voucherCode: voucherCode ?? null,
+      voucherDiscountType: voucherDiscountType ?? null,
+      voucherDiscountValue: voucherDiscountValue ?? null,
       validUntil: validUntil ?? null,
       activationDeadline: activationDeadline ?? null,
       activatedAt: activatedAt ?? null,
@@ -2016,6 +2034,10 @@ export class DatabaseStorage implements IStorage {
     const email = data.email.trim().toLowerCase();
 
     return db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(
+        hashtext('event-voucher-registration'),
+        hashtext(${`${data.campaignId}:${email}`})
+      )`);
       const [existing] = await tx.select({
         registration: eventVoucherRegistrations,
         voucher: vouchers,
@@ -2050,21 +2072,25 @@ export class DatabaseStorage implements IStorage {
       const validUntil = new Date(data.consentAt);
       validUntil.setMonth(validUntil.getMonth() + campaign.validMonths);
       const activationDeadline = addDays(data.consentAt, EVENT_VOUCHER_ACTIVATION_DAYS);
-      const code = `CHEF20-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
-
-      const [voucher] = await tx.insert(vouchers).values({
-        code,
-        name: campaign.name,
-        discountType: campaign.discountType,
-        discountValue: campaign.discountValue,
-        minOrderAmount: null,
-        maxUses: null,
-        isActive: true,
-        validFrom: data.consentAt,
-        validUntil,
-        activationDeadline,
-        marketCode: campaign.marketCode,
-      }).returning();
+      let voucher: Voucher | undefined;
+      for (let attempt = 0; attempt < 5 && !voucher; attempt++) {
+        const code = `XHACCP-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
+        const [inserted] = await tx.insert(vouchers).values({
+          code,
+          name: campaign.name,
+          discountType: campaign.discountType,
+          discountValue: campaign.discountValue,
+          minOrderAmount: null,
+          maxUses: null,
+          isActive: true,
+          validFrom: data.consentAt,
+          validUntil,
+          activationDeadline,
+          marketCode: campaign.marketCode,
+        }).onConflictDoNothing({ target: vouchers.code }).returning();
+        voucher = inserted;
+      }
+      if (!voucher) throw new Error("Could not create a unique event voucher");
 
       const registrationValues = {
         firstName: data.firstName.trim(),

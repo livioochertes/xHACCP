@@ -8,6 +8,7 @@ import {
 } from "./prospect-marketing-db";
 import { verifyProspectMarketingToken } from "./prospect-marketing-security";
 import { sendProspectNewsletterVoucherEmail } from "./email-service";
+import { formatEventVoucherDiscount } from "./event-voucher";
 
 const newsletterRegistrationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -75,6 +76,9 @@ export function registerProspectMarketingPublicRoutes(app: Express): void {
           restaurantName: result.prospect.restaurantName || "votre restaurant",
           code: result.voucher.code,
           validUntil: result.voucher.validUntil || new Date(),
+          activationDeadline: result.voucher.activationDeadline ?? undefined,
+          discountType: result.voucher.discountType,
+          discountValue: result.voucher.discountValue,
         });
         if (!sent) {
           return res.status(502).json({
@@ -87,7 +91,7 @@ export function registerProspectMarketingPublicRoutes(app: Express): void {
       res.json({
         success: true,
         alreadySubscribed: result.alreadySubscribed,
-        message: "Votre inscription est confirmée. Votre voucher de -20% vient d'être envoyé par email.",
+        message: `Votre inscription est confirmée. Votre code personnel de ${formatEventVoucherDiscount(result.voucher.discountType, result.voucher.discountValue)} vient d'être envoyé par email.`,
       });
     } catch (error) {
       if (error instanceof Error && error.message === "This address has unsubscribed") {

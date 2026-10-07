@@ -16937,6 +16937,8 @@
     };
     const [marketingSegments, setMarketingSegments] = (0, import_react21.useState)([]);
     const [marketingCampaigns, setMarketingCampaigns] = (0, import_react21.useState)([]);
+    const [marketingTestEmails, setMarketingTestEmails] = (0, import_react21.useState)({});
+    const [marketingTestSendingId, setMarketingTestSendingId] = (0, import_react21.useState)(null);
     const [marketingLoading, setMarketingLoading] = (0, import_react21.useState)(false);
     const [marketingSaving, setMarketingSaving] = (0, import_react21.useState)(false);
     const [marketingPreview, setMarketingPreview] = (0, import_react21.useState)(null);
@@ -17666,7 +17668,7 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         setEventVoucherLoading(false);
       }
     };
-    const updateEventVoucherCampaign = async (isActive) => {
+    const updateEventVoucherCampaign = async (updates) => {
       setEventVoucherSaving(true);
       try {
         const response = await fetch("/admin/api/event-voucher/campaign", {
@@ -17675,7 +17677,7 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
           },
-          body: JSON.stringify({ isActive })
+          body: JSON.stringify(updates)
         });
         const data = await response.json();
         if (response.ok) {
@@ -18184,6 +18186,18 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         alert(`\u274C ${err.message}`);
       }
     };
+    const loadEventVoucherEmailTemplate = async () => {
+      try {
+        const response = await fetch("/admin/api/marketing/event-voucher-template", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Impossible de charger le mod\xE8le.");
+        setMarketingCampaignForm((current) => ({ ...current, htmlContent: data.htmlContent, textContent: "" }));
+      } catch (err) {
+        alert(`\u274C ${err.message}`);
+      }
+    };
     const sendMarketingCampaign = async (campaign) => {
       try {
         const previewRes = await fetch(`/admin/api/marketing/segments/${campaign.segmentId}/recipients`, {
@@ -18202,6 +18216,28 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         fetchMarketing();
       } catch (err) {
         alert(`\u274C ${err.message}`);
+      }
+    };
+    const sendMarketingCampaignTest = async (campaign) => {
+      const email = String(marketingTestEmails[campaign.id] || "").trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert("Saisissez une seule adresse email valide pour le test.");
+        return;
+      }
+      setMarketingTestSendingId(campaign.id);
+      try {
+        const response = await fetch(`/admin/api/marketing/campaigns/${campaign.id}/test`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Impossible d'envoyer l'email de test.");
+        alert(`Email de test envoy\xE9 \xE0 ${data.sentTo}. La campagne et les destinataires n'ont pas \xE9t\xE9 modifi\xE9s.`);
+      } catch (err) {
+        alert(`\u274C ${err.message}`);
+      } finally {
+        setMarketingTestSendingId(null);
       }
     };
     const downloadEventVoucherContactsCsv = () => {
@@ -22640,7 +22676,17 @@ This action cannot be undone.`)) {
                 ", ",
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{newsletter_signup_url}}" }),
                 ", ",
-                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{unsubscribe_url}}" })
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{unsubscribe_url}}" }),
+                ", ",
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{offer_name}}" }),
+                ", ",
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{discount_display}}" }),
+                ", ",
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{valid_months}}" }),
+                ", ",
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{activation_days}}" }),
+                ", ",
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{offer_terms}}" })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, minmax(180px, 1fr))", gap: "8px", marginBottom: "8px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("input", { value: marketingCampaignForm.name, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, name: e2.target.value }), placeholder: t2("marketing.campaignNamePlaceholder"), style: { padding: "8px", border: "1px solid #ced4da", borderRadius: "4px" } }),
@@ -22653,12 +22699,14 @@ This action cannot be undone.`)) {
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("textarea", { value: marketingCampaignForm.htmlContent, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, htmlContent: e2.target.value }), placeholder: t2("marketing.htmlPlaceholder"), rows: "5", style: { width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px", fontFamily: "monospace", marginBottom: "8px" } }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("textarea", { value: marketingCampaignForm.textContent, onChange: (e2) => setMarketingCampaignForm({ ...marketingCampaignForm, textContent: e2.target.value }), placeholder: t2("marketing.textPlaceholder"), rows: "3", style: { width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #ced4da", borderRadius: "4px", marginBottom: "8px" } }),
-              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { onClick: createMarketingCampaign, style: { background: "#6f42c1", color: "white", border: "none", borderRadius: "4px", padding: "9px 14px", cursor: "pointer" }, children: t2("marketing.saveDraft") }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap" }, children: [
+                marketingCampaignForm.market === "fr" && marketingSegments.some((segment) => String(segment.id) === String(marketingCampaignForm.segmentId) && segment.criteria?.prospectAudience === "invitation") && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { onClick: loadEventVoucherEmailTemplate, style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "9px 14px", cursor: "pointer" }, children: "Charger le mod\xE8le de l'offre fran\xE7aise" }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { onClick: createMarketingCampaign, style: { background: "#6f42c1", color: "white", border: "none", borderRadius: "4px", padding: "9px 14px", cursor: "pointer" }, children: t2("marketing.saveDraft") })
+              ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "18px", display: "grid", gap: "8px" }, children: marketingCampaigns.map((campaign) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #dee2e6", background: "white", borderRadius: "5px", padding: "10px 12px", gap: "12px", flexWrap: "wrap" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: campaign.name }),
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: "12px", color: "#6c757d" }, children: [
-                    ".",
                     campaign.market,
                     " \xB7 ",
                     campaign.subject,
@@ -22670,7 +22718,31 @@ This action cannot be undone.`)) {
                     campaign.recipientCount || 0
                   ] })
                 ] }),
-                campaign.status !== "sent" && campaign.status !== "sending" && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { onClick: () => sendMarketingCampaign(campaign), style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: "pointer" }, children: t2("marketing.sendCampaign") })
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }, children: [
+                  campaign.market === "fr" && campaign.status !== "sent" && campaign.status !== "sending" && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "input",
+                      {
+                        type: "email",
+                        "aria-label": "Adresse email unique pour le test",
+                        placeholder: "Adresse email de test",
+                        value: marketingTestEmails[campaign.id] || "",
+                        onChange: (e2) => setMarketingTestEmails((current) => ({ ...current, [campaign.id]: e2.target.value })),
+                        style: { padding: "7px 9px", border: "1px solid #ced4da", borderRadius: "4px" }
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "button",
+                      {
+                        onClick: () => sendMarketingCampaignTest(campaign),
+                        disabled: marketingTestSendingId === campaign.id,
+                        style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: "pointer" },
+                        children: marketingTestSendingId === campaign.id ? "Envoi du test\u2026" : "Envoyer un test"
+                      }
+                    )
+                  ] }),
+                  campaign.status !== "sent" && campaign.status !== "sending" && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { onClick: () => sendMarketingCampaign(campaign), style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: "pointer" }, children: t2("marketing.sendCampaign") })
+                ] })
               ] }, campaign.id)) })
             ] })
           ] });
@@ -23479,14 +23551,14 @@ This action cannot be undone.`)) {
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", flexWrap: "wrap" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("h4", { style: { margin: "0 0 6px", color: "#12345b" }, children: "\u{1F3AB} Campagne \xE9v\xE9nement chefs \u2014 France" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { margin: 0, color: "#52657d", fontSize: "13px" }, children: "QR code vers le formulaire public. Chaque inscription re\xE7oit un code de 20 %, sans montant minimum, valable 12 mois." })
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { margin: 0, color: "#52657d", fontSize: "13px" }, children: "Configurez l'offre publique en France. Le code personnel doit \xEAtre activ\xE9 par une premi\xE8re commande pay\xE9e dans les 30 jours ; sa dur\xE9e de validit\xE9 commence \xE0 l'inscription." })
                 ] }),
                 eventVoucherData?.campaign && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                   "button",
                   {
                     type: "button",
                     disabled: eventVoucherSaving,
-                    onClick: () => updateEventVoucherCampaign(!eventVoucherData.campaign.isActive),
+                    onClick: () => updateEventVoucherCampaign({ isActive: !eventVoucherData.campaign.isActive }),
                     style: {
                       border: "none",
                       borderRadius: "6px",
@@ -23536,6 +23608,80 @@ This action cannot be undone.`)) {
                       }
                     )
                   ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginTop: "18px", padding: "14px", border: "1px solid #d8e2ef", borderRadius: "8px", background: "#fff" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { fontSize: "12px", color: "#52657d" }, children: [
+                    "Nom de l'offre",
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "input",
+                      {
+                        value: eventVoucherData.campaign.name || "",
+                        onChange: (e2) => setEventVoucherData((current) => ({ ...current, campaign: { ...current.campaign, name: e2.target.value } })),
+                        maxLength: 255,
+                        style: { display: "block", width: "100%", marginTop: "5px", padding: "8px", border: "1px solid #cbd5e1", borderRadius: "5px" }
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { fontSize: "12px", color: "#52657d" }, children: [
+                    "Type de r\xE9duction",
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
+                      "select",
+                      {
+                        value: eventVoucherData.campaign.discountType,
+                        onChange: (e2) => setEventVoucherData((current) => ({ ...current, campaign: { ...current.campaign, discountType: e2.target.value } })),
+                        style: { display: "block", width: "100%", marginTop: "5px", padding: "8px", border: "1px solid #cbd5e1", borderRadius: "5px" },
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "percentage", children: "Pourcentage" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "fixed", children: "Montant fixe (\u20AC)" })
+                        ]
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { fontSize: "12px", color: "#52657d" }, children: [
+                    "Valeur de la r\xE9duction",
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "input",
+                      {
+                        type: "number",
+                        min: "0.01",
+                        max: eventVoucherData.campaign.discountType === "percentage" ? 100 : void 0,
+                        step: "0.01",
+                        value: eventVoucherData.campaign.discountValue || "",
+                        onChange: (e2) => setEventVoucherData((current) => ({ ...current, campaign: { ...current.campaign, discountValue: e2.target.value } })),
+                        style: { display: "block", width: "100%", marginTop: "5px", padding: "8px", border: "1px solid #cbd5e1", borderRadius: "5px" }
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { fontSize: "12px", color: "#52657d" }, children: [
+                    "Validit\xE9 (mois depuis l'inscription)",
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "input",
+                      {
+                        type: "number",
+                        min: "1",
+                        max: "120",
+                        step: "1",
+                        value: eventVoucherData.campaign.validMonths || "",
+                        onChange: (e2) => setEventVoucherData((current) => ({ ...current, campaign: { ...current.campaign, validMonths: e2.target.value === "" ? "" : Number(e2.target.value) } })),
+                        style: { display: "block", width: "100%", marginTop: "5px", padding: "8px", border: "1px solid #cbd5e1", borderRadius: "5px" }
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    "button",
+                    {
+                      type: "button",
+                      disabled: eventVoucherSaving,
+                      onClick: () => updateEventVoucherCampaign({
+                        name: eventVoucherData.campaign.name,
+                        discountType: eventVoucherData.campaign.discountType,
+                        discountValue: eventVoucherData.campaign.discountValue,
+                        validMonths: eventVoucherData.campaign.validMonths
+                      }),
+                      style: { alignSelf: "end", border: "none", borderRadius: "6px", padding: "9px 14px", cursor: eventVoucherSaving ? "wait" : "pointer", color: "#fff", background: "#0d6efd" },
+                      children: eventVoucherSaving ? "Enregistrement\u2026" : "Enregistrer l\u2019offre"
+                    }
+                  )
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { overflowX: "auto", marginTop: "20px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", background: "#fff" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { style: { background: "#eaf2ff" }, children: [

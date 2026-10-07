@@ -35,6 +35,7 @@ import {
   type MerchantMarket,
 } from "./google-merchant-feed";
 import { getSenderForMarket, sendEmail, sendEventVoucherEmail } from "./email-service";
+import { EVENT_VOUCHER_CAMPAIGN_SLUG, normalizeEventVoucherCampaignUpdate } from "./event-voucher";
 import { localizeAdminCategories as localizeCategoryRows } from "./admin-category-localization";
 import {
   createPlaintextWmsApiKey,
@@ -81,7 +82,6 @@ import { registerAdminAccountManagementRoutes } from "./admin-account-management
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
 })();
-const EVENT_VOUCHER_CAMPAIGN_SLUG = "chef-event-fr";
 
 function normalizeOptionalEan(value: unknown): string | null {
   const ean = value === null || value === undefined ? "" : String(value).trim();
@@ -6904,12 +6904,15 @@ export async function registerAdminRoutes(app: Express) {
       }
       const campaign = await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG, true);
       if (!campaign) return res.status(404).json({ message: "Event voucher campaign not found" });
-      const updated = await storage.updateEventVoucherCampaign(campaign.id, {
-        name: typeof req.body?.name === "string" && req.body.name.trim()
-          ? req.body.name.trim().slice(0, 255)
-          : campaign.name,
-        isActive: typeof req.body?.isActive === "boolean" ? req.body.isActive : campaign.isActive,
-      });
+      let update: ReturnType<typeof normalizeEventVoucherCampaignUpdate>;
+      try {
+        update = normalizeEventVoucherCampaignUpdate(req.body || {}, campaign);
+      } catch (error) {
+        return res.status(400).json({
+          message: error instanceof Error ? error.message : "Configuration d'offre invalide.",
+        });
+      }
+      const updated = await storage.updateEventVoucherCampaign(campaign.id, update);
       res.json(updated);
     } catch (error) {
       console.error("Error updating event voucher campaign:", error);
@@ -6937,7 +6940,8 @@ export async function registerAdminRoutes(app: Express) {
         code: registration.voucherCode,
         validUntil: registration.validUntil,
         activationDeadline: registration.activationDeadline ?? undefined,
-        discountValue: campaign.discountValue,
+        discountType: registration.voucherDiscountType || "percentage",
+        discountValue: registration.voucherDiscountValue || campaign.discountValue,
       });
       if (sent) {
         await storage.markEventVoucherEmailSent(registration.id);

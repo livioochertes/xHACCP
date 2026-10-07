@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="x-apple-disable-message-reformatting">
-<title>xHACCP – -20 % pendant 12 mois</title>
+<title>xHACCP – {{offer_name}}</title>
 <style>
   @media only screen and (max-width:620px){
     .container{width:100% !important;}
@@ -18,7 +18,7 @@
 <body style="margin:0;padding:0;background:#f2f4f7;">
 <!-- Texte d'aperçu (affiché dans la boîte de réception, invisible dans l'email) -->
 <div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#f2f4f7;">
-  Inscrivez-vous sur xHACCP et profitez de -20 % sur vos commandes pendant 12 mois.
+  Inscrivez-vous sur xHACCP et recevez votre code personnel pour {{discount_display}} de réduction.
 </div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f4f7;">
@@ -40,9 +40,9 @@
     <tr>
       <td class="px" align="center" style="padding:40px 40px 8px 40px;font-family:Arial,Helvetica,sans-serif;">
         <p style="margin:0 0 10px 0;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#659bcd;font-weight:bold;">Offre de bienvenue</p>
-        <p class="big" style="margin:0;font-size:72px;line-height:76px;font-weight:bold;color:#222021;">-20&nbsp;%</p>
-        <h1 class="h1" style="margin:8px 0 0 0;font-size:30px;line-height:36px;font-weight:bold;color:#222021;">pendant 12&nbsp;mois</h1>
-        <p style="margin:12px 0 0 0;font-size:16px;line-height:24px;color:#555555;">sur tous vos achats xHACCP, pour toute inscription</p>
+        <p class="big" style="margin:0;font-size:72px;line-height:76px;font-weight:bold;color:#222021;">-{{discount_display}}</p>
+        <h1 class="h1" style="margin:8px 0 0 0;font-size:30px;line-height:36px;font-weight:bold;color:#222021;">{{valid_months}} mois de validité</h1>
+        <p style="margin:12px 0 0 0;font-size:16px;line-height:24px;color:#555555;">{{offer_name}} · offre personnalisée après inscription</p>
       </td>
     </tr>
 
@@ -54,7 +54,7 @@
           Étiquettes de traçabilité, thermomètres, détergents, équipements de cuisine&nbsp;: <strong>xHACCP</strong> réunit tout ce dont votre établissement a besoin pour respecter les règles d'hygiène HACCP au quotidien – et être prêt le jour d'un contrôle.
         </p>
         <p style="margin:0;">
-          Pour vous accueillir, nous offrons à <strong>chaque nouvel inscrit une remise de 20&nbsp;% pendant 12&nbsp;mois</strong> sur ses commandes et abonnements.
+          Pour vous accueillir, nous vous proposons une offre de <strong>{{discount_display}}</strong>. Inscrivez-vous sur notre page générale et recevez votre code personnel par email.
         </p>
       </td>
     </tr>
@@ -65,7 +65,7 @@
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f8fc;border-radius:8px;">
           <tr><td style="padding:20px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#333333;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-              <tr><td valign="top" style="padding:4px 10px 4px 0;color:#659bcd;font-weight:bold;">&#10003;</td><td style="padding:4px 0;"><strong>-20&nbsp;%</strong> sur tout le catalogue pendant 12&nbsp;mois</td></tr>
+              <tr><td valign="top" style="padding:4px 10px 4px 0;color:#659bcd;font-weight:bold;">&#10003;</td><td style="padding:4px 0;"><strong>{{discount_display}}</strong> de réduction selon les conditions de l'offre active</td></tr>
               <tr><td valign="top" style="padding:4px 10px 4px 0;color:#659bcd;font-weight:bold;">&#10003;</td><td style="padding:4px 0;">Étiquettes HACCP jour par jour et congélation, en stock</td></tr>
               <tr><td valign="top" style="padding:4px 10px 4px 0;color:#659bcd;font-weight:bold;">&#10003;</td><td style="padding:4px 0;">Abonnement mensuel possible&nbsp;: vos consommables livrés sans y penser</td></tr>
               <tr><td valign="top" style="padding:4px 10px 4px 0;color:#659bcd;font-weight:bold;">&#10003;</td><td style="padding:4px 0;">Livraison rapide partout en France</td></tr>
@@ -79,18 +79,18 @@
     <tr>
       <td align="center" style="padding:32px 40px 12px 40px;">
         <!--[if mso]>
-        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://xhaccp.fr/login" style="height:52px;v-text-anchor:middle;width:300px;" arcsize="12%" stroke="f" fillcolor="#222021">
-        <w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:17px;font-weight:bold;">Je m'inscris et j'économise 20&nbsp;%</center>
+        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{newsletter_signup_url}}" style="height:52px;v-text-anchor:middle;width:300px;" arcsize="12%" stroke="f" fillcolor="#222021">
+        <w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:17px;font-weight:bold;">Découvrir mon offre</center>
         </v:roundrect>
         <![endif]-->
         <!--[if !mso]><!-->
-        <a href="https://xhaccp.fr/login" target="_blank" style="display:inline-block;background:#222021;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:bold;line-height:52px;padding:0 32px;border-radius:6px;text-decoration:none;">Je m'inscris et j'économise 20&nbsp;%</a>
+        <a href="{{newsletter_signup_url}}" target="_blank" style="display:inline-block;background:#222021;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:bold;line-height:52px;padding:0 32px;border-radius:6px;text-decoration:none;">Découvrir mon offre</a>
         <!--<![endif]-->
       </td>
     </tr>
     <tr>
       <td class="px" align="center" style="padding:0 40px 8px 40px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#555555;">
-        Code de bienvenue à saisir lors de votre commande&nbsp;: <strong style="color:#222021;letter-spacing:1px;">BIENVENUE20</strong>
+        Après votre inscription, vous recevrez par email un code de réduction personnel.
       </td>
     </tr>
 
@@ -105,7 +105,7 @@
     <!-- Pied de page (mentions obligatoires prospection B2B) -->
     <tr>
       <td class="px" style="padding:20px 40px 28px 40px;background:#222021;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#bbbbbb;">
-        <p style="margin:0 0 8px 0;">Offre réservée aux professionnels, valable pour toute nouvelle inscription sur xhaccp.fr&nbsp;: remise de 20&nbsp;% pendant 12&nbsp;mois à compter de l'inscription. Prix HT.</p>
+        <p style="margin:0 0 8px 0;">Offre réservée aux professionnels. {{offer_terms}} La première commande doit être payée dans les {{activation_days}} jours suivant l'inscription ; la durée de validité est de {{valid_months}} mois à compter de l'inscription.</p>
         <p style="margin:0 0 8px 0;">Vous recevez cet email car votre établissement exerce une activité de restauration, en lien avec nos produits. xHACCP est une marque commercialisée par Yetique SAS, 122 rue Amelot, 75011 Paris – RCS Paris 108 196 536.</p>
         <p style="margin:0;">Pour ne plus recevoir nos emails&nbsp;: <a href="{{UNSUBSCRIBE_URL}}" style="color:#ffffff;text-decoration:underline;">se désinscrire</a> · <a href="https://xhaccp.fr/privacy" style="color:#ffffff;text-decoration:underline;">Politique de confidentialité</a></p>
       </td>

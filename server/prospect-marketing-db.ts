@@ -5,12 +5,15 @@ import {
   marketingProspectLists,
   marketingProspects,
   marketingSegments,
+  eventVoucherCampaigns,
   vouchers,
   type MarketingProspectList,
   type MarketingProspect,
 } from "@shared/schema";
 import { db } from "./db";
 import type { ProspectCsvRow } from "./prospect-csv";
+import { EVENT_VOUCHER_ACTIVATION_DAYS, EVENT_VOUCHER_CAMPAIGN_SLUG } from "./event-voucher";
+import { addDays } from "./voucher-validity";
 
 export const DOCUMENTED_B2B_CONTACT_BASIS = "documented_b2b_basis";
 
@@ -220,22 +223,33 @@ export async function subscribeProspectAndCreateVoucher(
       return { prospect, voucher: existingVoucher, alreadySubscribed: true };
     }
 
+    const [campaign] = await tx.select().from(eventVoucherCampaigns)
+      .where(and(
+        eq(eventVoucherCampaigns.slug, EVENT_VOUCHER_CAMPAIGN_SLUG),
+        eq(eventVoucherCampaigns.marketCode, "fr"),
+        eq(eventVoucherCampaigns.isActive, true),
+      ))
+      .limit(1);
+    if (!campaign) throw new Error("No active French promotion");
+
     const now = new Date();
     const validUntil = new Date(now);
-    validUntil.setMonth(validUntil.getMonth() + 12);
+    validUntil.setMonth(validUntil.getMonth() + campaign.validMonths);
+    const activationDeadline = addDays(now, EVENT_VOUCHER_ACTIVATION_DAYS);
     let createdVoucher: typeof vouchers.$inferSelect | undefined;
     for (let attempt = 0; attempt < 5 && !createdVoucher; attempt++) {
-      const code = `NEWS20-${crypto.randomBytes(5).toString("hex").toUpperCase()}`;
+      const code = `XHACCP-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
       const [inserted] = await tx.insert(vouchers).values({
         code,
-        name: "Newsletter xHACCP France -20%",
-        discountType: "percentage",
-        discountValue: "20.00",
+        name: campaign.name,
+        discountType: campaign.discountType,
+        discountValue: campaign.discountValue,
         minOrderAmount: null,
         maxUses: 1,
         isActive: true,
         validFrom: now,
         validUntil,
+        activationDeadline,
         marketCode: "fr",
       }).onConflictDoNothing({ target: vouchers.code }).returning();
       createdVoucher = inserted;

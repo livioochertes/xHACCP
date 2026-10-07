@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import express from "express";
 import type { Request, RequestHandler } from "express";
 import test from "node:test";
-import type { AIRecommendationCampaignRouteDependencies } from "./marketing-admin-routes";
+import type {
+  AIRecommendationCampaignRouteDependencies,
+  MarketingEmailTestDependencies,
+} from "./marketing-admin-routes";
 
 // The production routes module starts refresh intervals during import. Keep
 // those intervals from holding this isolated HTTP test process open.
@@ -30,7 +33,10 @@ type FixtureCampaign = {
   createdBy?: number;
 };
 
-function createHarness(initialCampaigns: FixtureCampaign[] = []) {
+function createHarness(
+  initialCampaigns: FixtureCampaign[] = [],
+  emailTestDependencies?: MarketingEmailTestDependencies,
+) {
   const campaigns = initialCampaigns.map((campaign) => ({ ...campaign }));
   let nextId = Math.max(0, ...campaigns.map((campaign) => campaign.id)) + 1;
   const calls = {
@@ -124,7 +130,7 @@ function createHarness(initialCampaigns: FixtureCampaign[] = []) {
 
   const app = express();
   app.use(express.json());
-  registerMarketingAdminRoutes(app, dependencies);
+  registerMarketingAdminRoutes(app, dependencies, emailTestDependencies);
   const server = app.listen(0);
 
   const ready = new Promise<string>((resolve, reject) => {

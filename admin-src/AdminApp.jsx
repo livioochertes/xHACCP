@@ -568,6 +568,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
       };
       const [marketingSegments, setMarketingSegments] = useState([]);
       const [marketingCampaigns, setMarketingCampaigns] = useState([]);
+      const [marketingTestEmails, setMarketingTestEmails] = useState({});
+      const [marketingTestSendingId, setMarketingTestSendingId] = useState(null);
       const [marketingLoading, setMarketingLoading] = useState(false);
       const [marketingSaving, setMarketingSaving] = useState(false);
       const [marketingPreview, setMarketingPreview] = useState(null);
@@ -1400,7 +1402,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         }
       };
 
-      const updateEventVoucherCampaign = async (isActive) => {
+      const updateEventVoucherCampaign = async (updates) => {
         setEventVoucherSaving(true);
         try {
           const response = await fetch('/admin/api/event-voucher/campaign', {
@@ -1409,7 +1411,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ isActive })
+            body: JSON.stringify(updates)
           });
           const data = await response.json();
           if (response.ok) {
@@ -1942,6 +1944,19 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         }
       };
 
+      const loadEventVoucherEmailTemplate = async () => {
+        try {
+          const response = await fetch('/admin/api/marketing/event-voucher-template', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || "Impossible de charger le modèle.");
+          setMarketingCampaignForm(current => ({...current, htmlContent: data.htmlContent, textContent: ''}));
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+        }
+      };
+
       const sendMarketingCampaign = async (campaign) => {
         try {
           const previewRes = await fetch(`/admin/api/marketing/segments/${campaign.segmentId}/recipients`, {
@@ -1960,6 +1975,29 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
           fetchMarketing();
         } catch (err) {
           alert(`❌ ${err.message}`);
+        }
+      };
+
+      const sendMarketingCampaignTest = async (campaign) => {
+        const email = String(marketingTestEmails[campaign.id] || '').trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          alert('Saisissez une seule adresse email valide pour le test.');
+          return;
+        }
+        setMarketingTestSendingId(campaign.id);
+        try {
+          const response = await fetch(`/admin/api/marketing/campaigns/${campaign.id}/test`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || "Impossible d'envoyer l'email de test.");
+          alert(`Email de test envoyé à ${data.sentTo}. La campagne et les destinataires n'ont pas été modifiés.`);
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+        } finally {
+          setMarketingTestSendingId(null);
         }
       };
 
@@ -6317,7 +6355,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                   <p style={{fontSize: '13px', color: '#6c757d', margin: '0 0 16px'}}>{t('marketing.campaignsDescription')}</p>
                   <p style={{fontSize: '12px', color: '#6c757d', margin: '-8px 0 14px'}}>
                     {t('marketing.prospectCampaignHelp')}{' '}
-                    <code>{'{{restaurant_name}}'}</code>, <code>{'{{city}}'}</code>, <code>{'{{newsletter_signup_url}}'}</code>, <code>{'{{unsubscribe_url}}'}</code>
+                    <code>{'{{restaurant_name}}'}</code>, <code>{'{{city}}'}</code>, <code>{'{{newsletter_signup_url}}'}</code>, <code>{'{{unsubscribe_url}}'}</code>, <code>{'{{offer_name}}'}</code>, <code>{'{{discount_display}}'}</code>, <code>{'{{valid_months}}'}</code>, <code>{'{{activation_days}}'}</code>, <code>{'{{offer_terms}}'}</code>
                   </p>
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))', gap: '8px', marginBottom: '8px'}}>
                     <input value={marketingCampaignForm.name} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, name: e.target.value})} placeholder={t('marketing.campaignNamePlaceholder')} style={{padding: '8px', border: '1px solid #ced4da', borderRadius: '4px'}} />
@@ -6327,12 +6365,40 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                   </div>
                   <textarea value={marketingCampaignForm.htmlContent} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, htmlContent: e.target.value})} placeholder={t('marketing.htmlPlaceholder')} rows="5" style={{width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px', fontFamily: 'monospace', marginBottom: '8px'}} />
                   <textarea value={marketingCampaignForm.textContent} onChange={e => setMarketingCampaignForm({...marketingCampaignForm, textContent: e.target.value})} placeholder={t('marketing.textPlaceholder')} rows="3" style={{width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px', marginBottom: '8px'}} />
-                  <button onClick={createMarketingCampaign} style={{background: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 14px', cursor: 'pointer'}}>{t('marketing.saveDraft')}</button>
+                  <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                    {marketingCampaignForm.market === 'fr' && marketingSegments.some(segment => String(segment.id) === String(marketingCampaignForm.segmentId) && segment.criteria?.prospectAudience === 'invitation') && (
+                      <button onClick={loadEventVoucherEmailTemplate} style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 14px', cursor: 'pointer'}}>
+                        Charger le modèle de l'offre française
+                      </button>
+                    )}
+                    <button onClick={createMarketingCampaign} style={{background: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 14px', cursor: 'pointer'}}>{t('marketing.saveDraft')}</button>
+                  </div>
                   <div style={{marginTop: '18px', display: 'grid', gap: '8px'}}>
                     {marketingCampaigns.map(campaign => (
-                      <div key={campaign.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #dee2e6', background: 'white', borderRadius: '5px', padding: '10px 12px', gap: '12px', flexWrap: 'wrap'}}>
-                        <div><strong>{campaign.name}</strong><div style={{fontSize: '12px', color: '#6c757d'}}>.{campaign.market} · {campaign.subject} · {campaign.status === 'draft' ? t('marketing.statusDraft') : campaign.status === 'sending' ? t('marketing.statusSending') : campaign.status === 'sent' ? t('marketing.statusSent') : campaign.status === 'failed' ? t('marketing.statusFailed') : campaign.status} · {campaign.sentCount || 0}/{campaign.recipientCount || 0}</div></div>
-                        {campaign.status !== 'sent' && campaign.status !== 'sending' && <button onClick={() => sendMarketingCampaign(campaign)} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}>{t('marketing.sendCampaign')}</button>}
+                       <div key={campaign.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #dee2e6', background: 'white', borderRadius: '5px', padding: '10px 12px', gap: '12px', flexWrap: 'wrap'}}>
+                         <div><strong>{campaign.name}</strong><div style={{fontSize: '12px', color: '#6c757d'}}>{campaign.market} · {campaign.subject} · {campaign.status === 'draft' ? t('marketing.statusDraft') : campaign.status === 'sending' ? t('marketing.statusSending') : campaign.status === 'sent' ? t('marketing.statusSent') : campaign.status === 'failed' ? t('marketing.statusFailed') : campaign.status} · {campaign.sentCount || 0}/{campaign.recipientCount || 0}</div></div>
+                         <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                           {campaign.market === 'fr' && campaign.status !== 'sent' && campaign.status !== 'sending' && (
+                             <>
+                               <input
+                                 type="email"
+                                 aria-label="Adresse email unique pour le test"
+                                 placeholder="Adresse email de test"
+                                 value={marketingTestEmails[campaign.id] || ''}
+                                 onChange={e => setMarketingTestEmails(current => ({...current, [campaign.id]: e.target.value}))}
+                                 style={{padding: '7px 9px', border: '1px solid #ced4da', borderRadius: '4px'}}
+                               />
+                               <button
+                                 onClick={() => sendMarketingCampaignTest(campaign)}
+                                 disabled={marketingTestSendingId === campaign.id}
+                                 style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}
+                               >
+                                 {marketingTestSendingId === campaign.id ? 'Envoi du test…' : 'Envoyer un test'}
+                               </button>
+                             </>
+                           )}
+                           {campaign.status !== 'sent' && campaign.status !== 'sending' && <button onClick={() => sendMarketingCampaign(campaign)} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}>{t('marketing.sendCampaign')}</button>}
+                         </div>
                       </div>
                     ))}
                   </div>
@@ -7022,14 +7088,14 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                       <div>
                         <h4 style={{margin: '0 0 6px', color: '#12345b'}}>🎫 Campagne événement chefs — France</h4>
                         <p style={{margin: 0, color: '#52657d', fontSize: '13px'}}>
-                          QR code vers le formulaire public. Chaque inscription reçoit un code de 20 %, sans montant minimum, valable 12 mois.
+                           Configurez l'offre publique en France. Le code personnel doit être activé par une première commande payée dans les 30 jours ; sa durée de validité commence à l'inscription.
                         </p>
                       </div>
                       {eventVoucherData?.campaign && (
                         <button
                           type="button"
                           disabled={eventVoucherSaving}
-                          onClick={() => updateEventVoucherCampaign(!eventVoucherData.campaign.isActive)}
+                          onClick={() => updateEventVoucherCampaign({ isActive: !eventVoucherData.campaign.isActive })}
                           style={{
                             border: 'none',
                             borderRadius: '6px',
@@ -7065,6 +7131,65 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                               Télécharger le QR code
                             </a>
                           </div>
+                        </div>
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginTop: '18px', padding: '14px', border: '1px solid #d8e2ef', borderRadius: '8px', background: '#fff'}}>
+                          <label style={{fontSize: '12px', color: '#52657d'}}>
+                            Nom de l'offre
+                            <input
+                              value={eventVoucherData.campaign.name || ''}
+                              onChange={e => setEventVoucherData(current => ({...current, campaign: {...current.campaign, name: e.target.value}}))}
+                              maxLength={255}
+                              style={{display: 'block', width: '100%', marginTop: '5px', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '5px'}}
+                            />
+                          </label>
+                          <label style={{fontSize: '12px', color: '#52657d'}}>
+                            Type de réduction
+                            <select
+                              value={eventVoucherData.campaign.discountType}
+                              onChange={e => setEventVoucherData(current => ({...current, campaign: {...current.campaign, discountType: e.target.value}}))}
+                              style={{display: 'block', width: '100%', marginTop: '5px', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '5px'}}
+                            >
+                              <option value="percentage">Pourcentage</option>
+                              <option value="fixed">Montant fixe (€)</option>
+                            </select>
+                          </label>
+                          <label style={{fontSize: '12px', color: '#52657d'}}>
+                            Valeur de la réduction
+                            <input
+                              type="number"
+                              min="0.01"
+                              max={eventVoucherData.campaign.discountType === 'percentage' ? 100 : undefined}
+                              step="0.01"
+                              value={eventVoucherData.campaign.discountValue || ''}
+                              onChange={e => setEventVoucherData(current => ({...current, campaign: {...current.campaign, discountValue: e.target.value}}))}
+                              style={{display: 'block', width: '100%', marginTop: '5px', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '5px'}}
+                            />
+                          </label>
+                          <label style={{fontSize: '12px', color: '#52657d'}}>
+                            Validité (mois depuis l'inscription)
+                            <input
+                              type="number"
+                              min="1"
+                              max="120"
+                              step="1"
+                              value={eventVoucherData.campaign.validMonths || ''}
+                              onChange={e => setEventVoucherData(current => ({...current, campaign: {...current.campaign, validMonths: e.target.value === '' ? '' : Number(e.target.value)}}))}
+                              style={{display: 'block', width: '100%', marginTop: '5px', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '5px'}}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            disabled={eventVoucherSaving}
+                            onClick={() => updateEventVoucherCampaign({
+                              name: eventVoucherData.campaign.name,
+                              discountType: eventVoucherData.campaign.discountType,
+                              discountValue: eventVoucherData.campaign.discountValue,
+                              validMonths: eventVoucherData.campaign.validMonths
+                            })}
+                            style={{alignSelf: 'end', border: 'none', borderRadius: '6px', padding: '9px 14px', cursor: eventVoucherSaving ? 'wait' : 'pointer', color: '#fff', background: '#0d6efd'}}
+                          >
+                            {eventVoucherSaving ? 'Enregistrement…' : 'Enregistrer l’offre'}
+                          </button>
                         </div>
                         <div style={{overflowX: 'auto', marginTop: '20px'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', background: '#fff'}}>

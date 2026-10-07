@@ -7,16 +7,25 @@ type InvitationInfo = {
   restaurantName?: string | null;
 };
 
+type ActiveOffer = {
+  discountType: "percentage" | "fixed";
+  discountValue: string;
+  discountDisplay: string;
+  validMonths: number;
+  activationDays: number;
+};
+
 export default function NewsletterSignup() {
   usePageSeo(
     {
-      title: "Newsletter xHACCP France — Recevez votre voucher de -20%",
-      description: "Inscrivez-vous à la newsletter xHACCP France et recevez votre voucher de bienvenue de 20%.",
+      title: "Newsletter xHACCP France — Offre de bienvenue",
+      description: "Inscrivez-vous à la newsletter xHACCP France et recevez l'offre de bienvenue actuellement configurée.",
     },
   );
 
   const token = new URLSearchParams(window.location.search).get("token") || "";
   const [info, setInfo] = useState<InvitationInfo | null>(null);
+  const [offer, setOffer] = useState<ActiveOffer | null>(null);
   const [loading, setLoading] = useState(true);
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -30,11 +39,22 @@ export default function NewsletterSignup() {
       setLoading(false);
       return;
     }
-    fetch(`/api/marketing/prospect-subscription?token=${encodeURIComponent(token)}`)
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "Cette invitation n'est plus disponible.");
-        if (active) setInfo(data);
+    Promise.all([
+      fetch(`/api/marketing/prospect-subscription?token=${encodeURIComponent(token)}`)
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || "Cette invitation n'est plus disponible.");
+          return data;
+        }),
+      fetch("/api/event-voucher/campaign", { headers: { "X-Market": "fr" } })
+        .then(async (response) => response.ok ? response.json() : null)
+        .catch(() => null),
+    ])
+      .then(([infoData, offerData]) => {
+        if (active) {
+          setInfo(infoData);
+          setOffer(offerData);
+        }
       })
       .catch((reason) => {
         if (active) setError(reason instanceof Error ? reason.message : "Impossible de charger cette invitation.");
@@ -88,7 +108,7 @@ export default function NewsletterSignup() {
             Newsletter et voucher de bienvenue
           </h1>
           <p className="mt-3 text-center leading-7 text-slate-600">
-            Recevez les actualités et offres xHACCP France, ainsi qu'un voucher de bienvenue de <strong>20%</strong>.
+            Recevez les actualités et offres xHACCP France ainsi que le code personnel correspondant à l'offre de bienvenue active.
           </p>
 
           {loading ? (
@@ -102,13 +122,22 @@ export default function NewsletterSignup() {
           ) : info?.status === "subscribed" ? (
             <div className="mt-6 rounded-lg bg-emerald-50 p-5 text-center text-emerald-800" role="status">
               <CheckCircle2 className="mx-auto mb-2 h-7 w-7" aria-hidden="true" />
-              {message || "Votre inscription à la newsletter est déjà confirmée. Le voucher a été envoyé à votre adresse email."}
+              {message || "Votre inscription à la newsletter est déjà confirmée. Votre code personnel a été envoyé par email."}
             </div>
           ) : (
             <form onSubmit={submit} className="mt-7">
               {info?.restaurantName && (
                 <p className="mb-4 text-center text-sm text-slate-600">
                   Invitation destinée à <strong>{info.restaurantName}</strong>
+                </p>
+              )}
+              {offer ? (
+                <p className="mb-4 rounded-lg bg-teal-50 p-3 text-center text-sm text-teal-900">
+                  Offre active : <strong>{offer.discountDisplay}</strong>. Première commande payée sous {offer.activationDays} jours ; code valable {offer.validMonths} mois à compter de l'inscription.
+                </p>
+              ) : (
+                <p className="mb-4 rounded-lg bg-amber-50 p-3 text-center text-sm text-amber-900">
+                  L'offre de bienvenue n'est pas disponible actuellement. Vous pourrez vous inscrire lorsque la promotion sera active.
                 </p>
               )}
               <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
@@ -121,17 +150,17 @@ export default function NewsletterSignup() {
                 />
                 <span>
                   Oui, je souhaite recevoir par email la newsletter et les offres commerciales de xHACCP France.
-                  Je peux me désabonner à tout moment. En validant mon inscription, je recevrai un voucher de bienvenue de 20%.
+                  Je peux me désabonner à tout moment. En validant mon inscription, je recevrai le code personnel correspondant à l'offre active.
                 </span>
               </label>
               {error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}
               <button
                 type="submit"
-                disabled={!consent || submitting}
+                disabled={!consent || submitting || !offer}
                 className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-teal-700 px-5 py-3 font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
                 <ShieldCheck className="h-5 w-5" aria-hidden="true" />
-                {submitting ? "Inscription en cours…" : "Confirmer mon inscription et recevoir le voucher"}
+                {submitting ? "Inscription en cours…" : "Confirmer mon inscription et recevoir mon code"}
               </button>
               <p className="mt-4 text-center text-xs leading-5 text-slate-500">
                 Votre inscription est facultative. Votre email sera utilisé pour la newsletter, et vous pourrez vous désabonner depuis chaque message.

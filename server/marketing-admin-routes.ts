@@ -1,6 +1,9 @@
 import type { Express, Request, RequestHandler, Response } from "express";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import {
   aiRecommendationCampaigns,
+  type EventVoucherCampaign,
   type MarketingSegmentCriteria,
 } from "@shared/schema";
 import { and, desc, eq, gt, lt, ne, sql } from "drizzle-orm";
@@ -12,6 +15,7 @@ import { buildProspectMarketingEmail } from "./prospect-marketing-security";
 import { markProspectInvitationSent } from "./prospect-marketing-db";
 import { getAIMarketCatalogForMarket } from "./routes";
 import { parseAIRecommendationCampaignInput } from "./ai-recommendation-campaign-validation";
+import { EVENT_VOUCHER_CAMPAIGN_SLUG } from "./event-voucher";
 
 type MarketingAdminRequest = Request & {
   adminId?: number;
@@ -130,6 +134,30 @@ const defaultAIRecommendationCampaignDependencies: AIRecommendationCampaignRoute
   },
 };
 
+export interface MarketingEmailTestDependencies {
+  authenticateAdmin: RequestHandler;
+  canAccessMarket: (req: Request, market: string) => boolean;
+  getCampaign: (id: number) => Promise<any>;
+  getSegment: (id: number) => Promise<any>;
+  getActiveOffer: () => Promise<EventVoucherCampaign | undefined>;
+  loadOfferTemplate: () => Promise<string>;
+  sendEmail: typeof sendEmail;
+}
+
+const defaultMarketingEmailTestDependencies: MarketingEmailTestDependencies = {
+  authenticateAdmin: authenticateAdmin as RequestHandler,
+  canAccessMarket: canAccessMarket as (req: Request, market: string) => boolean,
+  getCampaign: (id) => storage.getMarketingCampaign(id),
+  getSegment: (id) => storage.getMarketingSegment(id),
+  getActiveOffer: () => storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG),
+  loadOfferTemplate: async () => readFile(path.join(
+    process.cwd(),
+    "attached_assets",
+    "email_xhaccp_offre_20_1791405076055.html",
+  ), "utf8"),
+  sendEmail,
+};
+
 async function recommendationProductsBelongToMarket(
   productIds: number[],
   market: RecommendationMarket,
@@ -144,7 +172,21 @@ async function recommendationProductsBelongToMarket(
 export function registerMarketingAdminRoutes(
   app: Express,
   campaignDependencies: AIRecommendationCampaignRouteDependencies = defaultAIRecommendationCampaignDependencies,
+  emailTestDependencies: MarketingEmailTestDependencies = defaultMarketingEmailTestDependencies,
 ): void {
+  app.get("/admin/api/marketing/event-voucher-template", emailTestDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    if (!emailTestDependencies.canAccessMarket(req, "fr")) {
+      return res.status(403).json({ message: "Access denied for this market" });
+    }
+    try {
+      const htmlContent = await emailTestDependencies.loadOfferTemplate();
+      return res.json({ htmlContent });
+    } catch {
+      console.error("French promotion email template could not be loaded");
+      return res.status(404).json({ message: "French promotion email template not found" });
+    }
+  });
+
   app.get("/admin/api/ai-recommendation-campaigns", campaignDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
     try {
       const market = String(req.query.market || "");
@@ -440,8 +482,23 @@ export function registerMarketingAdminRoutes(
 
       const criteria = segment.criteria || { market: campaign.market as any };
       const prospectAudience = criteria.prospectAudience;
+      const hasOfferTokens = /\{\{\s*(offer_name|discount_display|discount_value|discount_type|valid_months|activation_days|offer_terms)\s*\}\}/i
+        .test(`${campaign.htmlContent}\n${campaign.textContent || ""}`);
+      const requiresOffer = prospectAudience === "invitation" || hasOfferTokens;
+      if (hasOfferTokens && prospectAudience !== "invitation" && prospectAudience !== "newsletter") {
+        return res.status(400).json({ message: "Promotion templates require a French prospect segment" });
+      }
       if (prospectAudience && campaign.market !== "fr") {
         return res.status(400).json({ message: "Prospect campaigns are available only for the France market" });
+      }
+      if (requiresOffer && campaign.market !== "fr") {
+        return res.status(400).json({ message: "Promotion templates are available only for the France market" });
+      }
+      const activeOffer = requiresOffer
+        ? await storage.getEventVoucherCampaign(EVENT_VOUCHER_CAMPAIGN_SLUG)
+        : undefined;
+      if (requiresOffer && !activeOffer) {
+        return res.status(409).json({ message: "No active French offer is configured for this invitation campaign" });
       }
       const recipients = await storage.getMarketingRecipients(criteria);
       if (recipients.length === 0) {
@@ -471,6 +528,7 @@ export function registerMarketingAdminRoutes(
                   city: recipient.city,
                 },
                 audience: prospectAudience,
+                offer: activeOffer,
               });
               const sent = await sendEmail({
                 to: recipient.email,
@@ -524,4 +582,82 @@ export function registerMarketingAdminRoutes(
       res.status(500).json({ message: "Failed to send campaign" });
     }
   });
+
+  app.post(
+    "/admin/api/marketing/campaigns/:id/test",
+    emailTestDependencies.authenticateAdmin,
+    async (req: MarketingAdminRequest, res: Response) => {
+      try {
+        const campaignId = Number(req.params.id);
+        const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+        if (!Number.isSafeInteger(campaignId) || campaignId <= 0) {
+          return res.status(400).json({ message: "Campaign id is invalid" });
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 255) {
+          return res.status(400).json({ message: "Enter one valid email address for the test" });
+        }
+
+        const campaign = await emailTestDependencies.getCampaign(campaignId);
+        if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+        if (!emailTestDependencies.canAccessMarket(req, campaign.market)) {
+          return res.status(403).json({ message: "Access denied for this market" });
+        }
+        if (campaign.status === "sent" || campaign.status === "sending") {
+          return res.status(409).json({ message: "Only unsent campaigns can be tested" });
+        }
+
+        const segment = campaign.segmentId
+          ? await emailTestDependencies.getSegment(campaign.segmentId)
+          : undefined;
+        if (!segment) return res.status(400).json({ message: "Campaign segment no longer exists" });
+        const audience = segment.criteria?.prospectAudience;
+        const hasOfferTokens = /\{\{\s*(offer_name|discount_display|discount_value|discount_type|valid_months|activation_days|offer_terms)\s*\}\}/i
+          .test(`${campaign.htmlContent}\n${campaign.textContent || ""}`);
+        const requiresOffer = audience === "invitation" || hasOfferTokens;
+        if (hasOfferTokens && audience !== "invitation" && audience !== "newsletter") {
+          return res.status(400).json({ message: "Promotion templates require a French prospect segment" });
+        }
+        if (audience && campaign.market !== "fr") {
+          return res.status(400).json({ message: "Prospect campaigns are available only for the France market" });
+        }
+        if (requiresOffer && campaign.market !== "fr") {
+          return res.status(400).json({ message: "Promotion templates are available only for the France market" });
+        }
+        const offer = requiresOffer
+          ? await emailTestDependencies.getActiveOffer()
+          : undefined;
+        if (requiresOffer && !offer) {
+          return res.status(409).json({ message: "No active French offer is configured for this invitation campaign" });
+        }
+
+        const personalized = audience === "invitation" || audience === "newsletter"
+          ? buildProspectMarketingEmail({
+              htmlContent: campaign.htmlContent,
+              textContent: campaign.textContent,
+              audience,
+              offer,
+              testMode: true,
+            })
+          : {
+              html: `<div style="padding:10px 14px;background:#fff4cc;color:#7c4a03;font:14px Arial,sans-serif;text-align:center">Email de test uniquement — aucun abonnement ni statut de destinataire n'a été modifié.</div>${campaign.htmlContent}`,
+              text: `EMAIL DE TEST — aucun abonnement ni statut de destinataire n'a été modifié.\n\n${campaign.textContent || campaign.subject}`,
+              headers: {},
+            };
+        const sent = await emailTestDependencies.sendEmail({
+          to: email,
+          from: getSenderForMarket(campaign.market),
+          subject: `[TEST] ${campaign.subject}`,
+          html: personalized.html,
+          text: personalized.text,
+          headers: personalized.headers,
+          suppressRecipientLog: true,
+        });
+        if (!sent) return res.status(502).json({ message: "Test email could not be sent" });
+        return res.json({ success: true, sentTo: email });
+      } catch {
+        console.error("Marketing campaign test email failed");
+        return res.status(500).json({ message: "Failed to send campaign test email" });
+      }
+    },
+  );
 }

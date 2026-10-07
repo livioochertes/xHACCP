@@ -6,13 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, ChefHat, Clock3, Mail, Percent, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ChefHat, Clock3, Mail, ShieldCheck, Tag } from "lucide-react";
 
 type Campaign = {
   name: string;
+  discountType: "percentage" | "fixed";
   discountValue: string;
   validMonths: number;
   activationDays: number;
+  discountDisplay?: string;
 };
 
 type FormData = {
@@ -34,18 +36,30 @@ const emptyForm: FormData = {
 };
 
 export default function ChefEvent() {
-  usePageSeo({
-    title: "Offre spéciale chefs : 20 % de réduction | xHACCP France",
-    description: "Inscrivez-vous et recevez par email votre code personnel de réduction de 20 % sur xHACCP France. Offre valable 12 mois, à activer sous 30 jours.",
-    image: `${window.location.origin}/attached_assets/logo_xHACCP-S1_1772812623761.png`,
-    url: `${window.location.origin.replace("://www.", "://")}/chef-event`,
-  });
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const discountDisplay = campaign?.discountDisplay || (campaign
+    ? campaign.discountType === "percentage"
+      ? `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(Number(campaign.discountValue))} %`
+      : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(campaign.discountValue))
+    : "");
+  const validityTerms = campaign
+    ? `Le code est valable ${campaign.validMonths} mois à compter de votre inscription.`
+    : "";
+  const activationTerms = campaign
+    ? `Une première commande payée doit être effectuée dans les ${campaign.activationDays} jours suivant votre inscription. Sans achat payé dans ce délai, le code devient invalide.`
+    : "";
+
+  usePageSeo({
+    title: "Offre de bienvenue professionnelle | xHACCP France",
+    description: "Inscrivez-vous pour recevoir par email votre offre de bienvenue personnalisée sur xHACCP France.",
+    image: `${window.location.origin}/attached_assets/logo_xHACCP-S1_1772812623761.png`,
+    url: `${window.location.origin.replace("://www.", "://")}/chef-event`,
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -97,19 +111,20 @@ export default function ChefEvent() {
         <div className="container mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.05fr_0.95fr] md:items-center md:py-24">
           <div className="text-white">
             <Badge className="mb-5 bg-white/15 text-white hover:bg-white/20">
-              Offre spéciale événement
+              Offre de bienvenue professionnelle
             </Badge>
             <h1 className="mb-6 text-4xl font-bold leading-tight md:text-6xl">
               L'équipement HACCP pensé pour votre cuisine.
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-blue-100 md:text-xl">
-              Inscrivez-vous et recevez par email votre code personnel de
-              réduction de 20 % sur xHACCP France.
+              {campaign
+                ? `Inscrivez-vous et recevez par email votre code personnel de ${discountDisplay} de réduction sur xHACCP France.`
+                : "Inscrivez-vous pour recevoir par email votre code personnel associé à l'offre active."}
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               <div className="flex items-center gap-3 text-blue-50">
-                <Percent className="h-5 w-5" />
-                <span>20 % de réduction</span>
+                <Tag className="h-5 w-5" />
+                <span>{discountDisplay || "Offre personnalisée"}</span>
               </div>
               <div className="flex items-center gap-3 text-blue-50">
                 <Mail className="h-5 w-5" />
@@ -117,7 +132,7 @@ export default function ChefEvent() {
               </div>
               <div className="flex items-center gap-3 text-blue-50">
                 <ShieldCheck className="h-5 w-5" />
-                <span>Offre valable 12 mois</span>
+                <span>{campaign ? `Valable ${campaign.validMonths} mois` : "Conditions de l'offre"}</span>
               </div>
             </div>
           </div>
@@ -137,7 +152,7 @@ export default function ChefEvent() {
                      <div className="flex items-start gap-3">
                        <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
                        <p>
-                         <strong>Important :</strong> effectuez une première commande payée dans les 30 jours suivant votre inscription. Sans achat dans ce délai, le code devient invalide ; après activation, il reste valable 12 mois.
+                          <strong>Conditions :</strong> {activationTerms} {validityTerms}
                        </p>
                      </div>
                    </div>
@@ -200,7 +215,7 @@ export default function ChefEvent() {
                       <div className="flex items-start gap-3">
                         <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
                         <p>
-                          <strong>Important :</strong> le code doit être activé par une première commande payée dans les 30 jours suivant votre inscription. Sans achat dans ce délai, il devient invalide ; après activation, il reste valable 12 mois.
+                          <strong>Conditions :</strong> {activationTerms} {validityTerms}
                         </p>
                       </div>
                     </div>
@@ -211,11 +226,11 @@ export default function ChefEvent() {
                         <Link className="font-medium text-blue-700 underline" href="/privacy">politique de confidentialité</Link>.
                       </span>
                     </label>
-                    <Button type="submit" className="w-full" disabled={submitting}>
-                      {submitting ? "Envoi en cours…" : "Recevoir mon code de réduction"}
+                    <Button type="submit" className="w-full" disabled={submitting || !campaign}>
+                      {submitting ? "Envoi en cours…" : "Recevoir mon offre"}
                     </Button>
                     <p className="text-center text-xs text-slate-500">
-                      La première commande doit être payée dans les 30 jours pour activer les 12 mois de validité.
+                      {activationTerms} {validityTerms}
                     </p>
                   </form>
                 </>

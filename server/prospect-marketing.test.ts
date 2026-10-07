@@ -52,19 +52,28 @@ test("marketing tokens are signed for one purpose and cannot be changed", () => 
 
 test("prospect invitation adds signup and unsubscribe links and escapes imported business fields", () => {
   const message = buildProspectMarketingEmail({
-    htmlContent: "<h1>{{restaurant_name}}</h1><p>{{city}}</p>",
-    textContent: "Bonjour {{restaurant_name}} à {{city}}",
+    htmlContent: "<h1>{{restaurant_name}}</h1><p>{{city}}</p><p>{{discount_display}}</p><p>{{offer_terms}}</p><a href=\"{{newsletter_signup_url}}\">Offre</a>",
+    textContent: "Bonjour {{restaurant_name}} à {{city}} — {{discount_display}} {{offer_terms}} {{newsletter_signup_url}}",
     recipient: {
       prospectId: 42,
       restaurantName: "<Cuisine & Co>",
       city: "Paris",
     },
     audience: "invitation",
+    offer: {
+      name: "Offre France",
+      discountType: "fixed",
+      discountValue: "8.50",
+      validMonths: 4,
+    },
   });
   assert.match(message.html, /&lt;Cuisine &amp; Co&gt;/);
-  assert.match(message.html, /newsletter\/subscribe\?token=/);
+  assert.match(message.html, /xhaccp\.fr\/chef-event/);
+  assert.match(message.html, /8,50\s*€/);
+  assert.match(message.html, /4 mois/);
+  assert.doesNotMatch(message.html, /BIENVENUE20|20 ?%|12 mois/);
   assert.match(message.html, /prospect-unsubscribe\?token=/);
-  assert.match(message.text, /newsletter\/subscribe\?token=/);
+  assert.match(message.text, /xhaccp\.fr\/chef-event/);
   assert.equal(message.headers["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
 });
 
@@ -76,4 +85,24 @@ test("newsletter messages include an unsubscribe footer without the invitation C
   });
   assert.match(message.html, /prospect-unsubscribe\?token=/);
   assert.doesNotMatch(message.html, /newsletter\/subscribe\?token=/);
+});
+
+test("marketing test emails use safe generic links and never create subscription tokens", () => {
+  const message = buildProspectMarketingEmail({
+    htmlContent: '<a href="{{newsletter_signup_url}}">Join</a><a href="{{unsubscribe_url}}">Unsubscribe</a><p>{{discount_display}}</p>',
+    audience: "invitation",
+    offer: {
+      name: "Offre",
+      discountType: "percentage",
+      discountValue: "15",
+      validMonths: 3,
+    },
+    testMode: true,
+  });
+  assert.match(message.html, /xhaccp\.fr\/chef-event/);
+  assert.match(message.html, /xhaccp\.fr\/privacy/);
+  assert.match(message.html, /15\s*%/);
+  assert.match(message.html, /email de test uniquement/i);
+  assert.doesNotMatch(message.html, /subscribe\?token=|unsubscribe\?token=/);
+  assert.deepEqual(message.headers, {});
 });

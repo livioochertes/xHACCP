@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { EVENT_VOUCHER_ACTIVATION_DAYS, formatEventVoucherDiscount } from "./event-voucher";
 
 export type ProspectTokenPurpose = "subscribe" | "unsubscribe";
 
@@ -99,25 +100,55 @@ function stripHtml(value: string): string {
 export function buildProspectMarketingEmail(data: {
   htmlContent: string;
   textContent?: string | null;
-  recipient: ProspectMarketingEmailRecipient;
+  recipient?: ProspectMarketingEmailRecipient;
   audience: "invitation" | "newsletter";
+  offer?: {
+    name: string;
+    discountType: string;
+    discountValue: string;
+    validMonths: number;
+    activationDays?: number;
+  };
+  testMode?: boolean;
 }): ProspectMarketingEmailData {
-  const subscribeUrl = getProspectSubscribeUrl(data.recipient.prospectId);
-  const unsubscribeUrl = getProspectUnsubscribeUrl(data.recipient.prospectId);
-  const restaurantName = escapeHtml(data.recipient.restaurantName?.trim() || "votre restaurant");
-  const city = escapeHtml(data.recipient.city?.trim() || "");
+  if (!data.testMode && !data.recipient) {
+    throw new Error("A prospect recipient is required outside test mode");
+  }
+  const recipient = data.recipient;
+  const subscribeUrl = `${FRENCH_STOREFRONT_ORIGIN}/chef-event`;
+  const unsubscribeUrl = data.testMode || !recipient
+    ? `${FRENCH_STOREFRONT_ORIGIN}/privacy`
+    : getProspectUnsubscribeUrl(recipient.prospectId);
+  const restaurantName = escapeHtml(recipient?.restaurantName?.trim() || "votre restaurant");
+  const city = escapeHtml(recipient?.city?.trim() || "");
+  const offerName = escapeHtml(data.offer?.name || "Offre de bienvenue xHACCP France");
+  const discountDisplay = data.offer
+    ? formatEventVoucherDiscount(data.offer.discountType, data.offer.discountValue)
+    : "";
+  const activationDays = data.offer?.activationDays ?? EVENT_VOUCHER_ACTIVATION_DAYS;
+  const offerTerms = data.offer
+    ? `Première commande payée dans les ${activationDays} jours suivant l'inscription. Code valable ${data.offer.validMonths} mois à compter de l'inscription.`
+    : "";
   const htmlHadSignupPlaceholder = /\{\{\s*newsletter_signup_url\s*\}\}/i.test(data.htmlContent);
   const htmlHadUnsubscribePlaceholder = /\{\{\s*unsubscribe_url\s*\}\}/i.test(data.htmlContent);
   const textHadSignupPlaceholder = /\{\{\s*newsletter_signup_url\s*\}\}/i.test(data.textContent || "");
   const textHadUnsubscribePlaceholder = /\{\{\s*unsubscribe_url\s*\}\}/i.test(data.textContent || "");
   const replaceTokens = (value: string, format: "html" | "text") => value.replace(
-    /\{\{\s*(newsletter_signup_url|unsubscribe_url|restaurant_name|city)\s*\}\}/gi,
+    /\{\{\s*(newsletter_signup_url|unsubscribe_url|restaurant_name|city|offer_name|discount_display|discount_value|discount_type|valid_months|activation_days|offer_terms|landing_url)\s*\}\}/gi,
     (_match, token: string) => {
       switch (token.toLowerCase()) {
         case "newsletter_signup_url": return subscribeUrl;
         case "unsubscribe_url": return unsubscribeUrl;
-        case "restaurant_name": return format === "html" ? restaurantName : (data.recipient.restaurantName?.trim() || "votre restaurant");
-        case "city": return format === "html" ? city : (data.recipient.city?.trim() || "");
+        case "restaurant_name": return format === "html" ? restaurantName : (recipient?.restaurantName?.trim() || "votre restaurant");
+        case "city": return format === "html" ? city : (recipient?.city?.trim() || "");
+        case "offer_name": return format === "html" ? offerName : (data.offer?.name || "Offre de bienvenue xHACCP France");
+        case "discount_display": return format === "html" ? escapeHtml(discountDisplay) : discountDisplay;
+        case "discount_value": return format === "html" ? escapeHtml(data.offer?.discountValue || "") : (data.offer?.discountValue || "");
+        case "discount_type": return data.offer?.discountType || "";
+        case "valid_months": return data.offer ? String(data.offer.validMonths) : "";
+        case "activation_days": return String(activationDays);
+        case "offer_terms": return format === "html" ? escapeHtml(offerTerms) : offerTerms;
+        case "landing_url": return subscribeUrl;
         default: return "";
       }
     },
@@ -126,10 +157,10 @@ export function buildProspectMarketingEmail(data: {
   let html = replaceTokens(data.htmlContent, "html");
   let text = replaceTokens(data.textContent || stripHtml(data.htmlContent), "text");
   if (data.audience === "invitation" && !htmlHadSignupPlaceholder) {
-    html += `<p style="margin:24px 0;"><a href="${subscribeUrl}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;">M'inscrire à la newsletter et recevoir mon voucher de -20%</a></p>`;
+    html += `<p style="margin:24px 0;"><a href="${subscribeUrl}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;">M'inscrire et recevoir mon code personnel${discountDisplay ? ` de ${escapeHtml(discountDisplay)}` : ""}</a></p>`;
   }
   if (data.audience === "invitation" && !textHadSignupPlaceholder) {
-    text += `\n\nInscrivez-vous à la newsletter et recevez votre voucher de -20% : ${subscribeUrl}`;
+    text += `\n\nInscrivez-vous pour recevoir votre code personnel${discountDisplay ? ` de ${discountDisplay}` : ""} : ${subscribeUrl}`;
   }
   if (!htmlHadUnsubscribePlaceholder) {
     html += `<p style="margin-top:24px;font-size:12px;color:#64748b;">Vous ne souhaitez plus recevoir ces messages ? <a href="${unsubscribeUrl}">Se désabonner</a>.</p>`;
@@ -138,10 +169,15 @@ export function buildProspectMarketingEmail(data: {
     text += `\n\nNe plus recevoir ces messages : ${unsubscribeUrl}`;
   }
 
+  if (data.testMode) {
+    html = `<div style="padding:10px 14px;background:#fff4cc;color:#7c4a03;font:14px Arial,sans-serif;text-align:center">Email de test uniquement — aucun abonnement ni statut de destinataire n'a été modifié.</div>${html}`;
+    text = `EMAIL DE TEST — aucun abonnement ni statut de destinataire n'a été modifié.\n\n${text}`;
+  }
+
   return {
     html,
     text,
-    headers: {
+    headers: data.testMode ? {} : {
       "List-Unsubscribe": `<${unsubscribeUrl}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     },
