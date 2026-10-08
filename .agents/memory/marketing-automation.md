@@ -32,3 +32,9 @@ The user wants prospect campaigns sent in 300–500-recipient batches, with Send
 **Why:** Batch-level submission confirmation and recipient-level delivery confirmation answer different questions, while transient deferrals should not permanently remove a valid contact.
 
 **How to apply:** Keep batches at or below 500, use signed SendGrid events for delivery state, and never automatically resend an ambiguous network outcome because it may duplicate a message.
+
+Campaign analysis should distinguish event totals from unique recipients. Open metrics should call out machine/privacy-generated opens as estimates, and app-managed unsubscribe events should retain signed campaign attribution.
+
+**Why:** SendGrid can report repeated and automated opens, while an unsubscribe through the app's own link is not necessarily emitted as a SendGrid unsubscribe event.
+
+**How to apply:** Show unique counts alongside event counts, label open rates as indicative, and keep campaign attribution in the signed unsubscribe token rather than an editable query parameter.

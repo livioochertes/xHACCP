@@ -11491,7 +11491,7 @@
       campaignFinished: "Sending finished: {{accepted}} accepted by SendGrid, {{delivered}} delivered, {{failed}} send errors, {{unknown}} unconfirmed.",
       campaignMonitorTimeout: "Sending is continuing in the background. Reload the campaign to see its latest status.",
       deliveryMeaning: "\u201CAccepted\u201D means SendGrid took the message. \u201CDelivered\u201D means the recipient's server accepted it; it does not confirm inbox placement.",
-      deliverySetupHint: "Delivery, bounce, and unsubscribe confirmations appear after the signed SendGrid Event Webhook is enabled.",
+      deliverySetupHint: "Opens, clicks, delivery, bounce, and unsubscribe events appear after enabling the signed Event Webhook and Open/Click Tracking in SendGrid.",
       deliveryAccepted: "Accepted by SendGrid",
       deliveryDelivered: "Delivered to server",
       deliveryDeferred: "Deferred",
@@ -11501,6 +11501,20 @@
       deliveryUnknown: "Unconfirmed",
       deliverySuppressed: "Skipped before sending",
       deliveryUnsubscribed: "Unsubscribes",
+      deliveryEngagementTitle: "Engagement and SendGrid events",
+      deliveryRefreshAnalytics: "Refresh analytics",
+      deliveryOpens: "Opens",
+      deliveryMachineOpens: "Opens identified as automated",
+      deliveryClicks: "Clicks",
+      deliveryBounceEvents: "Permanent bounces",
+      deliveryBlockedEvents: "Temporary blocks",
+      deliverySpamReports: "Spam reports",
+      deliveryUnsubscribeEvents: "Confirmed unsubscribes",
+      deliveryProcessedEvents: "Processed by SendGrid",
+      deliveryGroupResubscribes: "Group resubscribes",
+      deliveryAnalyticsMetric: "{{events}} events \xB7 {{recipients}} unique recipients",
+      deliveryAnalyticsRate: "{{rate}} of delivered recipients",
+      deliveryEngagementDisclaimer: "Opens can include automated scans or privacy-protection activity; treat them as indicative, not proof that a person read the message.",
       deliveryBatch: "Batch {{number}}: {{accepted}} accepted \xB7 {{delivered}} delivered \xB7 {{failed}} issues \xB7 {{status}}",
       viewDeliveryRecipients: "View recipient details",
       hideDeliveryRecipients: "Hide recipient details",
@@ -11527,6 +11541,8 @@
       deliveryColumnEmail: "Email address",
       deliveryColumnStatus: "Status",
       deliveryColumnBatch: "Batch",
+      deliveryColumnOpenCount: "Opens",
+      deliveryColumnClickCount: "Clicks",
       deliveryColumnLastEvent: "Last SendGrid event",
       deliveryColumnUpdated: "Updated",
       statusPartial: "partial",
@@ -12612,7 +12628,7 @@
       campaignFinished: "Procesare \xEEncheiat\u0103: {{accepted}} acceptate de SendGrid, {{delivered}} livrate, {{failed}} erori de trimitere, {{unknown}} f\u0103r\u0103 confirmare.",
       campaignMonitorTimeout: "Trimiterea continu\u0103 \xEEn fundal. Re\xEEncarc\u0103 pagina campaniei pentru starea actualizat\u0103.",
       deliveryMeaning: "\u201EAcceptat\u201D \xEEnseamn\u0103 c\u0103 SendGrid a preluat mesajul. \u201ELivrat\u201D \xEEnseamn\u0103 c\u0103 serverul destinatarului l-a acceptat; nu confirm\u0103 afi\u0219area \xEEn inbox.",
-      deliverySetupHint: "Confirm\u0103rile de livrare, bounce \u0219i dezabonare apar dup\u0103 activarea Event Webhook-ului semnat din SendGrid.",
+      deliverySetupHint: "Deschiderile, clickurile, livr\u0103rile, bounce-urile \u0219i dezabon\u0103rile apar dup\u0103 activarea Event Webhook-ului semnat \u0219i a Open/Click Tracking \xEEn SendGrid.",
       deliveryAccepted: "Acceptate de SendGrid",
       deliveryDelivered: "Livrate la server",
       deliveryDeferred: "Am\xE2nate",
@@ -12622,6 +12638,20 @@
       deliveryUnknown: "F\u0103r\u0103 confirmare",
       deliverySuppressed: "Suprimate \xEEnainte de trimitere",
       deliveryUnsubscribed: "Dezabon\u0103ri",
+      deliveryEngagementTitle: "Interac\u021Biuni \u0219i evenimente SendGrid",
+      deliveryRefreshAnalytics: "Re\xEEmprosp\u0103teaz\u0103 analiza",
+      deliveryOpens: "Deschideri",
+      deliveryMachineOpens: "Deschideri identificate ca automatizate",
+      deliveryClicks: "Clickuri",
+      deliveryBounceEvents: "Bounce permanente",
+      deliveryBlockedEvents: "Bloc\u0103ri temporare",
+      deliverySpamReports: "Raport\u0103ri spam",
+      deliveryUnsubscribeEvents: "Dezabon\u0103ri confirmate",
+      deliveryProcessedEvents: "Procesate de SendGrid",
+      deliveryGroupResubscribes: "Reabon\u0103ri la grup",
+      deliveryAnalyticsMetric: "{{events}} evenimente \xB7 {{recipients}} destinatari unici",
+      deliveryAnalyticsRate: "{{rate}} din destinatarii livra\u021Bi",
+      deliveryEngagementDisclaimer: "Deschiderile pot include scan\u0103ri automate sau protec\u021Bii de confiden\u021Bialitate; sunt indicatori, nu dovad\u0103 c\u0103 mesajul a fost citit.",
       deliveryBatch: "Calup {{number}}: {{accepted}} acceptate \xB7 {{delivered}} livrate \xB7 {{failed}} probleme \xB7 {{status}}",
       viewDeliveryRecipients: "Vezi detaliile destinatarilor",
       hideDeliveryRecipients: "Ascunde detaliile destinatarilor",
@@ -12648,6 +12678,8 @@
       deliveryColumnEmail: "Adres\u0103 de email",
       deliveryColumnStatus: "Stare",
       deliveryColumnBatch: "Calup",
+      deliveryColumnOpenCount: "Deschideri",
+      deliveryColumnClickCount: "Clickuri",
       deliveryColumnLastEvent: "Ultimul eveniment SendGrid",
       deliveryColumnUpdated: "Actualizat",
       statusPartial: "par\u021Bial\u0103",
@@ -13733,7 +13765,7 @@
       campaignFinished: "Envoi termin\xE9 : {{accepted}} accept\xE9s par SendGrid, {{delivered}} livr\xE9s, {{failed}} \xE9checs d'envoi, {{unknown}} sans confirmation.",
       campaignMonitorTimeout: "L'envoi continue en arri\xE8re-plan. Actualisez la campagne pour voir son \xE9tat.",
       deliveryMeaning: "\xAB Accept\xE9 \xBB signifie que SendGrid a pris en charge le message. \xAB Livr\xE9 \xBB signifie que le serveur du destinataire l'a accept\xE9, sans garantir son arriv\xE9e dans la bo\xEEte de r\xE9ception.",
-      deliverySetupHint: "Les confirmations de livraison, rebonds et d\xE9sabonnements apparaissent apr\xE8s l'activation de l'Event Webhook sign\xE9 dans SendGrid.",
+      deliverySetupHint: "Les ouvertures, clics, livraisons, rebonds et d\xE9sabonnements apparaissent apr\xE8s l'activation de l'Event Webhook sign\xE9 et du suivi des ouvertures/clics dans SendGrid.",
       deliveryAccepted: "Accept\xE9s par SendGrid",
       deliveryDelivered: "Livr\xE9s au serveur",
       deliveryDeferred: "Diff\xE9r\xE9s",
@@ -13743,6 +13775,20 @@
       deliveryUnknown: "Sans confirmation",
       deliverySuppressed: "\xC9cart\xE9s avant l'envoi",
       deliveryUnsubscribed: "D\xE9sabonnements",
+      deliveryEngagementTitle: "Interactions et \xE9v\xE9nements SendGrid",
+      deliveryRefreshAnalytics: "Actualiser l\u2019analyse",
+      deliveryOpens: "Ouvertures",
+      deliveryMachineOpens: "Ouvertures identifi\xE9es comme automatis\xE9es",
+      deliveryClicks: "Clics",
+      deliveryBounceEvents: "Rebonds permanents",
+      deliveryBlockedEvents: "Blocages temporaires",
+      deliverySpamReports: "Signalements comme spam",
+      deliveryUnsubscribeEvents: "D\xE9sabonnements confirm\xE9s",
+      deliveryProcessedEvents: "Trait\xE9s par SendGrid",
+      deliveryGroupResubscribes: "R\xE9inscriptions au groupe",
+      deliveryAnalyticsMetric: "{{events}} \xE9v\xE9nements \xB7 {{recipients}} destinataires uniques",
+      deliveryAnalyticsRate: "{{rate}} des destinataires livr\xE9s",
+      deliveryEngagementDisclaimer: "Les ouvertures peuvent inclure des robots ou des protections de confidentialit\xE9 ; elles sont indicatives et ne prouvent pas la lecture du message.",
       deliveryBatch: "Lot {{number}} : {{accepted}} accept\xE9s \xB7 {{delivered}} livr\xE9s \xB7 {{failed}} probl\xE8mes \xB7 {{status}}",
       viewDeliveryRecipients: "Voir le d\xE9tail des destinataires",
       hideDeliveryRecipients: "Masquer le d\xE9tail des destinataires",
@@ -13769,6 +13815,8 @@
       deliveryColumnEmail: "Adresse email",
       deliveryColumnStatus: "\xC9tat",
       deliveryColumnBatch: "Lot",
+      deliveryColumnOpenCount: "Ouvertures",
+      deliveryColumnClickCount: "Clics",
       deliveryColumnLastEvent: "Dernier \xE9v\xE9nement SendGrid",
       deliveryColumnUpdated: "Mis \xE0 jour",
       statusPartial: "partielle",
@@ -22910,6 +22958,22 @@ This action cannot be undone.`)) {
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "18px", display: "grid", gap: "8px" }, children: marketingCampaigns.map((campaign) => {
                 const deliveryCounts = campaign.delivery?.counts || {};
+                const campaignEventAnalytics = campaign.delivery?.eventAnalytics || {};
+                const getEventMetric = (key) => campaignEventAnalytics[key] || { eventCount: 0, uniqueRecipients: 0 };
+                const deliveredUniqueRecipients = getEventMetric("delivered").uniqueRecipients;
+                const campaignAnalyticsMetrics = [
+                  { key: "opens", label: "deliveryOpens", rate: true },
+                  { key: "machineOpens", label: "deliveryMachineOpens" },
+                  { key: "clicks", label: "deliveryClicks", rate: true },
+                  { key: "bounces", label: "deliveryBounceEvents" },
+                  { key: "blocked", label: "deliveryBlockedEvents" },
+                  { key: "deferred", label: "deliveryDeferred" },
+                  { key: "dropped", label: "deliveryDropped" },
+                  { key: "spamReports", label: "deliverySpamReports" },
+                  { key: "unsubscribes", label: "deliveryUnsubscribeEvents" },
+                  { key: "processed", label: "deliveryProcessedEvents" },
+                  { key: "groupResubscribes", label: "deliveryGroupResubscribes" }
+                ];
                 const statusLabel = campaign.status === "draft" ? t2("marketing.statusDraft") : campaign.status === "sending" ? t2("marketing.statusSending") : campaign.status === "sent" ? t2("marketing.statusSent") : campaign.status === "partial" ? t2("marketing.statusPartial") : campaign.status === "failed" ? t2("marketing.statusFailed") : campaign.status;
                 const canSend = campaign.status === "draft" || campaign.status === "failed" && !campaign.delivery?.batches?.length;
                 const recipientView = marketingDeliveryRecipientViews[campaign.id];
@@ -22992,6 +23056,26 @@ This action cannot be undone.`)) {
                           deliveryCounts.unsubscribed || 0
                         ] })
                       ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "8px", paddingTop: "7px", borderTop: "1px solid #e2e8f0" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: t2("marketing.deliveryEngagementTitle") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: "5px" }, children: campaignAnalyticsMetrics.map((item) => {
+                          const metric = getEventMetric(item.key);
+                          const rate = deliveredUniqueRecipients > 0 ? `${(metric.uniqueRecipients / deliveredUniqueRecipients * 100).toFixed(1)}%` : null;
+                          return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("strong", { children: [
+                              t2(`marketing.${item.label}`),
+                              ":"
+                            ] }),
+                            " ",
+                            t2("marketing.deliveryAnalyticsMetric", {
+                              events: metric.eventCount,
+                              recipients: metric.uniqueRecipients
+                            }),
+                            item.rate && rate ? ` \xB7 ${t2("marketing.deliveryAnalyticsRate", { rate })}` : ""
+                          ] }, item.key);
+                        }) }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("small", { style: { display: "block", marginTop: "5px", color: "#64748b" }, children: t2("marketing.deliveryEngagementDisclaimer") })
+                      ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "grid", gap: "2px", marginTop: "5px" }, children: campaign.delivery.batches.map((batch) => {
                         const batchStatus = batch.status === "sending" ? t2("marketing.statusSending") : batch.status === "partial" ? t2("marketing.statusPartial") : batch.status === "failed" ? t2("marketing.statusFailed") : t2("marketing.statusSent");
                         return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: t2("marketing.deliveryBatch", {
@@ -23040,6 +23124,14 @@ This action cannot be undone.`)) {
                     campaign.delivery?.batches?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                       "button",
                       {
+                        onClick: fetchMarketing,
+                        style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: "pointer" },
+                        children: t2("marketing.deliveryRefreshAnalytics")
+                      }
+                    ),
+                    campaign.delivery?.batches?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "button",
+                      {
                         onClick: () => {
                           if (openMarketingDeliveryCampaignId === campaign.id) {
                             setOpenMarketingDeliveryCampaignId(null);
@@ -23077,11 +23169,13 @@ This action cannot be undone.`)) {
                       )
                     ] }),
                     recipientView?.loading ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { padding: "12px", color: "#64748b" }, children: t2("marketing.deliveryRecipientsLoading") }) : recipientView?.recipients?.length ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", minWidth: "680px", borderCollapse: "collapse", fontSize: "12px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", minWidth: "820px", borderCollapse: "collapse", fontSize: "12px" }, children: [
                         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
                           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnEmail") }),
                           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnStatus") }),
                           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnBatch") }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnOpenCount") }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnClickCount") }),
                           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnLastEvent") }),
                           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnUpdated") })
                         ] }) }),
@@ -23089,6 +23183,8 @@ This action cannot be undone.`)) {
                           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: recipient.email }),
                           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: t2(`marketing.${recipientStatusLabels[recipient.status] || "deliveryStatusUnknown"}`) }),
                           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: recipient.batchNumber ?? "\u2014" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: recipient.openCount || 0 }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: recipient.clickCount || 0 }),
                           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: recipient.lastEvent === "app_unsubscribe" ? t2("marketing.deliveryStatusUnsubscribed") : recipient.lastEvent || "\u2014" }),
                           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: recipient.lastEventAt || recipient.updatedAt ? new Date(recipient.lastEventAt || recipient.updatedAt).toLocaleString() : "\u2014" })
                         ] }, recipient.id)) })

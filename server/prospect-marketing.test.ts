@@ -5,6 +5,7 @@ import {
   buildProspectMarketingEmail,
   createProspectMarketingToken,
   verifyProspectMarketingToken,
+  verifyProspectMarketingTokenClaims,
 } from "./prospect-marketing-security";
 
 process.env.SESSION_SECRET ||= "prospect-marketing-test-secret-with-at-least-32-characters";
@@ -50,12 +51,24 @@ test("marketing tokens are signed for one purpose and cannot be changed", () => 
   assert.equal(verifyProspectMarketingToken("subscribe", "0.invalid"), null);
 });
 
+test("campaign unsubscribe tokens identify their source campaign and reject tampering", () => {
+  const token = createProspectMarketingToken("unsubscribe", 42, 101);
+  assert.deepEqual(verifyProspectMarketingTokenClaims("unsubscribe", token), {
+    prospectId: 42,
+    campaignId: 101,
+  });
+  assert.equal(verifyProspectMarketingToken("unsubscribe", token), 42);
+  assert.equal(verifyProspectMarketingTokenClaims("subscribe", token), null);
+  assert.equal(verifyProspectMarketingTokenClaims("unsubscribe", "42.102." + token.split(".")[2]), null);
+});
+
 test("prospect invitation adds signup and unsubscribe links and escapes imported business fields", () => {
   const message = buildProspectMarketingEmail({
     htmlContent: "<h1>{{restaurant_name}}</h1><p>{{city}}</p><p>{{discount_display}}</p><p>{{offer_terms}}</p><a href=\"{{newsletter_signup_url}}\">Offre</a>",
     textContent: "Bonjour {{restaurant_name}} à {{city}} — {{discount_display}} {{offer_terms}} {{newsletter_signup_url}}",
     recipient: {
       prospectId: 42,
+      campaignId: 101,
       restaurantName: "<Cuisine & Co>",
       city: "Paris",
     },
@@ -73,6 +86,7 @@ test("prospect invitation adds signup and unsubscribe links and escapes imported
   assert.match(message.html, /4 mois/);
   assert.doesNotMatch(message.html, /BIENVENUE20|20 ?%|12 mois/);
   assert.match(message.html, /prospect-unsubscribe\?token=/);
+  assert.match(message.html, /token=42\.101\./);
   assert.match(message.text, /xhaccp\.fr\/chef-event/);
   assert.equal(message.headers["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
 });

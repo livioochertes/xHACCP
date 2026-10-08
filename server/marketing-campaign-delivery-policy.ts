@@ -46,6 +46,23 @@ export function nextDeliveryStatus(
   return null;
 }
 
+export function normalizeSendGridEvent(
+  eventName: string,
+  eventType?: unknown,
+  machineOpen?: unknown,
+): { storedEventType: string; deliveryEventName: string } {
+  const normalizedName = eventName.trim().toLowerCase();
+  const normalizedType = typeof eventType === "string" ? eventType.trim().toLowerCase() : "";
+
+  if (normalizedName === "bounce" && normalizedType === "blocked") {
+    return { storedEventType: "blocked", deliveryEventName: "deferred" };
+  }
+  if (normalizedName === "open" && machineOpen === true) {
+    return { storedEventType: "machine_open", deliveryEventName: "machine_open" };
+  }
+  return { storedEventType: normalizedName, deliveryEventName: normalizedName };
+}
+
 export function shouldSuppressDroppedProspect(reason: unknown): boolean {
   return typeof reason === "string"
     && /(invalid|bounce|unsubscr|spam|block|suppress|mailbox not found)/i.test(reason);

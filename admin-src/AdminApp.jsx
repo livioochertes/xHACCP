@@ -6454,6 +6454,22 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                   <div style={{marginTop: '18px', display: 'grid', gap: '8px'}}>
                     {marketingCampaigns.map(campaign => {
                       const deliveryCounts = campaign.delivery?.counts || {};
+                      const campaignEventAnalytics = campaign.delivery?.eventAnalytics || {};
+                      const getEventMetric = key => campaignEventAnalytics[key] || {eventCount: 0, uniqueRecipients: 0};
+                      const deliveredUniqueRecipients = getEventMetric('delivered').uniqueRecipients;
+                      const campaignAnalyticsMetrics = [
+                        {key: 'opens', label: 'deliveryOpens', rate: true},
+                        {key: 'machineOpens', label: 'deliveryMachineOpens'},
+                        {key: 'clicks', label: 'deliveryClicks', rate: true},
+                        {key: 'bounces', label: 'deliveryBounceEvents'},
+                        {key: 'blocked', label: 'deliveryBlockedEvents'},
+                        {key: 'deferred', label: 'deliveryDeferred'},
+                        {key: 'dropped', label: 'deliveryDropped'},
+                        {key: 'spamReports', label: 'deliverySpamReports'},
+                        {key: 'unsubscribes', label: 'deliveryUnsubscribeEvents'},
+                        {key: 'processed', label: 'deliveryProcessedEvents'},
+                        {key: 'groupResubscribes', label: 'deliveryGroupResubscribes'},
+                      ];
                       const statusLabel = campaign.status === 'draft' ? t('marketing.statusDraft')
                         : campaign.status === 'sending' ? t('marketing.statusSending')
                           : campaign.status === 'sent' ? t('marketing.statusSent')
@@ -6497,6 +6513,30 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                   <span>{t('marketing.deliveryUnknown')}: {deliveryCounts.unknown || 0}</span>
                                   <span>{t('marketing.deliverySuppressed')}: {deliveryCounts.suppressed || 0}</span>
                                   <span>{t('marketing.deliveryUnsubscribed')}: {deliveryCounts.unsubscribed || 0}</span>
+                                </div>
+                                <div style={{marginTop: '8px', paddingTop: '7px', borderTop: '1px solid #e2e8f0'}}>
+                                  <strong>{t('marketing.deliveryEngagementTitle')}</strong>
+                                  <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px 12px', marginTop: '5px'}}>
+                                    {campaignAnalyticsMetrics.map(item => {
+                                      const metric = getEventMetric(item.key);
+                                      const rate = deliveredUniqueRecipients > 0
+                                        ? `${((metric.uniqueRecipients / deliveredUniqueRecipients) * 100).toFixed(1)}%`
+                                        : null;
+                                      return (
+                                        <span key={item.key}>
+                                          <strong>{t(`marketing.${item.label}`)}:</strong>{' '}
+                                          {t('marketing.deliveryAnalyticsMetric', {
+                                            events: metric.eventCount,
+                                            recipients: metric.uniqueRecipients
+                                          })}
+                                          {item.rate && rate ? ` · ${t('marketing.deliveryAnalyticsRate', {rate})}` : ''}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                  <small style={{display: 'block', marginTop: '5px', color: '#64748b'}}>
+                                    {t('marketing.deliveryEngagementDisclaimer')}
+                                  </small>
                                 </div>
                                 <div style={{display: 'grid', gap: '2px', marginTop: '5px'}}>
                                   {campaign.delivery.batches.map(batch => {
@@ -6545,6 +6585,12 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                               {marketingCampaignSendingId === campaign.id ? t('marketing.statusSending') : t('marketing.sendCampaign')}
                             </button>}
                             {campaign.delivery?.batches?.length > 0 && <button
+                              onClick={fetchMarketing}
+                              style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}
+                            >
+                              {t('marketing.deliveryRefreshAnalytics')}
+                            </button>}
+                            {campaign.delivery?.batches?.length > 0 && <button
                               onClick={() => {
                                 if (openMarketingDeliveryCampaignId === campaign.id) {
                                   setOpenMarketingDeliveryCampaignId(null);
@@ -6584,11 +6630,13 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                 <div style={{padding: '12px', color: '#64748b'}}>{t('marketing.deliveryRecipientsLoading')}</div>
                               ) : recipientView?.recipients?.length ? (
                                 <>
-                                  <table style={{width: '100%', minWidth: '680px', borderCollapse: 'collapse', fontSize: '12px'}}>
+                                   <table style={{width: '100%', minWidth: '820px', borderCollapse: 'collapse', fontSize: '12px'}}>
                                     <thead><tr>
                                       <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnEmail')}</th>
                                       <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnStatus')}</th>
                                       <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnBatch')}</th>
+                                       <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnOpenCount')}</th>
+                                       <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnClickCount')}</th>
                                       <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnLastEvent')}</th>
                                       <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnUpdated')}</th>
                                     </tr></thead>
@@ -6597,6 +6645,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                         <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{recipient.email}</td>
                                         <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{t(`marketing.${recipientStatusLabels[recipient.status] || 'deliveryStatusUnknown'}`)}</td>
                                         <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{recipient.batchNumber ?? '—'}</td>
+                                         <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{recipient.openCount || 0}</td>
+                                         <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{recipient.clickCount || 0}</td>
                                         <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{recipient.lastEvent === 'app_unsubscribe' ? t('marketing.deliveryStatusUnsubscribed') : recipient.lastEvent || '—'}</td>
                                         <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{recipient.lastEventAt || recipient.updatedAt ? new Date(recipient.lastEventAt || recipient.updatedAt).toLocaleString() : '—'}</td>
                                       </tr>

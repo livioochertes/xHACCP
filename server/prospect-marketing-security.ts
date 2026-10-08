@@ -11,8 +11,14 @@ export type ProspectMarketingEmailData = {
 
 export type ProspectMarketingEmailRecipient = {
   prospectId: number;
+  campaignId?: number;
   restaurantName?: string | null;
   city?: string | null;
+};
+
+export type ProspectMarketingTokenClaims = {
+  prospectId: number;
+  campaignId?: number;
 };
 
 export const FRENCH_STOREFRONT_ORIGIN = "https://xhaccp.fr";
@@ -28,36 +34,66 @@ function tokenSecret(): string {
 export function createProspectMarketingToken(
   purpose: ProspectTokenPurpose,
   prospectId: number,
+  campaignId?: number,
 ): string {
   if (!Number.isSafeInteger(prospectId) || prospectId <= 0) {
     throw new Error("Invalid prospect ID");
   }
-  const payload = `xhaccp-prospect-v1:${purpose}:${prospectId}`;
+  if (campaignId !== undefined && (
+    purpose !== "unsubscribe"
+    || !Number.isSafeInteger(campaignId)
+    || campaignId <= 0
+  )) {
+    throw new Error("Invalid campaign ID for prospect marketing token");
+  }
+  const campaignPart = campaignId === undefined ? "" : `:${campaignId}`;
+  const payload = `xhaccp-prospect-v1:${purpose}:${prospectId}${campaignPart}`;
   const signature = createHmac("sha256", tokenSecret()).update(payload).digest("base64url");
-  return `${prospectId}.${signature}`;
+  return campaignId === undefined
+    ? `${prospectId}.${signature}`
+    : `${prospectId}.${campaignId}.${signature}`;
 }
 
-export function verifyProspectMarketingToken(
+export function verifyProspectMarketingTokenClaims(
   purpose: ProspectTokenPurpose,
   token: unknown,
-): number | null {
+): ProspectMarketingTokenClaims | null {
   if (typeof token !== "string" || token.length > 256) return null;
-  const [idText, signature, extra] = token.split(".");
-  if (!idText || !signature || extra !== undefined || !/^\d+$/.test(idText)) return null;
+  const parts = token.split(".");
+  if (parts.length !== 2 && parts.length !== 3) return null;
+  const idText = parts[0];
+  const campaignText = parts.length === 3 ? parts[1] : undefined;
+  const signature = parts[parts.length - 1];
+  if (!idText || !signature || !/^\d+$/.test(idText)) return null;
   const prospectId = Number(idText);
   if (!Number.isSafeInteger(prospectId) || prospectId <= 0) return null;
+  const campaignId = campaignText === undefined ? undefined : Number(campaignText);
+  if (campaignText !== undefined && (
+    purpose !== "unsubscribe"
+    || !/^\d+$/.test(campaignText)
+    || !Number.isSafeInteger(campaignId)
+    || (campaignId || 0) <= 0
+  )) return null;
 
   let expected: Buffer;
   let actual: Buffer;
   try {
-    const payload = `xhaccp-prospect-v1:${purpose}:${prospectId}`;
+    const campaignPart = campaignId === undefined ? "" : `:${campaignId}`;
+    const payload = `xhaccp-prospect-v1:${purpose}:${prospectId}${campaignPart}`;
     expected = Buffer.from(createHmac("sha256", tokenSecret()).update(payload).digest("base64url"));
     actual = Buffer.from(signature);
   } catch {
     return null;
   }
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
-  return prospectId;
+  return campaignId === undefined ? { prospectId } : { prospectId, campaignId };
+}
+
+export function verifyProspectMarketingToken(
+  purpose: ProspectTokenPurpose,
+  token: unknown,
+): number | null {
+  return verifyProspectMarketingTokenClaims(purpose, token)?.prospectId ?? null;
 }
 
 export function getProspectSubscribeUrl(prospectId: number): string {
@@ -65,8 +101,8 @@ export function getProspectSubscribeUrl(prospectId: number): string {
   return `${FRENCH_STOREFRONT_ORIGIN}/newsletter/subscribe?token=${encodeURIComponent(token)}`;
 }
 
-export function getProspectUnsubscribeUrl(prospectId: number): string {
-  const token = createProspectMarketingToken("unsubscribe", prospectId);
+export function getProspectUnsubscribeUrl(prospectId: number, campaignId?: number): string {
+  const token = createProspectMarketingToken("unsubscribe", prospectId, campaignId);
   return `${FRENCH_STOREFRONT_ORIGIN}/api/marketing/prospect-unsubscribe?token=${encodeURIComponent(token)}`;
 }
 
@@ -118,7 +154,7 @@ export function buildProspectMarketingEmail(data: {
   const subscribeUrl = `${FRENCH_STOREFRONT_ORIGIN}/chef-event`;
   const unsubscribeUrl = data.testMode || !recipient
     ? `${FRENCH_STOREFRONT_ORIGIN}/privacy`
-    : getProspectUnsubscribeUrl(recipient.prospectId);
+    : getProspectUnsubscribeUrl(recipient.prospectId, recipient.campaignId);
   const restaurantName = escapeHtml(recipient?.restaurantName?.trim() || "votre restaurant");
   const city = escapeHtml(recipient?.city?.trim() || "");
   const offerName = escapeHtml(data.offer?.name || "Offre de bienvenue xHACCP France");

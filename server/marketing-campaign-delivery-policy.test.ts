@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { test } from "node:test";
 import {
+  normalizeSendGridEvent,
   nextDeliveryStatus,
   shouldSuppressDroppedProspect,
   splitIntoBatches,
@@ -24,6 +25,21 @@ test("delivery events advance recipient status without replacing stronger termin
   assert.equal(nextDeliveryStatus("accepted", "bounce"), "bounced");
   assert.equal(nextDeliveryStatus("accepted", "spamreport"), "spam_report");
   assert.equal(nextDeliveryStatus("accepted", "group_unsubscribe"), "unsubscribed");
+});
+
+test("SendGrid blocked events remain temporary and machine opens are identified", () => {
+  assert.deepEqual(normalizeSendGridEvent("bounce", "blocked"), {
+    storedEventType: "blocked",
+    deliveryEventName: "deferred",
+  });
+  assert.deepEqual(normalizeSendGridEvent("open", undefined, true), {
+    storedEventType: "machine_open",
+    deliveryEventName: "machine_open",
+  });
+  assert.deepEqual(normalizeSendGridEvent("click"), {
+    storedEventType: "click",
+    deliveryEventName: "click",
+  });
 });
 
 test("only permanent address-related SendGrid drops are eligible for suppression", () => {

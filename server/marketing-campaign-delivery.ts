@@ -19,6 +19,7 @@ import {
 import { EVENT_VOUCHER_CAMPAIGN_SLUG } from "./event-voucher";
 import {
   MARKETING_CAMPAIGN_BATCH_SIZE,
+  normalizeSendGridEvent,
   nextDeliveryStatus,
   shouldSuppressDroppedProspect,
   splitIntoBatches,
@@ -45,6 +46,7 @@ export interface MarketingCampaignDeliverySummary {
   recipientCount: number;
   batchSize: number;
   counts: Record<MarketingCampaignDeliveryStatus, number>;
+  eventAnalytics: Record<string, { eventCount: number; uniqueRecipients: number }>;
   batches: Array<{
     id: number;
     batchNumber: number;
@@ -327,6 +329,7 @@ async function sendCampaignRecipient(
       textContent: campaign.textContent,
       recipient: {
         prospectId,
+        campaignId: campaign.id,
         restaurantName: personalization.restaurantName,
         city: personalization.city,
       },
@@ -511,6 +514,8 @@ export async function getMarketingCampaignDeliveryRecipients(
     lastEvent: string | null;
     lastEventAt: Date | null;
     updatedAt: Date;
+    openCount: number;
+    clickCount: number;
   }>;
   total: number;
   page: number;
@@ -538,10 +543,34 @@ export async function getMarketingCampaignDeliveryRecipients(
     .limit(pageSize)
     .offset((page - 1) * pageSize);
 
+  const recipientIds = recipients.map((recipient) => recipient.id);
+  const engagementRows = recipientIds.length
+    ? await db.select({
+      recipientId: sendgridCampaignWebhookEvents.recipientId,
+      eventType: sendgridCampaignWebhookEvents.eventType,
+      count: sql<number>`count(*)::int`,
+    })
+      .from(sendgridCampaignWebhookEvents)
+      .where(and(
+        inArray(sendgridCampaignWebhookEvents.recipientId, recipientIds),
+        inArray(sendgridCampaignWebhookEvents.eventType, ["open", "machine_open", "click"]),
+      ))
+      .groupBy(sendgridCampaignWebhookEvents.recipientId, sendgridCampaignWebhookEvents.eventType)
+    : [];
+  const engagementByRecipient = new Map<number, { openCount: number; clickCount: number }>();
+  for (const row of engagementRows) {
+    if (!row.recipientId) continue;
+    const current = engagementByRecipient.get(row.recipientId) || { openCount: 0, clickCount: 0 };
+    if (row.eventType === "open" || row.eventType === "machine_open") current.openCount += Number(row.count);
+    if (row.eventType === "click") current.clickCount += Number(row.count);
+    engagementByRecipient.set(row.recipientId, current);
+  }
+
   return {
     recipients: recipients.map((recipient) => ({
       ...recipient,
       status: recipient.status as MarketingCampaignDeliveryStatus,
+      ...(engagementByRecipient.get(recipient.id) || { openCount: 0, clickCount: 0 }),
     })),
     total: Number(totalRow?.count || 0),
     page,
@@ -549,8 +578,30 @@ export async function getMarketingCampaignDeliveryRecipients(
   };
 }
 
-export async function markProspectCampaignRecipientsUnsubscribed(prospectId: number): Promise<void> {
+export async function markProspectCampaignRecipientsUnsubscribed(
+  prospectId: number,
+  campaignId?: number,
+): Promise<void> {
   const now = new Date();
+  if (Number.isSafeInteger(campaignId) && (campaignId || 0) > 0) {
+    const [campaignRecipient] = await db.select({
+      id: marketingCampaignRecipients.id,
+    }).from(marketingCampaignRecipients)
+      .where(and(
+        eq(marketingCampaignRecipients.prospectId, prospectId),
+        eq(marketingCampaignRecipients.campaignId, campaignId as number),
+      ))
+      .limit(1);
+    if (campaignRecipient) {
+      await db.insert(sendgridCampaignWebhookEvents).values({
+        eventId: `app-unsubscribe:${campaignId}:${campaignRecipient.id}`,
+        recipientId: campaignRecipient.id,
+        eventType: "app_unsubscribe",
+        occurredAt: now,
+      }).onConflictDoNothing();
+    }
+  }
+
   const updated = await db.update(marketingCampaignRecipients)
     .set({
       status: "suppressed",
@@ -582,6 +633,20 @@ export async function getMarketingCampaignDeliverySummaries(
       campaignStatus: campaign.status,
       recipientCount: campaign.recipientCount,
       batchSize: MARKETING_CAMPAIGN_BATCH_SIZE,
+      eventAnalytics: {
+        processed: { eventCount: 0, uniqueRecipients: 0 },
+        delivered: { eventCount: 0, uniqueRecipients: 0 },
+        deferred: { eventCount: 0, uniqueRecipients: 0 },
+        bounces: { eventCount: 0, uniqueRecipients: 0 },
+        blocked: { eventCount: 0, uniqueRecipients: 0 },
+        dropped: { eventCount: 0, uniqueRecipients: 0 },
+        spamReports: { eventCount: 0, uniqueRecipients: 0 },
+        unsubscribes: { eventCount: 0, uniqueRecipients: 0 },
+        groupResubscribes: { eventCount: 0, uniqueRecipients: 0 },
+        opens: { eventCount: 0, uniqueRecipients: 0 },
+        machineOpens: { eventCount: 0, uniqueRecipients: 0 },
+        clicks: { eventCount: 0, uniqueRecipients: 0 },
+      },
       counts: {
         queued: 0, submitting: 0, accepted: 0, delivered: 0, deferred: 0,
         bounced: 0, dropped: 0, spam_report: 0, unsubscribed: 0,
@@ -603,6 +668,61 @@ export async function getMarketingCampaignDeliverySummaries(
     const summary = summaries.get(row.campaignId);
     if (summary && row.status in summary.counts) {
       summary.counts[row.status as MarketingCampaignDeliveryStatus] = Number(row.count);
+    }
+  }
+
+  const eventCategory = sql<string>`case
+    when ${sendgridCampaignWebhookEvents.eventType} in ('open', 'machine_open') then 'opens'
+    when ${sendgridCampaignWebhookEvents.eventType} = 'click' then 'clicks'
+    when ${sendgridCampaignWebhookEvents.eventType} in ('unsubscribe', 'group_unsubscribe', 'app_unsubscribe') then 'unsubscribes'
+    when ${sendgridCampaignWebhookEvents.eventType} = 'bounce' then 'bounces'
+    when ${sendgridCampaignWebhookEvents.eventType} = 'spamreport' then 'spamReports'
+    when ${sendgridCampaignWebhookEvents.eventType} = 'group_resubscribe' then 'groupResubscribes'
+    else ${sendgridCampaignWebhookEvents.eventType}
+  end`;
+  const eventRows = await db.select({
+    campaignId: marketingCampaignRecipients.campaignId,
+    category: eventCategory,
+    eventCount: sql<number>`count(*)::int`,
+    uniqueRecipients: sql<number>`count(distinct ${sendgridCampaignWebhookEvents.recipientId})::int`,
+  }).from(sendgridCampaignWebhookEvents)
+    .innerJoin(
+      marketingCampaignRecipients,
+      eq(sendgridCampaignWebhookEvents.recipientId, marketingCampaignRecipients.id),
+    )
+    .where(inArray(marketingCampaignRecipients.campaignId, ids))
+    .groupBy(marketingCampaignRecipients.campaignId, eventCategory);
+  for (const row of eventRows) {
+    const summary = summaries.get(row.campaignId);
+    if (summary) {
+      summary.eventAnalytics[row.category] = {
+        eventCount: Number(row.eventCount),
+        uniqueRecipients: Number(row.uniqueRecipients),
+      };
+    }
+  }
+
+  const machineOpenRows = await db.select({
+    campaignId: marketingCampaignRecipients.campaignId,
+    eventCount: sql<number>`count(*)::int`,
+    uniqueRecipients: sql<number>`count(distinct ${sendgridCampaignWebhookEvents.recipientId})::int`,
+  }).from(sendgridCampaignWebhookEvents)
+    .innerJoin(
+      marketingCampaignRecipients,
+      eq(sendgridCampaignWebhookEvents.recipientId, marketingCampaignRecipients.id),
+    )
+    .where(and(
+      inArray(marketingCampaignRecipients.campaignId, ids),
+      eq(sendgridCampaignWebhookEvents.eventType, "machine_open"),
+    ))
+    .groupBy(marketingCampaignRecipients.campaignId);
+  for (const row of machineOpenRows) {
+    const summary = summaries.get(row.campaignId);
+    if (summary) {
+      summary.eventAnalytics.machineOpens = {
+        eventCount: Number(row.eventCount),
+        uniqueRecipients: Number(row.uniqueRecipients),
+      };
     }
   }
 
@@ -639,11 +759,14 @@ export async function getMarketingCampaignDeliverySummaries(
 export interface SendGridCampaignEvent {
   sg_event_id?: unknown;
   event?: unknown;
+  type?: unknown;
   timestamp?: unknown;
   email?: unknown;
+  sg_machine_open?: unknown;
   reason?: unknown;
   custom_args?: unknown;
   customArgs?: unknown;
+  unique_args?: unknown;
 }
 
 export async function processSendGridCampaignEvents(events: SendGridCampaignEvent[]): Promise<number> {
@@ -653,12 +776,15 @@ export async function processSendGridCampaignEvents(events: SendGridCampaignEven
   for (const event of events) {
     const eventId = typeof event.sg_event_id === "string" ? event.sg_event_id.trim() : "";
     const eventType = typeof event.event === "string" ? event.event.trim().toLowerCase() : "";
+    const normalizedEvent = normalizeSendGridEvent(eventType, event.type, event.sg_machine_open);
     const email = typeof event.email === "string" ? event.email.trim().toLowerCase() : "";
     const customArgs = event.custom_args && typeof event.custom_args === "object"
       ? event.custom_args as Record<string, unknown>
       : event.customArgs && typeof event.customArgs === "object"
         ? event.customArgs as Record<string, unknown>
-        : {};
+        : event.unique_args && typeof event.unique_args === "object"
+          ? event.unique_args as Record<string, unknown>
+          : {};
     const recipientId = Number(customArgs.marketing_campaign_recipient_id);
     const campaignId = Number(customArgs.marketing_campaign_id);
     if (!eventId || eventId.length > 255 || !eventType || !email
@@ -687,20 +813,20 @@ export async function processSendGridCampaignEvents(events: SendGridCampaignEven
       const [storedEvent] = await tx.insert(sendgridCampaignWebhookEvents).values({
         eventId,
         recipientId: currentRecipient.id,
-        eventType: eventType.slice(0, 32),
+        eventType: normalizedEvent.storedEventType.slice(0, 32),
         occurredAt,
       }).onConflictDoNothing().returning({ id: sendgridCampaignWebhookEvents.id });
       if (!storedEvent) return { inserted: false, applied: false, campaignId: null as number | null };
 
       const current = currentRecipient.status as MarketingCampaignDeliveryStatus;
-      const next = nextDeliveryStatus(current, eventType);
+      const next = nextDeliveryStatus(current, normalizedEvent.deliveryEventName);
       if (!next) return { inserted: true, applied: false, campaignId: null as number | null };
 
       const now = new Date();
       await tx.update(marketingCampaignRecipients)
         .set({
           status: next,
-          lastEvent: eventType.slice(0, 32),
+          lastEvent: normalizedEvent.storedEventType.slice(0, 32),
           lastEventAt: occurredAt || now,
           deliveredAt: next === "delivered" ? (occurredAt || now) : currentRecipient.deliveredAt,
           acceptedAt: API_ACCEPTED_STATUSES.includes(next as typeof API_ACCEPTED_STATUSES[number])

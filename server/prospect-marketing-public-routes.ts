@@ -6,7 +6,10 @@ import {
   subscribeProspectAndCreateVoucher,
   unsubscribeProspect,
 } from "./prospect-marketing-db";
-import { verifyProspectMarketingToken } from "./prospect-marketing-security";
+import {
+  verifyProspectMarketingToken,
+  verifyProspectMarketingTokenClaims,
+} from "./prospect-marketing-security";
 import { markProspectCampaignRecipientsUnsubscribed } from "./marketing-campaign-delivery";
 import {
   sendClientPasswordSetupEmail,
@@ -123,19 +126,20 @@ export function registerProspectMarketingPublicRoutes(app: Express): void {
   });
 
   app.get("/api/marketing/prospect-unsubscribe", (req, res) => {
-    const prospectId = verifyProspectMarketingToken("unsubscribe", req.query.token);
-    if (!prospectId) return res.status(400).type("text").send("Lien de désabonnement invalide.");
+    const claims = verifyProspectMarketingTokenClaims("unsubscribe", req.query.token);
+    if (!claims) return res.status(400).type("text").send("Lien de désabonnement invalide.");
     res.type("html").send(unsubscribePage(String(req.query.token)));
   });
 
   app.post("/api/marketing/prospect-unsubscribe", async (req: Request, res: Response) => {
-    const prospectId = verifyProspectMarketingToken("unsubscribe", req.query.token);
-    if (!prospectId) return res.status(400).type("text").send("Lien de désabonnement invalide.");
+    const claims = verifyProspectMarketingTokenClaims("unsubscribe", req.query.token);
+    if (!claims) return res.status(400).type("text").send("Lien de désabonnement invalide.");
     try {
+      const { prospectId, campaignId } = claims;
       const prospect = await getProspectById(prospectId);
       if (!prospect) return res.status(404).type("text").send("Cette adresse n'a pas été trouvée.");
       await unsubscribeProspect(prospectId);
-      await markProspectCampaignRecipientsUnsubscribed(prospectId);
+      await markProspectCampaignRecipientsUnsubscribed(prospectId, campaignId);
       res.type("html").send("<!doctype html><html lang=\"fr\"><meta charset=\"utf-8\"><title>Désabonnement confirmé</title><body style=\"font:16px system-ui,sans-serif;max-width:560px;margin:12vh auto;padding:24px\"><h1>Désabonnement confirmé</h1><p>Vous ne recevrez plus les emails de prospection ou newsletters xHACCP France.</p></body></html>");
     } catch (error) {
       console.error("Prospect unsubscribe failed");
