@@ -26,3 +26,9 @@ As of 2026-10-08, the user reports their SendGrid plan allows 5,000 unique addre
 **Why:** The contact cap and monthly send allowance are separate; a full send to 3,000 contacts consumes 20% of the monthly send allocation.
 
 **How to apply:** Budget all planned campaign sends against the monthly allowance, and re-check the account plan because provider limits can change.
+
+The user wants prospect campaigns sent in 300–500-recipient batches, with SendGrid API acceptance shown separately from recipient-server delivery. Hard bounces, spam reports, unsubscribe requests, and confirmed invalid addresses must be suppressed across future prospect campaigns; temporary deferrals remain eligible.
+
+**Why:** Batch-level submission confirmation and recipient-level delivery confirmation answer different questions, while transient deferrals should not permanently remove a valid contact.
+
+**How to apply:** Keep batches at or below 500, use signed SendGrid events for delivery state, and never automatically resend an ambiguous network outcome because it may duplicate a message.

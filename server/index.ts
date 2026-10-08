@@ -21,6 +21,8 @@ import { startCartReminderScheduler } from "./cart-reminder";
 import { startSubscriptionScheduler } from "./subscription-scheduler";
 import { startPaymentExpiryScheduler } from "./payment-expiry-scheduler";
 import { startDbKeepAlive } from "./db";
+import { startMarketingCampaignDeliveryWorker } from "./marketing-campaign-delivery";
+import { registerSendGridCampaignWebhook } from "./sendgrid-campaign-webhook";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,8 +59,17 @@ app.use(compression({
   }
 }));
 
-// Optimized body parsing with smaller limits for speed
-app.use(express.json({ limit: '10mb' }));
+// Keep the exact signed bytes for SendGrid's event webhook. Signature verification
+// must happen against the raw request body, not a re-serialized JSON object.
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buffer) => {
+    const requestPath = (req as any).originalUrl?.split('?')[0];
+    if (requestPath === "/api/integrations/sendgrid/events") {
+      (req as any).rawBody = Buffer.from(buffer);
+    }
+  },
+}));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 // Global market middleware — sets req.market from X-Market header or Host
@@ -136,6 +147,7 @@ app.use((req, res, next) => {
   }
   
   // Register admin routes FIRST before any other middleware
+  registerSendGridCampaignWebhook(app);
   await registerAdminRoutes(app);
   registerWmsRoutes(app);
   registerMarketingAdminRoutes(app);
@@ -146,6 +158,7 @@ app.use((req, res, next) => {
   
   const server = await registerRoutes(app);
 
+  startMarketingCampaignDeliveryWorker();
   // Start automated blog post generation (every Monday at 08:00 Bucharest)
   startBlogScheduler();
   // Rebuild enabled Google Merchant Center feeds every hour so availability

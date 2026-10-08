@@ -12,7 +12,13 @@ import { storage } from "./storage";
 import { authenticateAdmin, canAccessMarket } from "./admin-routes";
 import { getSenderForMarket, sendEmail } from "./email-service";
 import { buildProspectMarketingEmail } from "./prospect-marketing-security";
-import { markProspectInvitationSent } from "./prospect-marketing-db";
+import {
+  getMarketingCampaignDeliveryRecipients,
+  getMarketingCampaignDeliverySummary,
+  getMarketingCampaignDeliverySummaries,
+  queueProspectMarketingCampaign,
+} from "./marketing-campaign-delivery";
+import type { MarketingCampaignDeliveryStatus } from "./marketing-campaign-delivery-policy";
 import { getAIMarketCatalogForMarket } from "./routes";
 import { parseAIRecommendationCampaignInput } from "./ai-recommendation-campaign-validation";
 import { EVENT_VOUCHER_CAMPAIGN_SLUG } from "./event-voucher";
@@ -430,10 +436,82 @@ export function registerMarketingAdminRoutes(
       if (market !== "all" && !canAccessMarket(req as any, market)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
-      res.json(await storage.getMarketingCampaigns(market));
+      const campaigns = await storage.getMarketingCampaigns(market);
+      const deliveries = await getMarketingCampaignDeliverySummaries(campaigns);
+      res.json(campaigns.map((campaign) => ({
+        ...campaign,
+        delivery: deliveries.get(campaign.id) || null,
+      })));
     } catch (error) {
       console.error("Marketing campaigns list error:", error);
       res.status(500).json({ message: "Failed to fetch marketing campaigns" });
+    }
+  });
+
+  app.get("/admin/api/marketing/campaigns/:id/delivery", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    try {
+      const campaignId = Number(req.params.id);
+      if (!Number.isSafeInteger(campaignId) || campaignId <= 0) {
+        return res.status(400).json({ message: "Invalid campaign ID" });
+      }
+      const campaign = await storage.getMarketingCampaign(campaignId);
+      if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+      if (!canAccessMarket(req as any, campaign.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const delivery = await getMarketingCampaignDeliverySummary(campaignId);
+      res.json({
+        campaign: {
+          id: campaign.id,
+          status: campaign.status,
+          recipientCount: campaign.recipientCount,
+          sentCount: campaign.sentCount,
+          failedCount: campaign.failedCount,
+          sentAt: campaign.sentAt,
+        },
+        delivery,
+      });
+    } catch (error) {
+      console.error("Marketing campaign delivery summary error:", error);
+      res.status(500).json({ message: "Failed to fetch campaign delivery status" });
+    }
+  });
+
+  app.get("/admin/api/marketing/campaigns/:id/delivery/recipients", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    try {
+      const campaignId = Number(req.params.id);
+      const page = Number(req.query.page || 1);
+      const requestedPageSize = Number(req.query.pageSize || 50);
+      if (!Number.isSafeInteger(campaignId) || campaignId <= 0
+        || !Number.isSafeInteger(page) || page < 1
+        || !Number.isSafeInteger(requestedPageSize) || requestedPageSize < 1) {
+        return res.status(400).json({ message: "Invalid campaign delivery page" });
+      }
+      const campaign = await storage.getMarketingCampaign(campaignId);
+      if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+      if (!canAccessMarket(req as any, campaign.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+
+      const rawStatus = String(req.query.status || "");
+      const allowedStatuses: MarketingCampaignDeliveryStatus[] = [
+        "queued", "submitting", "accepted", "delivered", "deferred", "bounced",
+        "dropped", "spam_report", "unsubscribed", "failed", "unknown", "suppressed",
+      ];
+      if (rawStatus && !allowedStatuses.includes(rawStatus as MarketingCampaignDeliveryStatus)) {
+        return res.status(400).json({ message: "Invalid delivery status filter" });
+      }
+
+      const result = await getMarketingCampaignDeliveryRecipients(
+        campaignId,
+        page,
+        Math.min(requestedPageSize, 100),
+        rawStatus ? rawStatus as MarketingCampaignDeliveryStatus : undefined,
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("Marketing campaign recipient delivery lookup failed");
+      res.status(500).json({ message: "Failed to fetch campaign recipients" });
     }
   });
 
@@ -474,7 +552,7 @@ export function registerMarketingAdminRoutes(
       if (!canAccessMarket(req as any, campaign.market)) {
         return res.status(403).json({ message: "Access denied for this market" });
       }
-      if (campaign.status === "sent" || campaign.status === "sending") {
+      if (["sent", "sending", "partial"].includes(campaign.status)) {
         return res.status(409).json({ message: "Campaign has already been sent or is currently sending" });
       }
       const segment = campaign.segmentId ? await storage.getMarketingSegment(campaign.segmentId) : undefined;
@@ -504,6 +582,31 @@ export function registerMarketingAdminRoutes(
       if (recipients.length === 0) {
         return res.status(400).json({ message: "There are no eligible recipients in this segment" });
       }
+
+      if (prospectAudience === "invitation" || prospectAudience === "newsletter") {
+        let queued: { recipientCount: number; batchCount: number };
+        try {
+          queued = await queueProspectMarketingCampaign(campaign.id, recipients);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Campaign could not be queued";
+          if (/only a draft|already has a delivery record/i.test(message)) {
+            return res.status(409).json({ message });
+          }
+          console.error("Marketing prospect campaign queue error:", {
+            campaignId: campaign.id,
+            message,
+          });
+          return res.status(500).json({ message: "Campaign could not be queued" });
+        }
+        const queuedCampaign = await storage.getMarketingCampaign(campaign.id);
+        return res.status(202).json({
+          campaign: queuedCampaign,
+          recipientCount: queued.recipientCount,
+          batchCount: queued.batchCount,
+          batchSize: 500,
+        });
+      }
+
       await storage.updateMarketingCampaign(campaign.id, {
         status: "sending",
         recipientCount: recipients.length,
@@ -513,60 +616,16 @@ export function registerMarketingAdminRoutes(
 
       let sentCount = 0;
       let failedCount = 0;
-      if (prospectAudience === "invitation" || prospectAudience === "newsletter") {
-        for (let offset = 0; offset < recipients.length; offset += 10) {
-          const batch = recipients.slice(offset, offset + 10);
-          const results = await Promise.all(batch.map(async (recipient) => {
-            if (!recipient.prospectId) return false;
-            try {
-              const personalized = buildProspectMarketingEmail({
-                htmlContent: campaign.htmlContent,
-                textContent: campaign.textContent,
-                recipient: {
-                  prospectId: recipient.prospectId,
-                  restaurantName: recipient.restaurantName,
-                  city: recipient.city,
-                },
-                audience: prospectAudience,
-                offer: activeOffer,
-              });
-              const sent = await sendEmail({
-                to: recipient.email,
-                from: getSenderForMarket("fr"),
-                subject: campaign.subject,
-                html: personalized.html,
-                text: personalized.text,
-                headers: personalized.headers,
-                suppressRecipientLog: true,
-              });
-              if (sent && prospectAudience === "invitation") {
-                try {
-                  await markProspectInvitationSent(recipient.prospectId);
-                } catch {
-                  console.error("Could not save prospect invitation delivery state");
-                }
-              }
-              return sent;
-            } catch {
-              console.error("Prospect marketing email could not be prepared");
-              return false;
-            }
-          }));
-          sentCount += results.filter(Boolean).length;
-          failedCount += results.filter((sent) => !sent).length;
-        }
-      } else {
-        for (const recipient of recipients) {
-          const sent = await sendEmail({
-            to: recipient.email,
-            from: getSenderForMarket(campaign.market),
-            subject: campaign.subject,
-            html: campaign.htmlContent,
-            text: campaign.textContent || campaign.subject,
-          });
-          if (sent) sentCount++;
-          else failedCount++;
-        }
+      for (const recipient of recipients) {
+        const sent = await sendEmail({
+          to: recipient.email,
+          from: getSenderForMarket(campaign.market),
+          subject: campaign.subject,
+          html: campaign.htmlContent,
+          text: campaign.textContent || campaign.subject,
+        });
+        if (sent) sentCount++;
+        else failedCount++;
       }
 
       const updated = await storage.updateMarketingCampaign(campaign.id, {

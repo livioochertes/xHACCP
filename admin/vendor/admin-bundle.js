@@ -11433,6 +11433,7 @@
       prospectInvitable: "Eligible for invitation",
       prospectSubscribers: "Newsletter subscribers",
       prospectUnsubscribed: "Unsubscribed",
+      prospectSuppressed: "Emails suppressed from future sends",
       prospectCampaignHelp: "Prospect segments automatically get signup and unsubscribe links. Personalize the restaurant, city, and links using these placeholders:",
       prospectColumn: {
         restaurantName: "Restaurant",
@@ -11486,6 +11487,49 @@
       sendCampaign: "Send campaign",
       sendConfirm: "Send campaign \u201C{{name}}\u201D to {{count}} eligible recipients? Sending cannot be undone.",
       campaignSent: "Campaign sent: {{sent}} successful, {{failed}} failed.",
+      campaignQueued: "Sending started for {{count}} recipients in {{batches}} batches of up to 500.",
+      campaignFinished: "Sending finished: {{accepted}} accepted by SendGrid, {{delivered}} delivered, {{failed}} send errors, {{unknown}} unconfirmed.",
+      campaignMonitorTimeout: "Sending is continuing in the background. Reload the campaign to see its latest status.",
+      deliveryMeaning: "\u201CAccepted\u201D means SendGrid took the message. \u201CDelivered\u201D means the recipient's server accepted it; it does not confirm inbox placement.",
+      deliverySetupHint: "Delivery, bounce, and unsubscribe confirmations appear after the signed SendGrid Event Webhook is enabled.",
+      deliveryAccepted: "Accepted by SendGrid",
+      deliveryDelivered: "Delivered to server",
+      deliveryDeferred: "Deferred",
+      deliveryBounced: "Permanent bounces",
+      deliveryDropped: "Dropped by SendGrid",
+      deliveryFailed: "Send failures",
+      deliveryUnknown: "Unconfirmed",
+      deliverySuppressed: "Skipped before sending",
+      deliveryUnsubscribed: "Unsubscribes",
+      deliveryBatch: "Batch {{number}}: {{accepted}} accepted \xB7 {{delivered}} delivered \xB7 {{failed}} issues \xB7 {{status}}",
+      viewDeliveryRecipients: "View recipient details",
+      hideDeliveryRecipients: "Hide recipient details",
+      deliveryRecipientsTitle: "Recipient delivery status",
+      deliveryRecipientsLoading: "Loading recipient details\u2026",
+      deliveryRecipientsFailed: "Recipient details could not be loaded.",
+      deliveryNoRecipients: "No recipients match this filter.",
+      deliveryFilterAll: "All statuses",
+      deliveryRecipientsPage: "Page {{page}} of {{pages}} \xB7 {{count}} recipients",
+      deliveryPreviousPage: "Previous",
+      deliveryNextPage: "Next",
+      deliveryStatusQueued: "Queued",
+      deliveryStatusSubmitting: "Submitting",
+      deliveryStatusAccepted: "Accepted by SendGrid",
+      deliveryStatusDelivered: "Delivered to server",
+      deliveryStatusDeferred: "Deferred",
+      deliveryStatusBounced: "Bounced",
+      deliveryStatusDropped: "Dropped",
+      deliveryStatusSpamReport: "Spam report",
+      deliveryStatusUnsubscribed: "Unsubscribed",
+      deliveryStatusFailed: "Failed",
+      deliveryStatusUnknown: "Unconfirmed",
+      deliveryStatusSuppressed: "Suppressed",
+      deliveryColumnEmail: "Email address",
+      deliveryColumnStatus: "Status",
+      deliveryColumnBatch: "Batch",
+      deliveryColumnLastEvent: "Last SendGrid event",
+      deliveryColumnUpdated: "Updated",
+      statusPartial: "partial",
       statusDraft: "draft",
       statusSending: "sending",
       statusSent: "sent",
@@ -12510,6 +12554,7 @@
       prospectInvitable: "Eligibile pentru invita\u021Bie",
       prospectSubscribers: "Abona\u021Bi newsletter",
       prospectUnsubscribed: "Dezabona\u021Bi",
+      prospectSuppressed: "Emailuri suprimate",
       prospectCampaignHelp: "Pentru segmentele de prospecte, linkurile de \xEEnscriere \u0219i dezabonare se adaug\u0103 automat. Po\u021Bi personaliza restaurantul, ora\u0219ul \u0219i aceste linkuri folosind variabilele:",
       prospectColumn: {
         restaurantName: "Restaurant",
@@ -12563,6 +12608,49 @@
       sendCampaign: "Trimite campania",
       sendConfirm: "Trimi\u021Bi campania \u201E{{name}}\u201D c\u0103tre {{count}} destinatari eligibili? Trimiterea nu poate fi anulat\u0103.",
       campaignSent: "Campanie trimis\u0103: {{sent}} reu\u0219ite, {{failed}} e\u0219uate.",
+      campaignQueued: "Trimiterea a \xEEnceput pentru {{count}} destinatari \xEEn {{batches}} calupuri de maximum 500.",
+      campaignFinished: "Procesare \xEEncheiat\u0103: {{accepted}} acceptate de SendGrid, {{delivered}} livrate, {{failed}} erori de trimitere, {{unknown}} f\u0103r\u0103 confirmare.",
+      campaignMonitorTimeout: "Trimiterea continu\u0103 \xEEn fundal. Re\xEEncarc\u0103 pagina campaniei pentru starea actualizat\u0103.",
+      deliveryMeaning: "\u201EAcceptat\u201D \xEEnseamn\u0103 c\u0103 SendGrid a preluat mesajul. \u201ELivrat\u201D \xEEnseamn\u0103 c\u0103 serverul destinatarului l-a acceptat; nu confirm\u0103 afi\u0219area \xEEn inbox.",
+      deliverySetupHint: "Confirm\u0103rile de livrare, bounce \u0219i dezabonare apar dup\u0103 activarea Event Webhook-ului semnat din SendGrid.",
+      deliveryAccepted: "Acceptate de SendGrid",
+      deliveryDelivered: "Livrate la server",
+      deliveryDeferred: "Am\xE2nate",
+      deliveryBounced: "Bounce permanent",
+      deliveryDropped: "Oprite de SendGrid",
+      deliveryFailed: "E\u0219uate la trimitere",
+      deliveryUnknown: "F\u0103r\u0103 confirmare",
+      deliverySuppressed: "Suprimate \xEEnainte de trimitere",
+      deliveryUnsubscribed: "Dezabon\u0103ri",
+      deliveryBatch: "Calup {{number}}: {{accepted}} acceptate \xB7 {{delivered}} livrate \xB7 {{failed}} probleme \xB7 {{status}}",
+      viewDeliveryRecipients: "Vezi detaliile destinatarilor",
+      hideDeliveryRecipients: "Ascunde detaliile destinatarilor",
+      deliveryRecipientsTitle: "Starea livr\u0103rii per destinatar",
+      deliveryRecipientsLoading: "Se \xEEncarc\u0103 detaliile destinatarilor\u2026",
+      deliveryRecipientsFailed: "Detaliile destinatarilor nu au putut fi \xEEnc\u0103rcate.",
+      deliveryNoRecipients: "Nu exist\u0103 destinatari pentru acest filtru.",
+      deliveryFilterAll: "Toate st\u0103rile",
+      deliveryRecipientsPage: "Pagina {{page}} din {{pages}} \xB7 {{count}} destinatari",
+      deliveryPreviousPage: "Anterior",
+      deliveryNextPage: "Urm\u0103tor",
+      deliveryStatusQueued: "\xCEn coad\u0103",
+      deliveryStatusSubmitting: "Se trimite",
+      deliveryStatusAccepted: "Acceptat de SendGrid",
+      deliveryStatusDelivered: "Acceptat de serverul destinatarului",
+      deliveryStatusDeferred: "Am\xE2nat temporar",
+      deliveryStatusBounced: "Adres\u0103 respins\u0103",
+      deliveryStatusDropped: "Oprit de SendGrid",
+      deliveryStatusSpamReport: "Raportat ca spam",
+      deliveryStatusUnsubscribed: "Dezabonat",
+      deliveryStatusFailed: "E\u0219uat",
+      deliveryStatusUnknown: "F\u0103r\u0103 confirmare",
+      deliveryStatusSuppressed: "Oprit \xEEnainte de trimitere",
+      deliveryColumnEmail: "Adres\u0103 de email",
+      deliveryColumnStatus: "Stare",
+      deliveryColumnBatch: "Calup",
+      deliveryColumnLastEvent: "Ultimul eveniment SendGrid",
+      deliveryColumnUpdated: "Actualizat",
+      statusPartial: "par\u021Bial\u0103",
       statusDraft: "ciorn\u0103",
       statusSending: "se trimite",
       statusSent: "trimis\u0103",
@@ -13587,6 +13675,7 @@
       prospectInvitable: "\xC9ligibles \xE0 l'invitation",
       prospectSubscribers: "Abonn\xE9s newsletter",
       prospectUnsubscribed: "D\xE9sabonn\xE9s",
+      prospectSuppressed: "Emails \xE9cart\xE9s des prochains envois",
       prospectCampaignHelp: "Pour les segments prospects, les liens d'inscription et de d\xE9sabonnement sont ajout\xE9s automatiquement. Personnalisez le restaurant, la ville et les liens \xE0 l'aide des variables suivantes :",
       prospectColumn: {
         restaurantName: "Restaurant",
@@ -13640,6 +13729,49 @@
       sendCampaign: "Envoyer la campagne",
       sendConfirm: "Envoyer la campagne \xAB {{name}} \xBB \xE0 {{count}} destinataires \xE9ligibles ? L'envoi ne peut pas \xEAtre annul\xE9.",
       campaignSent: "Campagne envoy\xE9e : {{sent}} r\xE9ussis, {{failed}} \xE9checs.",
+      campaignQueued: "Envoi lanc\xE9 pour {{count}} destinataires en {{batches}} lots de 500 maximum.",
+      campaignFinished: "Envoi termin\xE9 : {{accepted}} accept\xE9s par SendGrid, {{delivered}} livr\xE9s, {{failed}} \xE9checs d'envoi, {{unknown}} sans confirmation.",
+      campaignMonitorTimeout: "L'envoi continue en arri\xE8re-plan. Actualisez la campagne pour voir son \xE9tat.",
+      deliveryMeaning: "\xAB Accept\xE9 \xBB signifie que SendGrid a pris en charge le message. \xAB Livr\xE9 \xBB signifie que le serveur du destinataire l'a accept\xE9, sans garantir son arriv\xE9e dans la bo\xEEte de r\xE9ception.",
+      deliverySetupHint: "Les confirmations de livraison, rebonds et d\xE9sabonnements apparaissent apr\xE8s l'activation de l'Event Webhook sign\xE9 dans SendGrid.",
+      deliveryAccepted: "Accept\xE9s par SendGrid",
+      deliveryDelivered: "Livr\xE9s au serveur",
+      deliveryDeferred: "Diff\xE9r\xE9s",
+      deliveryBounced: "Rebonds permanents",
+      deliveryDropped: "Bloqu\xE9s par SendGrid",
+      deliveryFailed: "\xC9checs d'envoi",
+      deliveryUnknown: "Sans confirmation",
+      deliverySuppressed: "\xC9cart\xE9s avant l'envoi",
+      deliveryUnsubscribed: "D\xE9sabonnements",
+      deliveryBatch: "Lot {{number}} : {{accepted}} accept\xE9s \xB7 {{delivered}} livr\xE9s \xB7 {{failed}} probl\xE8mes \xB7 {{status}}",
+      viewDeliveryRecipients: "Voir le d\xE9tail des destinataires",
+      hideDeliveryRecipients: "Masquer le d\xE9tail des destinataires",
+      deliveryRecipientsTitle: "\xC9tat de livraison par destinataire",
+      deliveryRecipientsLoading: "Chargement des d\xE9tails des destinataires\u2026",
+      deliveryRecipientsFailed: "Impossible de charger le d\xE9tail des destinataires.",
+      deliveryNoRecipients: "Aucun destinataire ne correspond \xE0 ce filtre.",
+      deliveryFilterAll: "Tous les \xE9tats",
+      deliveryRecipientsPage: "Page {{page}} sur {{pages}} \xB7 {{count}} destinataires",
+      deliveryPreviousPage: "Pr\xE9c\xE9dent",
+      deliveryNextPage: "Suivant",
+      deliveryStatusQueued: "En attente",
+      deliveryStatusSubmitting: "Envoi en cours",
+      deliveryStatusAccepted: "Accept\xE9 par SendGrid",
+      deliveryStatusDelivered: "Livr\xE9 au serveur",
+      deliveryStatusDeferred: "Diff\xE9r\xE9",
+      deliveryStatusBounced: "Rebond",
+      deliveryStatusDropped: "Bloqu\xE9",
+      deliveryStatusSpamReport: "Signal\xE9 comme spam",
+      deliveryStatusUnsubscribed: "D\xE9sabonn\xE9",
+      deliveryStatusFailed: "\xC9chec",
+      deliveryStatusUnknown: "Sans confirmation",
+      deliveryStatusSuppressed: "\xC9cart\xE9",
+      deliveryColumnEmail: "Adresse email",
+      deliveryColumnStatus: "\xC9tat",
+      deliveryColumnBatch: "Lot",
+      deliveryColumnLastEvent: "Dernier \xE9v\xE9nement SendGrid",
+      deliveryColumnUpdated: "Mis \xE0 jour",
+      statusPartial: "partielle",
       statusDraft: "brouillon",
       statusSending: "envoi en cours",
       statusSent: "envoy\xE9e",
@@ -16937,6 +17069,9 @@
     };
     const [marketingSegments, setMarketingSegments] = (0, import_react21.useState)([]);
     const [marketingCampaigns, setMarketingCampaigns] = (0, import_react21.useState)([]);
+    const [marketingCampaignSendingId, setMarketingCampaignSendingId] = (0, import_react21.useState)(null);
+    const [marketingDeliveryRecipientViews, setMarketingDeliveryRecipientViews] = (0, import_react21.useState)({});
+    const [openMarketingDeliveryCampaignId, setOpenMarketingDeliveryCampaignId] = (0, import_react21.useState)(null);
     const [marketingTestEmails, setMarketingTestEmails] = (0, import_react21.useState)({});
     const [marketingTestSendingId, setMarketingTestSendingId] = (0, import_react21.useState)(null);
     const [marketingLoading, setMarketingLoading] = (0, import_react21.useState)(false);
@@ -18198,7 +18333,34 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         alert(`\u274C ${err.message}`);
       }
     };
+    const loadMarketingCampaignDeliveryRecipients = async (campaignId, page = 1, statusFilter2) => {
+      const selectedStatus = statusFilter2 ?? marketingDeliveryRecipientViews[campaignId]?.filter ?? "all";
+      const query = new URLSearchParams({ page: String(page), pageSize: "50" });
+      if (selectedStatus !== "all") query.set("status", selectedStatus);
+      setMarketingDeliveryRecipientViews((current) => ({
+        ...current,
+        [campaignId]: { ...current[campaignId], page, filter: selectedStatus, loading: true }
+      }));
+      try {
+        const response = await fetch(`/admin/api/marketing/campaigns/${campaignId}/delivery/recipients?${query}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || t2("marketing.deliveryRecipientsFailed"));
+        setMarketingDeliveryRecipientViews((current) => ({
+          ...current,
+          [campaignId]: { ...data, filter: selectedStatus, loading: false }
+        }));
+      } catch (error2) {
+        setMarketingDeliveryRecipientViews((current) => ({
+          ...current,
+          [campaignId]: { ...current[campaignId], page, filter: selectedStatus, loading: false }
+        }));
+        alert(`\u274C ${error2.message || t2("marketing.deliveryRecipientsFailed")}`);
+      }
+    };
     const sendMarketingCampaign = async (campaign) => {
+      setMarketingCampaignSendingId(campaign.id);
       try {
         const previewRes = await fetch(`/admin/api/marketing/segments/${campaign.segmentId}/recipients`, {
           headers: { "Authorization": `Bearer ${token}` }
@@ -18212,10 +18374,46 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || t2("marketing.campaignSendFailed"));
-        alert(`\u2705 ${t2("marketing.campaignSent", { sent: data.sentCount, failed: data.failedCount })}`);
-        fetchMarketing();
+        if (res.status === 202) {
+          setMarketingCampaigns((current) => current.map((item) => item.id === campaign.id ? { ...item, ...data.campaign } : item));
+          const deadline = Date.now() + 10 * 60 * 1e3;
+          let completed = null;
+          while (Date.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, 2500));
+            try {
+              const statusRes = await fetch(`/admin/api/marketing/campaigns/${campaign.id}/delivery`, {
+                headers: { "Authorization": `Bearer ${token}` }
+              });
+              if (!statusRes.ok) continue;
+              const statusData = await statusRes.json();
+              setMarketingCampaigns((current) => current.map((item) => item.id === campaign.id ? { ...item, ...statusData.campaign, delivery: statusData.delivery } : item));
+              if (statusData.campaign?.status !== "sending") {
+                completed = statusData;
+                break;
+              }
+            } catch {
+            }
+          }
+          if (completed) {
+            const counts = completed.delivery?.counts || {};
+            alert(`\u2705 ${t2("marketing.campaignFinished", {
+              accepted: completed.campaign?.sentCount || 0,
+              delivered: counts.delivered || 0,
+              failed: counts.failed || 0,
+              unknown: counts.unknown || 0
+            })}`);
+          } else {
+            alert(t2("marketing.campaignMonitorTimeout"));
+          }
+          fetchMarketing();
+        } else {
+          alert(`\u2705 ${t2("marketing.campaignSent", { sent: data.sentCount, failed: data.failedCount })}`);
+          fetchMarketing();
+        }
       } catch (err) {
         alert(`\u274C ${err.message}`);
+      } finally {
+        setMarketingCampaignSendingId(null);
       }
     };
     const sendMarketingCampaignTest = async (campaign) => {
@@ -22510,7 +22708,8 @@ This action cannot be undone.`)) {
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "right" }, children: t2("marketing.prospectTotal") }),
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "right" }, children: t2("marketing.prospectInvitable") }),
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "right" }, children: t2("marketing.prospectSubscribers") }),
-                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "right" }, children: t2("marketing.prospectUnsubscribed") })
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "right" }, children: t2("marketing.prospectUnsubscribed") }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "right" }, children: t2("marketing.prospectSuppressed") })
                   ] }) }),
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tbody", { children: prospectLists.map((list) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { style: { borderTop: "1px solid #ede7f6" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("td", { style: { padding: "8px" }, children: [
@@ -22520,7 +22719,8 @@ This action cannot be undone.`)) {
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "right" }, children: list.totalContacts }),
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "right" }, children: list.invitationEligible }),
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "right" }, children: list.newsletterSubscribers }),
-                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "right" }, children: list.unsubscribed })
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "right" }, children: list.unsubscribed }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "8px", textAlign: "right" }, children: list.suppressed })
                   ] }, list.id)) })
                 ] }) })
               ] })
@@ -22668,6 +22868,11 @@ This action cannot be undone.`)) {
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "13px", color: "#6c757d", margin: "0 0 16px" }, children: t2("marketing.campaignsDescription") }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("p", { style: { fontSize: "12px", color: "#6c757d", margin: "-8px 0 14px" }, children: [
+                t2("marketing.deliveryMeaning"),
+                " ",
+                t2("marketing.deliverySetupHint")
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("p", { style: { fontSize: "12px", color: "#6c757d", margin: "-8px 0 14px" }, children: [
                 t2("marketing.prospectCampaignHelp"),
                 " ",
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("code", { children: "{{restaurant_name}}" }),
@@ -22703,47 +22908,206 @@ This action cannot be undone.`)) {
                 marketingCampaignForm.market === "fr" && marketingSegments.some((segment) => String(segment.id) === String(marketingCampaignForm.segmentId) && segment.criteria?.prospectAudience === "invitation") && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { onClick: loadEventVoucherEmailTemplate, style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "9px 14px", cursor: "pointer" }, children: "Charger le mod\xE8le de l'offre fran\xE7aise" }),
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { onClick: createMarketingCampaign, style: { background: "#6f42c1", color: "white", border: "none", borderRadius: "4px", padding: "9px 14px", cursor: "pointer" }, children: t2("marketing.saveDraft") })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "18px", display: "grid", gap: "8px" }, children: marketingCampaigns.map((campaign) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #dee2e6", background: "white", borderRadius: "5px", padding: "10px 12px", gap: "12px", flexWrap: "wrap" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: campaign.name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: "12px", color: "#6c757d" }, children: [
-                    campaign.market,
-                    " \xB7 ",
-                    campaign.subject,
-                    " \xB7 ",
-                    campaign.status === "draft" ? t2("marketing.statusDraft") : campaign.status === "sending" ? t2("marketing.statusSending") : campaign.status === "sent" ? t2("marketing.statusSent") : campaign.status === "failed" ? t2("marketing.statusFailed") : campaign.status,
-                    " \xB7 ",
-                    campaign.sentCount || 0,
-                    "/",
-                    campaign.recipientCount || 0
-                  ] })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }, children: [
-                  campaign.market === "fr" && campaign.status !== "sent" && campaign.status !== "sending" && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
-                      "input",
-                      {
-                        type: "email",
-                        "aria-label": "Adresse email unique pour le test",
-                        placeholder: "Adresse email de test",
-                        value: marketingTestEmails[campaign.id] || "",
-                        onChange: (e2) => setMarketingTestEmails((current) => ({ ...current, [campaign.id]: e2.target.value })),
-                        style: { padding: "7px 9px", border: "1px solid #ced4da", borderRadius: "4px" }
-                      }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "18px", display: "grid", gap: "8px" }, children: marketingCampaigns.map((campaign) => {
+                const deliveryCounts = campaign.delivery?.counts || {};
+                const statusLabel = campaign.status === "draft" ? t2("marketing.statusDraft") : campaign.status === "sending" ? t2("marketing.statusSending") : campaign.status === "sent" ? t2("marketing.statusSent") : campaign.status === "partial" ? t2("marketing.statusPartial") : campaign.status === "failed" ? t2("marketing.statusFailed") : campaign.status;
+                const canSend = campaign.status === "draft" || campaign.status === "failed" && !campaign.delivery?.batches?.length;
+                const recipientView = marketingDeliveryRecipientViews[campaign.id];
+                const recipientStatusLabels = {
+                  queued: "deliveryStatusQueued",
+                  submitting: "deliveryStatusSubmitting",
+                  accepted: "deliveryStatusAccepted",
+                  delivered: "deliveryStatusDelivered",
+                  deferred: "deliveryStatusDeferred",
+                  bounced: "deliveryStatusBounced",
+                  dropped: "deliveryStatusDropped",
+                  spam_report: "deliveryStatusSpamReport",
+                  unsubscribed: "deliveryStatusUnsubscribed",
+                  failed: "deliveryStatusFailed",
+                  unknown: "deliveryStatusUnknown",
+                  suppressed: "deliveryStatusSuppressed"
+                };
+                const recipientPages = Math.max(1, Math.ceil((recipientView?.total || 0) / (recipientView?.pageSize || 50)));
+                return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #dee2e6", background: "white", borderRadius: "5px", padding: "10px 12px", gap: "12px", flexWrap: "wrap" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { flex: "1 1 360px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: campaign.name }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: "12px", color: "#6c757d" }, children: [
+                      campaign.market,
+                      " \xB7 ",
+                      campaign.subject,
+                      " \xB7 ",
+                      statusLabel,
+                      " \xB7 ",
+                      campaign.sentCount || 0,
+                      "/",
+                      campaign.recipientCount || 0,
+                      " ",
+                      t2("marketing.deliveryAccepted").toLowerCase()
+                    ] }),
+                    campaign.delivery?.batches?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "7px", fontSize: "12px", color: "#475569" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px 12px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                          t2("marketing.deliveryAccepted"),
+                          ": ",
+                          campaign.sentCount || 0
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                          t2("marketing.deliveryDelivered"),
+                          ": ",
+                          deliveryCounts.delivered || 0
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                          t2("marketing.deliveryDeferred"),
+                          ": ",
+                          deliveryCounts.deferred || 0
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                          t2("marketing.deliveryBounced"),
+                          ": ",
+                          deliveryCounts.bounced || 0
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                          t2("marketing.deliveryDropped"),
+                          ": ",
+                          deliveryCounts.dropped || 0
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                          t2("marketing.deliveryFailed"),
+                          ": ",
+                          deliveryCounts.failed || 0
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                          t2("marketing.deliveryUnknown"),
+                          ": ",
+                          deliveryCounts.unknown || 0
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                          t2("marketing.deliverySuppressed"),
+                          ": ",
+                          deliveryCounts.suppressed || 0
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                          t2("marketing.deliveryUnsubscribed"),
+                          ": ",
+                          deliveryCounts.unsubscribed || 0
+                        ] })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "grid", gap: "2px", marginTop: "5px" }, children: campaign.delivery.batches.map((batch) => {
+                        const batchStatus = batch.status === "sending" ? t2("marketing.statusSending") : batch.status === "partial" ? t2("marketing.statusPartial") : batch.status === "failed" ? t2("marketing.statusFailed") : t2("marketing.statusSent");
+                        return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: t2("marketing.deliveryBatch", {
+                          number: batch.batchNumber,
+                          accepted: batch.acceptedCount,
+                          delivered: batch.deliveredCount,
+                          total: batch.recipientCount,
+                          failed: batch.failedCount,
+                          status: batchStatus
+                        }) }, batch.id);
+                      }) })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }, children: [
+                    campaign.market === "fr" && canSend && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                        "input",
+                        {
+                          type: "email",
+                          "aria-label": "Adresse email unique pour le test",
+                          placeholder: "Adresse email de test",
+                          value: marketingTestEmails[campaign.id] || "",
+                          onChange: (e2) => setMarketingTestEmails((current) => ({ ...current, [campaign.id]: e2.target.value })),
+                          style: { padding: "7px 9px", border: "1px solid #ced4da", borderRadius: "4px" }
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                        "button",
+                        {
+                          onClick: () => sendMarketingCampaignTest(campaign),
+                          disabled: marketingTestSendingId === campaign.id,
+                          style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: "pointer" },
+                          children: marketingTestSendingId === campaign.id ? "Envoi du test\u2026" : "Envoyer un test"
+                        }
+                      )
+                    ] }),
+                    canSend && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                       "button",
                       {
-                        onClick: () => sendMarketingCampaignTest(campaign),
-                        disabled: marketingTestSendingId === campaign.id,
-                        style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: "pointer" },
-                        children: marketingTestSendingId === campaign.id ? "Envoi du test\u2026" : "Envoyer un test"
+                        onClick: () => sendMarketingCampaign(campaign),
+                        disabled: marketingCampaignSendingId === campaign.id,
+                        style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: marketingCampaignSendingId === campaign.id ? "wait" : "pointer" },
+                        children: marketingCampaignSendingId === campaign.id ? t2("marketing.statusSending") : t2("marketing.sendCampaign")
+                      }
+                    ),
+                    campaign.delivery?.batches?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "button",
+                      {
+                        onClick: () => {
+                          if (openMarketingDeliveryCampaignId === campaign.id) {
+                            setOpenMarketingDeliveryCampaignId(null);
+                          } else {
+                            setOpenMarketingDeliveryCampaignId(campaign.id);
+                            loadMarketingCampaignDeliveryRecipients(campaign.id, 1, "all");
+                          }
+                        },
+                        style: { background: "#475569", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: "pointer" },
+                        children: openMarketingDeliveryCampaignId === campaign.id ? t2("marketing.hideDeliveryRecipients") : t2("marketing.viewDeliveryRecipients")
                       }
                     )
                   ] }),
-                  campaign.status !== "sent" && campaign.status !== "sending" && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { onClick: () => sendMarketingCampaign(campaign), style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: "pointer" }, children: t2("marketing.sendCampaign") })
-                ] })
-              ] }, campaign.id)) })
+                  openMarketingDeliveryCampaignId === campaign.id && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { flex: "1 0 100%", width: "100%", overflowX: "auto", borderTop: "1px solid #e2e8f0", paddingTop: "10px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "8px" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: t2("marketing.deliveryRecipientsTitle") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
+                        "select",
+                        {
+                          value: recipientView?.filter || "all",
+                          onChange: (event) => loadMarketingCampaignDeliveryRecipients(campaign.id, 1, event.target.value),
+                          style: { padding: "6px", border: "1px solid #ced4da", borderRadius: "4px" },
+                          children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "all", children: t2("marketing.deliveryFilterAll") }),
+                            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "delivered", children: t2("marketing.deliveryStatusDelivered") }),
+                            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "bounced", children: t2("marketing.deliveryStatusBounced") }),
+                            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "dropped", children: t2("marketing.deliveryStatusDropped") }),
+                            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "spam_report", children: t2("marketing.deliveryStatusSpamReport") }),
+                            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "unsubscribed", children: t2("marketing.deliveryStatusUnsubscribed") }),
+                            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "failed", children: t2("marketing.deliveryStatusFailed") }),
+                            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "unknown", children: t2("marketing.deliveryStatusUnknown") }),
+                            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("option", { value: "suppressed", children: t2("marketing.deliveryStatusSuppressed") })
+                          ]
+                        }
+                      )
+                    ] }),
+                    recipientView?.loading ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { padding: "12px", color: "#64748b" }, children: t2("marketing.deliveryRecipientsLoading") }) : recipientView?.recipients?.length ? /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", minWidth: "680px", borderCollapse: "collapse", fontSize: "12px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnEmail") }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnStatus") }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnBatch") }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnLastEvent") }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left", borderBottom: "1px solid #cbd5e1" }, children: t2("marketing.deliveryColumnUpdated") })
+                        ] }) }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tbody", { children: recipientView.recipients.map((recipient) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: recipient.email }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: t2(`marketing.${recipientStatusLabels[recipient.status] || "deliveryStatusUnknown"}`) }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: recipient.batchNumber ?? "\u2014" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: recipient.lastEvent === "app_unsubscribe" ? t2("marketing.deliveryStatusUnsubscribed") : recipient.lastEvent || "\u2014" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px", borderBottom: "1px solid #f1f5f9" }, children: recipient.lastEventAt || recipient.updatedAt ? new Date(recipient.lastEventAt || recipient.updatedAt).toLocaleString() : "\u2014" })
+                        ] }, recipient.id)) })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginTop: "8px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { fontSize: "12px", color: "#64748b" }, children: t2("marketing.deliveryRecipientsPage", {
+                          page: recipientView.page,
+                          pages: recipientPages,
+                          count: recipientView.total
+                        }) }),
+                        recipientPages > 1 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", gap: "6px" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { disabled: recipientView.page <= 1 || recipientView.loading, onClick: () => loadMarketingCampaignDeliveryRecipients(campaign.id, recipientView.page - 1), children: t2("marketing.deliveryPreviousPage") }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { disabled: recipientView.page >= recipientPages || recipientView.loading, onClick: () => loadMarketingCampaignDeliveryRecipients(campaign.id, recipientView.page + 1), children: t2("marketing.deliveryNextPage") })
+                        ] })
+                      ] })
+                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { padding: "12px", color: "#64748b" }, children: t2("marketing.deliveryNoRecipients") })
+                  ] })
+                ] }, campaign.id);
+              }) })
             ] })
           ] });
         case "company-settings":

@@ -80,16 +80,22 @@ interface EmailParams {
   attachments?: EmailAttachment[];
   headers?: Record<string, string>;
   suppressRecipientLog?: boolean;
+  customArgs?: Record<string, string>;
 }
 
 export interface EmailSendOptions {
   testMode?: boolean;
 }
 
-export async function sendEmail(params: EmailParams): Promise<boolean> {
+export type EmailSendOutcome =
+  | { status: "accepted" }
+  | { status: "rejected"; retryable: boolean; reason: string }
+  | { status: "unknown"; reason: string };
+
+export async function sendEmailWithOutcome(params: EmailParams): Promise<EmailSendOutcome> {
   if (!mailService) {
     console.warn("Email service not configured. Skipping email send.");
-    return false;
+    return { status: "rejected", retryable: false, reason: "email_service_unavailable" };
   }
   try {
     if (params.suppressRecipientLog) {
@@ -109,6 +115,10 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     if (params.headers) {
       emailData.headers = params.headers;
     }
+
+    if (params.customArgs) {
+      emailData.customArgs = params.customArgs;
+    }
     
     if (params.replyTo) {
       emailData.replyTo = params.replyTo;
@@ -120,15 +130,22 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
     
     await mailService.send(emailData);
     if (params.suppressRecipientLog) {
-      console.log("✅ Privacy-sensitive email notification sent successfully");
+      console.log("SendGrid accepted a privacy-sensitive email");
     } else {
-      console.log(`✅ Email sent successfully to: ${params.to}`);
+      console.log(`SendGrid accepted email for: ${params.to}`);
     }
-    return true;
+    return { status: "accepted" };
   } catch (error: any) {
+    const statusCode = Number(error?.response?.statusCode || error?.statusCode || 0);
+    const providerErrors = Array.isArray(error?.response?.body?.errors)
+      ? error.response.body.errors.map((item: any) => String(item?.message || "")).join(" ").toLowerCase()
+      : "";
+    const invalidRecipient = /invalid.*(email|address|recipient|to)|(?:email|address|recipient|to).*invalid|malformed.*email|email address.*not valid/i
+      .test(providerErrors);
     if (params.suppressRecipientLog) {
       console.error("❌ Privacy-sensitive email notification failed:", {
         code: error.code,
+        statusCode: statusCode || undefined,
       });
     } else {
       console.error('❌ SendGrid email error:', {
@@ -144,9 +161,23 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
         console.error('SendGrid error details:', error.response.body.errors);
       }
     }
-    
-    return false;
+
+    if (statusCode === 429) {
+      return { status: "rejected", retryable: true, reason: "sendgrid_rate_limited" };
+    }
+    if (statusCode >= 400 && statusCode < 500) {
+      return {
+        status: "rejected",
+        retryable: false,
+        reason: invalidRecipient ? "invalid_recipient" : "sendgrid_rejected_request",
+      };
+    }
+    return { status: "unknown", reason: statusCode >= 500 ? "sendgrid_server_error" : "sendgrid_response_unknown" };
   }
+}
+
+export async function sendEmail(params: EmailParams): Promise<boolean> {
+  return (await sendEmailWithOutcome(params)).status === "accepted";
 }
 
 function escapeVoucherEmail(value: string): string {

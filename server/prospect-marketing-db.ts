@@ -28,6 +28,7 @@ export type ProspectListSummary = Pick<
   invitationEligible: number;
   newsletterSubscribers: number;
   unsubscribed: number;
+  suppressed: number;
 };
 
 export async function listProspectLists(market = "fr"): Promise<ProspectListSummary[]> {
@@ -43,15 +44,20 @@ export async function listProspectLists(market = "fr"): Promise<ProspectListSumm
       where ${marketingProspects.subscriptionStatus} = 'not_subscribed'
         and ${marketingProspects.invitationSentAt} is null
         and ${marketingProspects.unsubscribedAt} is null
+        and ${marketingProspects.emailSuppressedAt} is null
     )::int`,
     newsletterSubscribers: sql<number>`count(*) filter (
       where ${marketingProspects.subscriptionStatus} = 'subscribed'
         and ${marketingProspects.newsletterConsentAt} is not null
         and ${marketingProspects.unsubscribedAt} is null
+        and ${marketingProspects.emailSuppressedAt} is null
     )::int`,
     unsubscribed: sql<number>`count(*) filter (
       where ${marketingProspects.subscriptionStatus} = 'unsubscribed'
         or ${marketingProspects.unsubscribedAt} is not null
+    )::int`,
+    suppressed: sql<number>`count(*) filter (
+      where ${marketingProspects.emailSuppressedAt} is not null
     )::int`,
   })
     .from(marketingProspectLists)
@@ -71,6 +77,7 @@ export async function listProspectLists(market = "fr"): Promise<ProspectListSumm
     invitationEligible: Number(row.invitationEligible || 0),
     newsletterSubscribers: Number(row.newsletterSubscribers || 0),
     unsubscribed: Number(row.unsubscribed || 0),
+    suppressed: Number(row.suppressed || 0),
   }));
 }
 
@@ -191,6 +198,7 @@ export async function markProspectInvitationSent(prospectId: number): Promise<vo
       eq(marketingProspects.market, "fr"),
       eq(marketingProspects.subscriptionStatus, "not_subscribed"),
       isNull(marketingProspects.unsubscribedAt),
+      isNull(marketingProspects.emailSuppressedAt),
     ));
 }
 
@@ -200,6 +208,29 @@ export async function unsubscribeProspect(prospectId: number): Promise<void> {
       subscriptionStatus: "unsubscribed",
       unsubscribedAt: new Date(),
       updatedAt: new Date(),
+    })
+    .where(and(
+      eq(marketingProspects.id, prospectId),
+      eq(marketingProspects.market, "fr"),
+    ));
+}
+
+export type ProspectEmailSuppressionReason =
+  | "hard_bounce"
+  | "spam_report"
+  | "sendgrid_dropped"
+  | "invalid_recipient";
+
+export async function suppressProspectEmail(
+  prospectId: number,
+  reason: ProspectEmailSuppressionReason,
+): Promise<void> {
+  const now = new Date();
+  await db.update(marketingProspects)
+    .set({
+      emailSuppressedAt: sql`COALESCE(${marketingProspects.emailSuppressedAt}, ${now})`,
+      emailSuppressionReason: sql`COALESCE(${marketingProspects.emailSuppressionReason}, ${reason})`,
+      updatedAt: now,
     })
     .where(and(
       eq(marketingProspects.id, prospectId),

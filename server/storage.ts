@@ -2540,6 +2540,7 @@ export class DatabaseStorage implements IStorage {
         eq(marketingProspectLists.market, "fr"),
         eq(marketingProspects.market, "fr"),
         isNull(marketingProspects.unsubscribedAt),
+        isNull(marketingProspects.emailSuppressedAt),
       ];
       if (criteria.prospectAudience === "invitation") {
         listConditions.push(

@@ -7,6 +7,7 @@ import {
   unsubscribeProspect,
 } from "./prospect-marketing-db";
 import { verifyProspectMarketingToken } from "./prospect-marketing-security";
+import { markProspectCampaignRecipientsUnsubscribed } from "./marketing-campaign-delivery";
 import {
   sendClientPasswordSetupEmail,
   sendProspectNewsletterVoucherEmail,
@@ -134,6 +135,7 @@ export function registerProspectMarketingPublicRoutes(app: Express): void {
       const prospect = await getProspectById(prospectId);
       if (!prospect) return res.status(404).type("text").send("Cette adresse n'a pas été trouvée.");
       await unsubscribeProspect(prospectId);
+      await markProspectCampaignRecipientsUnsubscribed(prospectId);
       res.type("html").send("<!doctype html><html lang=\"fr\"><meta charset=\"utf-8\"><title>Désabonnement confirmé</title><body style=\"font:16px system-ui,sans-serif;max-width:560px;margin:12vh auto;padding:24px\"><h1>Désabonnement confirmé</h1><p>Vous ne recevrez plus les emails de prospection ou newsletters xHACCP France.</p></body></html>");
     } catch (error) {
       console.error("Prospect unsubscribe failed");

@@ -568,6 +568,9 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
       };
       const [marketingSegments, setMarketingSegments] = useState([]);
       const [marketingCampaigns, setMarketingCampaigns] = useState([]);
+      const [marketingCampaignSendingId, setMarketingCampaignSendingId] = useState(null);
+      const [marketingDeliveryRecipientViews, setMarketingDeliveryRecipientViews] = useState({});
+      const [openMarketingDeliveryCampaignId, setOpenMarketingDeliveryCampaignId] = useState(null);
       const [marketingTestEmails, setMarketingTestEmails] = useState({});
       const [marketingTestSendingId, setMarketingTestSendingId] = useState(null);
       const [marketingLoading, setMarketingLoading] = useState(false);
@@ -1957,7 +1960,35 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         }
       };
 
+      const loadMarketingCampaignDeliveryRecipients = async (campaignId, page = 1, statusFilter) => {
+        const selectedStatus = statusFilter ?? marketingDeliveryRecipientViews[campaignId]?.filter ?? 'all';
+        const query = new URLSearchParams({page: String(page), pageSize: '50'});
+        if (selectedStatus !== 'all') query.set('status', selectedStatus);
+        setMarketingDeliveryRecipientViews(current => ({
+          ...current,
+          [campaignId]: {...current[campaignId], page, filter: selectedStatus, loading: true}
+        }));
+        try {
+          const response = await fetch(`/admin/api/marketing/campaigns/${campaignId}/delivery/recipients?${query}`, {
+            headers: {'Authorization': `Bearer ${token}`}
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || t('marketing.deliveryRecipientsFailed'));
+          setMarketingDeliveryRecipientViews(current => ({
+            ...current,
+            [campaignId]: {...data, filter: selectedStatus, loading: false}
+          }));
+        } catch (error) {
+          setMarketingDeliveryRecipientViews(current => ({
+            ...current,
+            [campaignId]: {...current[campaignId], page, filter: selectedStatus, loading: false}
+          }));
+          alert(`❌ ${error.message || t('marketing.deliveryRecipientsFailed')}`);
+        }
+      };
+
       const sendMarketingCampaign = async (campaign) => {
+        setMarketingCampaignSendingId(campaign.id);
         try {
           const previewRes = await fetch(`/admin/api/marketing/segments/${campaign.segmentId}/recipients`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -1970,11 +2001,53 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await res.json();
-           if (!res.ok) throw new Error(data.message || t('marketing.campaignSendFailed'));
-           alert(`✅ ${t('marketing.campaignSent', { sent: data.sentCount, failed: data.failedCount })}`);
-          fetchMarketing();
+          if (!res.ok) throw new Error(data.message || t('marketing.campaignSendFailed'));
+
+          if (res.status === 202) {
+            setMarketingCampaigns(current => current.map(item => item.id === campaign.id
+              ? { ...item, ...data.campaign }
+              : item));
+            const deadline = Date.now() + 10 * 60 * 1000;
+            let completed = null;
+            while (Date.now() < deadline) {
+              await new Promise(resolve => setTimeout(resolve, 2500));
+              try {
+                const statusRes = await fetch(`/admin/api/marketing/campaigns/${campaign.id}/delivery`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!statusRes.ok) continue;
+                const statusData = await statusRes.json();
+                setMarketingCampaigns(current => current.map(item => item.id === campaign.id
+                  ? { ...item, ...statusData.campaign, delivery: statusData.delivery }
+                  : item));
+                if (statusData.campaign?.status !== 'sending') {
+                  completed = statusData;
+                  break;
+                }
+              } catch {
+                // Keep polling briefly through transient network errors.
+              }
+            }
+            if (completed) {
+              const counts = completed.delivery?.counts || {};
+              alert(`✅ ${t('marketing.campaignFinished', {
+                accepted: completed.campaign?.sentCount || 0,
+                delivered: counts.delivered || 0,
+                failed: counts.failed || 0,
+                unknown: counts.unknown || 0
+              })}`);
+            } else {
+              alert(t('marketing.campaignMonitorTimeout'));
+            }
+            fetchMarketing();
+          } else {
+            alert(`✅ ${t('marketing.campaignSent', { sent: data.sentCount, failed: data.failedCount })}`);
+            fetchMarketing();
+          }
         } catch (err) {
           alert(`❌ ${err.message}`);
+        } finally {
+          setMarketingCampaignSendingId(null);
         }
       };
 
@@ -6233,6 +6306,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                               <th style={{padding: '8px', textAlign: 'right'}}>{t('marketing.prospectInvitable')}</th>
                               <th style={{padding: '8px', textAlign: 'right'}}>{t('marketing.prospectSubscribers')}</th>
                               <th style={{padding: '8px', textAlign: 'right'}}>{t('marketing.prospectUnsubscribed')}</th>
+                              <th style={{padding: '8px', textAlign: 'right'}}>{t('marketing.prospectSuppressed')}</th>
                             </tr></thead>
                             <tbody>{prospectLists.map(list => (
                               <tr key={list.id} style={{borderTop: '1px solid #ede7f6'}}>
@@ -6241,6 +6315,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                 <td style={{padding: '8px', textAlign: 'right'}}>{list.invitationEligible}</td>
                                 <td style={{padding: '8px', textAlign: 'right'}}>{list.newsletterSubscribers}</td>
                                 <td style={{padding: '8px', textAlign: 'right'}}>{list.unsubscribed}</td>
+                                <td style={{padding: '8px', textAlign: 'right'}}>{list.suppressed}</td>
                               </tr>
                             ))}</tbody>
                           </table>
@@ -6354,6 +6429,9 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                   <h4 style={{margin: '0 0 6px', color: '#333'}}>✉️ {t('marketing.campaignsTitle')}</h4>
                   <p style={{fontSize: '13px', color: '#6c757d', margin: '0 0 16px'}}>{t('marketing.campaignsDescription')}</p>
                   <p style={{fontSize: '12px', color: '#6c757d', margin: '-8px 0 14px'}}>
+                    {t('marketing.deliveryMeaning')} {t('marketing.deliverySetupHint')}
+                  </p>
+                  <p style={{fontSize: '12px', color: '#6c757d', margin: '-8px 0 14px'}}>
                     {t('marketing.prospectCampaignHelp')}{' '}
                     <code>{'{{restaurant_name}}'}</code>, <code>{'{{city}}'}</code>, <code>{'{{newsletter_signup_url}}'}</code>, <code>{'{{unsubscribe_url}}'}</code>, <code>{'{{offer_name}}'}</code>, <code>{'{{discount_display}}'}</code>, <code>{'{{valid_months}}'}</code>, <code>{'{{activation_days}}'}</code>, <code>{'{{offer_terms}}'}</code>
                   </p>
@@ -6374,33 +6452,176 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                     <button onClick={createMarketingCampaign} style={{background: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 14px', cursor: 'pointer'}}>{t('marketing.saveDraft')}</button>
                   </div>
                   <div style={{marginTop: '18px', display: 'grid', gap: '8px'}}>
-                    {marketingCampaigns.map(campaign => (
-                       <div key={campaign.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #dee2e6', background: 'white', borderRadius: '5px', padding: '10px 12px', gap: '12px', flexWrap: 'wrap'}}>
-                         <div><strong>{campaign.name}</strong><div style={{fontSize: '12px', color: '#6c757d'}}>{campaign.market} · {campaign.subject} · {campaign.status === 'draft' ? t('marketing.statusDraft') : campaign.status === 'sending' ? t('marketing.statusSending') : campaign.status === 'sent' ? t('marketing.statusSent') : campaign.status === 'failed' ? t('marketing.statusFailed') : campaign.status} · {campaign.sentCount || 0}/{campaign.recipientCount || 0}</div></div>
-                         <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
-                           {campaign.market === 'fr' && campaign.status !== 'sent' && campaign.status !== 'sending' && (
-                             <>
-                               <input
-                                 type="email"
-                                 aria-label="Adresse email unique pour le test"
-                                 placeholder="Adresse email de test"
-                                 value={marketingTestEmails[campaign.id] || ''}
-                                 onChange={e => setMarketingTestEmails(current => ({...current, [campaign.id]: e.target.value}))}
-                                 style={{padding: '7px 9px', border: '1px solid #ced4da', borderRadius: '4px'}}
-                               />
-                               <button
-                                 onClick={() => sendMarketingCampaignTest(campaign)}
-                                 disabled={marketingTestSendingId === campaign.id}
-                                 style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}
-                               >
-                                 {marketingTestSendingId === campaign.id ? 'Envoi du test…' : 'Envoyer un test'}
-                               </button>
-                             </>
-                           )}
-                           {campaign.status !== 'sent' && campaign.status !== 'sending' && <button onClick={() => sendMarketingCampaign(campaign)} style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}>{t('marketing.sendCampaign')}</button>}
-                         </div>
-                      </div>
-                    ))}
+                    {marketingCampaigns.map(campaign => {
+                      const deliveryCounts = campaign.delivery?.counts || {};
+                      const statusLabel = campaign.status === 'draft' ? t('marketing.statusDraft')
+                        : campaign.status === 'sending' ? t('marketing.statusSending')
+                          : campaign.status === 'sent' ? t('marketing.statusSent')
+                            : campaign.status === 'partial' ? t('marketing.statusPartial')
+                              : campaign.status === 'failed' ? t('marketing.statusFailed')
+                                : campaign.status;
+                      const canSend = campaign.status === 'draft'
+                        || (campaign.status === 'failed' && !campaign.delivery?.batches?.length);
+                      const recipientView = marketingDeliveryRecipientViews[campaign.id];
+                      const recipientStatusLabels = {
+                        queued: 'deliveryStatusQueued',
+                        submitting: 'deliveryStatusSubmitting',
+                        accepted: 'deliveryStatusAccepted',
+                        delivered: 'deliveryStatusDelivered',
+                        deferred: 'deliveryStatusDeferred',
+                        bounced: 'deliveryStatusBounced',
+                        dropped: 'deliveryStatusDropped',
+                        spam_report: 'deliveryStatusSpamReport',
+                        unsubscribed: 'deliveryStatusUnsubscribed',
+                        failed: 'deliveryStatusFailed',
+                        unknown: 'deliveryStatusUnknown',
+                        suppressed: 'deliveryStatusSuppressed'
+                      };
+                      const recipientPages = Math.max(1, Math.ceil((recipientView?.total || 0) / (recipientView?.pageSize || 50)));
+                      return (
+                        <div key={campaign.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #dee2e6', background: 'white', borderRadius: '5px', padding: '10px 12px', gap: '12px', flexWrap: 'wrap'}}>
+                          <div style={{flex: '1 1 360px'}}>
+                            <strong>{campaign.name}</strong>
+                            <div style={{fontSize: '12px', color: '#6c757d'}}>
+                              {campaign.market} · {campaign.subject} · {statusLabel} · {campaign.sentCount || 0}/{campaign.recipientCount || 0} {t('marketing.deliveryAccepted').toLowerCase()}
+                            </div>
+                            {campaign.delivery?.batches?.length > 0 && (
+                              <div style={{marginTop: '7px', fontSize: '12px', color: '#475569'}}>
+                                <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px 12px'}}>
+                                  <span>{t('marketing.deliveryAccepted')}: {campaign.sentCount || 0}</span>
+                                  <span>{t('marketing.deliveryDelivered')}: {deliveryCounts.delivered || 0}</span>
+                                  <span>{t('marketing.deliveryDeferred')}: {deliveryCounts.deferred || 0}</span>
+                                  <span>{t('marketing.deliveryBounced')}: {deliveryCounts.bounced || 0}</span>
+                                  <span>{t('marketing.deliveryDropped')}: {deliveryCounts.dropped || 0}</span>
+                                  <span>{t('marketing.deliveryFailed')}: {deliveryCounts.failed || 0}</span>
+                                  <span>{t('marketing.deliveryUnknown')}: {deliveryCounts.unknown || 0}</span>
+                                  <span>{t('marketing.deliverySuppressed')}: {deliveryCounts.suppressed || 0}</span>
+                                  <span>{t('marketing.deliveryUnsubscribed')}: {deliveryCounts.unsubscribed || 0}</span>
+                                </div>
+                                <div style={{display: 'grid', gap: '2px', marginTop: '5px'}}>
+                                  {campaign.delivery.batches.map(batch => {
+                                    const batchStatus = batch.status === 'sending' ? t('marketing.statusSending')
+                                      : batch.status === 'partial' ? t('marketing.statusPartial')
+                                        : batch.status === 'failed' ? t('marketing.statusFailed')
+                                          : t('marketing.statusSent');
+                                    return <span key={batch.id}>{t('marketing.deliveryBatch', {
+                                      number: batch.batchNumber,
+                                      accepted: batch.acceptedCount,
+                                      delivered: batch.deliveredCount,
+                                      total: batch.recipientCount,
+                                      failed: batch.failedCount,
+                                      status: batchStatus
+                                    })}</span>;
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                            {campaign.market === 'fr' && canSend && (
+                              <>
+                                <input
+                                  type="email"
+                                  aria-label="Adresse email unique pour le test"
+                                  placeholder="Adresse email de test"
+                                  value={marketingTestEmails[campaign.id] || ''}
+                                  onChange={e => setMarketingTestEmails(current => ({...current, [campaign.id]: e.target.value}))}
+                                  style={{padding: '7px 9px', border: '1px solid #ced4da', borderRadius: '4px'}}
+                                />
+                                <button
+                                  onClick={() => sendMarketingCampaignTest(campaign)}
+                                  disabled={marketingTestSendingId === campaign.id}
+                                  style={{background: '#0d6efd', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}
+                                >
+                                  {marketingTestSendingId === campaign.id ? 'Envoi du test…' : 'Envoyer un test'}
+                                </button>
+                              </>
+                            )}
+                            {canSend && <button
+                              onClick={() => sendMarketingCampaign(campaign)}
+                              disabled={marketingCampaignSendingId === campaign.id}
+                              style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: marketingCampaignSendingId === campaign.id ? 'wait' : 'pointer'}}
+                            >
+                              {marketingCampaignSendingId === campaign.id ? t('marketing.statusSending') : t('marketing.sendCampaign')}
+                            </button>}
+                            {campaign.delivery?.batches?.length > 0 && <button
+                              onClick={() => {
+                                if (openMarketingDeliveryCampaignId === campaign.id) {
+                                  setOpenMarketingDeliveryCampaignId(null);
+                                } else {
+                                  setOpenMarketingDeliveryCampaignId(campaign.id);
+                                  loadMarketingCampaignDeliveryRecipients(campaign.id, 1, 'all');
+                                }
+                              }}
+                              style={{background: '#475569', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: 'pointer'}}
+                            >
+                              {openMarketingDeliveryCampaignId === campaign.id
+                                ? t('marketing.hideDeliveryRecipients')
+                                : t('marketing.viewDeliveryRecipients')}
+                            </button>}
+                          </div>
+                          {openMarketingDeliveryCampaignId === campaign.id && (
+                            <div style={{flex: '1 0 100%', width: '100%', overflowX: 'auto', borderTop: '1px solid #e2e8f0', paddingTop: '10px'}}>
+                              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px'}}>
+                                <strong>{t('marketing.deliveryRecipientsTitle')}</strong>
+                                <select
+                                  value={recipientView?.filter || 'all'}
+                                  onChange={event => loadMarketingCampaignDeliveryRecipients(campaign.id, 1, event.target.value)}
+                                  style={{padding: '6px', border: '1px solid #ced4da', borderRadius: '4px'}}
+                                >
+                                  <option value="all">{t('marketing.deliveryFilterAll')}</option>
+                                  <option value="delivered">{t('marketing.deliveryStatusDelivered')}</option>
+                                  <option value="bounced">{t('marketing.deliveryStatusBounced')}</option>
+                                  <option value="dropped">{t('marketing.deliveryStatusDropped')}</option>
+                                  <option value="spam_report">{t('marketing.deliveryStatusSpamReport')}</option>
+                                  <option value="unsubscribed">{t('marketing.deliveryStatusUnsubscribed')}</option>
+                                  <option value="failed">{t('marketing.deliveryStatusFailed')}</option>
+                                  <option value="unknown">{t('marketing.deliveryStatusUnknown')}</option>
+                                  <option value="suppressed">{t('marketing.deliveryStatusSuppressed')}</option>
+                                </select>
+                              </div>
+                              {recipientView?.loading ? (
+                                <div style={{padding: '12px', color: '#64748b'}}>{t('marketing.deliveryRecipientsLoading')}</div>
+                              ) : recipientView?.recipients?.length ? (
+                                <>
+                                  <table style={{width: '100%', minWidth: '680px', borderCollapse: 'collapse', fontSize: '12px'}}>
+                                    <thead><tr>
+                                      <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnEmail')}</th>
+                                      <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnStatus')}</th>
+                                      <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnBatch')}</th>
+                                      <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnLastEvent')}</th>
+                                      <th style={{padding: '7px', textAlign: 'left', borderBottom: '1px solid #cbd5e1'}}>{t('marketing.deliveryColumnUpdated')}</th>
+                                    </tr></thead>
+                                    <tbody>{recipientView.recipients.map(recipient => (
+                                      <tr key={recipient.id}>
+                                        <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{recipient.email}</td>
+                                        <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{t(`marketing.${recipientStatusLabels[recipient.status] || 'deliveryStatusUnknown'}`)}</td>
+                                        <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{recipient.batchNumber ?? '—'}</td>
+                                        <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{recipient.lastEvent === 'app_unsubscribe' ? t('marketing.deliveryStatusUnsubscribed') : recipient.lastEvent || '—'}</td>
+                                        <td style={{padding: '7px', borderBottom: '1px solid #f1f5f9'}}>{recipient.lastEventAt || recipient.updatedAt ? new Date(recipient.lastEventAt || recipient.updatedAt).toLocaleString() : '—'}</td>
+                                      </tr>
+                                    ))}</tbody>
+                                  </table>
+                                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '8px'}}>
+                                    <span style={{fontSize: '12px', color: '#64748b'}}>{t('marketing.deliveryRecipientsPage', {
+                                      page: recipientView.page,
+                                      pages: recipientPages,
+                                      count: recipientView.total
+                                    })}</span>
+                                    {recipientPages > 1 && <div style={{display: 'flex', gap: '6px'}}>
+                                      <button disabled={recipientView.page <= 1 || recipientView.loading} onClick={() => loadMarketingCampaignDeliveryRecipients(campaign.id, recipientView.page - 1)}>{t('marketing.deliveryPreviousPage')}</button>
+                                      <button disabled={recipientView.page >= recipientPages || recipientView.loading} onClick={() => loadMarketingCampaignDeliveryRecipients(campaign.id, recipientView.page + 1)}>{t('marketing.deliveryNextPage')}</button>
+                                    </div>}
+                                  </div>
+                                </>
+                              ) : (
+                                <div style={{padding: '12px', color: '#64748b'}}>{t('marketing.deliveryNoRecipients')}</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
               </div>

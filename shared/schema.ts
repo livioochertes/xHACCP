@@ -224,6 +224,26 @@ export const marketingCampaigns = pgTable("marketing_campaigns", {
   marketingCampaignMarketIdx: index("marketing_campaigns_market_idx").on(table.market),
 }));
 
+export const marketingCampaignBatches = pgTable("marketing_campaign_batches", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").notNull().references(() => marketingCampaigns.id, { onDelete: "cascade" }),
+  batchNumber: integer("batch_number").notNull(),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  acceptedCount: integer("accepted_count").notNull().default(0),
+  deliveredCount: integer("delivered_count").notNull().default(0),
+  failedCount: integer("failed_count").notNull().default(0),
+  status: varchar("status", { length: 24 }).notNull().default("queued"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  marketingCampaignBatchNumberUnique: uniqueIndex("marketing_campaign_batches_campaign_number_unique")
+    .on(table.campaignId, table.batchNumber),
+  marketingCampaignBatchCampaignIdx: index("marketing_campaign_batches_campaign_idx")
+    .on(table.campaignId, table.status),
+}));
+
 export const aiRecommendationCampaigns = pgTable("ai_recommendation_campaigns", {
   id: serial("id").primaryKey(),
   market: varchar("market", { length: 10 }).notNull(),
@@ -853,11 +873,50 @@ export const marketingProspects = pgTable("marketing_prospects", {
   newsletterVoucherId: integer("newsletter_voucher_id").references(() => vouchers.id, { onDelete: "set null" }),
   voucherEmailSentAt: timestamp("voucher_email_sent_at"),
   unsubscribedAt: timestamp("unsubscribed_at"),
+  emailSuppressedAt: timestamp("email_suppressed_at"),
+  emailSuppressionReason: varchar("email_suppression_reason", { length: 40 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
   marketingProspectEmailMarketUnique: uniqueIndex("marketing_prospects_email_market_unique").on(table.email, table.market),
   marketingProspectMarketStatusIdx: index("marketing_prospects_market_status_idx").on(table.market, table.subscriptionStatus),
+  marketingProspectSuppressedIdx: index("marketing_prospects_market_suppressed_idx").on(table.market, table.emailSuppressedAt),
+}));
+
+export const marketingCampaignRecipients = pgTable("marketing_campaign_recipients", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").notNull().references(() => marketingCampaigns.id, { onDelete: "cascade" }),
+  batchId: integer("batch_id").notNull().references(() => marketingCampaignBatches.id, { onDelete: "cascade" }),
+  prospectId: integer("prospect_id").references(() => marketingProspects.id, { onDelete: "set null" }),
+  email: varchar("email", { length: 255 }).notNull(),
+  status: varchar("status", { length: 24 }).notNull().default("queued"),
+  attemptedAt: timestamp("attempted_at"),
+  acceptedAt: timestamp("accepted_at"),
+  deliveredAt: timestamp("delivered_at"),
+  lastEvent: varchar("last_event", { length: 32 }),
+  lastEventAt: timestamp("last_event_at"),
+  lastError: varchar("last_error", { length: 80 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  marketingCampaignRecipientUnique: uniqueIndex("marketing_campaign_recipients_campaign_email_unique")
+    .on(table.campaignId, table.email),
+  marketingCampaignRecipientBatchStatusIdx: index("marketing_campaign_recipients_batch_status_idx")
+    .on(table.batchId, table.status),
+  marketingCampaignRecipientProspectIdx: index("marketing_campaign_recipients_prospect_idx")
+    .on(table.prospectId),
+}));
+
+export const sendgridCampaignWebhookEvents = pgTable("sendgrid_campaign_webhook_events", {
+  id: serial("id").primaryKey(),
+  eventId: varchar("event_id", { length: 255 }).notNull().unique(),
+  recipientId: integer("recipient_id").references(() => marketingCampaignRecipients.id, { onDelete: "set null" }),
+  eventType: varchar("event_type", { length: 32 }).notNull(),
+  occurredAt: timestamp("occurred_at"),
+  receivedAt: timestamp("received_at").defaultNow().notNull(),
+}, (table) => ({
+  sendgridCampaignWebhookRecipientIdx: index("sendgrid_campaign_webhook_recipient_idx")
+    .on(table.recipientId, table.eventType),
 }));
 
 export const marketingProspectListContacts = pgTable("marketing_prospect_list_contacts", {
@@ -1240,6 +1299,8 @@ export type MarketingSegment = typeof marketingSegments.$inferSelect;
 export type InsertMarketingSegment = typeof marketingSegments.$inferInsert;
 export type MarketingCampaign = typeof marketingCampaigns.$inferSelect;
 export type InsertMarketingCampaign = typeof marketingCampaigns.$inferInsert;
+export type MarketingCampaignBatch = typeof marketingCampaignBatches.$inferSelect;
+export type MarketingCampaignRecipient = typeof marketingCampaignRecipients.$inferSelect;
 export type MarketingProspectList = typeof marketingProspectLists.$inferSelect;
 export type MarketingProspect = typeof marketingProspects.$inferSelect;
 export type ProductMarket = typeof productMarkets.$inferSelect;
