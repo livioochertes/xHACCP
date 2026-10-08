@@ -38,3 +38,9 @@ Campaign analysis should distinguish event totals from unique recipients. Open m
 **Why:** SendGrid can report repeated and automated opens, while an unsubscribe through the app's own link is not necessarily emitted as a SendGrid unsubscribe event.
 
 **How to apply:** Show unique counts alongside event counts, label open rates as indicative, and keep campaign attribution in the signed unsubscribe token rather than an editable query parameter.
+
+SendGrid's Signed Event Webhook Verification Key may be a bare Base64-encoded SPKI public key, not PEM text with BEGIN/END lines.
+
+**Why:** SendGrid's official helpers decode the verification key as Base64 before parsing the ECDSA public key; PEM-only parsing rejects valid signed events.
+
+**How to apply:** Accept PEM and Base64 SPKI formats, verify the timestamp concatenated with the exact raw request body, and never log the key value.

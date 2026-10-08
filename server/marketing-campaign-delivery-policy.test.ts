@@ -56,8 +56,22 @@ test("SendGrid event signatures are verified against timestamp and exact raw pay
   const signedPayload = Buffer.concat([Buffer.from(timestamp, "utf8"), rawBody]);
   const signature = sign("sha256", signedPayload, privateKey).toString("base64");
   const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString();
+  const publicKeyBase64 = publicKey.export({ type: "spki", format: "der" }).toString("base64");
 
   assert.equal(verifySendGridEventSignature(rawBody, signature, timestamp, publicKeyPem), true);
+  assert.equal(verifySendGridEventSignature(rawBody, signature, timestamp, publicKeyBase64), true);
   assert.equal(verifySendGridEventSignature(Buffer.from(`${rawBody} `), signature, timestamp, publicKeyPem), false);
   assert.equal(verifySendGridEventSignature(rawBody, signature, "1791449881", publicKeyPem), false);
+});
+
+test("SendGrid base64 verification keys validate an official signed webhook fixture", () => {
+  const publicKeyBase64 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE83T4O/n84iotIvIW4mdBgQ/7dAfSmpqIM8kF9mN1flpVKS3GRqe62gw+2fNNRaINXvVpiglSI8eNEc6wEA3F+g==";
+  const signature = "MEUCIGHQVtGj+Y3LkG9fLcxf3qfI10QysgDWmMOVmxG0u6ZUAiEAyBiXDWzM+uOe5W0JuG+luQAbPIqHh89M15TluLtEZtM=";
+  const timestamp = "1600112502";
+  const rawBody = Buffer.from(
+    '[{"email":"hello@world.com","event":"dropped","reason":"Bounced Address","sg_event_id":"ZHJvcC0xMDk5NDkxOS1MUnpYbF9OSFN0T0doUTRrb2ZTbV9BLTA","sg_message_id":"LRzXl_NHStOGhQ4kofSm_A.filterdrecv-p3mdw1-756b745b58-kmzbl-18-5F5FC76C-9.0","smtp-id":"<LRzXl_NHStOGhQ4kofSm_A@ismtpd0039p1iad1.sendgrid.net>","timestamp":1600112492}]\r\n',
+    "utf8",
+  );
+
+  assert.equal(verifySendGridEventSignature(rawBody, signature, timestamp, publicKeyBase64), true);
 });

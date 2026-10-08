@@ -72,11 +72,22 @@ export function verifySendGridEventSignature(
   rawBody: Buffer,
   signature: string,
   timestamp: string,
-  publicKeyPem: string,
+  publicKeyValue: string,
 ): boolean {
-  if (!rawBody.length || !signature || !timestamp || !publicKeyPem) return false;
+  if (!rawBody.length || !signature || !timestamp || !publicKeyValue) return false;
   try {
-    const publicKey = createPublicKey(publicKeyPem.replace(/\\n/g, "\n"));
+    const normalizedKey = publicKeyValue.trim().replace(/\\n/g, "\n");
+    let publicKey;
+    if (normalizedKey.includes("-----BEGIN")) {
+      publicKey = createPublicKey(normalizedKey);
+    } else {
+      const base64Key = normalizedKey.replace(/\s/g, "");
+      if (!/^[A-Za-z0-9+/]+={0,2}$/.test(base64Key)) return false;
+      const keyDer = Buffer.from(base64Key, "base64");
+      const canonicalBase64 = keyDer.toString("base64").replace(/=+$/, "");
+      if (!keyDer.length || canonicalBase64 !== base64Key.replace(/=+$/, "")) return false;
+      publicKey = createPublicKey({ key: keyDer, format: "der", type: "spki" });
+    }
     const signedPayload = Buffer.concat([Buffer.from(timestamp, "utf8"), rawBody]);
     return verifySignature(
       "sha256",
