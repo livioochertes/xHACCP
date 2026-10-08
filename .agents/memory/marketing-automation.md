@@ -20,3 +20,9 @@ French imported prospect lists may be used for an invitation only when an admini
 **Why:** The user confirmed their list has a documented B2B basis, while requiring the initial invitation to ask permission and offer a 20% voucher; imported contacts must not be silently subscribed.
 
 **How to apply:** Keep this flow France-only, never send on import, record explicit opt-in separately from the invitation basis, and preserve unsubscribe suppression across all prospect lists and campaigns.
+
+As of 2026-10-08, the user reports their SendGrid plan allows 5,000 unique addresses and 15,000 sends per month; confirm current limits before scheduling large campaigns.
+
+**Why:** The contact cap and monthly send allowance are separate; a full send to 3,000 contacts consumes 20% of the monthly send allocation.
+
+**How to apply:** Budget all planned campaign sends against the monthly allowance, and re-check the account plan because provider limits can change.
