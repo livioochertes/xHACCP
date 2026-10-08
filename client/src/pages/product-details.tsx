@@ -3,7 +3,6 @@ import { useJsonLd } from "@/lib/use-json-ld";
 import { usePageSeo } from "@/lib/use-page-seo";
 import { toSeoText, truncateDesc } from "@/lib/seo-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePublicPageReady } from "@/lib/public-page-ready";
 import { useRoute } from "wouter";
 import { Star, ShoppingCart, Truck, Shield, ArrowLeft, Plus, Minus, Package, Phone, FileText, CheckCircle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -356,7 +355,6 @@ export default function ProductDetails() {
 
   const hasLongDesc = plainDesc.length > SHORT_DESC_LIMIT;
 
-  usePublicPageReady(!isLoading);
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50">

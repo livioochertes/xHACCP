@@ -147,6 +147,9 @@ test("public HTML includes real localized content, pagination and metadata", asy
     assert.match(roEvent.html, /name="robots" content="noindex,follow"/);
     const listing = await get("/products?category=etiquettes-alimentaires&page=2");
     $ = load(listing.html);
+    assert.ok($("#public-root").attr("data-prerender-fallback"));
+    assert.match($("head style").text(), /#public-root\[data-prerender-fallback\]\{display:none\}/);
+    assert.match(listing.html, /<noscript><style>#public-root\[data-prerender-fallback\]\{display:block\}<\/style><\/noscript>/);
     assert.equal($("#public-root a[href^='/products/']").length, 20);
     assert.equal($("#public-root a[href='/products/produit-21']").length, 1);
     assert.equal($("#public-root a[rel='next']").attr("href"), "/products?category=etiquettes-alimentaires&page=3");
@@ -175,10 +178,10 @@ test("public HTML includes real localized content, pagination and metadata", asy
     assert.equal($('link[rel="canonical"]').attr("href"), "https://xhaccp.fr/products/produit-1");
     const home = await get("/");
     $ = load(home.html);
-    assert.ok($("#public-root").attr("data-home-fallback"));
+    assert.ok($("#public-root").attr("data-prerender-fallback"));
     assert.match($("#public-root").text(), /Équipements et consommables professionnels HACCP/);
-    assert.match($("head style").text(), /#public-root\[data-home-fallback\]\{display:none\}/);
-    assert.match(home.html, /<noscript><style>#public-root\[data-home-fallback\]\{display:block\}<\/style><\/noscript>/);
+    assert.match($("head style").text(), /#public-root\[data-prerender-fallback\]\{display:none\}/);
+    assert.match(home.html, /<noscript><style>#public-root\[data-prerender-fallback\]\{display:block\}<\/style><\/noscript>/);
     assert.equal($("#root").attr("hidden"), "hidden");
     assert.equal((await get("/products/missing")).response.status, 404);
     assert.equal((await get("/products/produit-1/")).response.status, 404);

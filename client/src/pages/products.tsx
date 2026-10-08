@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { usePublicPageReady } from "@/lib/public-page-ready";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Filter, Grid, List, Search, ChevronLeft, ChevronRight } from "lucide-react";
@@ -141,7 +140,6 @@ export default function Products() {
     enabled: true,
   });
 
-  usePublicPageReady(!isLoading);
   const sortedAll = useMemo(() => {
     if (!allProducts.length) return allProducts;
     const sorted = [...allProducts];

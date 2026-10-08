@@ -142,7 +142,6 @@ function injectMeta(
   lang: string,
   bodyHtml?: string,
   jsonLd?: object | object[],
-  options?: { homeFallback?: boolean },
 ): string {
   const title = escapeHtml(meta.title);
   // Apply keyword normalization to description and body copy (not to page title/brand identifiers)
@@ -207,10 +206,10 @@ function injectMeta(
   result = result.replace("</head>", `  ${ogTags}${robotsTag}${ldTag}\n</head>`);
 
   if (bodyHtml) {
-    const homeFallbackAttribute = options?.homeFallback ? ' data-home-fallback="true"' : "";
+    const prerenderFallbackAttribute = ' data-prerender-fallback="true"';
     result = result.replace(
       '<div id="root"></div>',
-      `<div id="public-root"${homeFallbackAttribute}>${renderToString(React.createElement(PublicPage, { html: bodyHtml }))}</div><div id="root" hidden></div>`
+      `<div id="public-root"${prerenderFallbackAttribute}>${renderToString(React.createElement(PublicPage, { html: bodyHtml }))}</div><div id="root" hidden></div>`
     );
     result = result.replace("</head>", `<style>
       .public-content{font-family:system-ui,sans-serif;max-width:1100px;margin:auto;padding:2rem;line-height:1.65}
@@ -218,15 +217,13 @@ function injectMeta(
       .public-content a{color:#075985;text-decoration:underline}.public-content ul{list-style:disc;padding-left:1.5rem}
       .public-content ol{list-style:decimal;padding-left:1.5rem}.public-content p{margin:1rem 0}
       .public-content img{max-width:100%;height:auto}.public-content th,.public-content td{padding:.5rem;border:1px solid #ddd}
-      #public-root[data-home-fallback]{display:none}
+      #public-root[data-prerender-fallback]{display:none}
       #root[hidden]{display:none}
     </style></head>`);
-    if (options?.homeFallback) {
-      result = result.replace(
-        "</body>",
-        '<noscript><style>#public-root[data-home-fallback]{display:block}</style></noscript></body>'
-      );
-    }
+    result = result.replace(
+      "</body>",
+      '<noscript><style>#public-root[data-prerender-fallback]{display:block}</style></noscript></body>'
+    );
   }
 
   return result;
@@ -751,9 +748,7 @@ export function registerSeoRoutes(
           : undefined;
         const bodyHtml = catalog?.html ?? buildStaticBodyHtml(route, base, lang, companySettings);
         if (catalog) meta.canonical = catalog.canonical;
-        const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml, undefined, {
-          homeFallback: route === "/",
-        });
+        const html = injectMeta(getIndexHtml(), meta, lang, bodyHtml);
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         setMarketAwareCacheHeaders(res, "public, max-age=300");
         await sendPublicHtml(req, res, html);

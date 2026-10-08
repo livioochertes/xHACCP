@@ -44,17 +44,6 @@ function useCanonical() {
   }, [location]);
 }
 
-function PublicPageMounted() {
-  const [location] = useLocation();
-  useEffect(() => {
-    // Data-backed pages keep the public HTML until their request settles.
-    if (!/^\/(products|blog)(\/[^/]+)?$/.test(location)) {
-      window.dispatchEvent(new Event("public-page-ready"));
-    }
-  }, [location]);
-  return null;
-}
-
 function Router() {
   useCanonical();
   return (
@@ -90,7 +79,6 @@ function Router() {
           <Route path="/set-password" component={SetPassword} />
           <Route component={NotFound} />
         </Switch>
-        <PublicPageMounted />
       </Suspense>
       <AiChatWidget />
     </>
