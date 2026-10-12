@@ -27179,6 +27179,7 @@ Cordialement,`
                   language: seoDraft.language,
                   name: seoDraft.name,
                   description: seoDraft.description,
+                  seoSources: seoDraft.sources || [],
                   market: selectedMarketTab
                 })
               });
@@ -27358,6 +27359,7 @@ Cordialement,`
               description: seoDraft.description,
               slug: existing?.slug || void 0,
               sourceUrl: existing?.sourceUrl || void 0,
+              seoSources: [...existing?.seoSources || [], ...seoDraft.sources || []].filter((source, index, all) => source?.url && all.findIndex((item) => item?.url === source.url) === index),
               market: selectedMarketTab
             })
           });
@@ -28789,6 +28791,24 @@ Cordialement,`
                       placeholder: t2("products.modal.translationEditDescPh")
                     }
                   ),
+                  editingTranslation.seoSources?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: "12px", marginBottom: "8px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("strong", { children: [
+                      t2("products.modal.seoSources"),
+                      ":"
+                    ] }),
+                    " ",
+                    editingTranslation.seoSources.map((source, index) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "a",
+                      {
+                        href: source.url,
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                        style: { marginRight: "10px" },
+                        children: source.title || `Source ${index + 1}`
+                      },
+                      source.url
+                    ))
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", gap: "8px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("button", { type: "button", className: "btn", onClick: handleUpdateTranslation, style: { backgroundColor: "#28a745", fontSize: "12px" }, children: [
                       "\u2713 ",

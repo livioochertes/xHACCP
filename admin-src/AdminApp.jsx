@@ -10407,6 +10407,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                     language: seoDraft.language,
                     name: seoDraft.name,
                     description: seoDraft.description,
+                    seoSources: seoDraft.sources || [],
                     market: selectedMarketTab,
                   })
                 });
@@ -10612,6 +10613,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                   description: seoDraft.description,
                   slug: existing?.slug || undefined,
                   sourceUrl: existing?.sourceUrl || undefined,
+                  seoSources: [...(existing?.seoSources || []), ...(seoDraft.sources || [])]
+                    .filter((source, index, all) => source?.url && all.findIndex(item => item?.url === source.url) === index),
                   market: selectedMarketTab,
                 })
               });
@@ -11967,6 +11970,22 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                       style={{marginBottom: '8px', fontSize: '13px'}}
                                       placeholder={t('products.modal.translationEditDescPh')}
                                     />
+                                    {editingTranslation.seoSources?.length > 0 && (
+                                      <div style={{fontSize: '12px', marginBottom: '8px'}}>
+                                        <strong>{t('products.modal.seoSources')}:</strong>{' '}
+                                        {editingTranslation.seoSources.map((source, index) => (
+                                          <a
+                                            key={source.url}
+                                            href={source.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{marginRight: '10px'}}
+                                          >
+                                            {source.title || `Source ${index + 1}`}
+                                          </a>
+                                        ))}
+                                      </div>
+                                    )}
                                     <div style={{display: 'flex', gap: '8px'}}>
                                       <button type="button" className="btn" onClick={handleUpdateTranslation} style={{backgroundColor: '#28a745', fontSize: '12px'}}>
                                         ✓ {t('products.modal.translationSave')}

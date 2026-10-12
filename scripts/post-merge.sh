@@ -41,6 +41,8 @@ async function migrate() {
         ADD COLUMN IF NOT EXISTS paypal_checkout_fingerprint VARCHAR(64);
       CREATE UNIQUE INDEX IF NOT EXISTS orders_paypal_checkout_attempt_id_unique
         ON orders(paypal_checkout_attempt_id);
+      ALTER TABLE product_translations
+        ADD COLUMN IF NOT EXISTS seo_sources JSONB NOT NULL DEFAULT '[]'::jsonb;
     \`);
     console.log('DB migration OK');
   } finally {

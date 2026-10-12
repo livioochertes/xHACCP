@@ -92,6 +92,33 @@ function normalizeOptionalEan(value: unknown): string | null {
   return ean;
 }
 
+function normalizeProductSeoSources(value: unknown): Array<{ title: string; url: string }> {
+  if (!Array.isArray(value)) return [];
+  const sources: Array<{ title: string; url: string }> = [];
+  const seenUrls = new Set<string>();
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const rawUrl = (item as { url?: unknown }).url;
+    if (typeof rawUrl !== "string" || rawUrl.length > 2048) continue;
+    try {
+      const url = new URL(rawUrl);
+      if (url.protocol !== "https:" || seenUrls.has(url.href)) continue;
+      seenUrls.add(url.href);
+      const rawTitle = (item as { title?: unknown }).title;
+      sources.push({
+        title: typeof rawTitle === "string" && rawTitle.trim()
+          ? rawTitle.trim().slice(0, 255)
+          : url.href,
+        url: url.href,
+      });
+      if (sources.length >= 8) break;
+    } catch {
+      // Ignore malformed source URLs; only external HTTPS references are useful provenance.
+    }
+  }
+  return sources;
+}
+
 type PennylaneMappingFields = {
   pennylaneProductId?: string | null;
   pennylaneAccountingAccountId?: string | null;
@@ -3831,7 +3858,7 @@ export async function registerAdminRoutes(app: Express) {
   app.post("/admin/api/products/:id/translations", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const productId = parseInt(req.params.id);
-      const { language, name, description, slug, sourceUrl } = req.body;
+      const { language, name, description, slug, sourceUrl, seoSources } = req.body;
       if (!await canAccessProductForMarket(req, productId, req.body?.market || req.query.market as string | undefined)) {
         return res.status(403).json({ message: "Access denied for this product market" });
       }
@@ -3852,7 +3879,8 @@ export async function registerAdminRoutes(app: Express) {
         name,
         description: description || null,
         slug: slug || null,
-        sourceUrl: sourceUrl || null
+        sourceUrl: sourceUrl || null,
+        ...(Array.isArray(seoSources) ? { seoSources: normalizeProductSeoSources(seoSources) } : {}),
       });
       
       res.status(201).json(translation);
@@ -3865,7 +3893,7 @@ export async function registerAdminRoutes(app: Express) {
   app.put("/admin/api/products/translations/:id", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const translationId = parseInt(req.params.id);
-      const { language, name, description, slug, sourceUrl } = req.body;
+      const { language, name, description, slug, sourceUrl, seoSources } = req.body;
       const [translationOwner] = await db.select({ productId: productTranslations.productId })
         .from(productTranslations)
         .where(eq(productTranslations.id, translationId));
@@ -3878,7 +3906,8 @@ export async function registerAdminRoutes(app: Express) {
         name,
         description,
         slug,
-        sourceUrl
+        sourceUrl,
+        ...(Array.isArray(seoSources) ? { seoSources: normalizeProductSeoSources(seoSources) } : {}),
       });
       
       res.json(translation);

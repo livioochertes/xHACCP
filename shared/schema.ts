@@ -148,6 +148,7 @@ export const productTranslations = pgTable("product_translations", {
   description: text("description"),
   slug: varchar("slug", { length: 255 }),
   sourceUrl: text("source_url"), // URL from which this translation was imported
+  seoSources: jsonb("seo_sources").$type<Array<{ title: string; url: string }>>().notNull().default([]),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1113,6 +1114,11 @@ export const insertProductTranslationSchema = createInsertSchema(productTranslat
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  seoSources: z.array(z.object({
+    title: z.string(),
+    url: z.string().url(),
+  })).optional(),
 });
 
 export const insertCategoryTranslationSchema = createInsertSchema(categoryTranslations).omit({
