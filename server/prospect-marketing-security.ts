@@ -165,9 +165,7 @@ export function buildProspectMarketingEmail(data: {
   const offerTerms = data.offer
     ? `Première commande payée dans les ${activationDays} jours suivant l'inscription. Code valable ${data.offer.validMonths} mois à compter de l'inscription.`
     : "";
-  const htmlHadSignupPlaceholder = /\{\{\s*newsletter_signup_url\s*\}\}/i.test(data.htmlContent);
   const htmlHadUnsubscribePlaceholder = /\{\{\s*unsubscribe_url\s*\}\}/i.test(data.htmlContent);
-  const textHadSignupPlaceholder = /\{\{\s*newsletter_signup_url\s*\}\}/i.test(data.textContent || "");
   const textHadUnsubscribePlaceholder = /\{\{\s*unsubscribe_url\s*\}\}/i.test(data.textContent || "");
   const replaceTokens = (value: string, format: "html" | "text") => value.replace(
     /\{\{\s*(newsletter_signup_url|unsubscribe_url|restaurant_name|city|offer_name|discount_display|discount_value|discount_type|valid_months|activation_days|offer_terms|landing_url)\s*\}\}/gi,
@@ -192,12 +190,6 @@ export function buildProspectMarketingEmail(data: {
 
   let html = replaceTokens(data.htmlContent, "html");
   let text = replaceTokens(data.textContent || stripHtml(data.htmlContent), "text");
-  if (data.audience === "invitation" && !htmlHadSignupPlaceholder) {
-    html += `<p style="margin:24px 0;"><a href="${subscribeUrl}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;">M'inscrire et recevoir mon code personnel${discountDisplay ? ` de ${escapeHtml(discountDisplay)}` : ""}</a></p>`;
-  }
-  if (data.audience === "invitation" && !textHadSignupPlaceholder) {
-    text += `\n\nInscrivez-vous pour recevoir votre code personnel${discountDisplay ? ` de ${discountDisplay}` : ""} : ${subscribeUrl}`;
-  }
   if (!htmlHadUnsubscribePlaceholder) {
     html += `<p style="margin-top:24px;font-size:12px;color:#64748b;">Vous ne souhaitez plus recevoir ces messages ? <a href="${unsubscribeUrl}">Se désabonner</a>.</p>`;
   }

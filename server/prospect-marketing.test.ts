@@ -101,6 +101,25 @@ test("newsletter messages include an unsubscribe footer without the invitation C
   assert.doesNotMatch(message.html, /newsletter\/subscribe\?token=/);
 });
 
+test("invitation messages keep only the signup and shop links authored in the template", () => {
+  const message = buildProspectMarketingEmail({
+    htmlContent: '<p>Offre de bienvenue</p><a href="https://xhaccp.fr/products">Profiter de l’offre</a>',
+    textContent: "Offre de bienvenue — https://xhaccp.fr/products",
+    audience: "invitation",
+    offer: {
+      name: "Offre France",
+      discountType: "percentage",
+      discountValue: "20",
+      validMonths: 12,
+    },
+    testMode: true,
+  });
+
+  assert.match(message.html, /https:\/\/xhaccp\.fr\/products/);
+  assert.doesNotMatch(message.html, /M'inscrire et recevoir mon code personnel/);
+  assert.doesNotMatch(message.text, /Inscrivez-vous pour recevoir votre code personnel/);
+});
+
 test("marketing test emails use safe generic links and never create subscription tokens", () => {
   const message = buildProspectMarketingEmail({
     htmlContent: '<a href="{{newsletter_signup_url}}">Join</a><a href="{{unsubscribe_url}}">Unsubscribe</a><p>{{discount_display}}</p>',

@@ -50,3 +50,9 @@ SendGrid's Signed Event Webhook Verification Key may be a bare Base64-encoded SP
 **Why:** SendGrid's official helpers decode the verification key as Base64 before parsing the ECDSA public key; PEM-only parsing rejects valid signed events.
 
 **How to apply:** Accept PEM and Base64 SPKI formats, verify the timestamp concatenated with the exact raw request body, and never log the key value.
+
+Invitation email CTA placement is controlled by the campaign HTML; do not append a generic signup button after the message.
+
+**Why:** An automatically appended signup button appeared beneath the unsubscribe footer even though the campaign already had its intended CTA.
+
+**How to apply:** Resolve explicit signup-link placeholders, but otherwise preserve the message structure supplied by the campaign template.
