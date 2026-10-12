@@ -611,6 +611,8 @@
       "seoGenerating": "Génération…",
       "seoActivate": "Activer la description",
       "seoActivated": "Description activée",
+      "seoSaveChanges": "Enregistrer les modifications SEO",
+      "seoSaved": "Description SEO enregistrée",
       "seoSaving": "Enregistrement…",
       "seoFailed": "Impossible de générer ou d'enregistrer le brouillon SEO.",
       "seoName": "Nom du produit traduit",

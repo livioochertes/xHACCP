@@ -259,7 +259,11 @@ test("admin editor uses create for staged drafts and targets the selected existi
   const adminSource = readFileSync(new URL("../admin-src/AdminApp.jsx", import.meta.url), "utf8");
 
   assert.match(adminSource, /if \(seoDraft\?\.activated\) \{\s*const translationResponse = await fetch\(`\/admin\/api\/products\/\$\{result\.product\.id\}\/translations`, \{\s*method: 'POST'/);
-  assert.match(adminSource, /const existing = productTranslations\.find\(item => item\.language === seoDraft\.language\);/);
+  assert.match(adminSource, /const persistedSeoTranslation = editingProduct\?\.id && seoLanguageForMarket\s*\?\s*productTranslations\.find\(item => item\.productId === editingProduct\.id && item\.language === seoLanguageForMarket\)/);
+  assert.match(adminSource, /const seoEditorDraft = seoDraft \|\| \(persistedSeoTranslation \? \{/);
+  assert.match(adminSource, /sources: persistedSeoTranslation\.seoSources \|\| \[\]/);
+  assert.match(adminSource, /t\('products\.modal\.seoSaveChanges'\)/);
+  assert.match(adminSource, /const existing = productTranslations\.find\(item =>\s*item\.productId === editingProduct\.id && item\.language === seoDraft\.language\s*\);/);
   assert.match(adminSource, /`\/admin\/api\/products\/translations\/\$\{existing\.id\}`\s*:\s*`\/admin\/api\/products\/\$\{editingProduct\.id\}\/translations`, \{\s*method: existing \? 'PUT' : 'POST'/);
   assert.match(adminSource, /language: seoDraft\.language,\s*name: existing\?\.name \|\| seoDraft\.name,\s*description: seoDraft\.description,/);
 });

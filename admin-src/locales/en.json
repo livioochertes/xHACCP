@@ -611,6 +611,8 @@
       "seoGenerating": "Generating…",
       "seoActivate": "Activate description",
       "seoActivated": "Description activated",
+      "seoSaveChanges": "Save SEO changes",
+      "seoSaved": "SEO description saved",
       "seoSaving": "Saving…",
       "seoFailed": "Could not generate or save the SEO draft.",
       "seoName": "Translated product name",

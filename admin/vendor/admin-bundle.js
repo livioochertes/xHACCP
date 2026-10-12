@@ -11038,6 +11038,8 @@
         seoGenerating: "Generating\u2026",
         seoActivate: "Activate description",
         seoActivated: "Description activated",
+        seoSaveChanges: "Save SEO changes",
+        seoSaved: "SEO description saved",
         seoSaving: "Saving\u2026",
         seoFailed: "Could not generate or save the SEO draft.",
         seoName: "Translated product name",
@@ -12189,6 +12191,8 @@
         seoGenerating: "Se genereaz\u0103\u2026",
         seoActivate: "Activeaz\u0103 descrierea",
         seoActivated: "Descriere activat\u0103",
+        seoSaveChanges: "Salveaz\u0103 modific\u0103rile SEO",
+        seoSaved: "Descriere SEO salvat\u0103",
         seoSaving: "Se salveaz\u0103\u2026",
         seoFailed: "Nu s-a putut genera sau salva schi\u021Ba SEO.",
         seoName: "Numele produsului tradus",
@@ -13340,6 +13344,8 @@
         seoGenerating: "G\xE9n\xE9ration\u2026",
         seoActivate: "Activer la description",
         seoActivated: "Description activ\xE9e",
+        seoSaveChanges: "Enregistrer les modifications SEO",
+        seoSaved: "Description SEO enregistr\xE9e",
         seoSaving: "Enregistrement\u2026",
         seoFailed: "Impossible de g\xE9n\xE9rer ou d'enregistrer le brouillon SEO.",
         seoName: "Nom du produit traduit",
@@ -26554,6 +26560,22 @@ Cordialement,`
       const [seoGenerating, setSeoGenerating] = (0, import_react21.useState)(false);
       const [seoSaving, setSeoSaving] = (0, import_react21.useState)(false);
       const [seoError, setSeoError] = (0, import_react21.useState)("");
+      import_react21.default.useEffect(() => {
+        setSeoDraft(null);
+        setSeoError("");
+      }, [editingProduct?.id, selectedMarketTab, productLoadTrigger]);
+      const seoLanguageForMarket = selectedMarketTab === "fr" ? "fr" : selectedMarketTab === "ro" ? "ro" : selectedMarketTab === "com" ? "en" : "";
+      const persistedSeoTranslation = editingProduct?.id && seoLanguageForMarket ? productTranslations.find((item) => item.productId === editingProduct.id && item.language === seoLanguageForMarket) : null;
+      const seoEditorDraft = seoDraft || (persistedSeoTranslation ? {
+        productId: editingProduct.id,
+        language: persistedSeoTranslation.language,
+        name: persistedSeoTranslation.name || "",
+        description: persistedSeoTranslation.description || "",
+        sources: persistedSeoTranslation.seoSources || [],
+        activated: true,
+        persisted: true,
+        dirty: false
+      } : null);
       const [categoryTranslations, setCategoryTranslations] = (0, import_react21.useState)([]);
       const [categoryTranslationDrafts, setCategoryTranslationDrafts] = (0, import_react21.useState)({});
       import_react21.default.useEffect(() => {
@@ -27287,7 +27309,8 @@ Cordialement,`
               language: editingTranslation.language,
               name: editingTranslation.name,
               description: editingTranslation.description,
-              sourceUrl: editingTranslation.sourceUrl
+              sourceUrl: editingTranslation.sourceUrl,
+              seoSources: editingTranslation.seoSources || []
             })
           });
           if (response.ok) {
@@ -27332,8 +27355,17 @@ Cordialement,`
           });
           const result = await response.json();
           if (!response.ok) throw new Error(result.message || t2("products.modal.seoFailed"));
-          const existingTranslation = productTranslations.find((item) => item.language === result.language);
-          setSeoDraft({ ...result, name: existingTranslation?.name || result.name, activated: false });
+          const existingTranslation = productTranslations.find(
+            (item) => item.productId === editingProduct?.id && item.language === result.language
+          );
+          setSeoDraft({
+            ...result,
+            productId: editingProduct?.id || null,
+            name: existingTranslation?.name || result.name,
+            activated: false,
+            persisted: false,
+            dirty: false
+          });
         } catch (error2) {
           setSeoError(error2.message || t2("products.modal.seoFailed"));
         } finally {
@@ -27343,10 +27375,12 @@ Cordialement,`
       const activateProductSeo = async () => {
         if (!seoDraft?.name || !seoDraft?.description) return;
         if (!editingProduct?.id) {
-          setSeoDraft({ ...seoDraft, activated: true });
+          setSeoDraft({ ...seoDraft, activated: true, persisted: false, dirty: false });
           return;
         }
-        const existing = productTranslations.find((item) => item.language === seoDraft.language);
+        const existing = productTranslations.find(
+          (item) => item.productId === editingProduct.id && item.language === seoDraft.language
+        );
         setSeoSaving(true);
         setSeoError("");
         try {
@@ -27366,7 +27400,15 @@ Cordialement,`
           const result = await response.json();
           if (!response.ok) throw new Error(result.message || t2("products.modal.seoFailed"));
           setProductTranslations(existing ? productTranslations.map((item) => item.id === result.id ? result : item) : [...productTranslations, result]);
-          setSeoDraft({ ...seoDraft, activated: true });
+          setSeoDraft({
+            ...seoDraft,
+            name: result.name || seoDraft.name,
+            description: result.description || seoDraft.description,
+            sources: result.seoSources || seoDraft.sources,
+            activated: true,
+            persisted: true,
+            dirty: false
+          });
         } catch (error2) {
           setSeoError(error2.message || t2("products.modal.seoFailed"));
         } finally {
@@ -28702,18 +28744,27 @@ Cordialement,`
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "10px" }, children: t2("products.modal.seoHelp") }),
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { type: "button", className: "btn", onClick: generateProductSeo, disabled: seoGenerating || seoSaving, children: seoGenerating ? t2("products.modal.seoGenerating") : t2("products.modal.seoGenerate") }),
-                  seoDraft && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { type: "button", className: "btn", onClick: activateProductSeo, disabled: seoSaving || seoGenerating, children: seoSaving ? t2("products.modal.seoSaving") : seoDraft.activated ? t2("products.modal.seoActivated") : t2("products.modal.seoActivate") })
+                  seoEditorDraft && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    "button",
+                    {
+                      type: "button",
+                      className: "btn",
+                      onClick: activateProductSeo,
+                      disabled: seoSaving || seoGenerating || seoEditorDraft.persisted && !seoDraft?.dirty,
+                      children: seoSaving ? t2("products.modal.seoSaving") : seoEditorDraft.persisted ? seoDraft?.dirty ? t2("products.modal.seoSaveChanges") : t2("products.modal.seoSaved") : seoEditorDraft.activated ? t2("products.modal.seoActivated") : t2("products.modal.seoActivate")
+                    }
+                  )
                 ] }),
                 seoError && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { role: "alert", style: { color: "#b42318", fontSize: "13px", marginBottom: "8px" }, children: seoError }),
-                seoDraft && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
+                seoEditorDraft && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                     "input",
                     {
                       className: "form-input",
-                      value: seoDraft.name,
-                      onChange: (e2) => setSeoDraft({ ...seoDraft, name: e2.target.value, activated: false }),
+                      value: seoEditorDraft.name,
+                      onChange: (e2) => setSeoDraft({ ...seoEditorDraft, name: e2.target.value, activated: false, dirty: true }),
                       "aria-label": t2("products.modal.seoName"),
-                      readOnly: !!editingProduct?.id && productTranslations.some((item) => item.language === seoDraft.language),
+                      readOnly: !!editingProduct?.id && productTranslations.some((item) => item.productId === editingProduct.id && item.language === seoEditorDraft.language),
                       style: { marginBottom: "8px" }
                     }
                   ),
@@ -28722,21 +28773,21 @@ Cordialement,`
                     {
                       className: "form-input",
                       rows: "7",
-                      value: seoDraft.description,
-                      onChange: (e2) => setSeoDraft({ ...seoDraft, description: e2.target.value, activated: false }),
+                      value: seoEditorDraft.description,
+                      onChange: (e2) => setSeoDraft({ ...seoEditorDraft, description: e2.target.value, activated: false, dirty: true }),
                       "aria-label": t2("products.modal.seoDescription"),
                       style: { marginBottom: "8px" }
                     }
                   ),
-                  seoDraft.sources?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: "12px", marginBottom: "8px" }, children: [
+                  seoEditorDraft.sources?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: "12px", marginBottom: "8px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("strong", { children: [
                       t2("products.modal.seoSources"),
                       ":"
                     ] }),
                     " ",
-                    seoDraft.sources.map((source, index) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("a", { href: source.url, target: "_blank", rel: "noopener noreferrer", style: { marginRight: "10px" }, children: source.title || `Source ${index + 1}` }, source.url))
+                    seoEditorDraft.sources.map((source, index) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("a", { href: source.url, target: "_blank", rel: "noopener noreferrer", style: { marginRight: "10px" }, children: source.title || `Source ${index + 1}` }, source.url))
                   ] }),
-                  seoDraft.activated && !editingProduct && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { role: "status", style: { color: "#16794b", fontSize: "12px" }, children: t2("products.modal.seoWillActivateOnSave") })
+                  seoEditorDraft.activated && !editingProduct && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { role: "status", style: { color: "#16794b", fontSize: "12px" }, children: t2("products.modal.seoWillActivateOnSave") })
                 ] })
               ] }),
               !editingProduct && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {

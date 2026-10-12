@@ -9704,6 +9704,24 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         const [seoGenerating, setSeoGenerating] = useState(false);
         const [seoSaving, setSeoSaving] = useState(false);
         const [seoError, setSeoError] = useState('');
+        React.useEffect(() => {
+          setSeoDraft(null);
+          setSeoError('');
+        }, [editingProduct?.id, selectedMarketTab, productLoadTrigger]);
+        const seoLanguageForMarket = selectedMarketTab === 'fr' ? 'fr' : selectedMarketTab === 'ro' ? 'ro' : selectedMarketTab === 'com' ? 'en' : '';
+        const persistedSeoTranslation = editingProduct?.id && seoLanguageForMarket
+          ? productTranslations.find(item => item.productId === editingProduct.id && item.language === seoLanguageForMarket)
+          : null;
+        const seoEditorDraft = seoDraft || (persistedSeoTranslation ? {
+          productId: editingProduct.id,
+          language: persistedSeoTranslation.language,
+          name: persistedSeoTranslation.name || '',
+          description: persistedSeoTranslation.description || '',
+          sources: persistedSeoTranslation.seoSources || [],
+          activated: true,
+          persisted: true,
+          dirty: false,
+        } : null);
         const [categoryTranslations, setCategoryTranslations] = useState([]);
         const [categoryTranslationDrafts, setCategoryTranslationDrafts] = useState({});
 
@@ -10536,7 +10554,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                 language: editingTranslation.language,
                 name: editingTranslation.name,
                 description: editingTranslation.description,
-                sourceUrl: editingTranslation.sourceUrl
+                sourceUrl: editingTranslation.sourceUrl,
+                seoSources: editingTranslation.seoSources || []
               })
             });
             
@@ -10583,8 +10602,17 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || t('products.modal.seoFailed'));
-            const existingTranslation = productTranslations.find(item => item.language === result.language);
-            setSeoDraft({ ...result, name: existingTranslation?.name || result.name, activated: false });
+            const existingTranslation = productTranslations.find(item =>
+              item.productId === editingProduct?.id && item.language === result.language
+            );
+            setSeoDraft({
+              ...result,
+              productId: editingProduct?.id || null,
+              name: existingTranslation?.name || result.name,
+              activated: false,
+              persisted: false,
+              dirty: false,
+            });
           } catch (error) {
             setSeoError(error.message || t('products.modal.seoFailed'));
           } finally {
@@ -10595,10 +10623,12 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         const activateProductSeo = async () => {
           if (!seoDraft?.name || !seoDraft?.description) return;
           if (!editingProduct?.id) {
-            setSeoDraft({ ...seoDraft, activated: true });
+            setSeoDraft({ ...seoDraft, activated: true, persisted: false, dirty: false });
             return;
           }
-          const existing = productTranslations.find(item => item.language === seoDraft.language);
+          const existing = productTranslations.find(item =>
+            item.productId === editingProduct.id && item.language === seoDraft.language
+          );
           setSeoSaving(true);
           setSeoError('');
           try {
@@ -10623,7 +10653,15 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
             setProductTranslations(existing
               ? productTranslations.map(item => item.id === result.id ? result : item)
               : [...productTranslations, result]);
-            setSeoDraft({ ...seoDraft, activated: true });
+            setSeoDraft({
+              ...seoDraft,
+              name: result.name || seoDraft.name,
+              description: result.description || seoDraft.description,
+              sources: result.seoSources || seoDraft.sources,
+              activated: true,
+              persisted: true,
+              dirty: false,
+            });
           } catch (error) {
             setSeoError(error.message || t('products.modal.seoFailed'));
           } finally {
@@ -11869,42 +11907,51 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                           <button type="button" className="btn" onClick={generateProductSeo} disabled={seoGenerating || seoSaving}>
                             {seoGenerating ? t('products.modal.seoGenerating') : t('products.modal.seoGenerate')}
                           </button>
-                          {seoDraft && (
-                            <button type="button" className="btn" onClick={activateProductSeo} disabled={seoSaving || seoGenerating}>
-                              {seoSaving ? t('products.modal.seoSaving') : seoDraft.activated ? t('products.modal.seoActivated') : t('products.modal.seoActivate')}
+                          {seoEditorDraft && (
+                            <button
+                              type="button"
+                              className="btn"
+                              onClick={activateProductSeo}
+                              disabled={seoSaving || seoGenerating || (seoEditorDraft.persisted && !seoDraft?.dirty)}
+                            >
+                              {seoSaving
+                                ? t('products.modal.seoSaving')
+                                : seoEditorDraft.persisted
+                                  ? seoDraft?.dirty ? t('products.modal.seoSaveChanges') : t('products.modal.seoSaved')
+                                  : seoEditorDraft.activated ? t('products.modal.seoActivated') : t('products.modal.seoActivate')}
                             </button>
                           )}
                         </div>
                         {seoError && <div role="alert" style={{color: '#b42318', fontSize: '13px', marginBottom: '8px'}}>{seoError}</div>}
-                        {seoDraft && (
+                        {seoEditorDraft && (
                           <div>
                             <input
                               className="form-input"
-                              value={seoDraft.name}
-                              onChange={e => setSeoDraft({...seoDraft, name: e.target.value, activated: false})}
+                              value={seoEditorDraft.name}
+                              onChange={e => setSeoDraft({...seoEditorDraft, name: e.target.value, activated: false, dirty: true})}
                               aria-label={t('products.modal.seoName')}
-                              readOnly={!!editingProduct?.id && productTranslations.some(item => item.language === seoDraft.language)}
+                              readOnly={!!editingProduct?.id && productTranslations.some(item => item.productId === editingProduct.id && item.language === seoEditorDraft.language)}
                               style={{marginBottom: '8px'}}
                             />
                             <textarea
                               className="form-input"
                               rows="7"
-                              value={seoDraft.description}
-                              onChange={e => setSeoDraft({...seoDraft, description: e.target.value, activated: false})}
+                              value={seoEditorDraft.description}
+                              onChange={e => setSeoDraft({...seoEditorDraft, description: e.target.value, activated: false, dirty: true})}
                               aria-label={t('products.modal.seoDescription')}
                               style={{marginBottom: '8px'}}
                             />
-                            {seoDraft.sources?.length > 0 && (
+                            {seoEditorDraft.sources?.length > 0 && (
                               <div style={{fontSize: '12px', marginBottom: '8px'}}>
                                 <strong>{t('products.modal.seoSources')}:</strong>{' '}
-                                {seoDraft.sources.map((source, index) => (
+                                {seoEditorDraft.sources.map((source, index) => (
                                   <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer" style={{marginRight: '10px'}}>
                                     {source.title || `Source ${index + 1}`}
                                   </a>
                                 ))}
                               </div>
                             )}
-                            {seoDraft.activated && !editingProduct && (
+                            {seoEditorDraft.activated && !editingProduct && (
                               <div role="status" style={{color: '#16794b', fontSize: '12px'}}>{t('products.modal.seoWillActivateOnSave')}</div>
                             )}
                           </div>
