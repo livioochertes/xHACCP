@@ -21,6 +21,12 @@ French imported prospect lists may be used for an invitation only when an admini
 
 **How to apply:** Keep this flow France-only, never send on import, record explicit opt-in separately from the invitation basis, and preserve unsubscribe suppression across all prospect lists and campaigns.
 
+When converting a supplied campaign DOCX to email HTML, preserve its original message, promotional artwork, and QR image instead of redesigning or dropping them. Change CTA and QR destinations only to match the requested signup or product page.
+
+**Why:** Text extraction can omit embedded media, and the user corrected an earlier HTML conversion that changed the message and left out the source image.
+
+**How to apply:** Inspect DOCX media and hyperlinks as well as extracted text, host images at public HTTPS URLs, and verify that CTA and QR links resolve to the intended storefront page.
+
 As of 2026-10-08, the user reports their SendGrid plan allows 5,000 unique addresses and 15,000 sends per month; confirm current limits before scheduling large campaigns.
 
 **Why:** The contact cap and monthly send allowance are separate; a full send to 3,000 contacts consumes 20% of the monthly send allocation.
