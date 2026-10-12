@@ -166,7 +166,7 @@ test("deleting and restoring a SendGrid draft updates both admin campaign lists"
             ? [{ ...campaign, deletedAt, expiresAt: new Date(new Date(deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString() }]
             : [];
         } else if (pathname === `/admin/api/marketing/campaigns/${campaign.id}` && request.method === "DELETE") {
-          deletedAt = new Date().toISOString();
+          deletedAt = new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString();
           responseBody = { success: true };
         } else if (pathname === `/admin/api/marketing/campaigns/${campaign.id}/restore` && request.method === "POST") {
           deletedAt = null;
@@ -224,6 +224,10 @@ test("deleting and restoring a SendGrid draft updates both admin campaign lists"
 
   await evaluate(`(() => [...document.querySelectorAll("#admin-root button")].find(button => button.textContent.trim() === "Delete draft")?.click())()`);
   await waitFor(`document.querySelector("#admin-root")?.innerText.includes("Deleted drafts") && document.querySelector("#admin-root")?.innerText.includes("Available until")`);
+  assert.ok(
+    await evaluate(`document.querySelector("#admin-root")?.innerText.includes("Expires in 5 days")`),
+    "drafts nearing expiry show the remaining time",
+  );
   assert.equal(await evaluate(`(${availableDeleteButton})()`), 0, "deleted campaign is absent from the active list");
   assert.equal(
     await evaluate(`document.querySelector("#admin-root")?.innerText.includes("Browser recovery campaign")`),

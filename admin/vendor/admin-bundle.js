@@ -11507,6 +11507,10 @@
       recoveryTitle: "Deleted drafts",
       recoveryDescription: "Restore a draft before it expires. Expired drafts are permanently removed.",
       recoveryExpires: "Available until {{date}}",
+      recoveryExpiringDay: "Expires in {{days}} day \u2014 restore it soon.",
+      recoveryExpiringDays: "Expires in {{days}} days \u2014 restore it soon.",
+      recoveryExpiringHour: "Expires in about {{hours}} hour \u2014 restore it soon.",
+      recoveryExpiringHours: "Expires in about {{hours}} hours \u2014 restore it soon.",
       restoreDraft: "Restore draft",
       restoringDraft: "Restoring\u2026",
       draftRestored: "The draft campaign was restored.",
@@ -12671,6 +12675,10 @@
       recoveryTitle: "Ciorne \u0219terse",
       recoveryDescription: "Restaureaz\u0103 ciorna \xEEnainte s\u0103 expire. Ciornele expirate sunt \u0219terse definitiv.",
       recoveryExpires: "Disponibil\u0103 p\xE2n\u0103 la {{date}}",
+      recoveryExpiringDay: "Expir\u0103 \xEEn {{days}} zi \u2014 restaureaz-o c\xE2t mai cur\xE2nd.",
+      recoveryExpiringDays: "Expir\u0103 \xEEn {{days}} zile \u2014 restaureaz-o c\xE2t mai cur\xE2nd.",
+      recoveryExpiringHour: "Expir\u0103 \xEEn aproximativ {{hours}} or\u0103 \u2014 restaureaz-o c\xE2t mai cur\xE2nd.",
+      recoveryExpiringHours: "Expir\u0103 \xEEn aproximativ {{hours}} ore \u2014 restaureaz-o c\xE2t mai cur\xE2nd.",
       restoreDraft: "Restaureaz\u0103 ciorna",
       restoringDraft: "Se restaureaz\u0103\u2026",
       draftRestored: "Ciorna campaniei a fost restaurat\u0103.",
@@ -13835,6 +13843,10 @@
       recoveryTitle: "Brouillons supprim\xE9s",
       recoveryDescription: "Restaurez un brouillon avant son expiration. Les brouillons expir\xE9s sont supprim\xE9s d\xE9finitivement.",
       recoveryExpires: "Disponible jusqu'au {{date}}",
+      recoveryExpiringDay: "Expire dans {{days}} jour \u2014 restaurez-le bient\xF4t.",
+      recoveryExpiringDays: "Expire dans {{days}} jours \u2014 restaurez-le bient\xF4t.",
+      recoveryExpiringHour: "Expire dans environ {{hours}} heure \u2014 restaurez-le bient\xF4t.",
+      recoveryExpiringHours: "Expire dans environ {{hours}} heures \u2014 restaurez-le bient\xF4t.",
       restoreDraft: "Restaurer le brouillon",
       restoringDraft: "Restauration\u2026",
       draftRestored: "Le brouillon de campagne a \xE9t\xE9 restaur\xE9.",
@@ -23079,27 +23091,34 @@ This action cannot be undone.`)) {
               marketingRecoveryDrafts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("section", { style: { marginTop: "18px", border: "1px solid #f0c36d", background: "#fffaf0", borderRadius: "6px", padding: "12px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("h5", { style: { margin: "0 0 4px", color: "#664d03" }, children: t2("marketing.recoveryTitle") }),
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "12px", color: "#6c5b32", margin: "0 0 10px" }, children: t2("marketing.recoveryDescription") }),
-                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "grid", gap: "8px" }, children: marketingRecoveryDrafts.map((campaign) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #ead9b0", background: "white", borderRadius: "5px", padding: "9px 10px", gap: "10px", flexWrap: "wrap" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: campaign.name }),
-                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: "12px", color: "#6c757d" }, children: [
-                      campaign.market,
-                      " \xB7 ",
-                      campaign.subject,
-                      " \xB7 ",
-                      t2("marketing.recoveryExpires", { date: new Date(campaign.expiresAt).toLocaleDateString() })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
-                    "button",
-                    {
-                      onClick: () => restoreMarketingCampaignDraft(campaign),
-                      disabled: marketingCampaignRestoringId === campaign.id,
-                      style: { background: "#198754", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: marketingCampaignRestoringId === campaign.id ? "wait" : "pointer" },
-                      children: marketingCampaignRestoringId === campaign.id ? t2("marketing.restoringDraft") : t2("marketing.restoreDraft")
-                    }
-                  )
-                ] }, campaign.id)) })
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "grid", gap: "8px" }, children: marketingRecoveryDrafts.map((campaign) => {
+                  const remainingMs = new Date(campaign.expiresAt).getTime() - Date.now();
+                  const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1e3));
+                  const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1e3));
+                  const expiringSoon = remainingMs > 0 && remainingMs <= 7 * 24 * 60 * 60 * 1e3;
+                  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", border: expiringSoon ? "1px solid #dc3545" : "1px solid #ead9b0", background: expiringSoon ? "#fff5f5" : "white", borderRadius: "5px", padding: "9px 10px", gap: "10px", flexWrap: "wrap" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: campaign.name }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: "12px", color: "#6c757d" }, children: [
+                        campaign.market,
+                        " \xB7 ",
+                        campaign.subject,
+                        " \xB7 ",
+                        t2("marketing.recoveryExpires", { date: new Date(campaign.expiresAt).toLocaleDateString() })
+                      ] }),
+                      expiringSoon && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { role: "status", style: { fontSize: "12px", color: "#b02a37", fontWeight: 600, marginTop: "3px" }, children: remainingHours < 24 ? t2(remainingHours === 1 ? "marketing.recoveryExpiringHour" : "marketing.recoveryExpiringHours", { hours: remainingHours }) : t2(remainingDays === 1 ? "marketing.recoveryExpiringDay" : "marketing.recoveryExpiringDays", { days: remainingDays }) })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "button",
+                      {
+                        onClick: () => restoreMarketingCampaignDraft(campaign),
+                        disabled: marketingCampaignRestoringId === campaign.id,
+                        style: { background: "#198754", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: marketingCampaignRestoringId === campaign.id ? "wait" : "pointer" },
+                        children: marketingCampaignRestoringId === campaign.id ? t2("marketing.restoringDraft") : t2("marketing.restoreDraft")
+                      }
+                    )
+                  ] }, campaign.id);
+                }) })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "18px", display: "grid", gap: "8px" }, children: marketingCampaigns.map((campaign) => {
                 const deliveryCounts = campaign.delivery?.counts || {};

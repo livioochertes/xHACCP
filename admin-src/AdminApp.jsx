@@ -6497,23 +6497,36 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                       <h5 style={{margin: '0 0 4px', color: '#664d03'}}>{t('marketing.recoveryTitle')}</h5>
                       <p style={{fontSize: '12px', color: '#6c5b32', margin: '0 0 10px'}}>{t('marketing.recoveryDescription')}</p>
                       <div style={{display: 'grid', gap: '8px'}}>
-                        {marketingRecoveryDrafts.map(campaign => (
-                          <div key={campaign.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #ead9b0', background: 'white', borderRadius: '5px', padding: '9px 10px', gap: '10px', flexWrap: 'wrap'}}>
-                            <div>
-                              <strong>{campaign.name}</strong>
-                              <div style={{fontSize: '12px', color: '#6c757d'}}>
-                                {campaign.market} · {campaign.subject} · {t('marketing.recoveryExpires', {date: new Date(campaign.expiresAt).toLocaleDateString()})}
+                        {marketingRecoveryDrafts.map(campaign => {
+                          const remainingMs = new Date(campaign.expiresAt).getTime() - Date.now();
+                          const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
+                          const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+                          const expiringSoon = remainingMs > 0 && remainingMs <= 7 * 24 * 60 * 60 * 1000;
+                          return (
+                            <div key={campaign.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: expiringSoon ? '1px solid #dc3545' : '1px solid #ead9b0', background: expiringSoon ? '#fff5f5' : 'white', borderRadius: '5px', padding: '9px 10px', gap: '10px', flexWrap: 'wrap'}}>
+                              <div>
+                                <strong>{campaign.name}</strong>
+                                <div style={{fontSize: '12px', color: '#6c757d'}}>
+                                  {campaign.market} · {campaign.subject} · {t('marketing.recoveryExpires', {date: new Date(campaign.expiresAt).toLocaleDateString()})}
+                                </div>
+                                {expiringSoon && (
+                                  <div role="status" style={{fontSize: '12px', color: '#b02a37', fontWeight: 600, marginTop: '3px'}}>
+                                    {remainingHours < 24
+                                      ? t(remainingHours === 1 ? 'marketing.recoveryExpiringHour' : 'marketing.recoveryExpiringHours', {hours: remainingHours})
+                                      : t(remainingDays === 1 ? 'marketing.recoveryExpiringDay' : 'marketing.recoveryExpiringDays', {days: remainingDays})}
+                                  </div>
+                                )}
                               </div>
+                              <button
+                                onClick={() => restoreMarketingCampaignDraft(campaign)}
+                                disabled={marketingCampaignRestoringId === campaign.id}
+                                style={{background: '#198754', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: marketingCampaignRestoringId === campaign.id ? 'wait' : 'pointer'}}
+                              >
+                                {marketingCampaignRestoringId === campaign.id ? t('marketing.restoringDraft') : t('marketing.restoreDraft')}
+                              </button>
                             </div>
-                            <button
-                              onClick={() => restoreMarketingCampaignDraft(campaign)}
-                              disabled={marketingCampaignRestoringId === campaign.id}
-                              style={{background: '#198754', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: marketingCampaignRestoringId === campaign.id ? 'wait' : 'pointer'}}
-                            >
-                              {marketingCampaignRestoringId === campaign.id ? t('marketing.restoringDraft') : t('marketing.restoreDraft')}
-                            </button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </section>
                   )}
