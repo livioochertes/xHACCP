@@ -11030,6 +11030,20 @@
         deleteTier: "Delete tier",
         translationsTitle: "Product Translations",
         translationsDesc: "Name and description in other languages, shown to visitors based on the site language.",
+        seoTitle: "AI SEO description",
+        seoHelp: "Generate a draft using similar products in this market first. If none are available, Claude may search the web. Review and edit it before activation.",
+        seoChooseMarket: "Select a specific market (.ro, .fr or .com) first.",
+        seoNameRequired: "Enter the product name first.",
+        seoGenerate: "Generate SEO draft",
+        seoGenerating: "Generating\u2026",
+        seoActivate: "Activate description",
+        seoActivated: "Description activated",
+        seoSaving: "Saving\u2026",
+        seoFailed: "Could not generate or save the SEO draft.",
+        seoName: "Translated product name",
+        seoDescription: "SEO product description",
+        seoSources: "Web sources",
+        seoWillActivateOnSave: "This description will be added when you save the new product.",
         saveFirst: "Save the product first to be able to add translations.",
         addTranslation: "Add translation",
         translationLangPh: "Language",
@@ -12167,6 +12181,20 @@
         deleteTier: "\u0218terge treapt\u0103",
         translationsTitle: "Traduceri produs",
         translationsDesc: "Numele \u0219i descrierea \xEEn alte limbi, afi\u0219ate vizitatorilor \xEEn func\u021Bie de limba site-ului.",
+        seoTitle: "Descriere SEO cu AI",
+        seoHelp: "Genereaz\u0103 o schi\u021B\u0103 folosind mai \xEEnt\xE2i produse similare din aceast\u0103 pia\u021B\u0103. Dac\u0103 nu exist\u0103, Claude poate c\u0103uta pe web. Verific\u0103 \u0219i editeaz\u0103 textul \xEEnainte de activare.",
+        seoChooseMarket: "Selecteaz\u0103 mai \xEEnt\xE2i o pia\u021B\u0103 anume (.ro, .fr sau .com).",
+        seoNameRequired: "Introdu mai \xEEnt\xE2i numele produsului.",
+        seoGenerate: "Genereaz\u0103 schi\u021B\u0103 SEO",
+        seoGenerating: "Se genereaz\u0103\u2026",
+        seoActivate: "Activeaz\u0103 descrierea",
+        seoActivated: "Descriere activat\u0103",
+        seoSaving: "Se salveaz\u0103\u2026",
+        seoFailed: "Nu s-a putut genera sau salva schi\u021Ba SEO.",
+        seoName: "Numele produsului tradus",
+        seoDescription: "Descriere SEO produs",
+        seoSources: "Surse web",
+        seoWillActivateOnSave: "Descrierea va fi ad\u0103ugat\u0103 c\xE2nd salvezi produsul nou.",
         saveFirst: "Salveaz\u0103 produsul mai \xEEnt\xE2i pentru a putea ad\u0103uga traduceri.",
         addTranslation: "Adaug\u0103 traducere",
         translationLangPh: "Limb\u0103",
@@ -13304,6 +13332,20 @@
         deleteTier: "Supprimer le palier",
         translationsTitle: "Traductions du produit",
         translationsDesc: "Nom et description dans d'autres langues, affich\xE9s aux visiteurs selon la langue du site.",
+        seoTitle: "Description SEO avec IA",
+        seoHelp: "G\xE9n\xE9rez un brouillon \xE0 partir des produits similaires de ce march\xE9. \xC0 d\xE9faut, Claude peut rechercher sur le Web. V\xE9rifiez et modifiez le texte avant activation.",
+        seoChooseMarket: "S\xE9lectionnez d'abord un march\xE9 pr\xE9cis (.ro, .fr ou .com).",
+        seoNameRequired: "Saisissez d'abord le nom du produit.",
+        seoGenerate: "G\xE9n\xE9rer un brouillon SEO",
+        seoGenerating: "G\xE9n\xE9ration\u2026",
+        seoActivate: "Activer la description",
+        seoActivated: "Description activ\xE9e",
+        seoSaving: "Enregistrement\u2026",
+        seoFailed: "Impossible de g\xE9n\xE9rer ou d'enregistrer le brouillon SEO.",
+        seoName: "Nom du produit traduit",
+        seoDescription: "Description SEO du produit",
+        seoSources: "Sources Web",
+        seoWillActivateOnSave: "Cette description sera ajout\xE9e lors de l'enregistrement du nouveau produit.",
         saveFirst: "Enregistrez d'abord le produit pour pouvoir ajouter des traductions.",
         addTranslation: "Ajouter une traduction",
         translationLangPh: "Langue",
@@ -26508,6 +26550,10 @@ Cordialement,`
       const [componentsLoading, setComponentsLoading] = (0, import_react21.useState)(false);
       const [newTranslation, setNewTranslation] = (0, import_react21.useState)({ language: "", name: "", description: "", sourceUrl: "" });
       const [editingTranslation, setEditingTranslation] = (0, import_react21.useState)(null);
+      const [seoDraft, setSeoDraft] = (0, import_react21.useState)(null);
+      const [seoGenerating, setSeoGenerating] = (0, import_react21.useState)(false);
+      const [seoSaving, setSeoSaving] = (0, import_react21.useState)(false);
+      const [seoError, setSeoError] = (0, import_react21.useState)("");
       const [categoryTranslations, setCategoryTranslations] = (0, import_react21.useState)([]);
       const [categoryTranslationDrafts, setCategoryTranslationDrafts] = (0, import_react21.useState)({});
       import_react21.default.useEffect(() => {
@@ -27006,6 +27052,8 @@ Cordialement,`
           pendingCertificationUploadsRef.current.clear();
           setShowAddProductModal(false);
           setEditingProduct(null);
+          setSeoDraft(null);
+          setSeoError("");
           setProductFormData({
             name: "",
             description: "",
@@ -27123,6 +27171,24 @@ Cordialement,`
               alert("Produsul nu a fost confirmat pentru pia\u021Ba " + selectedMarketTab.toUpperCase() + ". Formularul r\u0103m\xE2ne deschis.");
               return;
             }
+            if (seoDraft?.activated) {
+              const translationResponse = await fetch(`/admin/api/products/${result.product.id}/translations`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({
+                  language: seoDraft.language,
+                  name: seoDraft.name,
+                  description: seoDraft.description,
+                  market: selectedMarketTab
+                })
+              });
+              if (!translationResponse.ok) {
+                const error2 = await translationResponse.json().catch(() => ({}));
+                alert("Produsul a fost creat, dar descrierea SEO nu a putut fi activat\u0103: " + (error2.message || "Eroare necunoscut\u0103") + ". O po\u021Bi ad\u0103uga ulterior din editarea produsului.");
+                resetForm();
+                return;
+              }
+            }
             alert(result.message);
             resetForm();
           } else {
@@ -27235,6 +27301,74 @@ Cordialement,`
         } catch (error2) {
           console.error("Error updating translation:", error2);
           alert("Failed to update translation");
+        }
+      };
+      const generateProductSeo = async () => {
+        const market = ["ro", "fr", "com"].includes(selectedMarketTab) ? selectedMarketTab : "";
+        if (!market) {
+          setSeoError(t2("products.modal.seoChooseMarket"));
+          return;
+        }
+        if (!productFormData.name.trim()) {
+          setSeoError(t2("products.modal.seoNameRequired"));
+          return;
+        }
+        setSeoGenerating(true);
+        setSeoError("");
+        setSeoDraft(null);
+        try {
+          const response = await fetch("/admin/api/products/generate-seo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({
+              productId: editingProduct?.id || void 0,
+              market,
+              product: editingProduct?.id ? void 0 : {
+                ...productFormData,
+                category: categories.find((category) => String(category.id) === String(productFormData.categoryId))?.name || ""
+              }
+            })
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || t2("products.modal.seoFailed"));
+          const existingTranslation = productTranslations.find((item) => item.language === result.language);
+          setSeoDraft({ ...result, name: existingTranslation?.name || result.name, activated: false });
+        } catch (error2) {
+          setSeoError(error2.message || t2("products.modal.seoFailed"));
+        } finally {
+          setSeoGenerating(false);
+        }
+      };
+      const activateProductSeo = async () => {
+        if (!seoDraft?.name || !seoDraft?.description) return;
+        if (!editingProduct?.id) {
+          setSeoDraft({ ...seoDraft, activated: true });
+          return;
+        }
+        const existing = productTranslations.find((item) => item.language === seoDraft.language);
+        setSeoSaving(true);
+        setSeoError("");
+        try {
+          const response = await fetch(existing ? `/admin/api/products/translations/${existing.id}` : `/admin/api/products/${editingProduct.id}/translations`, {
+            method: existing ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({
+              language: seoDraft.language,
+              name: existing?.name || seoDraft.name,
+              description: seoDraft.description,
+              slug: existing?.slug || void 0,
+              sourceUrl: existing?.sourceUrl || void 0,
+              market: selectedMarketTab
+            })
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || t2("products.modal.seoFailed"));
+          setProductTranslations(existing ? productTranslations.map((item) => item.id === result.id ? result : item) : [...productTranslations, result]);
+          setSeoDraft({ ...seoDraft, activated: true });
+        } catch (error2) {
+          setSeoError(error2.message || t2("products.modal.seoFailed"));
+        } finally {
+          setSeoSaving(false);
         }
       };
       return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
@@ -28561,6 +28695,48 @@ Cordialement,`
                 ")"
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "12px" }, children: t2("products.modal.translationsDesc") }),
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { backgroundColor: "#fff", border: "1px solid #d7e3f4", borderRadius: "6px", padding: "12px", marginBottom: "15px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { fontWeight: "bold", color: "#174ea6", marginBottom: "6px" }, children: t2("products.modal.seoTitle") }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { fontSize: "12px", color: "#6c757d", marginBottom: "10px" }, children: t2("products.modal.seoHelp") }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { type: "button", className: "btn", onClick: generateProductSeo, disabled: seoGenerating || seoSaving, children: seoGenerating ? t2("products.modal.seoGenerating") : t2("products.modal.seoGenerate") }),
+                  seoDraft && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { type: "button", className: "btn", onClick: activateProductSeo, disabled: seoSaving || seoGenerating, children: seoSaving ? t2("products.modal.seoSaving") : seoDraft.activated ? t2("products.modal.seoActivated") : t2("products.modal.seoActivate") })
+                ] }),
+                seoError && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { role: "alert", style: { color: "#b42318", fontSize: "13px", marginBottom: "8px" }, children: seoError }),
+                seoDraft && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    "input",
+                    {
+                      className: "form-input",
+                      value: seoDraft.name,
+                      onChange: (e2) => setSeoDraft({ ...seoDraft, name: e2.target.value, activated: false }),
+                      "aria-label": t2("products.modal.seoName"),
+                      readOnly: !!editingProduct?.id && productTranslations.some((item) => item.language === seoDraft.language),
+                      style: { marginBottom: "8px" }
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    "textarea",
+                    {
+                      className: "form-input",
+                      rows: "7",
+                      value: seoDraft.description,
+                      onChange: (e2) => setSeoDraft({ ...seoDraft, description: e2.target.value, activated: false }),
+                      "aria-label": t2("products.modal.seoDescription"),
+                      style: { marginBottom: "8px" }
+                    }
+                  ),
+                  seoDraft.sources?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: "12px", marginBottom: "8px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("strong", { children: [
+                      t2("products.modal.seoSources"),
+                      ":"
+                    ] }),
+                    " ",
+                    seoDraft.sources.map((source, index) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("a", { href: source.url, target: "_blank", rel: "noopener noreferrer", style: { marginRight: "10px" }, children: source.title || `Source ${index + 1}` }, source.url))
+                  ] }),
+                  seoDraft.activated && !editingProduct && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { role: "status", style: { color: "#16794b", fontSize: "12px" }, children: t2("products.modal.seoWillActivateOnSave") })
+                ] })
+              ] }),
               !editingProduct && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
                 backgroundColor: "#fff3cd",
                 border: "1px solid #ffc107",

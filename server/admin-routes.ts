@@ -3752,6 +3752,82 @@ export async function registerAdminRoutes(app: Express) {
     }
   });
 
+  app.post("/admin/api/products/generate-seo", authenticateAdmin, rateLimit({
+    windowMs: 60 * 1000,
+    max: 8,
+    standardHeaders: true,
+    legacyHeaders: false,
+  }), async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return res.status(503).json({ message: "ANTHROPIC_API_KEY nu este configurat" });
+      }
+      const { productId: rawProductId, market: rawMarket, product: draftProduct } = req.body || {};
+      const market = rawMarket === "fr" || rawMarket === "com" || rawMarket === "ro" ? rawMarket : null;
+      if (!market) return res.status(400).json({ message: "Selectează o piață validă" });
+      if (!canAccessMarket(req, market)) return res.status(403).json({ message: "Access denied for this market" });
+
+      let product: any = draftProduct && typeof draftProduct === "object" ? draftProduct : null;
+      let productId: number | null = null;
+      if (rawProductId !== undefined && rawProductId !== null) {
+        productId = Number(rawProductId);
+        if (!Number.isSafeInteger(productId) || productId <= 0) {
+          return res.status(400).json({ message: "Invalid product ID" });
+        }
+        if (!await canAccessProductForMarket(req, productId, market)) {
+          return res.status(403).json({ message: "Access denied for this product market" });
+        }
+        product = await storage.getProduct(productId);
+      }
+      if (!product?.name) return res.status(400).json({ message: "Product name is required" });
+
+      const language = market === "fr" ? "fr" : market === "ro" ? "ro" : "en";
+      let currentTranslation = productId ? await storage.getProductTranslation(productId, language) : null;
+      if (currentTranslation?.name) product = { ...product, name: currentTranslation.name };
+      if (currentTranslation?.description) product = { ...product, description: currentTranslation.description };
+
+      const marketRows = await db.select({ productId: productMarkets.productId })
+        .from(productMarkets)
+        .where(and(eq(productMarkets.market, market), eq(productMarkets.isActive, true)));
+      const visibleIds = new Set(marketRows.map(row => row.productId));
+      const categoryId = Number(product.categoryId) || undefined;
+      const candidates = categoryId
+        ? (await storage.getProducts({ categoryId, limit: 1000 }))
+          .filter(candidate => candidate.id !== productId && candidate.status?.toLowerCase() === "active" && visibleIds.has(candidate.id))
+          .slice(0, 5)
+        : [];
+      const relatedProducts = await Promise.all(candidates.map(async candidate => {
+        const translation = await storage.getProductTranslation(candidate.id, language);
+        return {
+          name: translation?.name || candidate.name,
+          description: String(translation?.description || candidate.description || "").replace(/<[^>]*>/g, "").slice(0, 700),
+        };
+      }));
+
+      const { generateProductSeoDraft } = await import("./ai-product-seo");
+      const result = await generateProductSeoDraft({
+        product: {
+          name: product.name,
+          description: product.descriptionHtml || product.description || "",
+          category: product.category?.name || product.category || "",
+          specs: product.specs || [],
+          piecesPerPackage: product.piecesPerPackage || null,
+          productQuantity: product.productQuantity || null,
+          dimensions: { weight: product.weight, length: product.length, width: product.width, height: product.height },
+          productCode: product.productCode || null,
+        },
+        language,
+        market,
+        relatedProducts,
+        useWebSearch: relatedProducts.length === 0,
+      });
+      res.json({ ...result, language, usedCatalogReferences: relatedProducts.length > 0 });
+    } catch (error) {
+      console.error("Generate product SEO draft error:", error);
+      res.status(500).json({ message: (error as Error).message || "Failed to generate SEO draft" });
+    }
+  });
+
   app.post("/admin/api/products/:id/translations", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
       const productId = parseInt(req.params.id);

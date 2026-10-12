@@ -51,3 +51,4 @@
 - [Dependency override verification](dependency-override-verification.md) — a successful npm install can retain an old nested version after adding an override; check the resolved tree and both lockfiles.
 - [UUID security upgrade compatibility](uuid-upgrade-compatibility.md) — ExcelJS needs a patched UUID release that still supports CommonJS; test extended conditional formatting.
 - [Market-specific legal pages](market-specific-legal-pages.md) — select legal copy and seller/return details by storefront market, independently of UI language.
+- [Product SEO generation](product-seo-generation.md) — draft from same-market catalog products first; require manual review and activation before publishing localized copy.

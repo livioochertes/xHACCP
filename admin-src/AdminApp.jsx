@@ -9700,6 +9700,10 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         // Translation form states - local to ModalsComponent to prevent focus loss
         const [newTranslation, setNewTranslation] = useState({ language: '', name: '', description: '', sourceUrl: '' });
         const [editingTranslation, setEditingTranslation] = useState(null);
+        const [seoDraft, setSeoDraft] = useState(null);
+        const [seoGenerating, setSeoGenerating] = useState(false);
+        const [seoSaving, setSeoSaving] = useState(false);
+        const [seoError, setSeoError] = useState('');
         const [categoryTranslations, setCategoryTranslations] = useState([]);
         const [categoryTranslationDrafts, setCategoryTranslationDrafts] = useState({});
 
@@ -10292,6 +10296,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
             pendingCertificationUploadsRef.current.clear();
             setShowAddProductModal(false);
             setEditingProduct(null);
+            setSeoDraft(null);
+            setSeoError('');
             setProductFormData({
               name: '', description: '', price: '', compareAtPrice: '',
               categoryId: '', supplierId: '', imageUrl: '', stockQuantity: '',
@@ -10392,6 +10398,24 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
               if (!result.product?.id || result.productMarket?.market !== selectedMarketTab) {
                 alert('Produsul nu a fost confirmat pentru piața ' + selectedMarketTab.toUpperCase() + '. Formularul rămâne deschis.');
                 return;
+              }
+              if (seoDraft?.activated) {
+                const translationResponse = await fetch(`/admin/api/products/${result.product.id}/translations`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify({
+                    language: seoDraft.language,
+                    name: seoDraft.name,
+                    description: seoDraft.description,
+                    market: selectedMarketTab,
+                  })
+                });
+                if (!translationResponse.ok) {
+                  const error = await translationResponse.json().catch(() => ({}));
+                  alert('Produsul a fost creat, dar descrierea SEO nu a putut fi activată: ' + (error.message || 'Eroare necunoscută') + '. O poți adăuga ulterior din editarea produsului.');
+                  resetForm();
+                  return;
+                }
               }
               alert(result.message);
               resetForm();
@@ -10527,6 +10551,80 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
           } catch (error) {
             console.error('Error updating translation:', error);
             alert('Failed to update translation');
+          }
+        };
+
+        const generateProductSeo = async () => {
+          const market = ['ro', 'fr', 'com'].includes(selectedMarketTab) ? selectedMarketTab : '';
+          if (!market) {
+            setSeoError(t('products.modal.seoChooseMarket'));
+            return;
+          }
+          if (!productFormData.name.trim()) {
+            setSeoError(t('products.modal.seoNameRequired'));
+            return;
+          }
+          setSeoGenerating(true);
+          setSeoError('');
+          setSeoDraft(null);
+          try {
+            const response = await fetch('/admin/api/products/generate-seo', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({
+                productId: editingProduct?.id || undefined,
+                market,
+                product: editingProduct?.id ? undefined : {
+                  ...productFormData,
+                  category: categories.find(category => String(category.id) === String(productFormData.categoryId))?.name || '',
+                },
+              })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || t('products.modal.seoFailed'));
+            const existingTranslation = productTranslations.find(item => item.language === result.language);
+            setSeoDraft({ ...result, name: existingTranslation?.name || result.name, activated: false });
+          } catch (error) {
+            setSeoError(error.message || t('products.modal.seoFailed'));
+          } finally {
+            setSeoGenerating(false);
+          }
+        };
+
+        const activateProductSeo = async () => {
+          if (!seoDraft?.name || !seoDraft?.description) return;
+          if (!editingProduct?.id) {
+            setSeoDraft({ ...seoDraft, activated: true });
+            return;
+          }
+          const existing = productTranslations.find(item => item.language === seoDraft.language);
+          setSeoSaving(true);
+          setSeoError('');
+          try {
+            const response = await fetch(existing
+              ? `/admin/api/products/translations/${existing.id}`
+              : `/admin/api/products/${editingProduct.id}/translations`, {
+                method: existing ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                  language: seoDraft.language,
+                  name: existing?.name || seoDraft.name,
+                  description: seoDraft.description,
+                  slug: existing?.slug || undefined,
+                  sourceUrl: existing?.sourceUrl || undefined,
+                  market: selectedMarketTab,
+                })
+              });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || t('products.modal.seoFailed'));
+            setProductTranslations(existing
+              ? productTranslations.map(item => item.id === result.id ? result : item)
+              : [...productTranslations, result]);
+            setSeoDraft({ ...seoDraft, activated: true });
+          } catch (error) {
+            setSeoError(error.message || t('products.modal.seoFailed'));
+          } finally {
+            setSeoSaving(false);
           }
         };
         
@@ -11759,6 +11857,55 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                       </h4>
                       <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '12px'}}>
                         {t('products.modal.translationsDesc')}
+                      </div>
+
+                      <div style={{backgroundColor: '#fff', border: '1px solid #d7e3f4', borderRadius: '6px', padding: '12px', marginBottom: '15px'}}>
+                        <div style={{fontWeight: 'bold', color: '#174ea6', marginBottom: '6px'}}>{t('products.modal.seoTitle')}</div>
+                        <div style={{fontSize: '12px', color: '#6c757d', marginBottom: '10px'}}>{t('products.modal.seoHelp')}</div>
+                        <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px'}}>
+                          <button type="button" className="btn" onClick={generateProductSeo} disabled={seoGenerating || seoSaving}>
+                            {seoGenerating ? t('products.modal.seoGenerating') : t('products.modal.seoGenerate')}
+                          </button>
+                          {seoDraft && (
+                            <button type="button" className="btn" onClick={activateProductSeo} disabled={seoSaving || seoGenerating}>
+                              {seoSaving ? t('products.modal.seoSaving') : seoDraft.activated ? t('products.modal.seoActivated') : t('products.modal.seoActivate')}
+                            </button>
+                          )}
+                        </div>
+                        {seoError && <div role="alert" style={{color: '#b42318', fontSize: '13px', marginBottom: '8px'}}>{seoError}</div>}
+                        {seoDraft && (
+                          <div>
+                            <input
+                              className="form-input"
+                              value={seoDraft.name}
+                              onChange={e => setSeoDraft({...seoDraft, name: e.target.value, activated: false})}
+                              aria-label={t('products.modal.seoName')}
+                              readOnly={!!editingProduct?.id && productTranslations.some(item => item.language === seoDraft.language)}
+                              style={{marginBottom: '8px'}}
+                            />
+                            <textarea
+                              className="form-input"
+                              rows="7"
+                              value={seoDraft.description}
+                              onChange={e => setSeoDraft({...seoDraft, description: e.target.value, activated: false})}
+                              aria-label={t('products.modal.seoDescription')}
+                              style={{marginBottom: '8px'}}
+                            />
+                            {seoDraft.sources?.length > 0 && (
+                              <div style={{fontSize: '12px', marginBottom: '8px'}}>
+                                <strong>{t('products.modal.seoSources')}:</strong>{' '}
+                                {seoDraft.sources.map((source, index) => (
+                                  <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer" style={{marginRight: '10px'}}>
+                                    {source.title || `Source ${index + 1}`}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                            {seoDraft.activated && !editingProduct && (
+                              <div role="status" style={{color: '#16794b', fontSize: '12px'}}>{t('products.modal.seoWillActivateOnSave')}</div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       
                       {/* Show message for new products */}
