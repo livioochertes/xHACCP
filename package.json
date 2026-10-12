@@ -15,6 +15,7 @@
     "test:subscriptions": "tsx --test server/subscription-service.test.ts",
     "test:thank-you": "tsx --test client/src/lib/analytics.test.ts && node --test scripts/thank-you-browser.test.mjs",
     "test:thank-you:browser": "node --test scripts/thank-you-browser.test.mjs",
+    "test:marketing-recovery:browser": "node --test scripts/marketing-recovery-browser.test.mjs",
     "test:wms": "tsx --test server/wms-contract.test.ts && node scripts/validate-wms-openapi.mjs",
     "validate:wms-openapi": "node scripts/validate-wms-openapi.mjs",
     "test:wms-monitor": "node --test scripts/check-wms-production.test.mjs",
