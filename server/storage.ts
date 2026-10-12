@@ -764,7 +764,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProduct(id: number): Promise<void> {
-    await db.delete(products).where(eq(products.id, id));
+    await db.transaction(async (tx) => {
+      // SEO provenance is stored on product translations, so remove those
+      // records together with the product. If another historical record
+      // (such as an order item) blocks deletion, the transaction restores them.
+      await tx.delete(productTranslations).where(eq(productTranslations.productId, id));
+      await tx.delete(products).where(eq(products.id, id));
+    });
   }
 
   // Product translation operations
