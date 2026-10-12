@@ -344,6 +344,7 @@ export interface IStorage {
   getMarketingCampaign(id: number): Promise<MarketingCampaign | undefined>;
   createMarketingCampaign(campaign: InsertMarketingCampaign): Promise<MarketingCampaign>;
   updateMarketingCampaign(id: number, campaign: Partial<InsertMarketingCampaign>): Promise<MarketingCampaign>;
+  deleteMarketingCampaignDraft(id: number): Promise<boolean>;
   getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<MarketingRecipient[]>;
 
   // Product market operations
@@ -2535,6 +2536,16 @@ export class DatabaseStorage implements IStorage {
       .where(eq(marketingCampaigns.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteMarketingCampaignDraft(id: number): Promise<boolean> {
+    const [deleted] = await db.delete(marketingCampaigns)
+      .where(and(
+        eq(marketingCampaigns.id, id),
+        eq(marketingCampaigns.status, "draft"),
+      ))
+      .returning({ id: marketingCampaigns.id });
+    return Boolean(deleted);
   }
 
   async getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<MarketingRecipient[]> {

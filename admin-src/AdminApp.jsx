@@ -569,6 +569,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
       const [marketingSegments, setMarketingSegments] = useState([]);
       const [marketingCampaigns, setMarketingCampaigns] = useState([]);
       const [marketingCampaignSendingId, setMarketingCampaignSendingId] = useState(null);
+      const [marketingCampaignDeletingId, setMarketingCampaignDeletingId] = useState(null);
       const [marketingDeliveryRecipientViews, setMarketingDeliveryRecipientViews] = useState({});
       const [openMarketingDeliveryCampaignId, setOpenMarketingDeliveryCampaignId] = useState(null);
       const [marketingTestEmails, setMarketingTestEmails] = useState({});
@@ -1944,6 +1945,24 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
           fetchMarketing();
         } catch (err) {
           alert(`❌ ${err.message}`);
+        }
+      };
+
+      const deleteMarketingCampaignDraft = async (campaign) => {
+        if (!window.confirm(t('marketing.deleteDraftConfirm', {name: campaign.name}))) return;
+        setMarketingCampaignDeletingId(campaign.id);
+        try {
+          const response = await fetch(`/admin/api/marketing/campaigns/${campaign.id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!response.ok) throw new Error('Campaign draft deletion failed');
+          setMarketingCampaigns(current => current.filter(item => item.id !== campaign.id));
+          alert(t('marketing.draftDeleted'));
+        } catch (err) {
+          alert(t('marketing.deleteDraftFailed'));
+        } finally {
+          setMarketingCampaignDeletingId(null);
         }
       };
 
@@ -6583,6 +6602,13 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                               style={{background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: marketingCampaignSendingId === campaign.id ? 'wait' : 'pointer'}}
                             >
                               {marketingCampaignSendingId === campaign.id ? t('marketing.statusSending') : t('marketing.sendCampaign')}
+                            </button>}
+                            {campaign.status === 'draft' && <button
+                              onClick={() => deleteMarketingCampaignDraft(campaign)}
+                              disabled={marketingCampaignDeletingId === campaign.id}
+                              style={{background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: marketingCampaignDeletingId === campaign.id ? 'wait' : 'pointer'}}
+                            >
+                              {t('marketing.deleteDraft')}
                             </button>}
                             {campaign.delivery?.batches?.length > 0 && <button
                               onClick={fetchMarketing}

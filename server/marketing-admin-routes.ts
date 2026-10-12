@@ -4,6 +4,7 @@ import path from "node:path";
 import {
   aiRecommendationCampaigns,
   type EventVoucherCampaign,
+  type MarketingCampaign,
   type MarketingSegmentCriteria,
 } from "@shared/schema";
 import { and, desc, eq, gt, lt, ne, sql } from "drizzle-orm";
@@ -164,6 +165,20 @@ const defaultMarketingEmailTestDependencies: MarketingEmailTestDependencies = {
   sendEmail,
 };
 
+export interface MarketingCampaignDraftDeletionDependencies {
+  authenticateAdmin: RequestHandler;
+  canAccessMarket: (req: Request, market: string) => boolean;
+  getCampaign: (id: number) => Promise<MarketingCampaign | undefined>;
+  deleteDraft: (id: number) => Promise<boolean>;
+}
+
+const defaultMarketingCampaignDraftDeletionDependencies: MarketingCampaignDraftDeletionDependencies = {
+  authenticateAdmin: authenticateAdmin as RequestHandler,
+  canAccessMarket: canAccessMarket as (req: Request, market: string) => boolean,
+  getCampaign: (id) => storage.getMarketingCampaign(id),
+  deleteDraft: (id) => storage.deleteMarketingCampaignDraft(id),
+};
+
 async function recommendationProductsBelongToMarket(
   productIds: number[],
   market: RecommendationMarket,
@@ -179,6 +194,7 @@ export function registerMarketingAdminRoutes(
   app: Express,
   campaignDependencies: AIRecommendationCampaignRouteDependencies = defaultAIRecommendationCampaignDependencies,
   emailTestDependencies: MarketingEmailTestDependencies = defaultMarketingEmailTestDependencies,
+  draftDeletionDependencies: MarketingCampaignDraftDeletionDependencies = defaultMarketingCampaignDraftDeletionDependencies,
 ): void {
   app.get("/admin/api/marketing/event-voucher-template", emailTestDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
     if (!emailTestDependencies.canAccessMarket(req, "fr")) {
@@ -445,6 +461,36 @@ export function registerMarketingAdminRoutes(
     } catch (error) {
       console.error("Marketing campaigns list error:", error);
       res.status(500).json({ message: "Failed to fetch marketing campaigns" });
+    }
+  });
+
+  app.delete("/admin/api/marketing/campaigns/:id", draftDeletionDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    try {
+      const campaignId = Number(req.params.id);
+      if (!Number.isSafeInteger(campaignId) || campaignId <= 0) {
+        return res.status(400).json({ message: "Invalid campaign ID" });
+      }
+
+      const campaign = await draftDeletionDependencies.getCampaign(campaignId);
+      if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+      if (!draftDeletionDependencies.canAccessMarket(req, campaign.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (campaign.status !== "draft") {
+        return res.status(409).json({ message: "Only draft campaigns can be deleted" });
+      }
+
+      // The storage operation repeats the draft check in its DELETE predicate
+      // so a concurrent send cannot turn this preflight check into data loss.
+      if (!(await draftDeletionDependencies.deleteDraft(campaignId))) {
+        const latestCampaign = await draftDeletionDependencies.getCampaign(campaignId);
+        if (!latestCampaign) return res.status(404).json({ message: "Campaign not found" });
+        return res.status(409).json({ message: "Only draft campaigns can be deleted" });
+      }
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Marketing campaign draft delete error:", error);
+      return res.status(500).json({ message: "Failed to delete campaign draft" });
     }
   });
 

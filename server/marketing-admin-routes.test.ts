@@ -4,6 +4,7 @@ import type { Request, RequestHandler } from "express";
 import test from "node:test";
 import type {
   AIRecommendationCampaignRouteDependencies,
+  MarketingCampaignDraftDeletionDependencies,
   MarketingEmailTestDependencies,
 } from "./marketing-admin-routes";
 
@@ -33,11 +34,19 @@ type FixtureCampaign = {
   createdBy?: number;
 };
 
+type MarketingCampaignFixture = {
+  id: number;
+  market: "ro" | "fr" | "com";
+  status: string;
+};
+
 function createHarness(
   initialCampaigns: FixtureCampaign[] = [],
   emailTestDependencies?: MarketingEmailTestDependencies,
+  initialMarketingCampaigns: MarketingCampaignFixture[] = [],
 ) {
   const campaigns = initialCampaigns.map((campaign) => ({ ...campaign }));
+  const marketingCampaigns = initialMarketingCampaigns.map((campaign) => ({ ...campaign }));
   let nextId = Math.max(0, ...campaigns.map((campaign) => campaign.id)) + 1;
   const calls = {
     listedMarkets: [] as string[],
@@ -45,6 +54,7 @@ function createHarness(
     created: 0,
     updated: 0,
     deleted: 0,
+    deletedMarketingDrafts: 0,
   };
   const marketLockQueues = new Map<string, Promise<void>>();
   const withMarketLock = async <T>(market: string, save: () => Promise<T>): Promise<T> => {
@@ -127,10 +137,25 @@ function createHarness(
       if (index !== -1) campaigns.splice(index, 1);
     },
   };
+  const draftDeletionDependencies: MarketingCampaignDraftDeletionDependencies = {
+    authenticateAdmin,
+    canAccessMarket: (req, market) => {
+      const allowedMarkets = (req as Request & { adminMarkets?: string[] }).adminMarkets || [];
+      return allowedMarkets.length === 0 || allowedMarkets.includes(market);
+    },
+    getCampaign: async (id) => marketingCampaigns.find((campaign) => campaign.id === id) as any,
+    deleteDraft: async (id) => {
+      const index = marketingCampaigns.findIndex((campaign) => campaign.id === id && campaign.status === "draft");
+      if (index === -1) return false;
+      marketingCampaigns.splice(index, 1);
+      calls.deletedMarketingDrafts++;
+      return true;
+    },
+  };
 
   const app = express();
   app.use(express.json());
-  registerMarketingAdminRoutes(app, dependencies, emailTestDependencies);
+  registerMarketingAdminRoutes(app, dependencies, emailTestDependencies, draftDeletionDependencies);
   const server = app.listen(0);
 
   const ready = new Promise<string>((resolve, reject) => {
@@ -147,6 +172,7 @@ function createHarness(
 
   return {
     campaigns,
+    marketingCampaigns,
     calls,
     ready,
     close: () => new Promise<void>((resolve, reject) => {
@@ -174,6 +200,59 @@ function createHarness(
     },
   };
 }
+
+test("deletes a draft SendGrid campaign from its marketplace", async (t) => {
+  const harness = createHarness([], undefined, [{ id: 51, market: "fr", status: "draft" }]);
+  t.after(() => harness.close());
+
+  const deleted = await harness.request("DELETE", "/admin/api/marketing/campaigns/51", "fr");
+
+  assert.equal(deleted.status, 200);
+  assert.deepEqual(deleted.body, { success: true });
+  assert.deepEqual(harness.marketingCampaigns, []);
+  assert.equal(harness.calls.deletedMarketingDrafts, 1);
+});
+
+test("refuses to delete SendGrid campaigns unless their status is draft", async (t) => {
+  const harness = createHarness([], undefined, [
+    { id: 51, market: "fr", status: "sent" },
+    { id: 52, market: "fr", status: "sending" },
+    { id: 53, market: "fr", status: "partial" },
+    { id: 54, market: "fr", status: "failed" },
+  ]);
+  t.after(() => harness.close());
+
+  const responses = await Promise.all(harness.marketingCampaigns.map((campaign) =>
+    harness.request("DELETE", `/admin/api/marketing/campaigns/${campaign.id}`, "fr"),
+  ));
+
+  assert.deepEqual(responses.map(({ status }) => status), [409, 409, 409, 409]);
+  assert.equal(harness.calls.deletedMarketingDrafts, 0);
+  assert.equal(harness.marketingCampaigns.length, 4);
+});
+
+test("blocks deletion of a SendGrid draft outside the administrator's marketplaces", async (t) => {
+  const harness = createHarness([], undefined, [{ id: 51, market: "fr", status: "draft" }]);
+  t.after(() => harness.close());
+
+  const response = await harness.request("DELETE", "/admin/api/marketing/campaigns/51", "ro");
+
+  assert.equal(response.status, 403);
+  assert.equal(harness.calls.deletedMarketingDrafts, 0);
+  assert.equal(harness.marketingCampaigns.length, 1);
+});
+
+test("returns clear errors for invalid or missing SendGrid campaign IDs", async (t) => {
+  const harness = createHarness();
+  t.after(() => harness.close());
+
+  const invalid = await harness.request("DELETE", "/admin/api/marketing/campaigns/not-an-id", "fr");
+  const missing = await harness.request("DELETE", "/admin/api/marketing/campaigns/999", "fr");
+
+  assert.equal(invalid.status, 400);
+  assert.equal(missing.status, 404);
+  assert.equal(harness.calls.deletedMarketingDrafts, 0);
+});
 
 function fixtureCampaign(
   id: number,

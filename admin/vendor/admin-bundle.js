@@ -11500,6 +11500,10 @@
       htmlPlaceholder: "<h1>HTML content</h1>",
       textPlaceholder: "Text version (optional)",
       saveDraft: "Save draft",
+      deleteDraft: "Delete draft",
+      deleteDraftConfirm: "Delete the draft campaign \u201C{{name}}\u201D? This cannot be undone.",
+      draftDeleted: "The draft campaign was deleted.",
+      deleteDraftFailed: "The draft campaign could not be deleted.",
       sendCampaign: "Send campaign",
       sendConfirm: "Send campaign \u201C{{name}}\u201D to {{count}} eligible recipients? Sending cannot be undone.",
       campaignSent: "Campaign sent: {{sent}} successful, {{failed}} failed.",
@@ -12653,6 +12657,10 @@
       htmlPlaceholder: "<h1>Con\u021Binut HTML</h1>",
       textPlaceholder: "Versiune text (op\u021Bional)",
       saveDraft: "Salveaz\u0103 ciorna",
+      deleteDraft: "\u0218terge ciorna",
+      deleteDraftConfirm: "\u0218tergi ciorna campaniei \u201E{{name}}\u201D? Ac\u021Biunea nu poate fi anulat\u0103.",
+      draftDeleted: "Ciorna campaniei a fost \u0219tears\u0103.",
+      deleteDraftFailed: "Ciorna campaniei nu a putut fi \u0219tears\u0103.",
       sendCampaign: "Trimite campania",
       sendConfirm: "Trimi\u021Bi campania \u201E{{name}}\u201D c\u0103tre {{count}} destinatari eligibili? Trimiterea nu poate fi anulat\u0103.",
       campaignSent: "Campanie trimis\u0103: {{sent}} reu\u0219ite, {{failed}} e\u0219uate.",
@@ -13806,6 +13814,10 @@
       htmlPlaceholder: "<h1>Contenu HTML</h1>",
       textPlaceholder: "Version texte (facultatif)",
       saveDraft: "Enregistrer le brouillon",
+      deleteDraft: "Supprimer le brouillon",
+      deleteDraftConfirm: "Supprimer le brouillon de campagne \xAB {{name}} \xBB ? Cette action est irr\xE9versible.",
+      draftDeleted: "Le brouillon de campagne a \xE9t\xE9 supprim\xE9.",
+      deleteDraftFailed: "Impossible de supprimer le brouillon de campagne.",
       sendCampaign: "Envoyer la campagne",
       sendConfirm: "Envoyer la campagne \xAB {{name}} \xBB \xE0 {{count}} destinataires \xE9ligibles ? L'envoi ne peut pas \xEAtre annul\xE9.",
       campaignSent: "Campagne envoy\xE9e : {{sent}} r\xE9ussis, {{failed}} \xE9checs.",
@@ -17166,6 +17178,7 @@
     const [marketingSegments, setMarketingSegments] = (0, import_react21.useState)([]);
     const [marketingCampaigns, setMarketingCampaigns] = (0, import_react21.useState)([]);
     const [marketingCampaignSendingId, setMarketingCampaignSendingId] = (0, import_react21.useState)(null);
+    const [marketingCampaignDeletingId, setMarketingCampaignDeletingId] = (0, import_react21.useState)(null);
     const [marketingDeliveryRecipientViews, setMarketingDeliveryRecipientViews] = (0, import_react21.useState)({});
     const [openMarketingDeliveryCampaignId, setOpenMarketingDeliveryCampaignId] = (0, import_react21.useState)(null);
     const [marketingTestEmails, setMarketingTestEmails] = (0, import_react21.useState)({});
@@ -18415,6 +18428,23 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         fetchMarketing();
       } catch (err) {
         alert(`\u274C ${err.message}`);
+      }
+    };
+    const deleteMarketingCampaignDraft = async (campaign) => {
+      if (!window.confirm(t2("marketing.deleteDraftConfirm", { name: campaign.name }))) return;
+      setMarketingCampaignDeletingId(campaign.id);
+      try {
+        const response = await fetch(`/admin/api/marketing/campaigns/${campaign.id}`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error("Campaign draft deletion failed");
+        setMarketingCampaigns((current) => current.filter((item) => item.id !== campaign.id));
+        alert(t2("marketing.draftDeleted"));
+      } catch (err) {
+        alert(t2("marketing.deleteDraftFailed"));
+      } finally {
+        setMarketingCampaignDeletingId(null);
       }
     };
     const loadEventVoucherEmailTemplate = async () => {
@@ -23167,6 +23197,15 @@ This action cannot be undone.`)) {
                         disabled: marketingCampaignSendingId === campaign.id,
                         style: { background: "#dc3545", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: marketingCampaignSendingId === campaign.id ? "wait" : "pointer" },
                         children: marketingCampaignSendingId === campaign.id ? t2("marketing.statusSending") : t2("marketing.sendCampaign")
+                      }
+                    ),
+                    campaign.status === "draft" && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "button",
+                      {
+                        onClick: () => deleteMarketingCampaignDraft(campaign),
+                        disabled: marketingCampaignDeletingId === campaign.id,
+                        style: { background: "#6c757d", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: marketingCampaignDeletingId === campaign.id ? "wait" : "pointer" },
+                        children: t2("marketing.deleteDraft")
                       }
                     ),
                     campaign.delivery?.batches?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
