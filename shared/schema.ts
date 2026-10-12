@@ -220,9 +220,11 @@ export const marketingCampaigns = pgTable("marketing_campaigns", {
   createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow(),
   sentAt: timestamp("sent_at"),
+  deletedAt: timestamp("deleted_at"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
   marketingCampaignMarketIdx: index("marketing_campaigns_market_idx").on(table.market),
+  marketingCampaignDeletedAtIdx: index("marketing_campaigns_deleted_at_idx").on(table.deletedAt),
 }));
 
 export const marketingCampaignBatches = pgTable("marketing_campaign_batches", {

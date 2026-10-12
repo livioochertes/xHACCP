@@ -568,8 +568,10 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
       };
       const [marketingSegments, setMarketingSegments] = useState([]);
       const [marketingCampaigns, setMarketingCampaigns] = useState([]);
+      const [marketingRecoveryDrafts, setMarketingRecoveryDrafts] = useState([]);
       const [marketingCampaignSendingId, setMarketingCampaignSendingId] = useState(null);
       const [marketingCampaignDeletingId, setMarketingCampaignDeletingId] = useState(null);
+      const [marketingCampaignRestoringId, setMarketingCampaignRestoringId] = useState(null);
       const [marketingDeliveryRecipientViews, setMarketingDeliveryRecipientViews] = useState({});
       const [openMarketingDeliveryCampaignId, setOpenMarketingDeliveryCampaignId] = useState(null);
       const [marketingTestEmails, setMarketingTestEmails] = useState({});
@@ -1773,9 +1775,10 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         setEventVoucherContactsLoading(isFranceVisible);
         try {
           const market = selectedMarketTab || 'all';
-          const [segmentsRes, campaignsRes, contactsRes, prospectListsRes] = await Promise.all([
+          const [segmentsRes, campaignsRes, recoveryRes, contactsRes, prospectListsRes] = await Promise.all([
             fetch(`/admin/api/marketing/segments?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
             fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetch(`/admin/api/marketing/campaigns/recovery?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
             isFranceVisible
               ? fetch('/admin/api/marketing/event-voucher-contacts?campaign=chef-event-fr', { headers: { 'Authorization': `Bearer ${token}` } })
               : Promise.resolve(null),
@@ -1785,6 +1788,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
           ]);
           if (segmentsRes.ok) setMarketingSegments(await segmentsRes.json());
           if (campaignsRes.ok) setMarketingCampaigns(await campaignsRes.json());
+          if (recoveryRes.ok) setMarketingRecoveryDrafts(await recoveryRes.json());
+          else setMarketingRecoveryDrafts([]);
           if (contactsRes?.ok) {
             const contactsData = await contactsRes.json();
             setEventVoucherContacts(contactsData.contacts || []);
@@ -1957,12 +1962,29 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (!response.ok) throw new Error('Campaign draft deletion failed');
-          setMarketingCampaigns(current => current.filter(item => item.id !== campaign.id));
+          await fetchMarketing();
           alert(t('marketing.draftDeleted'));
         } catch (err) {
           alert(t('marketing.deleteDraftFailed'));
         } finally {
           setMarketingCampaignDeletingId(null);
+        }
+      };
+
+      const restoreMarketingCampaignDraft = async (campaign) => {
+        setMarketingCampaignRestoringId(campaign.id);
+        try {
+          const response = await fetch(`/admin/api/marketing/campaigns/${campaign.id}/restore`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!response.ok) throw new Error('Campaign draft restore failed');
+          await fetchMarketing();
+          alert(t('marketing.draftRestored'));
+        } catch (err) {
+          alert(t('marketing.restoreDraftFailed'));
+        } finally {
+          setMarketingCampaignRestoringId(null);
         }
       };
 
@@ -6470,6 +6492,31 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                     )}
                     <button onClick={createMarketingCampaign} style={{background: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', padding: '9px 14px', cursor: 'pointer'}}>{t('marketing.saveDraft')}</button>
                   </div>
+                  {marketingRecoveryDrafts.length > 0 && (
+                    <section style={{marginTop: '18px', border: '1px solid #f0c36d', background: '#fffaf0', borderRadius: '6px', padding: '12px'}}>
+                      <h5 style={{margin: '0 0 4px', color: '#664d03'}}>{t('marketing.recoveryTitle')}</h5>
+                      <p style={{fontSize: '12px', color: '#6c5b32', margin: '0 0 10px'}}>{t('marketing.recoveryDescription')}</p>
+                      <div style={{display: 'grid', gap: '8px'}}>
+                        {marketingRecoveryDrafts.map(campaign => (
+                          <div key={campaign.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #ead9b0', background: 'white', borderRadius: '5px', padding: '9px 10px', gap: '10px', flexWrap: 'wrap'}}>
+                            <div>
+                              <strong>{campaign.name}</strong>
+                              <div style={{fontSize: '12px', color: '#6c757d'}}>
+                                {campaign.market} · {campaign.subject} · {t('marketing.recoveryExpires', {date: new Date(campaign.expiresAt).toLocaleDateString()})}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => restoreMarketingCampaignDraft(campaign)}
+                              disabled={marketingCampaignRestoringId === campaign.id}
+                              style={{background: '#198754', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: marketingCampaignRestoringId === campaign.id ? 'wait' : 'pointer'}}
+                            >
+                              {marketingCampaignRestoringId === campaign.id ? t('marketing.restoringDraft') : t('marketing.restoreDraft')}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
                   <div style={{marginTop: '18px', display: 'grid', gap: '8px'}}>
                     {marketingCampaigns.map(campaign => {
                       const deliveryCounts = campaign.delivery?.counts || {};

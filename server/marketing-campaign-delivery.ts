@@ -78,6 +78,7 @@ export async function queueProspectMarketingCampaign(
       .limit(1)
       .for("update");
     if (!campaign) throw new Error("Campaign not found");
+    if (campaign.deletedAt) throw new Error("A deleted campaign draft cannot be sent");
     if (campaign.status !== "draft" && campaign.status !== "failed") {
       throw new Error("Only a draft campaign can be sent");
     }

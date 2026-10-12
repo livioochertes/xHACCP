@@ -38,6 +38,7 @@ type MarketingCampaignFixture = {
   id: number;
   market: "ro" | "fr" | "com";
   status: string;
+  deletedAt: Date | null;
 };
 
 function createHarness(
@@ -55,6 +56,7 @@ function createHarness(
     updated: 0,
     deleted: 0,
     deletedMarketingDrafts: 0,
+    restoredMarketingDrafts: 0,
   };
   const marketLockQueues = new Map<string, Promise<void>>();
   const withMarketLock = async <T>(market: string, save: () => Promise<T>): Promise<T> => {
@@ -143,12 +145,43 @@ function createHarness(
       const allowedMarkets = (req as Request & { adminMarkets?: string[] }).adminMarkets || [];
       return allowedMarkets.length === 0 || allowedMarkets.includes(market);
     },
-    getCampaign: async (id) => marketingCampaigns.find((campaign) => campaign.id === id) as any,
+    getCampaign: async (id) => {
+      const campaign = marketingCampaigns.find((item) => item.id === id && !item.deletedAt);
+      return campaign as any;
+    },
+    getRecoveryDraft: async (id) => {
+      const campaign = marketingCampaigns.find((item) =>
+        item.id === id
+        && item.status === "draft"
+        && item.deletedAt
+        && item.deletedAt.getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000,
+      );
+      return campaign as any;
+    },
+    listRecoveryDrafts: async (market) => marketingCampaigns.filter((item) =>
+      item.status === "draft"
+      && item.deletedAt
+      && item.deletedAt.getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000
+      && (market === "all" || item.market === market),
+    ) as any,
     deleteDraft: async (id) => {
       const index = marketingCampaigns.findIndex((campaign) => campaign.id === id && campaign.status === "draft");
       if (index === -1) return false;
-      marketingCampaigns.splice(index, 1);
+      if (marketingCampaigns[index].deletedAt) return false;
+      marketingCampaigns[index].deletedAt = new Date();
       calls.deletedMarketingDrafts++;
+      return true;
+    },
+    restoreDraft: async (id) => {
+      const campaign = marketingCampaigns.find((item) =>
+        item.id === id
+        && item.status === "draft"
+        && item.deletedAt
+        && item.deletedAt.getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000,
+      );
+      if (!campaign) return false;
+      campaign.deletedAt = null;
+      calls.restoredMarketingDrafts++;
       return true;
     },
   };
@@ -202,23 +235,77 @@ function createHarness(
 }
 
 test("deletes a draft SendGrid campaign from its marketplace", async (t) => {
-  const harness = createHarness([], undefined, [{ id: 51, market: "fr", status: "draft" }]);
+  const harness = createHarness([], undefined, [{ id: 51, market: "fr", status: "draft", deletedAt: null }]);
   t.after(() => harness.close());
 
   const deleted = await harness.request("DELETE", "/admin/api/marketing/campaigns/51", "fr");
 
   assert.equal(deleted.status, 200);
   assert.deepEqual(deleted.body, { success: true });
-  assert.deepEqual(harness.marketingCampaigns, []);
+  assert.equal(harness.marketingCampaigns.length, 1);
+  assert.ok(harness.marketingCampaigns[0].deletedAt instanceof Date);
   assert.equal(harness.calls.deletedMarketingDrafts, 1);
+});
+
+test("lists deleted draft campaigns with their recovery expiry", async (t) => {
+  const harness = createHarness([], undefined, [{
+    id: 51,
+    market: "fr",
+    status: "draft",
+    deletedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+  }]);
+  t.after(() => harness.close());
+
+  const response = await harness.request("GET", "/admin/api/marketing/campaigns/recovery?market=fr", "fr");
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.length, 1);
+  assert.equal(response.body[0].id, 51);
+  assert.equal(response.body[0].expiresAt, new Date(harness.marketingCampaigns[0].deletedAt!.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString());
+});
+
+test("restores a recoverable draft only for an administrator with marketplace access", async (t) => {
+  const harness = createHarness([], undefined, [{
+    id: 51,
+    market: "fr",
+    status: "draft",
+    deletedAt: new Date(),
+  }]);
+  t.after(() => harness.close());
+
+  const denied = await harness.request("POST", "/admin/api/marketing/campaigns/51/restore", "ro");
+  const restored = await harness.request("POST", "/admin/api/marketing/campaigns/51/restore", "fr");
+
+  assert.equal(denied.status, 403);
+  assert.equal(restored.status, 200);
+  assert.equal(harness.marketingCampaigns[0].deletedAt, null);
+  assert.equal(harness.calls.restoredMarketingDrafts, 1);
+});
+
+test("does not show or restore expired drafts or campaigns that were already sent", async (t) => {
+  const harness = createHarness([], undefined, [
+    { id: 51, market: "fr", status: "draft", deletedAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000) },
+    { id: 52, market: "fr", status: "sent", deletedAt: new Date() },
+  ]);
+  t.after(() => harness.close());
+
+  const recovery = await harness.request("GET", "/admin/api/marketing/campaigns/recovery?market=fr", "fr");
+  const expiredRestore = await harness.request("POST", "/admin/api/marketing/campaigns/51/restore", "fr");
+  const sentRestore = await harness.request("POST", "/admin/api/marketing/campaigns/52/restore", "fr");
+
+  assert.equal(recovery.status, 200);
+  assert.deepEqual(recovery.body, []);
+  assert.equal(expiredRestore.status, 404);
+  assert.equal(sentRestore.status, 404);
+  assert.equal(harness.calls.restoredMarketingDrafts, 0);
 });
 
 test("refuses to delete SendGrid campaigns unless their status is draft", async (t) => {
   const harness = createHarness([], undefined, [
-    { id: 51, market: "fr", status: "sent" },
-    { id: 52, market: "fr", status: "sending" },
-    { id: 53, market: "fr", status: "partial" },
-    { id: 54, market: "fr", status: "failed" },
+    { id: 51, market: "fr", status: "sent", deletedAt: null },
+    { id: 52, market: "fr", status: "sending", deletedAt: null },
+    { id: 53, market: "fr", status: "partial", deletedAt: null },
+    { id: 54, market: "fr", status: "failed", deletedAt: null },
   ]);
   t.after(() => harness.close());
 
@@ -232,7 +319,7 @@ test("refuses to delete SendGrid campaigns unless their status is draft", async 
 });
 
 test("blocks deletion of a SendGrid draft outside the administrator's marketplaces", async (t) => {
-  const harness = createHarness([], undefined, [{ id: 51, market: "fr", status: "draft" }]);
+  const harness = createHarness([], undefined, [{ id: 51, market: "fr", status: "draft", deletedAt: null }]);
   t.after(() => harness.close());
 
   const response = await harness.request("DELETE", "/admin/api/marketing/campaigns/51", "ro");

@@ -11492,7 +11492,7 @@
       eligibleRecipients: "{{name}}: {{count}} eligible recipients",
       noRecipients: "There are no recipients.",
       campaignsTitle: "SendGrid campaigns",
-      campaignsDescription: "Creation saves a draft. Sending is a separate action with explicit confirmation.",
+      campaignsDescription: "Creation saves a draft. Sending is a separate action with explicit confirmation. Deleted drafts can be restored for 30 days.",
       campaignNamePlaceholder: "Campaign name",
       marketplace: "Marketplace .{{market}}",
       chooseSegment: "Choose a segment",
@@ -11501,9 +11501,16 @@
       textPlaceholder: "Text version (optional)",
       saveDraft: "Save draft",
       deleteDraft: "Delete draft",
-      deleteDraftConfirm: "Delete the draft campaign \u201C{{name}}\u201D? This cannot be undone.",
-      draftDeleted: "The draft campaign was deleted.",
+      deleteDraftConfirm: "Move the draft campaign \u201C{{name}}\u201D to recovery? It can be restored for 30 days.",
+      draftDeleted: "The draft campaign was moved to recovery.",
       deleteDraftFailed: "The draft campaign could not be deleted.",
+      recoveryTitle: "Deleted drafts",
+      recoveryDescription: "Restore a draft before it expires. Expired drafts are permanently removed.",
+      recoveryExpires: "Available until {{date}}",
+      restoreDraft: "Restore draft",
+      restoringDraft: "Restoring\u2026",
+      draftRestored: "The draft campaign was restored.",
+      restoreDraftFailed: "The draft campaign could not be restored.",
       sendCampaign: "Send campaign",
       sendConfirm: "Send campaign \u201C{{name}}\u201D to {{count}} eligible recipients? Sending cannot be undone.",
       campaignSent: "Campaign sent: {{sent}} successful, {{failed}} failed.",
@@ -12649,7 +12656,7 @@
       eligibleRecipients: "{{name}}: {{count}} destinatari eligibili",
       noRecipients: "Nu exist\u0103 destinatari.",
       campaignsTitle: "Campanii SendGrid",
-      campaignsDescription: "Crearea salveaz\u0103 o ciorn\u0103. Trimiterea se face separat, prin confirmare explicit\u0103.",
+      campaignsDescription: "Crearea salveaz\u0103 o ciorn\u0103. Trimiterea se face separat, prin confirmare explicit\u0103. Ciornele \u0219terse pot fi restaurate timp de 30 de zile.",
       campaignNamePlaceholder: "Nume campanie",
       marketplace: "Marketplace .{{market}}",
       chooseSegment: "Alege segmentul",
@@ -12658,9 +12665,16 @@
       textPlaceholder: "Versiune text (op\u021Bional)",
       saveDraft: "Salveaz\u0103 ciorna",
       deleteDraft: "\u0218terge ciorna",
-      deleteDraftConfirm: "\u0218tergi ciorna campaniei \u201E{{name}}\u201D? Ac\u021Biunea nu poate fi anulat\u0103.",
-      draftDeleted: "Ciorna campaniei a fost \u0219tears\u0103.",
+      deleteDraftConfirm: "Mu\u021Bi ciorna campaniei \u201E{{name}}\u201D \xEEn zona de recuperare? O po\u021Bi restaura timp de 30 de zile.",
+      draftDeleted: "Ciorna campaniei a fost mutat\u0103 \xEEn zona de recuperare.",
       deleteDraftFailed: "Ciorna campaniei nu a putut fi \u0219tears\u0103.",
+      recoveryTitle: "Ciorne \u0219terse",
+      recoveryDescription: "Restaureaz\u0103 ciorna \xEEnainte s\u0103 expire. Ciornele expirate sunt \u0219terse definitiv.",
+      recoveryExpires: "Disponibil\u0103 p\xE2n\u0103 la {{date}}",
+      restoreDraft: "Restaureaz\u0103 ciorna",
+      restoringDraft: "Se restaureaz\u0103\u2026",
+      draftRestored: "Ciorna campaniei a fost restaurat\u0103.",
+      restoreDraftFailed: "Ciorna campaniei nu a putut fi restaurat\u0103.",
       sendCampaign: "Trimite campania",
       sendConfirm: "Trimi\u021Bi campania \u201E{{name}}\u201D c\u0103tre {{count}} destinatari eligibili? Trimiterea nu poate fi anulat\u0103.",
       campaignSent: "Campanie trimis\u0103: {{sent}} reu\u0219ite, {{failed}} e\u0219uate.",
@@ -13806,7 +13820,7 @@
       eligibleRecipients: "{{name}} : {{count}} destinataires \xE9ligibles",
       noRecipients: "Aucun destinataire.",
       campaignsTitle: "Campagnes SendGrid",
-      campaignsDescription: "La cr\xE9ation enregistre un brouillon. L'envoi se fait s\xE9par\xE9ment, apr\xE8s confirmation explicite.",
+      campaignsDescription: "La cr\xE9ation enregistre un brouillon. L'envoi se fait s\xE9par\xE9ment, apr\xE8s confirmation explicite. Les brouillons supprim\xE9s peuvent \xEAtre restaur\xE9s pendant 30 jours.",
       campaignNamePlaceholder: "Nom de la campagne",
       marketplace: "Marketplace .{{market}}",
       chooseSegment: "Choisir un segment",
@@ -13815,9 +13829,16 @@
       textPlaceholder: "Version texte (facultatif)",
       saveDraft: "Enregistrer le brouillon",
       deleteDraft: "Supprimer le brouillon",
-      deleteDraftConfirm: "Supprimer le brouillon de campagne \xAB {{name}} \xBB ? Cette action est irr\xE9versible.",
-      draftDeleted: "Le brouillon de campagne a \xE9t\xE9 supprim\xE9.",
+      deleteDraftConfirm: "D\xE9placer le brouillon de campagne \xAB {{name}} \xBB dans la zone de r\xE9cup\xE9ration ? Il peut \xEAtre restaur\xE9 pendant 30 jours.",
+      draftDeleted: "Le brouillon de campagne a \xE9t\xE9 d\xE9plac\xE9 dans la zone de r\xE9cup\xE9ration.",
       deleteDraftFailed: "Impossible de supprimer le brouillon de campagne.",
+      recoveryTitle: "Brouillons supprim\xE9s",
+      recoveryDescription: "Restaurez un brouillon avant son expiration. Les brouillons expir\xE9s sont supprim\xE9s d\xE9finitivement.",
+      recoveryExpires: "Disponible jusqu'au {{date}}",
+      restoreDraft: "Restaurer le brouillon",
+      restoringDraft: "Restauration\u2026",
+      draftRestored: "Le brouillon de campagne a \xE9t\xE9 restaur\xE9.",
+      restoreDraftFailed: "Impossible de restaurer le brouillon de campagne.",
       sendCampaign: "Envoyer la campagne",
       sendConfirm: "Envoyer la campagne \xAB {{name}} \xBB \xE0 {{count}} destinataires \xE9ligibles ? L'envoi ne peut pas \xEAtre annul\xE9.",
       campaignSent: "Campagne envoy\xE9e : {{sent}} r\xE9ussis, {{failed}} \xE9checs.",
@@ -17177,8 +17198,10 @@
     };
     const [marketingSegments, setMarketingSegments] = (0, import_react21.useState)([]);
     const [marketingCampaigns, setMarketingCampaigns] = (0, import_react21.useState)([]);
+    const [marketingRecoveryDrafts, setMarketingRecoveryDrafts] = (0, import_react21.useState)([]);
     const [marketingCampaignSendingId, setMarketingCampaignSendingId] = (0, import_react21.useState)(null);
     const [marketingCampaignDeletingId, setMarketingCampaignDeletingId] = (0, import_react21.useState)(null);
+    const [marketingCampaignRestoringId, setMarketingCampaignRestoringId] = (0, import_react21.useState)(null);
     const [marketingDeliveryRecipientViews, setMarketingDeliveryRecipientViews] = (0, import_react21.useState)({});
     const [openMarketingDeliveryCampaignId, setOpenMarketingDeliveryCampaignId] = (0, import_react21.useState)(null);
     const [marketingTestEmails, setMarketingTestEmails] = (0, import_react21.useState)({});
@@ -18268,14 +18291,17 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
       setEventVoucherContactsLoading(isFranceVisible);
       try {
         const market = selectedMarketTab || "all";
-        const [segmentsRes, campaignsRes, contactsRes, prospectListsRes] = await Promise.all([
+        const [segmentsRes, campaignsRes, recoveryRes, contactsRes, prospectListsRes] = await Promise.all([
           fetch(`/admin/api/marketing/segments?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } }),
           fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } }),
+          fetch(`/admin/api/marketing/campaigns/recovery?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } }),
           isFranceVisible ? fetch("/admin/api/marketing/event-voucher-contacts?campaign=chef-event-fr", { headers: { "Authorization": `Bearer ${token}` } }) : Promise.resolve(null),
           isFranceVisible ? fetch("/admin/api/marketing/prospects/lists?market=fr", { headers: { "Authorization": `Bearer ${token}` } }) : Promise.resolve(null)
         ]);
         if (segmentsRes.ok) setMarketingSegments(await segmentsRes.json());
         if (campaignsRes.ok) setMarketingCampaigns(await campaignsRes.json());
+        if (recoveryRes.ok) setMarketingRecoveryDrafts(await recoveryRes.json());
+        else setMarketingRecoveryDrafts([]);
         if (contactsRes?.ok) {
           const contactsData = await contactsRes.json();
           setEventVoucherContacts(contactsData.contacts || []);
@@ -18439,12 +18465,28 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (!response.ok) throw new Error("Campaign draft deletion failed");
-        setMarketingCampaigns((current) => current.filter((item) => item.id !== campaign.id));
+        await fetchMarketing();
         alert(t2("marketing.draftDeleted"));
       } catch (err) {
         alert(t2("marketing.deleteDraftFailed"));
       } finally {
         setMarketingCampaignDeletingId(null);
+      }
+    };
+    const restoreMarketingCampaignDraft = async (campaign) => {
+      setMarketingCampaignRestoringId(campaign.id);
+      try {
+        const response = await fetch(`/admin/api/marketing/campaigns/${campaign.id}/restore`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error("Campaign draft restore failed");
+        await fetchMarketing();
+        alert(t2("marketing.draftRestored"));
+      } catch (err) {
+        alert(t2("marketing.restoreDraftFailed"));
+      } finally {
+        setMarketingCampaignRestoringId(null);
       }
     };
     const loadEventVoucherEmailTemplate = async () => {
@@ -23033,6 +23075,31 @@ This action cannot be undone.`)) {
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap" }, children: [
                 marketingCampaignForm.market === "fr" && marketingSegments.some((segment) => String(segment.id) === String(marketingCampaignForm.segmentId) && segment.criteria?.prospectAudience === "invitation") && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { onClick: loadEventVoucherEmailTemplate, style: { background: "#0d6efd", color: "white", border: "none", borderRadius: "4px", padding: "9px 14px", cursor: "pointer" }, children: "Charger le mod\xE8le de l'offre fran\xE7aise" }),
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { onClick: createMarketingCampaign, style: { background: "#6f42c1", color: "white", border: "none", borderRadius: "4px", padding: "9px 14px", cursor: "pointer" }, children: t2("marketing.saveDraft") })
+              ] }),
+              marketingRecoveryDrafts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("section", { style: { marginTop: "18px", border: "1px solid #f0c36d", background: "#fffaf0", borderRadius: "6px", padding: "12px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("h5", { style: { margin: "0 0 4px", color: "#664d03" }, children: t2("marketing.recoveryTitle") }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "12px", color: "#6c5b32", margin: "0 0 10px" }, children: t2("marketing.recoveryDescription") }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "grid", gap: "8px" }, children: marketingRecoveryDrafts.map((campaign) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #ead9b0", background: "white", borderRadius: "5px", padding: "9px 10px", gap: "10px", flexWrap: "wrap" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: campaign.name }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: "12px", color: "#6c757d" }, children: [
+                      campaign.market,
+                      " \xB7 ",
+                      campaign.subject,
+                      " \xB7 ",
+                      t2("marketing.recoveryExpires", { date: new Date(campaign.expiresAt).toLocaleDateString() })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    "button",
+                    {
+                      onClick: () => restoreMarketingCampaignDraft(campaign),
+                      disabled: marketingCampaignRestoringId === campaign.id,
+                      style: { background: "#198754", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: marketingCampaignRestoringId === campaign.id ? "wait" : "pointer" },
+                      children: marketingCampaignRestoringId === campaign.id ? t2("marketing.restoringDraft") : t2("marketing.restoreDraft")
+                    }
+                  )
+                ] }, campaign.id)) })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "18px", display: "grid", gap: "8px" }, children: marketingCampaigns.map((campaign) => {
                 const deliveryCounts = campaign.delivery?.counts || {};

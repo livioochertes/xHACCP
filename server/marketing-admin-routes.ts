@@ -9,7 +9,7 @@ import {
 } from "@shared/schema";
 import { and, desc, eq, gt, lt, ne, sql } from "drizzle-orm";
 import { db } from "./db";
-import { storage } from "./storage";
+import { MARKETING_CAMPAIGN_DRAFT_RETENTION_DAYS, storage } from "./storage";
 import { authenticateAdmin, canAccessMarket } from "./admin-routes";
 import { getSenderForMarket, sendEmail } from "./email-service";
 import { buildProspectMarketingEmail } from "./prospect-marketing-security";
@@ -23,6 +23,8 @@ import type { MarketingCampaignDeliveryStatus } from "./marketing-campaign-deliv
 import { getAIMarketCatalogForMarket } from "./routes";
 import { parseAIRecommendationCampaignInput } from "./ai-recommendation-campaign-validation";
 import { EVENT_VOUCHER_CAMPAIGN_SLUG } from "./event-voucher";
+
+const MARKETING_CAMPAIGN_DRAFT_RETENTION_MS = MARKETING_CAMPAIGN_DRAFT_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 type MarketingAdminRequest = Request & {
   adminId?: number;
@@ -169,14 +171,20 @@ export interface MarketingCampaignDraftDeletionDependencies {
   authenticateAdmin: RequestHandler;
   canAccessMarket: (req: Request, market: string) => boolean;
   getCampaign: (id: number) => Promise<MarketingCampaign | undefined>;
+  getRecoveryDraft: (id: number) => Promise<MarketingCampaign | undefined>;
+  listRecoveryDrafts: (market: string) => Promise<MarketingCampaign[]>;
   deleteDraft: (id: number) => Promise<boolean>;
+  restoreDraft: (id: number) => Promise<boolean>;
 }
 
 const defaultMarketingCampaignDraftDeletionDependencies: MarketingCampaignDraftDeletionDependencies = {
   authenticateAdmin: authenticateAdmin as RequestHandler,
   canAccessMarket: canAccessMarket as (req: Request, market: string) => boolean,
   getCampaign: (id) => storage.getMarketingCampaign(id),
+  getRecoveryDraft: (id) => storage.getMarketingCampaignDraftInRecovery(id),
+  listRecoveryDrafts: (market) => storage.getMarketingCampaignsInRecovery(market),
   deleteDraft: (id) => storage.deleteMarketingCampaignDraft(id),
+  restoreDraft: (id) => storage.restoreMarketingCampaignDraft(id),
 };
 
 async function recommendationProductsBelongToMarket(
@@ -464,6 +472,24 @@ export function registerMarketingAdminRoutes(
     }
   });
 
+  app.get("/admin/api/marketing/campaigns/recovery", draftDeletionDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    try {
+      const market = String(req.query.market || "all");
+      if (!isSupportedMarket(market)) return res.status(400).json({ message: "Invalid marketing market" });
+      if (market !== "all" && !draftDeletionDependencies.canAccessMarket(req, market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const campaigns = await draftDeletionDependencies.listRecoveryDrafts(market);
+      return res.json(campaigns.map((campaign) => ({
+        ...campaign,
+        expiresAt: new Date(campaign.deletedAt!.getTime() + MARKETING_CAMPAIGN_DRAFT_RETENTION_MS).toISOString(),
+      })));
+    } catch (error) {
+      console.error("Marketing campaign recovery list error:", error);
+      return res.status(500).json({ message: "Failed to fetch recoverable campaign drafts" });
+    }
+  });
+
   app.delete("/admin/api/marketing/campaigns/:id", draftDeletionDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
     try {
       const campaignId = Number(req.params.id);
@@ -480,8 +506,8 @@ export function registerMarketingAdminRoutes(
         return res.status(409).json({ message: "Only draft campaigns can be deleted" });
       }
 
-      // The storage operation repeats the draft check in its DELETE predicate
-      // so a concurrent send cannot turn this preflight check into data loss.
+      // The storage operation repeats the draft check atomically while setting
+      // deletedAt, so a concurrent send cannot turn this into data loss.
       if (!(await draftDeletionDependencies.deleteDraft(campaignId))) {
         const latestCampaign = await draftDeletionDependencies.getCampaign(campaignId);
         if (!latestCampaign) return res.status(404).json({ message: "Campaign not found" });
@@ -491,6 +517,27 @@ export function registerMarketingAdminRoutes(
     } catch (error) {
       console.error("Marketing campaign draft delete error:", error);
       return res.status(500).json({ message: "Failed to delete campaign draft" });
+    }
+  });
+
+  app.post("/admin/api/marketing/campaigns/:id/restore", draftDeletionDependencies.authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    try {
+      const campaignId = Number(req.params.id);
+      if (!Number.isSafeInteger(campaignId) || campaignId <= 0) {
+        return res.status(400).json({ message: "Invalid campaign ID" });
+      }
+      const campaign = await draftDeletionDependencies.getRecoveryDraft(campaignId);
+      if (!campaign) return res.status(404).json({ message: "Recoverable campaign draft not found" });
+      if (!draftDeletionDependencies.canAccessMarket(req, campaign.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      if (!(await draftDeletionDependencies.restoreDraft(campaignId))) {
+        return res.status(409).json({ message: "Campaign draft could not be restored" });
+      }
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Marketing campaign draft restore error:", error);
+      return res.status(500).json({ message: "Failed to restore campaign draft" });
     }
   });
 
@@ -653,12 +700,9 @@ export function registerMarketingAdminRoutes(
         });
       }
 
-      await storage.updateMarketingCampaign(campaign.id, {
-        status: "sending",
-        recipientCount: recipients.length,
-        sentCount: 0,
-        failedCount: 0,
-      });
+      if (!(await storage.claimMarketingCampaignForSending(campaign.id, recipients.length))) {
+        return res.status(409).json({ message: "Campaign is no longer available to send" });
+      }
 
       let sentCount = 0;
       let failedCount = 0;
@@ -765,4 +809,20 @@ export function registerMarketingAdminRoutes(
       }
     },
   );
+}
+
+export function startMarketingCampaignDraftCleanupScheduler(): void {
+  const purgeExpiredDrafts = async () => {
+    try {
+      const deletedCount = await storage.purgeExpiredMarketingCampaignDrafts();
+      if (deletedCount > 0) {
+        console.info(`Purged ${deletedCount} expired marketing campaign draft(s)`);
+      }
+    } catch (error) {
+      console.error("Marketing campaign draft cleanup failed:", error instanceof Error ? error.message : "unknown");
+    }
+  };
+  void purgeExpiredDrafts();
+  const timer = setInterval(() => void purgeExpiredDrafts(), 60 * 60 * 1000);
+  timer.unref?.();
 }

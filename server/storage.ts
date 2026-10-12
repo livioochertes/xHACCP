@@ -104,6 +104,8 @@ import {
 } from "./marketing-client-account";
 import { eq, desc, asc, like, and, or, sql, inArray, isNull, isNotNull, ne, lte, gte, gt, notExists } from "drizzle-orm";
 
+export const MARKETING_CAMPAIGN_DRAFT_RETENTION_DAYS = 30;
+
 export class VoucherReservationConflictError extends Error {
   readonly code = "VOUCHER_RESERVATION_CONFLICT";
 
@@ -341,10 +343,15 @@ export interface IStorage {
   updateMarketingSegment(id: number, segment: Partial<InsertMarketingSegment>): Promise<MarketingSegment>;
   deleteMarketingSegment(id: number): Promise<void>;
   getMarketingCampaigns(market?: string): Promise<MarketingCampaign[]>;
+  getMarketingCampaignsInRecovery(market?: string, now?: Date): Promise<MarketingCampaign[]>;
   getMarketingCampaign(id: number): Promise<MarketingCampaign | undefined>;
+  getMarketingCampaignDraftInRecovery(id: number, now?: Date): Promise<MarketingCampaign | undefined>;
   createMarketingCampaign(campaign: InsertMarketingCampaign): Promise<MarketingCampaign>;
   updateMarketingCampaign(id: number, campaign: Partial<InsertMarketingCampaign>): Promise<MarketingCampaign>;
+  claimMarketingCampaignForSending(id: number, recipientCount: number): Promise<boolean>;
   deleteMarketingCampaignDraft(id: number): Promise<boolean>;
+  restoreMarketingCampaignDraft(id: number, now?: Date): Promise<boolean>;
+  purgeExpiredMarketingCampaignDrafts(now?: Date): Promise<number>;
   getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<MarketingRecipient[]>;
 
   // Product market operations
@@ -2516,12 +2523,39 @@ export class DatabaseStorage implements IStorage {
 
   async getMarketingCampaigns(market?: string): Promise<MarketingCampaign[]> {
     return db.select().from(marketingCampaigns)
-      .where(market && market !== "all" ? eq(marketingCampaigns.market, market) : undefined)
+      .where(and(
+        isNull(marketingCampaigns.deletedAt),
+        market && market !== "all" ? eq(marketingCampaigns.market, market) : undefined,
+      ))
       .orderBy(desc(marketingCampaigns.createdAt));
   }
 
+  async getMarketingCampaignsInRecovery(market?: string, now = new Date()): Promise<MarketingCampaign[]> {
+    const recoveryCutoff = new Date(now.getTime() - MARKETING_CAMPAIGN_DRAFT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    return db.select().from(marketingCampaigns)
+      .where(and(
+        eq(marketingCampaigns.status, "draft"),
+        gt(marketingCampaigns.deletedAt, recoveryCutoff),
+        market && market !== "all" ? eq(marketingCampaigns.market, market) : undefined,
+      ))
+      .orderBy(desc(marketingCampaigns.deletedAt));
+  }
+
   async getMarketingCampaign(id: number): Promise<MarketingCampaign | undefined> {
-    const [campaign] = await db.select().from(marketingCampaigns).where(eq(marketingCampaigns.id, id));
+    const [campaign] = await db.select().from(marketingCampaigns).where(and(
+      eq(marketingCampaigns.id, id),
+      isNull(marketingCampaigns.deletedAt),
+    ));
+    return campaign;
+  }
+
+  async getMarketingCampaignDraftInRecovery(id: number, now = new Date()): Promise<MarketingCampaign | undefined> {
+    const recoveryCutoff = new Date(now.getTime() - MARKETING_CAMPAIGN_DRAFT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const [campaign] = await db.select().from(marketingCampaigns).where(and(
+      eq(marketingCampaigns.id, id),
+      eq(marketingCampaigns.status, "draft"),
+      gt(marketingCampaigns.deletedAt, recoveryCutoff),
+    ));
     return campaign;
   }
 
@@ -2533,19 +2567,64 @@ export class DatabaseStorage implements IStorage {
   async updateMarketingCampaign(id: number, campaign: Partial<InsertMarketingCampaign>): Promise<MarketingCampaign> {
     const [updated] = await db.update(marketingCampaigns)
       .set({ ...campaign, updatedAt: new Date() })
-      .where(eq(marketingCampaigns.id, id))
+      .where(and(eq(marketingCampaigns.id, id), isNull(marketingCampaigns.deletedAt)))
       .returning();
     return updated;
   }
 
+  async claimMarketingCampaignForSending(id: number, recipientCount: number): Promise<boolean> {
+    const [claimed] = await db.update(marketingCampaigns)
+      .set({
+        status: "sending",
+        recipientCount,
+        sentCount: 0,
+        failedCount: 0,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(marketingCampaigns.id, id),
+        inArray(marketingCampaigns.status, ["draft", "failed"]),
+        isNull(marketingCampaigns.deletedAt),
+      ))
+      .returning({ id: marketingCampaigns.id });
+    return Boolean(claimed);
+  }
+
   async deleteMarketingCampaignDraft(id: number): Promise<boolean> {
-    const [deleted] = await db.delete(marketingCampaigns)
+    const [deleted] = await db.update(marketingCampaigns)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(and(
         eq(marketingCampaigns.id, id),
         eq(marketingCampaigns.status, "draft"),
+        isNull(marketingCampaigns.deletedAt),
       ))
       .returning({ id: marketingCampaigns.id });
     return Boolean(deleted);
+  }
+
+  async restoreMarketingCampaignDraft(id: number, now = new Date()): Promise<boolean> {
+    const recoveryCutoff = new Date(now.getTime() - MARKETING_CAMPAIGN_DRAFT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const [restored] = await db.update(marketingCampaigns)
+      .set({ deletedAt: null, updatedAt: now })
+      .where(and(
+        eq(marketingCampaigns.id, id),
+        eq(marketingCampaigns.status, "draft"),
+        gt(marketingCampaigns.deletedAt, recoveryCutoff),
+      ))
+      .returning({ id: marketingCampaigns.id });
+    return Boolean(restored);
+  }
+
+  async purgeExpiredMarketingCampaignDrafts(now = new Date()): Promise<number> {
+    const recoveryCutoff = new Date(now.getTime() - MARKETING_CAMPAIGN_DRAFT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const deleted = await db.delete(marketingCampaigns)
+      .where(and(
+        eq(marketingCampaigns.status, "draft"),
+        isNotNull(marketingCampaigns.deletedAt),
+        lte(marketingCampaigns.deletedAt, recoveryCutoff),
+      ))
+      .returning({ id: marketingCampaigns.id });
+    return deleted.length;
   }
 
   async getMarketingRecipients(criteria: MarketingSegmentCriteria): Promise<MarketingRecipient[]> {

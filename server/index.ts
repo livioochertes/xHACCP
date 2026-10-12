@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import { registerRoutes } from "./routes";
 import { registerAdminRoutes } from "./admin-routes";
 import { registerWmsRoutes } from "./wms-routes";
-import { registerMarketingAdminRoutes } from "./marketing-admin-routes";
+import { registerMarketingAdminRoutes, startMarketingCampaignDraftCleanupScheduler } from "./marketing-admin-routes";
 import { registerProspectMarketingAdminRoutes } from "./prospect-marketing-admin-routes";
 import { registerProspectMarketingPublicRoutes } from "./prospect-marketing-public-routes";
 import { registerEventVoucherPublicRoutes } from "./event-voucher-public-routes";
@@ -159,6 +159,7 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   startMarketingCampaignDeliveryWorker();
+  startMarketingCampaignDraftCleanupScheduler();
   // Start automated blog post generation (every Monday at 08:00 Bucharest)
   startBlogScheduler();
   // Rebuild enabled Google Merchant Center feeds every hour so availability
