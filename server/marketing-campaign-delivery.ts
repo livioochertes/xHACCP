@@ -165,6 +165,10 @@ export function startMarketingCampaignDeliveryWorker(): void {
   const timer = setInterval(() => void scan(), 10_000);
   timer.unref?.();
 
+  void reconcileCompletedSendGridCampaignHistories().catch((error) => {
+    console.error("Stored SendGrid campaign history reconciliation failed:", error instanceof Error ? error.message : "unknown");
+  });
+
   const scanHistoryImports = async () => {
     let lockClient: PoolClient | null = null;
     let lockAcquired = false;
@@ -975,10 +979,22 @@ async function persistHistoricalCampaignEvents(events: SendGridHistoryEvent[]): 
 
   const recipientIds = [...new Set(events.map((event) => event.recipientId))];
   if (!recipientIds.length) return;
-  const eventsByRecipient = new Map<number, SendGridHistoryEvent[]>();
-  for (const event of events) {
+  await reconcileStoredSendGridRecipients(recipientIds);
+}
+
+async function reconcileStoredSendGridRecipients(recipientIds: number[]): Promise<void> {
+  if (!recipientIds.length) return;
+  const storedEvents = await db.select({
+    recipientId: sendgridCampaignWebhookEvents.recipientId,
+    eventType: sendgridCampaignWebhookEvents.eventType,
+    occurredAt: sendgridCampaignWebhookEvents.occurredAt,
+  }).from(sendgridCampaignWebhookEvents)
+    .where(inArray(sendgridCampaignWebhookEvents.recipientId, recipientIds));
+  const eventsByRecipient = new Map<number, Array<{ eventType: string; occurredAt: Date | null }>>();
+  for (const event of storedEvents) {
+    if (!event.recipientId) continue;
     const recipientEvents = eventsByRecipient.get(event.recipientId) || [];
-    recipientEvents.push(event);
+    recipientEvents.push({ eventType: event.eventType, occurredAt: event.occurredAt });
     eventsByRecipient.set(event.recipientId, recipientEvents);
   }
   const batchesToRefresh = new Set<number>();
@@ -1062,6 +1078,60 @@ async function persistHistoricalCampaignEvents(events: SendGridHistoryEvent[]): 
   }
 
   for (const batchId of batchesToRefresh) await refreshBatchCounts(batchId);
+}
+
+export async function reconcileCompletedSendGridCampaignHistories(): Promise<number> {
+  const completedJobs = await db.select({
+    campaignId: sendgridCampaignHistoryImports.campaignId,
+  }).from(sendgridCampaignHistoryImports)
+    .where(and(
+      eq(sendgridCampaignHistoryImports.status, "completed"),
+      sql`${sendgridCampaignHistoryImports.importedEventCount} > 0`,
+    ));
+  if (!completedJobs.length) return 0;
+
+  const recipientRows = await db.selectDistinct({
+    recipientId: marketingCampaignRecipients.id,
+  }).from(sendgridCampaignWebhookEvents)
+    .innerJoin(
+      marketingCampaignRecipients,
+      eq(sendgridCampaignWebhookEvents.recipientId, marketingCampaignRecipients.id),
+    )
+    .where(and(
+      inArray(
+        marketingCampaignRecipients.campaignId,
+        completedJobs.map((job) => job.campaignId),
+      ),
+      inArray(marketingCampaignRecipients.status, [
+        "queued", "submitting", "accepted", "deferred", "failed", "unknown",
+      ]),
+      inArray(sendgridCampaignWebhookEvents.eventType, [
+        "delivered", "deferred", "blocked", "bounce", "dropped", "spamreport",
+        "unsubscribe", "group_unsubscribe", "app_unsubscribe",
+      ]),
+      sql`(
+        ${sendgridCampaignWebhookEvents.occurredAt} IS NULL
+        OR ${marketingCampaignRecipients.lastEventAt} IS NULL
+        OR ${sendgridCampaignWebhookEvents.occurredAt} > ${marketingCampaignRecipients.lastEventAt}
+      )`,
+    ));
+  const recipientIds = recipientRows.map((row) => row.recipientId);
+  await reconcileStoredSendGridRecipients(recipientIds);
+  const batches = await db.select({
+    id: marketingCampaignBatches.id,
+  }).from(marketingCampaignBatches)
+    .where(inArray(
+      marketingCampaignBatches.campaignId,
+      completedJobs.map((job) => job.campaignId),
+    ));
+  for (const batch of batches) await refreshBatchCounts(batch.id);
+  if (recipientIds.length) {
+    console.info("Reconciled completed SendGrid campaign history", {
+      campaignCount: completedJobs.length,
+      recipientCount: recipientIds.length,
+    });
+  }
+  return recipientIds.length;
 }
 
 async function importSendGridCampaignHistory(
