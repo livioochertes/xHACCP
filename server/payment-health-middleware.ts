@@ -8,6 +8,7 @@ export function classifyPaymentResponse(input: {
   location?: string; code?: string; callbackException?: boolean;
   webhookAccepted?: boolean;
   callbackPending?: boolean;
+  providerHttpStatus?: number; responseType?: string; reference?: string;
 }): PaymentObservation | undefined {
   const match = input.path.match(/^\/api\/payments\/(viva|paypal)\/(create-order|callback|webhook)$/);
   if (!match) return;
@@ -17,8 +18,14 @@ export function classifyPaymentResponse(input: {
   const stage: PaymentObservation["stage"] = match[2] === "create-order" ? "checkout" : match[2] as "callback" | "webhook";
   const base = { provider, market: market as PaymentObservation["market"], stage };
   if (input.httpStatus >= 500 || input.callbackException) {
-    return { ...base, status: "error", httpStatus: input.httpStatus,
-      code: input.code || `PAYMENT_${stage.toUpperCase()}_FAILED` };
+    return {
+      ...base,
+      status: "error",
+      httpStatus: input.providerHttpStatus ?? input.httpStatus,
+      responseType: input.responseType,
+      reference: input.reference,
+      code: input.code || `PAYMENT_${stage.toUpperCase()}_FAILED`,
+    };
   }
   // Missing inputs, rejected vouchers/signatures, cancellations and card declines
   // are not evidence of a provider outage and must not clear an existing incident.
@@ -56,6 +63,9 @@ export function createPaymentHealthMiddleware(
         code, callbackException: res.locals.paymentHealthCallbackException === true,
         webhookAccepted: res.locals.paymentHealthWebhookAccepted === true,
         callbackPending: res.locals.paymentHealthCallbackPending === true,
+        providerHttpStatus: res.locals.paymentHealthProviderHttpStatus,
+        responseType: res.locals.paymentHealthResponseType,
+        reference: res.locals.paymentHealthReference,
       });
       if (!observation) return (end as any).apply(this, args);
       let timer: ReturnType<typeof setTimeout>;

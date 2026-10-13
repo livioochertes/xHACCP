@@ -35,3 +35,13 @@ export function paymentNotificationDecision(previous: {
     now.getTime() - previous.lastAlertAt.getTime() >= PAYMENT_ALERT_COOLDOWN_MS;
   return !anotherStageAlerted && (isNewIncident || cooldownPassed) ? "failure" : undefined;
 }
+
+export function paymentAlertGuidance(observation: PaymentObservation) {
+  if (observation.provider === "viva" && [
+    "VIVA_AUTH_EDGE_ACCESS_DENIED",
+    "VIVA_CHECKOUT_EDGE_ACCESS_DENIED",
+  ].includes(observation.code || "")) {
+    return "Posibilă blocare Akamai/Viva în Production: verificați răspunsul 403 HTML, User-Agent-ul xHACCP/1.0 și Reference-ul Viva. Transmiteți Reference-ul și ora UTC către Viva; nu trimiteți secrete sau tokenuri.";
+  }
+  return undefined;
+}

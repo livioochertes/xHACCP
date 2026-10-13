@@ -4,7 +4,7 @@ const OAUTH_ERRORS = new Set([
 ]);
 
 /** Only return fixed diagnostic fields; never expose the raw provider body. */
-export function summarizePaymentAuthFailure(status: number, contentType: string, body: string) {
+export function summarizePaymentProviderFailure(status: number, contentType: string, body: string) {
   const sample = body.slice(0, 8192);
   const isHtml = /text\/html/i.test(contentType) || /^\s*(?:<!doctype html|<html)/i.test(sample);
   let oauthError: string | undefined;

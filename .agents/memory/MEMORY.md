@@ -24,7 +24,7 @@
 - [Viva currency-specific sources](viva-currency-specific-sources.md) — Viva source codes can reject currencies they do not support; never reuse the RO source for FR EUR payments.
 - [Viva market configuration](viva-market-configuration.md) — initial checkout and recurring renewals must resolve through one market-specific credential/currency mapping.
 - [Viva checkout error handling](viva-checkout-error-handling.md) — payment failures must stay JSON/user-safe; correlate logs without logging source codes or customer payloads.
-- [Viva production egress blocking](viva-production-egress-blocking.md) — dev OAuth may pass while Production gets HTML 403 from provider edge filtering.
+- [Viva production egress blocking](viva-production-egress-blocking.md) — send explicit xHACCP User-Agent; Production 403 HTML edge denials generate a Viva-reference alert.
 - [Payment callback idempotency](payment-callback-idempotency.md) — callbacks and webhooks must atomically claim the paid transition before invoice/email side effects.
 - [Unpaid checkout visibility](unpaid-checkout-visibility.md) — keep unpaid Viva/PayPal checkout attempts for reconciliation, but separate them from normal orders in admin.
 - [Provider-confirmed payment expiry](provider-payment-expiry.md) — only provider-confirmed terminal states can release pending voucher holds; local age or browser cancellation alone is not enough.

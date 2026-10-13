@@ -1,6 +1,6 @@
 import { persistPaymentObservation, claimPaymentNotification, finishPaymentNotification, ensurePaymentHealthSchema, PAYMENT_HEALTH_ENVIRONMENT } from "./payment-health-store";
 import { getSenderForMarket, sendEmailWithOutcome } from "./email-service";
-import type { PaymentObservation } from "./payment-health-policy";
+import { paymentAlertGuidance, type PaymentObservation } from "./payment-health-policy";
 
 export const PAYMENT_ALERT_RECIPIENT = "info@namarteccl.com";
 let flushing: Promise<void> | undefined;
@@ -25,6 +25,7 @@ export async function flushPaymentNotifications() {
           `Cod: ${observation.code || "OK"} | HTTP: ${observation.httpStatus || "indisponibil"}`,
           `Tip răspuns: ${observation.responseType || "indisponibil"}`,
           observation.reference ? `Reference furnizor: ${observation.reference}` : "",
+          paymentAlertGuidance(observation) || "",
           "Consultați Stare plăți în admin. Revenirea unei etape nu confirmă automat întregul checkout.",
           "Verificarea este bazată pe activitatea reală sau verificări manuale; nu sunt efectuate teste zilnice.",
         ].filter(Boolean).join("\n"),

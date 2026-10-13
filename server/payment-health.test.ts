@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import { once } from "node:events";
 import express from "express";
-import { sanitizePaymentObservation, paymentNotificationDecision, PAYMENT_ALERT_COOLDOWN_MS } from "./payment-health-policy";
+import { sanitizePaymentObservation, paymentNotificationDecision, paymentAlertGuidance, PAYMENT_ALERT_COOLDOWN_MS } from "./payment-health-policy";
 import { classifyPaymentResponse, createPaymentHealthMiddleware } from "./payment-health-middleware";
 import { registerPaymentHealthAdminRoutes } from "./payment-health-admin-routes";
 
@@ -14,6 +14,19 @@ test("only technical failures are incidents; normal cancellations, declines and 
   assert.deepEqual(classifyPaymentResponse({ ...base, httpStatus: 502, code: "VIVA_CREATE_REJECTED" }), {
     provider: "viva", market: "fr", stage: "checkout", status: "error",
     code: "VIVA_CREATE_REJECTED", httpStatus: 502,
+  });
+  const edgeDenial = classifyPaymentResponse({
+    ...base,
+    httpStatus: 502,
+    providerHttpStatus: 403,
+    responseType: "html",
+    reference: "18.c013817.1791922609.37d9ec2",
+    code: "VIVA_CHECKOUT_EDGE_ACCESS_DENIED",
+  });
+  assert.deepEqual(edgeDenial, {
+    provider: "viva", market: "fr", stage: "checkout", status: "error",
+    code: "VIVA_CHECKOUT_EDGE_ACCESS_DENIED", httpStatus: 403,
+    responseType: "html", reference: "18.c013817.1791922609.37d9ec2",
   });
   assert.equal(classifyPaymentResponse({ ...base, path: "/api/payments/viva/callback", method: "GET",
     httpStatus: 302, location: "/merci?payment=failed" }), undefined);
@@ -57,6 +70,28 @@ test("one alert per incident, a cooldown for recurring failures, recovery only a
     { ...failure, status: "ok" }, now, false), "recovery");
   assert.equal(paymentNotificationDecision({ status: "error", lastAlertAt: null, incidentAlerted: false },
     { ...failure, status: "ok" }, now, false), undefined);
+});
+
+test("Viva Akamai edge denials trigger a clear production alert with safe escalation guidance", () => {
+  const edgeDenial = {
+    provider: "viva" as const,
+    market: "fr" as const,
+    stage: "auth" as const,
+    status: "error" as const,
+    code: "VIVA_AUTH_EDGE_ACCESS_DENIED",
+    httpStatus: 403,
+    responseType: "html",
+    reference: "18.c013817.1791922609.37d9ec2",
+  };
+  assert.equal(paymentNotificationDecision(undefined, edgeDenial, new Date("2026-10-13T12:00:00Z"), false), "failure");
+  const guidance = paymentAlertGuidance(edgeDenial);
+  assert.match(guidance || "", /blocare Akamai\/Viva/i);
+  assert.match(guidance || "", /xHACCP\/1\.0/);
+  assert.match(guidance || "", /Reference-ul Viva/);
+  assert.equal(paymentAlertGuidance({
+    ...edgeDenial,
+    code: "VIVA_AUTH_INVALID_CLIENT",
+  }), undefined);
 });
 
 test("response monitoring preserves the checkout response and scopes Viva to the storefront", async () => {

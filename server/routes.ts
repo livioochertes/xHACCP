@@ -54,6 +54,7 @@ import {
   type VivaMarket,
 } from "./viva-config";
 import { withVivaUserAgent } from "./viva-http";
+import { summarizePaymentProviderFailure } from "./payment-auth-diagnostics";
 import {
   getGoogleMerchantFeedXml,
   type MerchantMarket,
@@ -4364,8 +4365,18 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       });
 
       if (!vivaResponse.ok) {
-        const errorText = (await vivaResponse.text()).replace(/\s+/g, " ").slice(0, 500);
-        console.error(`[Viva ${requestId}] create order error:`, vivaResponse.status, errorText);
+        const diagnostic = summarizePaymentProviderFailure(
+          vivaResponse.status,
+          vivaResponse.headers.get("content-type") || "",
+          await vivaResponse.text(),
+        );
+        const edgeDenied = diagnostic.kind === "edge_access_denied";
+        console.error(`[Viva ${requestId}] create order error:`, JSON.stringify(diagnostic));
+        if (edgeDenied) {
+          res.locals.paymentHealthProviderHttpStatus = diagnostic.httpStatus;
+          res.locals.paymentHealthResponseType = diagnostic.responseType;
+          res.locals.paymentHealthReference = diagnostic.edgeReference;
+        }
         if (vivaResponse.status >= 400 && vivaResponse.status < 500) {
           await storage.markOrderPaymentFailed(dbOrderId);
         }
@@ -4373,7 +4384,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           message: vivaMarket === "fr"
             ? "Le service de paiement n’a pas pu préparer la commande. Réessayez dans quelques instants."
             : "The payment service could not prepare the order. Please try again shortly.",
-          code: "VIVA_CREATE_ORDER_FAILED",
+          code: edgeDenied ? "VIVA_CHECKOUT_EDGE_ACCESS_DENIED" : "VIVA_CREATE_ORDER_FAILED",
           requestId,
         });
       }

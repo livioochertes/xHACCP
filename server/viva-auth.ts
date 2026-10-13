@@ -1,6 +1,6 @@
 import { getVivaCredentials, type VivaMarket } from "./viva-config";
 import { withVivaUserAgent } from "./viva-http";
-import { summarizePaymentAuthFailure } from "./payment-auth-diagnostics";
+import { summarizePaymentProviderFailure } from "./payment-auth-diagnostics";
 import { observePayment } from "./payment-health";
 
 export async function getVivaAccessToken(market: VivaMarket, requestId?: string): Promise<string> {
@@ -22,7 +22,7 @@ export async function getVivaAccessToken(market: VivaMarket, requestId?: string)
       signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) {
-      const diagnostic = summarizePaymentAuthFailure(response.status, response.headers.get("content-type") || "", await response.text());
+      const diagnostic = summarizePaymentProviderFailure(response.status, response.headers.get("content-type") || "", await response.text());
       console.error(`[Viva ${requestId || "unknown"}] OAuth error:`, JSON.stringify(diagnostic));
       await observePayment({
         provider: "viva", market, stage: "auth", status: "error",
