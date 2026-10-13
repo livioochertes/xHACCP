@@ -4088,7 +4088,6 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       headers: {
         "Accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": "xHACCP-Viva-Integration/1.0",
         "Authorization": "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64"),
       },
       body: new URLSearchParams({ grant_type: "client_credentials" }).toString(),
