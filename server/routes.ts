@@ -4097,6 +4097,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     if (!response.ok) {
       const errorText = (await response.text()).replace(/\s+/g, " ").slice(0, 300);
       console.error(`[Viva ${requestId || "unknown"}] OAuth error:`, response.status, errorText);
+      if (response.status === 403 && /<html|access denied/i.test(errorText)) {
+        throw new Error("Viva Production endpoint blocked the request: 403");
+      }
       throw new Error(`Viva authentication failed: ${response.status}`);
     }
 
@@ -4435,10 +4438,14 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         });
       }
       const errorMessage = error instanceof Error ? error.message : "";
-      if (errorMessage.includes("Viva authentication failed: 403")) {
+      if (errorMessage.includes("Viva Production endpoint blocked the request: 403")) {
         return res.status(502).json({
-          message: "Viva FR a respins autentificarea Production. Verifică Smart Checkout Client ID și Client Secret pentru contul FR.",
-          code: "VIVA_AUTH_FAILED",
+          message: vivaMarket === "ro"
+            ? "Viva blochează momentan cererile de plată din mediul Production. Încearcă din nou mai târziu."
+            : vivaMarket === "fr"
+              ? "Viva bloque temporairement les demandes de paiement depuis l’environnement Production. Réessayez plus tard."
+              : "Viva is temporarily blocking payment requests from the Production environment. Please try again later.",
+          code: "VIVA_PROVIDER_ACCESS_BLOCKED",
           requestId,
         });
       }
