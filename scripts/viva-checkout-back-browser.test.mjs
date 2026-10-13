@@ -355,3 +355,249 @@ test("Viva checkout recovers after browser Back and a failed order request", { t
   assert.equal(paymentRequests.length, 2, "changing payment methods does not start another payment");
   assert.deepEqual(interceptionErrors, [], "the controlled payment failure was fulfilled without browser interception errors");
 });
+
+test("French Viva checkout blocks repeated clicks and recovers after a failed order request", { timeout: 90_000 }, async (t) => {
+  await waitForHttpServer();
+
+  const profile = await mkdtemp(join(tmpdir(), "viva-checkout-fr-browser-"));
+  const frenchBaseUrl = new URL(baseUrl);
+  frenchBaseUrl.hostname = "xhaccp.fr";
+  const frenchCheckoutUrl = new URL("/checkout", frenchBaseUrl).toString();
+  const browser = spawn(process.env.CHROMIUM_PATH || "/repl/tools/bin/chromium", [
+    "--headless=new",
+    "--no-sandbox",
+    "--disable-gpu",
+    "--disable-dev-shm-usage",
+    "--host-resolver-rules=MAP xhaccp.fr 127.0.0.1",
+    "--remote-debugging-address=127.0.0.1",
+    "--remote-debugging-port=0",
+    `--user-data-dir=${profile}`,
+    "about:blank",
+  ], { stdio: ["ignore", "pipe", "pipe"] });
+  const browserOutput = [];
+  browser.stdout.on("data", (chunk) => browserOutput.push(chunk.toString()));
+  browser.stderr.on("data", (chunk) => browserOutput.push(chunk.toString()));
+
+  let client;
+  const paymentRequests = [];
+  const interceptionErrors = [];
+  let firstRequestPausedResolve;
+  const firstRequestPaused = new Promise((resolve) => {
+    firstRequestPausedResolve = resolve;
+  });
+  t.after(async () => {
+    client?.close();
+    if (browser.exitCode === null) {
+      browser.kill("SIGTERM");
+      await Promise.race([
+        new Promise((resolve) => browser.once("exit", resolve)),
+        sleep(2_000),
+      ]);
+    }
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        await rm(profile, { recursive: true, force: true });
+        break;
+      } catch (error) {
+        if (attempt === 4) throw error;
+        await sleep(100);
+      }
+    }
+  });
+
+  const socket = new WebSocket(await waitForDevToolsTarget(browserOutput));
+  await new Promise((resolve, reject) => {
+    socket.once("open", resolve);
+    socket.once("error", reject);
+  });
+  client = new DevToolsClient(socket);
+
+  const evaluate = async (expression) => {
+    const result = await client.send("Runtime.evaluate", {
+      expression,
+      returnByValue: true,
+      awaitPromise: true,
+    });
+    if (result.exceptionDetails) {
+      throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
+    }
+    return result.result.value;
+  };
+  const waitFor = async (expression, description = expression) => {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < 15_000) {
+      if (await evaluate(expression)) return;
+      await sleep(100);
+    }
+    throw new Error(`Browser condition did not become true: ${description}`);
+  };
+  const clickButton = async (text) => {
+    const clicked = await evaluate(`(() => {
+      const button = [...document.querySelectorAll("button")]
+        .find((candidate) => candidate.textContent.trim() === ${JSON.stringify(text)});
+      if (!button) return false;
+      button.click();
+      return true;
+    })()`);
+    assert.equal(clicked, true, `Found the "${text}" checkout button`);
+  };
+
+  await client.send("Page.enable");
+  await client.send("Runtime.enable");
+  await client.send("Page.addScriptToEvaluateOnNewDocument", {
+    source: `(() => {
+      localStorage.setItem("xhaccp-language", "en");
+      if (!sessionStorage.getItem("__vivaFrenchClickCartSeeded")) {
+        const cart = ${JSON.stringify([{
+          ...seededCart[0],
+          id: 359001,
+          market: "fr",
+          product: { ...seededCart[0].product, currency: "EUR" },
+        }])};
+        localStorage.setItem("guestCart:fr", JSON.stringify(cart));
+        sessionStorage.setItem("__vivaFrenchClickCartSeeded", "1");
+      }
+    })();`,
+  });
+
+  await client.send("Page.navigate", { url: frenchCheckoutUrl });
+  try {
+    await waitFor(`location.hostname === "xhaccp.fr" && !!document.querySelector('input[name="email"]')`, "French checkout contact form");
+  } catch (error) {
+    const browserState = await evaluate(`JSON.stringify({
+      url: location.href,
+      title: document.title,
+      inputs: [...document.querySelectorAll("input")].map((input) => ({ name: input.name, type: input.type })),
+      body: document.body.innerText.slice(0, 1200),
+    })`);
+    throw new Error(`${error.message}; French browser state: ${browserState}`);
+  }
+  await evaluate(`(() => {
+    const setValue = (name, value) => {
+      const input = document.querySelector('[name="' + name + '"]');
+      if (!input) throw new Error("Missing checkout field: " + name);
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+      setter.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    setValue("email", "viva-french-click@example.test");
+    setValue("phone", "+33600000001");
+  })()`);
+  await clickButton("Next");
+  await waitFor(`!!document.querySelector('input[name="shippingAddress.firstName"]')`, "French checkout address form");
+
+  await evaluate(`(() => {
+    const setValue = (name, value) => {
+      const input = document.querySelector('[name="' + name + '"]');
+      if (!input) throw new Error("Missing checkout field: " + name);
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+      setter.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    setValue("shippingAddress.firstName", "Browser");
+    setValue("shippingAddress.lastName", "Test");
+    setValue("shippingAddress.address", "1 Rue Test");
+    setValue("shippingAddress.city", "Paris");
+    setValue("shippingAddress.zipCode", "75001");
+    setValue("shippingAddress.phone", "+33600000001");
+    const stateLabel = [...document.querySelectorAll("label")]
+      .find((label) => label.textContent.trim().startsWith("State"));
+    let stateField = stateLabel;
+    while (stateField && !stateField.querySelector('[role="combobox"]')) {
+      stateField = stateField.parentElement;
+    }
+    const department = stateField?.querySelector('[role="combobox"]');
+    if (!department) throw new Error("Could not find French department selector");
+    department.click();
+  })()`);
+  await waitFor(`[...document.querySelectorAll('[role="option"]')].some((option) => option.textContent.trim().startsWith("75"))`, "French department options");
+  await evaluate(`(() => {
+    const department = [...document.querySelectorAll('[role="option"]')]
+      .find((option) => option.textContent.trim().startsWith("75"));
+    if (!department) throw new Error("Could not find Paris department option");
+    department.click();
+    const sameAsShipping = document.querySelector('[role="checkbox"]');
+    if (!sameAsShipping) throw new Error("Could not find same-as-shipping checkbox");
+    sameAsShipping.click();
+  })()`);
+  await clickButton("Next");
+  await waitFor(
+    `!!document.querySelector("#viva") && [...document.querySelectorAll("button")].some((button) => /^Pay\\b/.test(button.textContent.trim()))`,
+    "French Viva payment form",
+  );
+
+  client.onEvent = (event) => {
+    if (event.method !== "Fetch.requestPaused") return;
+    void (async () => {
+      const { requestId, request } = event.params;
+      if (new URL(request.url).pathname === "/api/payments/viva/create-order") {
+        paymentRequests.push({
+          method: request.method,
+          url: request.url,
+          headers: request.headers,
+          postData: request.postData,
+        });
+        if (paymentRequests.length === 1) {
+          firstRequestPausedResolve(requestId);
+          return;
+        }
+        await client.send("Fetch.continueRequest", { requestId });
+      } else {
+        await client.send("Fetch.continueRequest", { requestId });
+      }
+    })().catch((error) => interceptionErrors.push(error.message));
+  };
+  await client.send("Fetch.enable", {
+    patterns: [{ urlPattern: "*://*/api/payments/viva/create-order*", requestStage: "Request" }],
+  });
+
+  await evaluate(`(() => {
+    const button = [...document.querySelectorAll("button")]
+      .find((candidate) => /^Pay\\b/.test(candidate.textContent.trim()));
+    if (!button || button.disabled) throw new Error("French Viva pay button is not available");
+    button.click();
+  })()`);
+  const firstRequestId = await firstRequestPaused;
+  assert.equal(paymentRequests.length, 1, "the French create-order request is pending");
+  assert.equal(paymentRequests[0].method, "POST");
+  assert.equal(new URL(paymentRequests[0].url).hostname, "xhaccp.fr", "the request uses the French storefront host");
+  assert.equal(paymentRequests[0].headers["X-Market"], "fr", "the payment request uses the French market");
+  assert.equal(JSON.parse(paymentRequests[0].postData).currency, "eur", "the French Viva request uses EUR");
+
+  const pendingButtonState = await evaluate(`(() => {
+    const button = [...document.querySelectorAll("button")]
+      .find((candidate) => /^Redirecting to payment/i.test(candidate.textContent.trim()));
+    if (!button) throw new Error("Could not find the French Viva button while its request was pending");
+    const disabled = button.disabled;
+    for (let attempt = 0; attempt < 4; attempt += 1) button.click();
+    return { disabled, label: button.textContent.trim() };
+  })()`);
+  assert.equal(pendingButtonState.disabled, true, "the French Viva button is disabled while create-order is pending");
+  assert.equal(paymentRequests.length, 1, "repeated French checkout clicks still produce exactly one request");
+
+  const failureBody = Buffer.from(JSON.stringify({
+    error: "Controlled French Viva order-creation failure",
+  })).toString("base64");
+  await client.send("Fetch.fulfillRequest", {
+    requestId: firstRequestId,
+    responseCode: 503,
+    responseHeaders: [{ name: "Content-Type", value: "application/json" }],
+    body: failureBody,
+  });
+  await waitFor(
+    `(() => {
+      const button = [...document.querySelectorAll("button")]
+        .find((candidate) => /^Pay\\b/.test(candidate.textContent.trim()));
+      return !!button && !button.disabled && button.textContent.trim().startsWith("Pay ");
+    })()`,
+    "French Viva button returns to idle after a controlled create-order failure",
+  );
+  assert.equal(paymentRequests.length, 1, "the controlled French failure did not trigger a retry");
+  assert.ok(
+    await evaluate(`document.body.innerText.includes("Controlled French Viva order-creation failure")`),
+    "the French checkout reports the controlled payment failure",
+  );
+  assert.deepEqual(interceptionErrors, [], "the French controlled failure was fulfilled without browser interception errors");
+});
