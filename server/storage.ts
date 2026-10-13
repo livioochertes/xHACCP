@@ -221,6 +221,13 @@ export interface IStorage {
     attemptId: string,
     fingerprint: string,
   ): Promise<Order>;
+  getOrderByStripeAttemptId(attemptId: string): Promise<Order | undefined>;
+  createStripeOrderForAttempt(
+    order: InsertOrder,
+    items: InsertOrderItem[],
+    attemptId: string,
+    fingerprint: string,
+  ): Promise<Order>;
   updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order>;
   getOrderByPaymentProviderOrderId(providerOrderId: string): Promise<Order | undefined>;
   bindPaymentProviderOrder(id: number, providerOrderId: string): Promise<Order | undefined>;
@@ -1098,6 +1105,44 @@ export class DatabaseStorage implements IStorage {
         if (racedOrder) return racedOrder;
       } catch {
         // Preserve the original failure; the caller can retry with the same key.
+      }
+      throw error;
+    }
+  }
+
+  async getOrderByStripeAttemptId(attemptId: string): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders)
+      .where(eq(orders.stripeCheckoutAttemptId, attemptId))
+      .limit(1);
+    return order;
+  }
+
+  async createStripeOrderForAttempt(
+    order: InsertOrder,
+    items: InsertOrderItem[],
+    attemptId: string,
+    fingerprint: string,
+  ): Promise<Order> {
+    const existing = await this.getOrderByStripeAttemptId(attemptId);
+    if (existing) {
+      if (existing.stripeCheckoutFingerprint !== fingerprint) {
+        throw new Error("Stripe checkout attempt does not match the current checkout details");
+      }
+      return existing;
+    }
+
+    try {
+      return await this.createOrder({
+        ...order,
+        stripeCheckoutAttemptId: attemptId,
+        stripeCheckoutFingerprint: fingerprint,
+      }, items);
+    } catch (error) {
+      try {
+        const racedOrder = await this.getOrderByStripeAttemptId(attemptId);
+        if (racedOrder && racedOrder.stripeCheckoutFingerprint === fingerprint) return racedOrder;
+      } catch {
+        // Preserve the original failure so the caller can safely retry.
       }
       throw error;
     }

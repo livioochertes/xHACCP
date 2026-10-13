@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { getVivaCredentials, getVivaCurrency, type VivaMarket } from "./viva-config";
 import { withVivaUserAgent } from "./viva-http";
 import { getVivaAccessToken } from "./viva-auth";
+import { chargeStripeSubscription, getStripeAccountMarket } from "./stripe-payments";
 
 export { type VivaMarket };
 
@@ -113,6 +114,11 @@ export function buildRecurringTransactionRequest(
 export async function activateSubscriptionForOrder(
   order: any,
   initialTransactionId: string,
+  paymentDetails: {
+    provider?: "viva" | "stripe";
+    stripeCustomerId?: string | null;
+    stripePaymentMethodId?: string | null;
+  } = {},
 ) {
   if (!order?.userId || !initialTransactionId) return null;
   const subscriptionItem = (order.items || []).find(
@@ -145,6 +151,9 @@ export async function activateSubscriptionForOrder(
       currency,
       amount: amount.toFixed(2),
       status: "active",
+      paymentProvider: paymentDetails.provider || "viva",
+      stripeCustomerId: paymentDetails.stripeCustomerId || null,
+      stripePaymentMethodId: paymentDetails.stripePaymentMethodId || null,
       initialTransactionId,
       nextBillingAt,
       consentAt: new Date(),
@@ -231,8 +240,37 @@ export async function processDueSubscriptions(now = new Date()) {
     const payment = await claimBillingAttempt(subscription, new Date(subscription.nextBillingAt), now);
     if (!payment) continue;
     try {
-      const result = await createRecurringTransaction(subscription, payment);
-      const vivaTransactionId = result.TransactionId || result.transactionId || null;
+      let vivaTransactionId: string | null = null;
+      let stripePaymentIntentId: string | null = null;
+      if (subscription.paymentProvider === "stripe") {
+        if (!subscription.stripeCustomerId || !subscription.stripePaymentMethodId) {
+          throw new Error(`Stripe payment method is unavailable for subscription ${subscription.id}`);
+        }
+        const amountCents = Math.round(Number(subscription.amount) * 100);
+        if (!Number.isFinite(amountCents) || amountCents < 1) {
+          throw new Error(`Invalid Stripe recurring amount for subscription ${subscription.id}`);
+        }
+        const paymentIntent = await chargeStripeSubscription({
+          market: subscription.market as "ro" | "fr" | "com",
+          amountCents,
+          currency: subscription.currency,
+          subscriptionId: subscription.id,
+          billingPaymentId: payment.id,
+          customerId: subscription.stripeCustomerId,
+          paymentMethodId: subscription.stripePaymentMethodId,
+          attemptNumber: Number(payment.attemptNumber || 1),
+        });
+        if (paymentIntent.status !== "succeeded") {
+          throw new Error(`Stripe renewal payment ${paymentIntent.id} did not succeed (${paymentIntent.status})`);
+        }
+        await finalizeStripeSubscriptionRenewal(subscription, payment, paymentIntent);
+        processed++;
+        continue;
+      } else {
+        const result = await createRecurringTransaction(subscription, payment);
+        vivaTransactionId = result.TransactionId || result.transactionId || null;
+        if (!vivaTransactionId) throw new Error("Viva did not return a renewal transaction ID");
+      }
       const initialOrder = subscription.initialOrderId
         ? await storage.getOrder(subscription.initialOrderId)
         : null;
@@ -243,6 +281,7 @@ export async function processDueSubscriptions(now = new Date()) {
           .set({
             status: "succeeded",
             vivaTransactionId,
+            stripePaymentIntentId,
             paidAt: new Date(),
             updatedAt: new Date(),
           })
@@ -258,7 +297,7 @@ export async function processDueSubscriptions(now = new Date()) {
           shippingCost: "0.00",
           shippingAddress: initialOrder.shippingAddress,
           billingAddress: initialOrder.billingAddress,
-          paymentMethod: "viva",
+          paymentMethod: subscription.paymentProvider === "stripe" ? "stripe" : "viva",
           paymentStatus: "paid",
           notes: `Monthly subscription renewal #${subscription.id}`,
           source: "website",
@@ -287,7 +326,7 @@ export async function processDueSubscriptions(now = new Date()) {
           const invoiceService = await createInvoiceService();
           const invoice = await invoiceService.generateInvoiceAfterPayment(renewalOrder.id, {
             paymentMethod: "card",
-            transactionId: vivaTransactionId,
+              transactionId: stripePaymentIntentId || vivaTransactionId,
           });
           let invoicePdf: Buffer | null = null;
           if (invoice?.id) {
@@ -310,7 +349,7 @@ export async function processDueSubscriptions(now = new Date()) {
       await db.update(subscriptionPayments)
         .set({
           status: "failed",
-          failureReason: error instanceof Error ? error.message : "Unknown Viva error",
+          failureReason: error instanceof Error ? error.message : `Unknown ${subscription.paymentProvider || "Viva"} error`,
           updatedAt: new Date(),
         })
         .where(eq(subscriptionPayments.id, payment.id));
@@ -359,6 +398,141 @@ export async function processDueSubscriptions(now = new Date()) {
     }
   }
   return processed;
+}
+
+async function finalizeStripeSubscriptionRenewal(
+  subscription: typeof subscriptions.$inferSelect,
+  payment: typeof subscriptionPayments.$inferSelect,
+  paymentIntent: any,
+) {
+  const initialOrder = subscription.initialOrderId
+    ? await storage.getOrder(subscription.initialOrderId)
+    : null;
+  if (!initialOrder) throw new Error(`Initial order not found for subscription ${subscription.id}`);
+
+  const result = await db.transaction(async (tx) => {
+    const [currentPayment] = await tx.select().from(subscriptionPayments)
+      .where(eq(subscriptionPayments.id, payment.id))
+      .for("update");
+    if (!currentPayment) throw new Error(`Subscription payment ${payment.id} not found`);
+    if (currentPayment.status === "succeeded") {
+      if (currentPayment.stripePaymentIntentId !== paymentIntent.id || !currentPayment.renewalOrderId) {
+        throw new Error(`Subscription payment ${payment.id} was already completed differently`);
+      }
+      return { renewalOrderId: currentPayment.renewalOrderId, created: false };
+    }
+
+    const [currentSubscription] = await tx.select().from(subscriptions)
+      .where(eq(subscriptions.id, subscription.id))
+      .for("update");
+    if (!currentSubscription || currentSubscription.paymentProvider !== "stripe") {
+      throw new Error(`Stripe subscription ${subscription.id} is no longer eligible`);
+    }
+    const canceled = currentSubscription.cancelAtPeriodEnd === true;
+    const [renewalOrder] = await tx.insert(orders).values({
+      userId: currentSubscription.userId,
+      market: currentSubscription.market,
+      currency: currentSubscription.currency,
+      status: "processing",
+      totalAmount: currentSubscription.amount,
+      shippingCost: "0.00",
+      shippingAddress: initialOrder.shippingAddress,
+      billingAddress: initialOrder.billingAddress,
+      paymentMethod: "stripe",
+      paymentStatus: "paid",
+      paymentProviderOrderId: paymentIntent.id,
+      paymentTransactionId: paymentIntent.id,
+      notes: `Monthly subscription renewal #${currentSubscription.id}`,
+      source: "website",
+    }).returning();
+    await tx.insert(orderItems).values({
+      orderId: renewalOrder.id,
+      productId: currentSubscription.productId,
+      quantity: 1,
+      price: currentSubscription.amount,
+      totalPrice: currentSubscription.amount,
+    });
+    await tx.update(subscriptionPayments)
+      .set({
+        status: "succeeded",
+        stripePaymentIntentId: paymentIntent.id,
+        renewalOrderId: renewalOrder.id,
+        paidAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(subscriptionPayments.id, currentPayment.id));
+    await tx.update(subscriptions)
+      .set({
+        status: canceled ? "canceled" : "active",
+        canceledAt: canceled ? new Date() : currentSubscription.canceledAt,
+        nextBillingAt: addOneMonth(new Date(currentSubscription.nextBillingAt)),
+        updatedAt: new Date(),
+      })
+      .where(eq(subscriptions.id, currentSubscription.id));
+    return { renewalOrderId: renewalOrder.id, created: true };
+  });
+
+  if (!result.created) return result;
+  const renewalOrder = await storage.getOrder(result.renewalOrderId);
+  if (!renewalOrder) return result;
+  try {
+    const { createInvoiceService } = await import("./invoice-service");
+    const invoiceService = await createInvoiceService();
+    const invoice = await invoiceService.generateInvoiceAfterPayment(renewalOrder.id, {
+      paymentMethod: "stripe",
+      transactionId: paymentIntent.id,
+    });
+    let invoicePdf: Buffer | null = null;
+    if (invoice?.id) invoicePdf = await invoiceService.getInvoicePdf(invoice.id).catch(() => null);
+    const user = await storage.getUser(subscription.userId);
+    const canSendFrenchInvoice = renewalOrder.market !== "fr" || !invoice?.id ||
+      !!(await storage.claimInvoiceEmail(invoice.id));
+    if (user?.email && canSendFrenchInvoice) {
+      const { sendSubscriptionRenewalEmail } = await import("./email-service");
+      await sendSubscriptionRenewalEmail(user.email, renewalOrder as any, invoicePdf, invoice?.invoiceNumber);
+    }
+  } catch (postPaymentError) {
+    console.error(`[Subscriptions] Stripe renewal post-payment processing failed for #${subscription.id}:`, postPaymentError);
+  }
+  return result;
+}
+
+export async function reconcileStripeSubscriptionPaymentIntent(
+  paymentIntent: any,
+  endpointMarket: "ro" | "fr" | "com",
+) {
+  const subscriptionId = Number(paymentIntent?.metadata?.xhaccp_subscription_id);
+  const paymentId = Number(paymentIntent?.metadata?.xhaccp_billing_payment_id);
+  const orderMarket = String(paymentIntent?.metadata?.xhaccp_market || "") as "ro" | "fr" | "com";
+  if (paymentIntent?.status !== "succeeded" ||
+      !Number.isSafeInteger(subscriptionId) || subscriptionId < 1 ||
+      !Number.isSafeInteger(paymentId) || paymentId < 1 ||
+      !["ro", "fr", "com"].includes(orderMarket) ||
+      getStripeAccountMarket(orderMarket) !== getStripeAccountMarket(endpointMarket)) {
+    throw new Error("Stripe renewal metadata is invalid");
+  }
+  const [subscription] = await db.select().from(subscriptions)
+    .where(eq(subscriptions.id, subscriptionId)).limit(1);
+  const [payment] = await db.select().from(subscriptionPayments)
+    .where(eq(subscriptionPayments.id, paymentId)).limit(1);
+  if (!subscription || !payment || subscription.paymentProvider !== "stripe" ||
+      subscription.market !== orderMarket || payment.subscriptionId !== subscription.id) {
+    throw new Error("Stripe renewal does not match a local subscription");
+  }
+  const expectedAmount = Math.round(Number(payment.amount) * 100);
+  const customerId = typeof paymentIntent.customer === "string"
+    ? paymentIntent.customer
+    : paymentIntent.customer?.id;
+  const paymentMethodId = typeof paymentIntent.payment_method === "string"
+    ? paymentIntent.payment_method
+    : paymentIntent.payment_method?.id;
+  if (paymentIntent.amount !== expectedAmount ||
+      String(paymentIntent.currency).toUpperCase() !== String(payment.currency).toUpperCase() ||
+      customerId !== subscription.stripeCustomerId ||
+      (subscription.stripePaymentMethodId && paymentMethodId !== subscription.stripePaymentMethodId)) {
+    throw new Error("Stripe renewal amount, currency, or saved payment method does not match");
+  }
+  return finalizeStripeSubscriptionRenewal(subscription, payment, paymentIntent);
 }
 
 export async function listUserSubscriptions(userId: number) {

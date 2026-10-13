@@ -11635,6 +11635,12 @@
       kicker: "Administration / payments",
       title: "Payment health",
       description: "A live operational view of payment activity observed by the store. Customer declines are not the same as a provider outage.",
+      methodsTitle: "Checkout payment methods",
+      methodsDescription: "Choose which card providers appear at checkout for each market. Stripe is only available when its account keys and webhook are configured.",
+      stripeMethod: "Stripe card payments",
+      vivaMethod: "Viva.com payments",
+      stripeReady: "Ready",
+      stripeNeedsSetup: "Keys or webhook missing",
       refresh: "Refresh data",
       refreshing: "Refreshing\u2026",
       monitoringTitle: "Passive monitoring \xB7 real activity only",
@@ -12895,6 +12901,12 @@
       kicker: "Administrare / pl\u0103\u021Bi",
       title: "Starea pl\u0103\u021Bilor",
       description: "Imagine opera\u021Bional\u0103 a activit\u0103\u021Bii de plat\u0103 observate de magazin. Refuzurile clien\u021Bilor nu sunt acela\u0219i lucru cu o indisponibilitate a furnizorului.",
+      methodsTitle: "Metode de plat\u0103 \xEEn checkout",
+      methodsDescription: "Alege\u021Bi furnizorii afi\u0219a\u021Bi la checkout pentru fiecare pia\u021B\u0103. Stripe devine disponibil numai dup\u0103 configurarea cheilor \u0219i a webhook-ului.",
+      stripeMethod: "Plat\u0103 cu cardul prin Stripe",
+      vivaMethod: "Plat\u0103 prin Viva.com",
+      stripeReady: "Configurat",
+      stripeNeedsSetup: "Lipsesc chei sau webhook",
       refresh: "Re\xEEncarc\u0103 datele",
       refreshing: "Se re\xEEncarc\u0103\u2026",
       monitoringTitle: "Monitorizare pasiv\u0103 \xB7 doar activitate real\u0103",
@@ -14155,6 +14167,12 @@
       kicker: "Administration / paiements",
       title: "\xC9tat des paiements",
       description: "Vue op\xE9rationnelle de l\u2019activit\xE9 de paiement r\xE9ellement observ\xE9e par la boutique. Un refus client n\u2019est pas une panne du prestataire.",
+      methodsTitle: "Moyens de paiement du checkout",
+      methodsDescription: "Choisissez les prestataires affich\xE9s par march\xE9. Stripe n\u2019est disponible que lorsque ses cl\xE9s et son webhook sont configur\xE9s.",
+      stripeMethod: "Paiement par carte Stripe",
+      vivaMethod: "Paiement Viva.com",
+      stripeReady: "Pr\xEAt",
+      stripeNeedsSetup: "Cl\xE9s ou webhook manquant",
       refresh: "Actualiser",
       refreshing: "Actualisation\u2026",
       monitoringTitle: "Surveillance passive \xB7 activit\xE9 r\xE9elle uniquement",
@@ -16960,8 +16978,8 @@
   var import_react21 = __toESM(require_react(), 1);
   var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
   var stages = ["auth", "checkout", "callback", "webhook"];
-  var providers = ["viva", "paypal"];
   var marketNames = { ro: "Romania", fr: "France", com: "International" };
+  var providerName = (provider) => provider === "viva" ? "Viva.com" : provider === "stripe" ? "Stripe" : "PayPal";
   var colors = {
     ok: { ink: "#176b50", bg: "#e8f4ee", line: "#b9dfcc" },
     error: { ink: "#a34337", bg: "#fbefec", line: "#ecc9c2" },
@@ -16987,6 +17005,7 @@
     const [error, setError] = (0, import_react21.useState)("");
     const [checking, setChecking] = (0, import_react21.useState)("");
     const [checkResult, setCheckResult] = (0, import_react21.useState)(null);
+    const [savingMethod, setSavingMethod] = (0, import_react21.useState)("");
     const loadHealth = (0, import_react21.useCallback)(async ({ quiet = false } = {}) => {
       quiet ? setRefreshing(true) : setLoading(true);
       setError("");
@@ -17025,6 +17044,24 @@
         setError(err.message === "401" || err.message === "403" ? t2("paymentHealth.errorAuth") : t2("paymentHealth.errorCheck"));
       } finally {
         setChecking("");
+      }
+    };
+    const savePaymentMethod = async (provider, channelMarket, enabled) => {
+      const key = `${provider}:${channelMarket}`;
+      setSavingMethod(key);
+      setError("");
+      try {
+        const response = await fetch(`/admin/api/payments/providers/${encodeURIComponent(channelMarket)}`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ provider, enabled })
+        });
+        if (!response.ok) throw new Error(`${response.status}`);
+        await loadHealth({ quiet: true });
+      } catch (err) {
+        setError(err.message === "401" || err.message === "403" ? t2("paymentHealth.errorAuth") : t2("paymentHealth.errorLoad"));
+      } finally {
+        setSavingMethod("");
       }
     };
     const channels = (0, import_react21.useMemo)(() => data?.channels || [], [data]);
@@ -17074,6 +17111,38 @@
         " \xB7 ",
         t2("paymentHealth.productionNotice")
       ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("section", { style: { ...frame, padding: "16px 18px", marginBottom: 20 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("h2", { style: { ...heading, fontSize: 17 }, children: t2("paymentHealth.methodsTitle") }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { ...muted, fontSize: 12, lineHeight: 1.5, margin: "5px 0 13px" }, children: t2("paymentHealth.methodsDescription") }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,270px),1fr))", gap: 10 }, children: (data?.paymentMethods || []).map((item) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { border: "1px solid #e4ebe7", borderRadius: 9, padding: "11px 13px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { style: { display: "block", fontSize: 12, color: "#34594b", marginBottom: 9 }, children: marketNames[item.market] || item.market }),
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginBottom: 8, cursor: savingMethod ? "wait" : "pointer" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+              "input",
+              {
+                type: "checkbox",
+                checked: !!item.stripeEnabled,
+                disabled: !!savingMethod,
+                onChange: (event) => savePaymentMethod("stripe", item.market, event.target.checked)
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: t2("paymentHealth.stripeMethod") }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { marginLeft: "auto", fontSize: 10, color: item.stripeReady ? "#176b50" : "#8a6a2b" }, children: item.stripeReady ? t2("paymentHealth.stripeReady") : t2("paymentHealth.stripeNeedsSetup") })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12, cursor: savingMethod ? "wait" : "pointer" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+              "input",
+              {
+                type: "checkbox",
+                checked: !!item.vivaEnabled,
+                disabled: !!savingMethod,
+                onChange: (event) => savePaymentMethod("viva", item.market, event.target.checked)
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: t2("paymentHealth.vivaMethod") })
+          ] })
+        ] }, item.market)) })
+      ] }),
       error && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { role: "alert", style: { ...frame, padding: 15, marginBottom: 18, borderColor: "#ecc9c2", background: "#fbefec", color: "#873c32", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { display: "flex", gap: 9, alignItems: "center" }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(TriangleAlert, { size: 17 }),
@@ -17084,7 +17153,7 @@
       checkResult && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { role: "status", style: { ...frame, padding: 14, marginBottom: 18, borderColor: checkResult.ok ? "#b9dfcc" : "#ecc9c2", background: checkResult.ok ? "#e8f4ee" : "#fbefec", color: checkResult.ok ? "#176b50" : "#a34337", fontSize: 13 }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: checkResult.ok ? t2("paymentHealth.checkPassed") : t2("paymentHealth.checkFailed") }),
         " \u2014 ",
-        providers.find((p) => p === checkResult.provider)?.toUpperCase(),
+        providerName(checkResult.provider),
         " \xB7 ",
         checkResult.market.toUpperCase(),
         ". ",
@@ -17107,14 +17176,14 @@
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { ...muted, fontSize: 13, margin: 0 }, children: t2("paymentHealth.emptyBody") })
       ] }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,340px),1fr))", gap: 13, marginBottom: 24 }, children: channels.map((channel2) => {
         const key = channelKey(channel2.provider, channel2.market);
-        const authAllowed = channel2.provider === "viva" || channel2.provider === "paypal" && channel2.market === "fr";
+        const authAllowed = channel2.provider === "viva" || channel2.provider === "stripe" || channel2.provider === "paypal" && channel2.market === "fr";
         return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("article", { style: { ...frame, overflow: "hidden" }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { height: 3, background: channel2.status === "error" ? "#b85c4f" : channel2.status === "ok" ? "#49856d" : "#c9ae72" } }),
           /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { padding: "16px 17px 14px" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { fontSize: 11, fontWeight: 800, letterSpacing: ".12em", color: "#70827b", textTransform: "uppercase" }, children: marketNames[channel2.market] || channel2.market }),
-                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("h3", { style: { ...heading, fontSize: 20, marginTop: 4 }, children: channel2.provider === "viva" ? "Viva.com" : "PayPal" })
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("h3", { style: { ...heading, fontSize: 20, marginTop: 4 }, children: providerName(channel2.provider) })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(StatusPill, { status: channel2.status, t: t2 })
             ] }),
@@ -17162,7 +17231,7 @@
             /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tbody", { children: sortedEvents.map((event) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { style: { borderTop: "1px solid #eef1ee" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "10px 12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(StatusPill, { status: event.status, t: t2 }) }),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("td", { style: { padding: "10px 12px", fontWeight: 700, color: "#3a5549" }, children: [
-                event.provider === "viva" ? "Viva.com" : "PayPal",
+                providerName(event.provider),
                 " \xB7 ",
                 event.market.toUpperCase()
               ] }),
@@ -17187,7 +17256,7 @@
           sortedAlerts.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { padding: "23px 17px", fontSize: 13, ...muted }, children: loading ? t2("paymentHealth.loading") : t2("paymentHealth.noAlerts") }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { padding: "2px 16px" }, children: sortedAlerts.map((alert2) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "minmax(110px,1fr) auto", gap: 10, alignItems: "center", padding: "12px 0", borderBottom: "1px solid #eef1ee" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { children: [
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { fontSize: 13, fontWeight: 700, color: "#3b5449" }, children: [
-                alert2.provider === "viva" ? "Viva.com" : "PayPal",
+                providerName(alert2.provider),
                 " \xB7 ",
                 alert2.market.toUpperCase(),
                 " ",

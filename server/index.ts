@@ -67,7 +67,8 @@ app.use(express.json({
   limit: '10mb',
   verify: (req, _res, buffer) => {
     const requestPath = (req as any).originalUrl?.split('?')[0];
-    if (requestPath === "/api/integrations/sendgrid/events") {
+    if (requestPath === "/api/integrations/sendgrid/events" ||
+        requestPath === "/api/payments/stripe/webhook") {
       (req as any).rawBody = Buffer.from(buffer);
     }
   },

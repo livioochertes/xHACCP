@@ -17,7 +17,8 @@ const UNPAID_PAYMENT_STATUSES = new Set([
 export function isUnpaidOnlinePaymentAttempt(order: PaymentOrderSummary): boolean {
   const method = String(order.paymentMethod || "").toLowerCase();
   const status = String(order.paymentStatus || "").toLowerCase();
-  return (method === "paypal" || method === "viva") && UNPAID_PAYMENT_STATUSES.has(status);
+  return (method === "paypal" || method === "viva" || method === "stripe") &&
+    UNPAID_PAYMENT_STATUSES.has(status);
 }
 
 export function filterOrdersForAdminList<T extends PaymentOrderSummary>(

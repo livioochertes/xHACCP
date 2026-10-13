@@ -170,6 +170,8 @@ export const marketSettings = pgTable("market_settings", {
   market: varchar("market", { length: 10 }).notNull().unique(), // ro, com, fr
   label: varchar("label", { length: 100 }).notNull(), // e.g. "România", "International", "France"
   currency: varchar("currency", { length: 3 }).notNull().default("RON"), // RON, EUR
+  stripeEnabled: boolean("stripe_enabled").notNull().default(true),
+  vivaEnabled: boolean("viva_enabled").notNull().default(false),
   invoiceProvider: varchar("invoice_provider", { length: 30 }), // smartbill, pennylane, local; null keeps the market default
   vatPercentage: decimal("default_vat_percentage", { precision: 5, scale: 2 }).default("19.00"),
   freeShippingThreshold: decimal("free_shipping_threshold", { precision: 10, scale: 2 }).default("1000.00"),
@@ -355,6 +357,8 @@ export const orders = pgTable("orders", {
   paymentProviderOrderId: varchar("payment_provider_order_id", { length: 120 }),
   paypalCheckoutAttemptId: varchar("paypal_checkout_attempt_id", { length: 36 }),
   paypalCheckoutFingerprint: varchar("paypal_checkout_fingerprint", { length: 64 }),
+  stripeCheckoutAttemptId: varchar("stripe_checkout_attempt_id", { length: 36 }),
+  stripeCheckoutFingerprint: varchar("stripe_checkout_fingerprint", { length: 64 }),
   paymentTransactionId: varchar("payment_transaction_id", { length: 120 }),
   paymentStatus: varchar("payment_status", { length: 50 }).notNull().default("pending"),
   notes: text("notes"),
@@ -378,6 +382,7 @@ export const orders = pgTable("orders", {
 }, (table) => ({
   paymentProviderOrderIdUnique: uniqueIndex("orders_payment_provider_order_id_unique").on(table.paymentProviderOrderId),
   paypalCheckoutAttemptIdUnique: uniqueIndex("orders_paypal_checkout_attempt_id_unique").on(table.paypalCheckoutAttemptId),
+  stripeCheckoutAttemptIdUnique: uniqueIndex("orders_stripe_checkout_attempt_id_unique").on(table.stripeCheckoutAttemptId),
   paymentTransactionIdUnique: uniqueIndex("orders_payment_transaction_id_unique").on(table.paymentTransactionId),
 }));
 
@@ -525,6 +530,9 @@ export const subscriptions = pgTable("subscriptions", {
   currency: varchar("currency", { length: 3 }).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   status: varchar("status", { length: 30 }).notNull().default("active"), // active | past_due | canceled
+  paymentProvider: varchar("payment_provider", { length: 20 }).notNull().default("viva"),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 120 }),
+  stripePaymentMethodId: varchar("stripe_payment_method_id", { length: 120 }),
   initialTransactionId: varchar("initial_transaction_id", { length: 120 }).notNull(),
   nextBillingAt: timestamp("next_billing_at").notNull(),
   cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
@@ -546,6 +554,8 @@ export const subscriptionPayments = pgTable("subscription_payments", {
   billingKey: varchar("billing_key", { length: 80 }).notNull(),
   initialTransactionId: varchar("initial_transaction_id", { length: 120 }).notNull(),
   vivaTransactionId: varchar("viva_transaction_id", { length: 120 }),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 120 }),
+  renewalOrderId: integer("renewal_order_id").references(() => orders.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).notNull(),
   status: varchar("status", { length: 30 }).notNull().default("pending"), // pending | succeeded | failed
@@ -561,6 +571,8 @@ export const subscriptionPayments = pgTable("subscription_payments", {
     .on(table.subscriptionId, table.billingKey),
   subscriptionVivaTransactionUnique: uniqueIndex("subscription_payments_viva_transaction_unique")
     .on(table.vivaTransactionId),
+  subscriptionStripePaymentIntentUnique: uniqueIndex("subscription_payments_stripe_payment_intent_unique")
+    .on(table.stripePaymentIntentId),
   subscriptionPaymentStatusIdx: index("subscription_payments_status_idx").on(table.status, table.dueAt),
 }));
 

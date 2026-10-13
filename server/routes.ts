@@ -24,6 +24,15 @@ import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email
 import { getMarketFromRequest, marketMatches } from "./market-routing.js";
 import { getVivaAccessToken } from "./viva-auth";
 import { observePayment } from "./payment-health";
+import {
+  createOrderPaymentIntent,
+  findOrCreateStripeCustomer,
+  getStripeAccountMarket,
+  getStripeClient,
+  getStripePublishableKey,
+  getStripeWebhookSecret,
+  isStripeConfigured,
+} from "./stripe-payments";
 import { getVoucherValidityError } from "./voucher-validity.js";
 import { getVoucherOrderUserId, getVoucherOwnershipError } from "./voucher-ownership.js";
 import { registerSeoRoutes } from './seo-routes.js';
@@ -64,7 +73,12 @@ import {
   resolveCompositeStockQuantity,
   type CompositeComponentSource,
 } from "./composite-products";
-import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
+import {
+  activateSubscriptionForOrder,
+  cancelUserSubscription,
+  listUserSubscriptions,
+  reconcileStripeSubscriptionPaymentIntent,
+} from "./subscription-service";
 import {
   createPayPalOrderWithRecovery,
   completePayPalOrder,
@@ -4105,6 +4119,15 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
     try {
       const { currency, cartItems, voucherCode, orderData } = req.body;
+      const marketPaymentSettings = await storage.getMarketSetting(vivaMarket);
+      if (!marketPaymentSettings?.vivaEnabled) {
+        return res.status(503).json({
+          message: vivaMarket === "fr"
+            ? "Viva n’est pas activé pour cette boutique."
+            : "Viva is not enabled for this marketplace.",
+          code: "VIVA_MARKETPLACE_DISABLED",
+        });
+      }
 
       if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart items are required" });
@@ -4146,17 +4169,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         if (!userId) {
           return res.status(401).json({ message: "An account is required for subscription payments" });
         }
-        if (subscriptionItemCount !== 1 || validatedVivaItems.some(item =>
-          item.productType === "subscription" && item.quantity !== 1
-        )) {
-          return res.status(400).json({ message: "A subscription must be purchased as a single item" });
-        }
-        if (validatedVivaItems.some(item => item.productType !== "subscription")) {
-          return res.status(400).json({ message: "Subscriptions cannot be combined with other products" });
-        }
-        if (orderData?.recurringConsent !== true) {
-          return res.status(400).json({ message: "Recurring payment consent is required" });
-        }
+        return res.status(400).json({ message: "New subscriptions must be paid with Stripe" });
       }
 
       const companySettings = await storage.getCompanySettingsByMarket(vivaMarket);
@@ -4449,6 +4462,495 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       });
     }
   });
+
+  app.get("/api/payments/config", async (req: any, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    const market = getMarketFromRequest(req) as "ro" | "fr" | "com";
+    try {
+      const settings = await storage.getMarketSetting(market);
+      const stripeEnabled = settings?.stripeEnabled ?? true;
+      const stripeReady = isStripeConfigured(market);
+      res.json({
+        market,
+        currency: settings?.currency || marketSettingsMap.get(market)?.currency || "RON",
+        stripe: {
+          enabled: stripeEnabled,
+          ready: stripeReady,
+          available: stripeEnabled && stripeReady,
+          publishableKey: stripeEnabled && stripeReady ? getStripePublishableKey(market) : null,
+        },
+        viva: { enabled: settings?.vivaEnabled ?? false },
+      });
+    } catch (error) {
+      console.error("[Payments] Could not load market payment configuration");
+      res.status(503).json({ message: "Payment methods are temporarily unavailable" });
+    }
+  });
+
+  app.post("/api/payments/stripe/create-payment-intent", optionalAuth, async (req: AuthRequest, res) => {
+    const requestId = crypto.randomUUID().slice(0, 12);
+    const market = getMarketFromRequest(req) as "ro" | "fr" | "com";
+    let createdOrderId: number | null = null;
+    let stripeRequestStarted = false;
+    let paymentIntentWasAlreadyBound = false;
+    try {
+      const { cartItems, voucherCode, orderData, attemptId, currency } = req.body || {};
+      if (!Array.isArray(cartItems) || cartItems.length === 0 || !orderData) {
+        return res.status(400).json({ message: "Cart items and checkout details are required" });
+      }
+      if (typeof attemptId !== "string" || !/^[0-9a-f-]{36}$/i.test(attemptId)) {
+        return res.status(400).json({ message: "A valid checkout attempt is required" });
+      }
+      const settings = await storage.getMarketSetting(market);
+      if (!(settings?.stripeEnabled ?? true)) {
+        return res.status(503).json({ message: "Stripe is not enabled for this marketplace", code: "STRIPE_MARKETPLACE_DISABLED" });
+      }
+      if (!isStripeConfigured(market)) {
+        return res.status(503).json({ message: "Stripe is not fully configured for this marketplace", code: "STRIPE_CONFIGURATION_INCOMPLETE" });
+      }
+
+      const serverCurrency = settings?.currency || marketSettingsMap.get(market)?.currency || "RON";
+      if (currency && String(currency).toUpperCase() !== serverCurrency.toUpperCase()) {
+        return res.status(400).json({ message: "Checkout currency does not match the current marketplace" });
+      }
+
+      const account = req.userId ? await storage.getUser(req.userId) : undefined;
+      const validatedItems: any[] = [];
+      let subtotal = 0;
+      let subscriptionCount = 0;
+      for (const item of cartItems) {
+        const validated = await validateOrderItemForMarket(item, market);
+        validatedItems.push(validated);
+        subtotal += Number(validated.displayTotalPrice);
+        if (validated.productType === "subscription") subscriptionCount += validated.quantity;
+      }
+      const hasSubscription = subscriptionCount > 0;
+      if (hasSubscription) {
+        if (!req.userId || !account) {
+          return res.status(401).json({ message: "An account is required for subscription payments" });
+        }
+        if (subscriptionCount !== 1 || validatedItems.length !== 1 || validatedItems[0].quantity !== 1) {
+          return res.status(400).json({ message: "A subscription must be purchased as a single item" });
+        }
+        if (orderData.recurringConsent !== true) {
+          return res.status(400).json({ message: "Recurring payment consent is required" });
+        }
+      }
+
+      const companySettings = await storage.getCompanySettingsByMarket(market);
+      const marketSettings = marketSettingsMap.get(market);
+      const vatPercentage = Number(marketSettings?.vatPercentage ?? 0);
+      const freeShippingThreshold = marketSettings?.freeShippingThreshold
+        ? Number(marketSettings.freeShippingThreshold)
+        : (companySettings?.freeShippingThreshold ? Number(companySettings.freeShippingThreshold) : (market === "ro" ? 1000 : 200));
+      const standardShippingCost = marketSettings?.standardShippingCost
+        ? Number(marketSettings.standardShippingCost)
+        : (companySettings?.standardShippingCost ? Number(companySettings.standardShippingCost) : (market === "ro" ? 35 : 12));
+      const shippingCost = calculateShippingQuote(validatedItems, freeShippingThreshold, standardShippingCost).shippingCost;
+
+      let discountAmount = 0;
+      let voucherOwnerUserId: number | null = null;
+      if (voucherCode) {
+        const voucher = await storage.getVoucherByCode(voucherCode, market);
+        if (voucher?.isActive) {
+          const orderEmail = String(orderData.shippingAddress?.email || orderData.billingAddress?.email || orderData.email || "");
+          const ownerError = account
+            ? getVoucherOwnershipError(voucher, account.id, account.email)
+            : null;
+          const emailError = getVoucherOwnershipError(voucher, account?.id, orderEmail);
+          if (ownerError || emailError) {
+            return res.status(403).json({ message: ownerError || emailError });
+          }
+          const now = new Date();
+          const validFrom = voucher.validFrom ? new Date(voucher.validFrom) : null;
+          const validUntil = voucher.validUntil ? new Date(voucher.validUntil) : null;
+          const validityError = getVoucherValidityError(voucher, now);
+          const maxUsesReached = voucher.maxUses && voucher.usedCount && voucher.usedCount >= voucher.maxUses;
+          const minOrderMet = !voucher.minOrderAmount || subtotal >= Number(voucher.minOrderAmount);
+          if (!validityError && !maxUsesReached && minOrderMet &&
+              (!validFrom || now >= validFrom) && (!validUntil || now <= validUntil)) {
+            discountAmount = voucher.discountType === "percentage"
+              ? subtotal * (Number(voucher.discountValue) / 100)
+              : Number(voucher.discountValue);
+            if (discountAmount > 0) voucherOwnerUserId = voucher.ownerUserId ?? null;
+          }
+        }
+      }
+
+      const taxSnapshot = calculateOrderTaxSnapshot(
+        validatedItems.map((item: any) => ({ ...item, totalPriceGross: item.totalPrice })),
+        discountAmount,
+        shippingCost,
+        vatPercentage,
+        defaultPriceDisplayMode(market),
+      );
+      discountAmount = Number(taxSnapshot.discountAmount);
+      const amountCents = Math.round(Number(taxSnapshot.totalAmount) * 100);
+      if (amountCents < 50) return res.status(400).json({ message: "Order total is too low" });
+
+      const shippingAddress = { ...(orderData.shippingAddress || {}) };
+      const billingAddress = { ...(orderData.billingAddress || {}) };
+      const email = String(shippingAddress.email || billingAddress.email || account?.email || "").trim().toLowerCase();
+      if (!email) return res.status(400).json({ message: "A valid contact email is required" });
+      shippingAddress.email = email;
+      if (orderData.contactPhone && !shippingAddress.phone) shippingAddress.phone = orderData.contactPhone;
+      let notes = String(orderData.notes || "");
+      if (voucherCode && discountAmount > 0) {
+        notes = `Voucher: ${voucherCode} (-${discountAmount.toFixed(2)})${notes ? `\n${notes}` : ""}`;
+      }
+      const fingerprint = crypto.createHash("sha256").update(JSON.stringify({
+        market,
+        userId: req.userId ?? null,
+        currency: serverCurrency,
+        cartItems,
+        voucherCode: voucherCode || null,
+        orderData: { ...orderData, shippingAddress, billingAddress },
+      })).digest("hex");
+
+      const orderItems = validatedItems;
+      const order = await storage.createStripeOrderForAttempt({
+        userId: getVoucherOrderUserId(
+          voucherOwnerUserId != null ? { ownerUserId: voucherOwnerUserId } : null,
+          req.userId ?? null,
+        ),
+        market,
+        currency: serverCurrency,
+        status: "pending",
+        totalAmount: taxSnapshot.totalAmount,
+        subtotalNet: taxSnapshot.subtotalNet,
+        subtotalGross: taxSnapshot.subtotalGross,
+        vatPercentage: moneyString(vatPercentage),
+        vatAmount: taxSnapshot.vatAmount,
+        shippingNetAmount: taxSnapshot.shippingNetAmount,
+        shippingVatAmount: taxSnapshot.shippingVatAmount,
+        shippingCost: taxSnapshot.shippingGrossAmount,
+        voucherCode: voucherCode && discountAmount > 0 ? voucherCode : undefined,
+        discountAmount: discountAmount > 0 ? taxSnapshot.discountAmount : undefined,
+        discountNetAmount: discountAmount > 0 ? taxSnapshot.discountNetAmount : undefined,
+        discountGrossAmount: discountAmount > 0 ? taxSnapshot.discountGrossAmount : undefined,
+        shippingAddress,
+        billingAddress,
+        paymentMethod: "stripe",
+        paymentStatus: "pending",
+        notes: notes || undefined,
+      }, orderItems, attemptId, fingerprint);
+      createdOrderId = order.id;
+
+      if (order.paymentMethod !== "stripe" || order.market !== market) {
+        return res.status(409).json({ message: "This checkout attempt belongs to a different payment or marketplace" });
+      }
+      if (order.paymentStatus === "paid") {
+        return res.json({ orderId: order.id, alreadyPaid: true, paymentIntentId: order.paymentProviderOrderId });
+      }
+      if (order.paymentStatus !== "pending") {
+        return res.status(409).json({ message: "This payment attempt can no longer be used" });
+      }
+
+      const stripe = getStripeClient(market);
+      let paymentIntent;
+      if (order.paymentProviderOrderId) {
+        paymentIntentWasAlreadyBound = true;
+        paymentIntent = await stripe.paymentIntents.retrieve(order.paymentProviderOrderId);
+        if (paymentIntent.metadata.xhaccp_order_id !== String(order.id)) {
+          return res.status(409).json({ message: "Stripe payment does not match the local order" });
+        }
+      } else {
+        let customer;
+        if (hasSubscription) {
+          customer = await findOrCreateStripeCustomer(stripe, {
+            market,
+            userId: account!.id,
+            email,
+            name: `${shippingAddress.firstName || ""} ${shippingAddress.lastName || ""}`.trim(),
+            phone: shippingAddress.phone,
+          });
+        }
+        stripeRequestStarted = true;
+        paymentIntent = await createOrderPaymentIntent({
+          market,
+          amountCents,
+          currency: serverCurrency,
+          orderId: order.id,
+          customer,
+          email,
+          recurring: hasSubscription,
+        });
+        const bound = await storage.bindPaymentProviderOrder(order.id, paymentIntent.id);
+        if (!bound) {
+          return res.status(502).json({ message: "Could not safely attach the Stripe payment to the order" });
+        }
+      }
+
+      await observePayment({ provider: "stripe", market, stage: "checkout", status: "ok" });
+      return res.json({
+        orderId: order.id,
+        paymentIntentId: paymentIntent.id,
+        clientSecret: paymentIntent.client_secret,
+        amount: amountCents / 100,
+        currency: serverCurrency,
+      });
+    } catch (error: any) {
+      const stripeCode = /^[A-Za-z0-9_]{1,70}$/.test(String(error?.code || "")) ? String(error.code) : undefined;
+      console.error(`[Stripe ${requestId}] Checkout setup failed`, JSON.stringify({
+        market,
+        code: stripeCode || "STRIPE_CREATE_PAYMENT_INTENT_FAILED",
+        type: String(error?.type || "unknown").slice(0, 80),
+        orderId: createdOrderId,
+      }));
+      if (createdOrderId != null && !stripeRequestStarted && !paymentIntentWasAlreadyBound) {
+        await storage.markOrderPaymentFailed(createdOrderId).catch(() => undefined);
+      }
+      await observePayment({
+        provider: "stripe", market, stage: "checkout", status: "error",
+        code: "STRIPE_CREATE_PAYMENT_INTENT_FAILED",
+      });
+      if (error?.message?.includes("checkout attempt does not match")) {
+        return res.status(409).json({ message: "The checkout details changed. Please restart payment." });
+      }
+      return res.status(502).json({
+        message: market === "fr"
+          ? "Le paiement par carte n’a pas pu être préparé. Réessayez dans quelques instants."
+          : "Card payment could not be prepared. Please try again shortly.",
+        code: "STRIPE_CREATE_PAYMENT_INTENT_FAILED",
+        requestId,
+      });
+    }
+  });
+
+  app.post("/api/payments/stripe/confirm", optionalAuth, async (req: AuthRequest, res) => {
+    const market = getMarketFromRequest(req) as "ro" | "fr" | "com";
+    const paymentIntentId = String(req.body?.paymentIntentId || "");
+    if (!/^pi_[A-Za-z0-9]+$/.test(paymentIntentId)) {
+      return res.status(400).json({ message: "Invalid Stripe payment reference" });
+    }
+    try {
+      const paymentIntent = await getStripeClient(market).paymentIntents.retrieve(paymentIntentId);
+      if (paymentIntent.status !== "succeeded") {
+        return res.status(409).json({ message: "Stripe has not confirmed this payment yet", status: paymentIntent.status });
+      }
+      const result = await reconcileStripePaymentIntent(paymentIntent, market, "callback");
+      return res.json(result);
+    } catch (error) {
+      console.error("[Stripe] Payment confirmation could not be verified", market);
+      await observePayment({ provider: "stripe", market, stage: "callback", status: "error",
+        code: "STRIPE_PAYMENT_CONFIRMATION_FAILED" });
+      return res.status(502).json({ message: "The payment could not yet be verified. Please do not retry the card charge." });
+    }
+  });
+
+  app.post("/api/payments/stripe/webhook", async (req: any, res) => {
+    const endpointMarket = getMarketFromRequest(req) as "ro" | "fr" | "com";
+    const signature = req.headers["stripe-signature"];
+    const webhookSecret = getStripeWebhookSecret(endpointMarket);
+    if (!webhookSecret || !Buffer.isBuffer(req.rawBody) || typeof signature !== "string") {
+      await observePayment({ provider: "stripe", market: endpointMarket, stage: "webhook", status: "error",
+        code: "STRIPE_WEBHOOK_CONFIGURATION_MISSING" });
+      return res.status(503).send("Stripe webhook is not configured");
+    }
+    let event;
+    try {
+      event = getStripeClient(endpointMarket).webhooks.constructEvent(req.rawBody, signature, webhookSecret);
+    } catch {
+      await observePayment({ provider: "stripe", market: endpointMarket, stage: "webhook", status: "error",
+        code: "STRIPE_WEBHOOK_SIGNATURE_INVALID" });
+      return res.status(400).send("Invalid Stripe signature");
+    }
+    try {
+      if (event.type === "payment_intent.succeeded") {
+        const intent = event.data.object as any;
+        if (intent.metadata?.xhaccp_billing_payment_id) {
+          await reconcileStripeSubscriptionPaymentIntent(intent, endpointMarket);
+        } else {
+          await reconcileStripePaymentIntent(intent, endpointMarket, "webhook");
+        }
+      } else if (event.type === "payment_intent.canceled") {
+        const intent = event.data.object as any;
+        const order = intent.metadata?.xhaccp_order_id
+          ? await storage.getOrder(Number(intent.metadata.xhaccp_order_id))
+          : await storage.getOrderByPaymentProviderOrderId(intent.id);
+        if (order?.paymentStatus === "pending" && order.paymentMethod === "stripe" &&
+            order.paymentProviderOrderId === intent.id &&
+            getStripeAccountMarket(order.market as any) === getStripeAccountMarket(endpointMarket)) {
+          await storage.markOrderPaymentFailed(order.id);
+        }
+      }
+      return res.json({ received: true });
+    } catch {
+      await observePayment({ provider: "stripe", market: endpointMarket, stage: "webhook", status: "error",
+        code: "STRIPE_WEBHOOK_PROCESSING_FAILED" });
+      return res.status(500).send("Stripe event could not be processed");
+    }
+  });
+
+  async function reconcileStripePaymentIntent(
+    paymentIntent: any,
+    endpointMarket: "ro" | "fr" | "com",
+    stage: "callback" | "webhook",
+  ) {
+    const orderId = Number(paymentIntent?.metadata?.xhaccp_order_id);
+    const orderMarket = String(paymentIntent?.metadata?.xhaccp_market || "") as "ro" | "fr" | "com";
+    if (!Number.isSafeInteger(orderId) || orderId < 1 ||
+        !["ro", "fr", "com"].includes(orderMarket) ||
+        getStripeAccountMarket(orderMarket) !== getStripeAccountMarket(endpointMarket)) {
+      throw new Error("Stripe payment metadata does not match a supported marketplace");
+    }
+
+    const order = await storage.getOrder(orderId);
+    if (!order || order.paymentMethod !== "stripe" ||
+        order.market !== orderMarket ||
+        order.paymentProviderOrderId !== paymentIntent.id) {
+      throw new Error("Stripe payment does not match the local order");
+    }
+    if (paymentIntent.status !== "succeeded") {
+      return { status: paymentIntent.status, orderId };
+    }
+    const expectedAmount = Math.round(Number(order.totalAmount) * 100);
+    if (!Number.isFinite(expectedAmount) || paymentIntent.amount !== expectedAmount ||
+        String(paymentIntent.currency).toUpperCase() !== String(order.currency).toUpperCase()) {
+      throw new Error("Stripe payment amount or currency does not match the local order");
+    }
+    if (order.paymentStatus === "paid" && order.paymentTransactionId !== paymentIntent.id) {
+      throw new Error("Local order was paid with a different transaction");
+    }
+
+    const claimedOrder = order.paymentStatus === "paid"
+      ? null
+      : await storage.markOrderPaid(orderId, paymentIntent.id);
+    const paidOrder = await storage.getOrder(orderId);
+    if (!paidOrder || paidOrder.paymentStatus !== "paid" ||
+        (paidOrder.paymentTransactionId && paidOrder.paymentTransactionId !== paymentIntent.id)) {
+      throw new Error("Stripe payment could not claim the local order");
+    }
+
+    const hasSubscription = (paidOrder.items || []).some(
+      (item: any) => item.product?.productType === "subscription",
+    );
+    let subscriptionActivationError: unknown;
+    if (hasSubscription) {
+      const customerId = typeof paymentIntent.customer === "string"
+        ? paymentIntent.customer
+        : paymentIntent.customer?.id;
+      const paymentMethodId = typeof paymentIntent.payment_method === "string"
+        ? paymentIntent.payment_method
+        : paymentIntent.payment_method?.id;
+      if (!customerId || !paymentMethodId || paymentIntent.setup_future_usage !== "off_session") {
+        throw new Error("Stripe did not save a reusable payment method for the subscription");
+      }
+      try {
+        await activateSubscriptionForOrder(paidOrder, paymentIntent.id, {
+          provider: "stripe",
+          stripeCustomerId: customerId,
+          stripePaymentMethodId: paymentMethodId,
+        });
+      } catch (error) {
+        subscriptionActivationError = error;
+        console.error(`[Stripe] Could not activate subscription for paid order #${orderId}`);
+      }
+    }
+
+    if (claimedOrder) {
+      void fulfillStripePaidOrder(orderId).catch(() => {
+        console.error(`[Stripe] Post-payment fulfillment failed for order #${orderId}`);
+      });
+    }
+    await observePayment({ provider: "stripe", market: orderMarket, stage, status: "ok" });
+    if (subscriptionActivationError) {
+      throw new Error("Stripe payment succeeded but subscription setup needs retry");
+    }
+    return { status: "paid", orderId };
+  }
+
+  async function fulfillStripePaidOrder(orderId: number) {
+    const order = await storage.getOrder(orderId);
+    if (!order) return;
+    const market = String(order.market || "ro");
+    let invoiceId: number | undefined;
+    let invoiceNumber: string | undefined;
+    let invoicePdf: Buffer | null = null;
+    try {
+      const invoiceService = await createInvoiceService();
+      const invoice = await invoiceService.generateInvoiceAfterPayment(orderId, {
+        status: "succeeded",
+        paymentMethod: "stripe",
+        paymentId: order.paymentTransactionId || undefined,
+        amount: Number(order.totalAmount),
+      });
+      invoiceId = invoice?.id;
+      invoiceNumber = invoice?.invoiceNumber;
+      if (invoiceId) invoicePdf = await invoiceService.getInvoicePdf(invoiceId).catch(() => null);
+    } catch {
+      console.error(`[Stripe] Invoice generation failed for order #${orderId}`);
+    }
+
+    let awbNumber: string | undefined;
+    try {
+      const awb = await generateAWBForOrder(orderId);
+      awbNumber = awb?.awbNumber;
+    } catch {
+      console.error(`[Stripe] AWB generation failed for order #${orderId}`);
+    }
+
+    const latestOrder = await storage.getOrder(orderId);
+    if (!latestOrder) return;
+    const { sendSupplierOrderEmail, sendCustomerShipmentEmail } = await import("./email-service");
+    const groups = new Map<number | null, {
+      supplierName: string; supplierEmail: string; items: { productName: string; quantity: number }[];
+    }>();
+    for (const item of latestOrder.items || []) {
+      const product = item.productId != null ? await storage.getProduct(item.productId) : undefined;
+      const supplierId = product?.supplierId || null;
+      let group = groups.get(supplierId);
+      if (!group) {
+        if (supplierId) {
+          const supplier = await storage.getSupplier(supplierId);
+          if (supplier?.email) {
+            group = { supplierName: supplier.contactPerson || supplier.name, supplierEmail: supplier.email, items: [] };
+          }
+        }
+        if (!group) {
+          const company = await storage.getCompanySettingsByMarket(market);
+          group = {
+            supplierName: company?.name || "xHACCP",
+            supplierEmail: company?.logisticsEmail || company?.email || "",
+            items: [],
+          };
+        }
+        groups.set(supplierId, group);
+      }
+      group.items.push({ productName: item.product?.name || "Product", quantity: item.quantity });
+    }
+    for (const group of groups.values()) {
+      if (!group.supplierEmail) continue;
+      await sendSupplierOrderEmail(
+        group.supplierEmail, group.supplierName, latestOrder, group.items, awbNumber || "",
+      ).catch(() => console.error(`[Stripe] Supplier notification failed for order #${orderId}`));
+    }
+
+    if (market === "fr") {
+      try {
+        await sendFrenchOrderConfirmationEmails(orderId);
+      } catch {
+        console.error(`[Stripe] French order confirmation failed for order #${orderId}`);
+      }
+      try {
+        await sendFrenchOrderDocumentsEmail(orderId);
+      } catch {
+        console.error(`[Stripe] French order documents email failed for order #${orderId}`);
+      }
+      return;
+    }
+
+    let customerEmail = "";
+    if (latestOrder.userId) customerEmail = (await storage.getUser(latestOrder.userId))?.email || "";
+    const shippingAddress = latestOrder.shippingAddress as any;
+    const billingAddress = latestOrder.billingAddress as any;
+    customerEmail ||= shippingAddress?.email || billingAddress?.email || "";
+    if (customerEmail) {
+      await sendCustomerShipmentEmail(
+        customerEmail, latestOrder, awbNumber || "", invoicePdf, invoiceNumber,
+      ).catch(() => console.error(`[Stripe] Customer shipment email failed for order #${orderId}`));
+    }
+  }
 
   const awbGenerationInProgress = new Set<number>();
 

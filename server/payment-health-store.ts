@@ -125,6 +125,7 @@ export async function getPaymentHealthOverview(markets: PaymentMarket[]) {
   for (const market of markets) {
     if (market !== "com" || markets.length === 1) keys.add(`viva:${market}`);
     if (market === "fr") keys.add("paypal:fr");
+    keys.add(`stripe:${market}`);
   }
   stateResult.rows.forEach(row => keys.add(`${row.provider}:${row.market}`));
   const channels = Array.from(keys).map(key => {

@@ -1,4 +1,4 @@
-export type PaymentProvider = "viva" | "paypal";
+export type PaymentProvider = "viva" | "paypal" | "stripe";
 export type PaymentMarket = "ro" | "fr" | "com";
 export type PaymentStage = "auth" | "checkout" | "callback" | "webhook";
 export type PaymentObservation = {
@@ -10,7 +10,7 @@ export type PaymentObservation = {
 export const PAYMENT_ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 
 export function sanitizePaymentObservation(input: PaymentObservation): PaymentObservation {
-  if (!["viva", "paypal"].includes(input.provider) || !["ro", "fr", "com"].includes(input.market) ||
+  if (!["viva", "paypal", "stripe"].includes(input.provider) || !["ro", "fr", "com"].includes(input.market) ||
       !["auth", "checkout", "callback", "webhook"].includes(input.stage) ||
       !["ok", "error"].includes(input.status) || (input.provider === "paypal" && input.market !== "fr")) {
     throw new Error("Invalid payment observation");

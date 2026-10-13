@@ -35,6 +35,7 @@ import OrderContactDetails from "@/components/order-contact-details";
 import FrenchDepartmentSelect from "@/components/french-department-select";
 
 import VivaPayment from "@/components/viva-payment";
+import StripePayment from "@/components/stripe-payment";
 import PayPalPayment from "@/components/paypal-payment";
 import {
   getCountyOptions,
@@ -110,7 +111,7 @@ function createCheckoutSchema(t: (key: keyof TranslationKeys) => string, isFrenc
     phone: z.string().default(""),
     shippingAddress: createShippingAddressSchema(translate, isFrenchMarket),
     billingAddress: billingAddressSchemaRelaxed,
-    paymentMethod: z.enum(["viva", "paypal", "cash"]),
+    paymentMethod: z.enum(["stripe", "viva", "paypal", "cash"]),
     sameAsBilling: z.boolean().default(false),
     notes: z.string().optional(),
     recurringConsent: z.boolean().default(false),
@@ -267,7 +268,18 @@ export default function Checkout() {
       return response.json();
     },
   });
-  
+  const { data: paymentConfig, isFetched: paymentConfigFetched } = useQuery<{
+    market: string;
+    stripe: { enabled: boolean; ready: boolean; available: boolean; publishableKey: string | null };
+    viva: { enabled: boolean };
+  }>({
+    queryKey: ["/api/payments/config"],
+    queryFn: async () => (await apiRequest("GET", "/api/payments/config")).json(),
+    staleTime: 60_000,
+  });
+  const stripeAvailable = paymentConfig?.stripe.available === true;
+  const vivaAvailable = paymentConfig?.viva.enabled === true;
+
   const defaultVatPercentage = Number(shippingSettings?.vatPercentage ?? 0);
   const taxLabels = market === "fr"
     ? { subtotal: "Produits HT", discount: "Remise HT", shipping: "Livraison HT", vat: "TVA", total: "Total TTC" }
@@ -315,7 +327,7 @@ export default function Checkout() {
           vatNumber: user.vatNumber || "",
           registrationNumber: user.registrationNumber || "",
         },
-        paymentMethod: "viva",
+        paymentMethod: "stripe",
         sameAsBilling: !user.deliveryAddress,
         notes: "",
         createAccount: false,
@@ -359,7 +371,7 @@ export default function Checkout() {
         vatNumber: "",
         registrationNumber: "",
       },
-      paymentMethod: "viva",
+      paymentMethod: "stripe",
       sameAsBilling: false,
       notes: "",
       createAccount: false,
@@ -467,6 +479,21 @@ export default function Checkout() {
   const [showConfirmAccountPassword, setShowConfirmAccountPassword] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const justCreatedAccountRef = useRef(false);
+
+  useEffect(() => {
+    if (!paymentConfigFetched) return;
+    const allowed = hasSubscription
+      ? (stripeAvailable ? ["stripe"] : [])
+      : [
+          ...(stripeAvailable ? ["stripe"] : []),
+          ...(vivaAvailable ? ["viva"] : []),
+          ...(isFrenchMarket ? ["paypal"] : ["cash"]),
+        ];
+    const current = form.getValues("paymentMethod");
+    if (allowed.includes(current)) return;
+    const fallback = allowed[0] || (hasSubscription ? "stripe" : isFrenchMarket ? "paypal" : "cash");
+    form.setValue("paymentMethod", fallback as CheckoutFormData["paymentMethod"], { shouldValidate: true });
+  }, [paymentConfigFetched, stripeAvailable, vivaAvailable, hasSubscription, isFrenchMarket, form]);
 
   const createOrderMutation = useMutation({
     mutationFn: async (data: CheckoutFormData) => {
@@ -932,6 +959,9 @@ export default function Checkout() {
     // Only submit if we're on the final payment step
     if (step !== 3) {
       console.log("Form submitted but not on payment step, ignoring");
+      return;
+    }
+    if (data.paymentMethod === "stripe" || data.paymentMethod === "viva" || data.paymentMethod === "paypal") {
       return;
     }
     console.log("Submitting order from payment step");
@@ -1895,22 +1925,37 @@ export default function Checkout() {
                                   disabled={isRestoringVoucher || voucherLoading}
                                   className="space-y-3"
                                 >
+                                  {stripeAvailable && (
+                                    <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'stripe' ? 'border-[#635bff] bg-violet-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
+                                      <RadioGroupItem value="stripe" id="stripe" />
+                                      <Label htmlFor="stripe" className="flex-1 cursor-pointer">
+                                        <div className="flex items-center gap-3">
+                                          <CreditCard className="h-7 w-7 text-[#635bff]" />
+                                          <span className="font-medium">Stripe · {isFrenchMarket ? "Carte bancaire" : market === "ro" ? "Plată cu cardul" : "Card payment"}</span>
+                                          <Badge variant="secondary" className="text-xs">{t('checkout.recommended')}</Badge>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-2">
+                                          <span className="text-xs text-muted-foreground">{t('checkout.poweredBy')}</span>
+                                          <span className="text-xs font-semibold text-[#635bff]">Stripe</span>
+                                        </div>
+                                      </Label>
+                                    </div>
+                                  )}
+                                  {vivaAvailable && !hasSubscription && (
                                     <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'viva' ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
-                                    <RadioGroupItem value="viva" id="viva" />
-                                    <Label htmlFor="viva" className="flex-1 cursor-pointer">
-                                      <div className="flex items-center gap-3">
-                                        <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-9" />
-                                          {isFrenchMarket && (
-                                            <span className="font-medium">{t('checkout.cardOrPayPal')}</span>
-                                          )}
-                                        <Badge variant="secondary" className="text-xs">{t('checkout.recommended')}</Badge>
-                                      </div>
-                                      <div className="flex items-center gap-1.5 mt-2">
-                                        <span className="text-xs text-muted-foreground">{t('checkout.poweredBy')}</span>
-                                        <img src="https://developer.viva.com/images/new-payment-methods-logos/vivawallet.svg" alt="Viva Wallet" className="h-4" />
-                                      </div>
-                                    </Label>
-                                  </div>
+                                      <RadioGroupItem value="viva" id="viva" />
+                                      <Label htmlFor="viva" className="flex-1 cursor-pointer">
+                                        <div className="flex items-center gap-3">
+                                          <img src="https://developer.viva.com/images/new-payment-methods-logos/card,applepay,googlepay.svg" alt="Card, Apple Pay, Google Pay" className="h-9" />
+                                          {isFrenchMarket && <span className="font-medium">{t('checkout.cardOrPayPal')}</span>}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-2">
+                                          <span className="text-xs text-muted-foreground">{t('checkout.poweredBy')}</span>
+                                          <img src="https://developer.viva.com/images/new-payment-methods-logos/vivawallet.svg" alt="Viva Wallet" className="h-4" />
+                                        </div>
+                                      </Label>
+                                    </div>
+                                  )}
                                     {isFrenchMarket && !hasSubscription && (
                                       <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'paypal' ? 'border-[#0070ba] bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
                                         <RadioGroupItem value="paypal" id="paypal" />
@@ -1932,7 +1977,7 @@ export default function Checkout() {
                                         </Label>
                                       </div>
                                     )}
-                                   {!isFrenchMarket && (
+                                    {!isFrenchMarket && !hasSubscription && (
                                      <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'cash' ? 'border-green-500 bg-green-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
                                        <RadioGroupItem value="cash" id="cash" />
                                        <Label htmlFor="cash" className="flex-1 cursor-pointer">
@@ -1951,6 +1996,16 @@ export default function Checkout() {
                         />
                       </CardContent>
                     </Card>
+
+                    {hasSubscription && !stripeAvailable && (
+                      <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                        {isFrenchMarket
+                          ? "Le paiement des abonnements par Stripe n’est pas encore disponible. Réessayez plus tard."
+                          : market === "ro"
+                            ? "Plata abonamentelor prin Stripe nu este disponibilă momentan. Încercați din nou mai târziu."
+                            : "Stripe subscription payments are not available yet. Please try again later."}
+                      </div>
+                    )}
 
                     {hasSubscription && (
                       <Card className="border-amber-200 bg-amber-50">
@@ -1999,7 +2054,11 @@ export default function Checkout() {
                             ? { ...shippingAddr, clientType: values.billingAddress.clientType, companyName: values.billingAddress.companyName, vatNumber: values.billingAddress.vatNumber, registrationNumber: values.billingAddress.registrationNumber }
                             : { ...values.billingAddress };
                           return {
-                            shippingAddress: { ...shippingAddr, email: values.email },
+                            shippingAddress: {
+                              ...shippingAddr,
+                              email: values.email,
+                              countryCode: getCountryCode(shippingAddr.country),
+                            },
                             buyerName: [shippingAddr.firstName, shippingAddr.lastName]
                               .map(value => value?.trim())
                               .filter(Boolean)
@@ -2026,6 +2085,86 @@ export default function Checkout() {
                             description: error,
                             variant: "destructive",
                           });
+                        }}
+                      />
+                    )}
+                    {form.watch("paymentMethod") === "stripe" && stripeAvailable && (
+                      <StripePayment
+                        amount={finalTotal}
+                        currency={cartCurrency}
+                        publishableKey={paymentConfig!.stripe.publishableKey!}
+                        market={market}
+                        disabled={isRestoringVoucher || voucherLoading}
+                        cartItems={cart.map(item => ({
+                          productId: item.product.id,
+                          quantity: item.quantity,
+                          price: getUnitPrice(item).toFixed(2),
+                          compositeConfiguration: item.compositeConfiguration,
+                        }))}
+                        voucherCode={appliedVoucher?.code}
+                        checkoutDraft={() => ({
+                          step,
+                          formValues: form.getValues() as unknown as Record<string, unknown>,
+                          voucherInput: voucherCode,
+                          appliedVoucherCode: appliedVoucher?.code ?? null,
+                        })}
+                        orderData={(() => {
+                          const values = form.getValues();
+                          const shippingAddr = { ...values.shippingAddress };
+                          if (!shippingAddr.phone && values.phone) shippingAddr.phone = values.phone;
+                          const billingAddr = sameAsBilling
+                            ? {
+                                ...shippingAddr,
+                                clientType: values.billingAddress.clientType,
+                                companyName: values.billingAddress.companyName,
+                                vatNumber: values.billingAddress.vatNumber,
+                                registrationNumber: values.billingAddress.registrationNumber,
+                              }
+                            : { ...values.billingAddress };
+                          return {
+                            shippingAddress: { ...shippingAddr, email: values.email },
+                            billingAddress: billingAddr,
+                            items: cart.map(item => {
+                              const unitPrice = getUnitPrice(item);
+                              return {
+                                productId: item.product.id,
+                                quantity: item.quantity,
+                                price: unitPrice.toFixed(2),
+                                totalPrice: (unitPrice * item.quantity).toFixed(2),
+                                compositeConfiguration: item.compositeConfiguration,
+                              };
+                            }),
+                            notes: values.notes,
+                            contactPhone: values.phone,
+                            recurringConsent: values.recurringConsent,
+                          };
+                        })()}
+                        onError={(error) => {
+                          console.error("Stripe payment failed in checkout:", error);
+                          toast({
+                            title: t("checkout.paymentFailed"),
+                            description: error,
+                            variant: "destructive",
+                          });
+                        }}
+                        onSuccess={(paymentId, orderId) => {
+                          const summary = {
+                            ...currentOrderSummaryRef.current,
+                            orderId,
+                            email: form.getValues("email") || currentOrderSummaryRef.current.email,
+                            phone: form.getValues("phone") || currentOrderSummaryRef.current.phone,
+                          };
+                          localStorage.setItem("xhaccp_pending_order_summary", JSON.stringify(summary));
+                          trackEvent("purchase_completed", {
+                            value: Number(Number(summary.total).toFixed(2)),
+                            currency: cartCurrency,
+                            payment_method: "stripe",
+                            market,
+                            transaction_id: paymentId,
+                          });
+                          clearVivaCheckoutDraft(market);
+                          clearCart();
+                          window.location.assign(`/?payment=success&orderId=${orderId}`);
                         }}
                       />
                     )}
@@ -2134,12 +2273,10 @@ export default function Checkout() {
                       </Button>
                     ) : (
                       /* Payment step - show different UI based on payment method */
-                      form.watch("paymentMethod") === "viva" ? (
+                      form.watch("paymentMethod") === "stripe" || form.watch("paymentMethod") === "viva" || form.watch("paymentMethod") === "paypal" ? (
                         <div className="text-sm text-gray-600">
                           {t('checkout.usePaymentForm')}
                         </div>
-                      ) : form.watch("paymentMethod") === "paypal" ? (
-                        <div className="text-sm text-gray-600">{t('checkout.usePaymentForm')}</div>
                       ) : !isFrenchMarket && form.watch("paymentMethod") === "cash" ? (
                         <Button
                           type="submit"

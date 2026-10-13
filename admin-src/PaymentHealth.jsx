@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Check, Clock3, CreditCard, RefreshCw, ShieldCheck, ShieldAlert } from "lucide-react";
 
 const stages = ["auth", "checkout", "callback", "webhook"];
-const providers = ["viva", "paypal"];
 const marketNames = { ro: "Romania", fr: "France", com: "International" };
+const providerName = (provider) => provider === "viva" ? "Viva.com" : provider === "stripe" ? "Stripe" : "PayPal";
 const colors = {
   ok: { ink: "#176b50", bg: "#e8f4ee", line: "#b9dfcc" },
   error: { ink: "#a34337", bg: "#fbefec", line: "#ecc9c2" },
@@ -31,6 +31,7 @@ export default function PaymentHealth({ token, market, t, locale = "en" }) {
   const [error, setError] = useState("");
   const [checking, setChecking] = useState("");
   const [checkResult, setCheckResult] = useState(null);
+  const [savingMethod, setSavingMethod] = useState("");
 
   const loadHealth = useCallback(async ({ quiet = false } = {}) => {
     quiet ? setRefreshing(true) : setLoading(true);
@@ -73,6 +74,25 @@ export default function PaymentHealth({ token, market, t, locale = "en" }) {
     }
   };
 
+  const savePaymentMethod = async (provider, channelMarket, enabled) => {
+    const key = `${provider}:${channelMarket}`;
+    setSavingMethod(key);
+    setError("");
+    try {
+      const response = await fetch(`/admin/api/payments/providers/${encodeURIComponent(channelMarket)}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, enabled }),
+      });
+      if (!response.ok) throw new Error(`${response.status}`);
+      await loadHealth({ quiet: true });
+    } catch (err) {
+      setError(err.message === "401" || err.message === "403" ? t("paymentHealth.errorAuth") : t("paymentHealth.errorLoad"));
+    } finally {
+      setSavingMethod("");
+    }
+  };
+
   const channels = useMemo(() => data?.channels || [], [data]);
   const events = useMemo(() => data?.events || [], [data]);
   const alerts = useMemo(() => data?.alerts || [], [data]);
@@ -110,12 +130,37 @@ export default function PaymentHealth({ token, market, t, locale = "en" }) {
       </div>}
       {data?.environment === "production" && <div style={{...muted,fontSize:11,margin:"-12px 0 18px"}}>{t("paymentHealth.environment")}: <strong style={{color:"#34594b"}}>{t("paymentHealth.production")}</strong> · {t("paymentHealth.productionNotice")}</div>}
 
+      <section style={{...frame,padding:"16px 18px",marginBottom:20}}>
+        <h2 style={{...heading,fontSize:17}}>{t("paymentHealth.methodsTitle")}</h2>
+        <p style={{...muted,fontSize:12,lineHeight:1.5,margin:"5px 0 13px"}}>{t("paymentHealth.methodsDescription")}</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,270px),1fr))",gap:10}}>
+          {(data?.paymentMethods || []).map((item) => (
+            <div key={item.market} style={{border:"1px solid #e4ebe7",borderRadius:9,padding:"11px 13px"}}>
+              <strong style={{display:"block",fontSize:12,color:"#34594b",marginBottom:9}}>{marketNames[item.market] || item.market}</strong>
+              <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,marginBottom:8,cursor:savingMethod? "wait":"pointer"}}>
+                <input type="checkbox" checked={!!item.stripeEnabled} disabled={!!savingMethod}
+                  onChange={(event) => savePaymentMethod("stripe",item.market,event.target.checked)}/>
+                <span>{t("paymentHealth.stripeMethod")}</span>
+                <span style={{marginLeft:"auto",fontSize:10,color:item.stripeReady?"#176b50":"#8a6a2b"}}>
+                  {item.stripeReady?t("paymentHealth.stripeReady"):t("paymentHealth.stripeNeedsSetup")}
+                </span>
+              </label>
+              <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,cursor:savingMethod? "wait":"pointer"}}>
+                <input type="checkbox" checked={!!item.vivaEnabled} disabled={!!savingMethod}
+                  onChange={(event) => savePaymentMethod("viva",item.market,event.target.checked)}/>
+                <span>{t("paymentHealth.vivaMethod")}</span>
+              </label>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {error && <div role="alert" style={{...frame,padding:15,marginBottom:18,borderColor:"#ecc9c2",background:"#fbefec",color:"#873c32",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
         <span style={{display:"flex",gap:9,alignItems:"center"}}><AlertTriangle size={17}/>{error}</span><button type="button" onClick={() => loadHealth()} style={{border:"1px solid #d8aaa1",background:"transparent",borderRadius:6,padding:"7px 11px",color:"inherit",fontWeight:700,cursor:"pointer"}}>{t("paymentHealth.retry")}</button>
       </div>}
 
       {checkResult && <div role="status" style={{...frame,padding:14,marginBottom:18,borderColor:checkResult.ok?"#b9dfcc":"#ecc9c2",background:checkResult.ok?"#e8f4ee":"#fbefec",color:checkResult.ok?"#176b50":"#a34337",fontSize:13}}>
-        <strong>{checkResult.ok ? t("paymentHealth.checkPassed") : t("paymentHealth.checkFailed")}</strong> — {providers.find(p=>p===checkResult.provider)?.toUpperCase()} · {checkResult.market.toUpperCase()}. {t("paymentHealth.checkScope")}
+        <strong>{checkResult.ok ? t("paymentHealth.checkPassed") : t("paymentHealth.checkFailed")}</strong> — {providerName(checkResult.provider)} · {checkResult.market.toUpperCase()}. {t("paymentHealth.checkScope")}
       </div>}
 
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,margin:"0 0 11px",flexWrap:"wrap"}}>
@@ -131,12 +176,12 @@ export default function PaymentHealth({ token, market, t, locale = "en" }) {
       </div> : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,340px),1fr))",gap:13,marginBottom:24}}>
         {channels.map((channel) => {
           const key = channelKey(channel.provider, channel.market);
-          const authAllowed = channel.provider === "viva" || (channel.provider === "paypal" && channel.market === "fr");
+          const authAllowed = channel.provider === "viva" || channel.provider === "stripe" || (channel.provider === "paypal" && channel.market === "fr");
           return <article key={key} style={{...frame,overflow:"hidden"}}>
             <div style={{height:3,background:channel.status==="error"?"#b85c4f":channel.status==="ok"?"#49856d":"#c9ae72"}}/>
             <div style={{padding:"16px 17px 14px"}}>
               <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start"}}>
-                <div><div style={{fontSize:11,fontWeight:800,letterSpacing:".12em",color:"#70827b",textTransform:"uppercase"}}>{marketNames[channel.market] || channel.market}</div><h3 style={{...heading,fontSize:20,marginTop:4}}>{channel.provider === "viva" ? "Viva.com" : "PayPal"}</h3></div>
+                <div><div style={{fontSize:11,fontWeight:800,letterSpacing:".12em",color:"#70827b",textTransform:"uppercase"}}>{marketNames[channel.market] || channel.market}</div><h3 style={{...heading,fontSize:20,marginTop:4}}>{providerName(channel.provider)}</h3></div>
                 <StatusPill status={channel.status} t={t}/>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,margin:"16px 0 14px"}}>
@@ -167,14 +212,14 @@ export default function PaymentHealth({ token, market, t, locale = "en" }) {
       </div>}
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,440px),1fr))",gap:14}}>
-        <section style={{...frame,overflow:"hidden"}}>
+         <section style={{...frame,overflow:"hidden"}}>
           <div style={{padding:"15px 17px",borderBottom:"1px solid #e8eeea",display:"flex",alignItems:"center",gap:9}}><Activity size={17} color="#477362"/><div><h2 style={{...heading,fontSize:16}}>{t("paymentHealth.historyTitle")}</h2><div style={{...muted,fontSize:12,marginTop:3}}>{t("paymentHealth.historyDescription")}</div></div></div>
-          {sortedEvents.length===0 ? <div style={{padding:"23px 17px",fontSize:13,...muted}}>{loading?t("paymentHealth.loading"):t("paymentHealth.noEvents")}</div> : <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:470}}><thead><tr style={{textAlign:"left",color:"#71827a",fontSize:10,textTransform:"uppercase",letterSpacing:".08em",background:"#fafbf9"}}>{["event","channel","stage","detail","time"].map((key)=><th key={key} style={{padding:"9px 12px",fontWeight:750}}>{t(`paymentHealth.column.${key}`)}</th>)}</tr></thead><tbody>{sortedEvents.map(event=><tr key={event.id} style={{borderTop:"1px solid #eef1ee"}}><td style={{padding:"10px 12px"}}><StatusPill status={event.status} t={t}/></td><td style={{padding:"10px 12px",fontWeight:700,color:"#3a5549"}}>{event.provider==="viva"?"Viva.com":"PayPal"} · {event.market.toUpperCase()}</td><td style={{padding:"10px 12px"}}>{t(`paymentHealth.stage.${event.stage}`)}</td><td style={{padding:"10px 12px",color:"#65766e"}}>{[event.code,event.httpStatus?`HTTP ${event.httpStatus}`:null].filter(Boolean).join(" · ")||"—"}</td><td style={{padding:"10px 12px",whiteSpace:"nowrap",color:"#65766e"}}>{formatDate(event.createdAt,localeCode)}</td></tr>)}</tbody></table></div>}
+          {sortedEvents.length===0 ? <div style={{padding:"23px 17px",fontSize:13,...muted}}>{loading?t("paymentHealth.loading"):t("paymentHealth.noEvents")}</div> : <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:470}}><thead><tr style={{textAlign:"left",color:"#71827a",fontSize:10,textTransform:"uppercase",letterSpacing:".08em",background:"#fafbf9"}}>{["event","channel","stage","detail","time"].map((key)=><th key={key} style={{padding:"9px 12px",fontWeight:750}}>{t(`paymentHealth.column.${key}`)}</th>)}</tr></thead><tbody>{sortedEvents.map(event=><tr key={event.id} style={{borderTop:"1px solid #eef1ee"}}><td style={{padding:"10px 12px"}}><StatusPill status={event.status} t={t}/></td><td style={{padding:"10px 12px",fontWeight:700,color:"#3a5549"}}>{providerName(event.provider)} · {event.market.toUpperCase()}</td><td style={{padding:"10px 12px"}}>{t(`paymentHealth.stage.${event.stage}`)}</td><td style={{padding:"10px 12px",color:"#65766e"}}>{[event.code,event.httpStatus?`HTTP ${event.httpStatus}`:null].filter(Boolean).join(" · ")||"—"}</td><td style={{padding:"10px 12px",whiteSpace:"nowrap",color:"#65766e"}}>{formatDate(event.createdAt,localeCode)}</td></tr>)}</tbody></table></div>}
         </section>
         <section style={{...frame,overflow:"hidden"}}>
           <div style={{padding:"15px 17px",borderBottom:"1px solid #e8eeea",display:"flex",alignItems:"center",gap:9}}><ShieldAlert size={17} color="#927441"/><div><h2 style={{...heading,fontSize:16}}>{t("paymentHealth.alertsTitle")}</h2><div style={{...muted,fontSize:12,marginTop:3}}>{t("paymentHealth.alertsRecipient")} · {data?.alertRecipient || "—"}</div></div></div>
           {sortedAlerts.length===0 ? <div style={{padding:"23px 17px",fontSize:13,...muted}}>{loading?t("paymentHealth.loading"):t("paymentHealth.noAlerts")}</div> : <div style={{padding:"2px 16px"}}>{sortedAlerts.map(alert=><div key={alert.id} style={{display:"grid",gridTemplateColumns:"minmax(110px,1fr) auto",gap:10,alignItems:"center",padding:"12px 0",borderBottom:"1px solid #eef1ee"}}>
-            <div><div style={{fontSize:13,fontWeight:700,color:"#3b5449"}}>{alert.provider==="viva"?"Viva.com":"PayPal"} · {alert.market.toUpperCase()} <span style={{fontWeight:500,color:"#76847e"}}>· {t(`paymentHealth.stage.${alert.stage}`)}</span></div><div style={{fontSize:11,...muted,marginTop:4}}>{t(`paymentHealth.alertKind.${alert.kind}`)} · {formatDate(alert.createdAt,localeCode)}{alert.sentAt?` · ${t("paymentHealth.sentAt")} ${formatDate(alert.sentAt,localeCode)}`:""}</div></div>
+             <div><div style={{fontSize:13,fontWeight:700,color:"#3b5449"}}>{providerName(alert.provider)} · {alert.market.toUpperCase()} <span style={{fontWeight:500,color:"#76847e"}}>· {t(`paymentHealth.stage.${alert.stage}`)}</span></div><div style={{fontSize:11,...muted,marginTop:4}}>{t(`paymentHealth.alertKind.${alert.kind}`)} · {formatDate(alert.createdAt,localeCode)}{alert.sentAt?` · ${t("paymentHealth.sentAt")} ${formatDate(alert.sentAt,localeCode)}`:""}</div></div>
             <span title={alert.status==="sent"?t("paymentHealth.sentAcceptedHint"):undefined} style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,fontWeight:750,color:alert.status==="sent"?"#176b50":alert.status==="sending"?"#80662f":"#845b35"}}>{alert.status==="sent"?<Check size={13}/>:alert.status==="sending"?<ArrowUpRight size={13}/>:<ArrowDownRight size={13}/>} {t(`paymentHealth.alertStatus.${alert.status}`)}</span>
           </div>)}</div>}
         </section>
