@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
-  CardElement,
+  CardCvcElement,
+  CardExpiryElement,
+  CardNumberElement,
   Elements,
   useElements,
   useStripe,
@@ -99,12 +101,12 @@ function StripeCardForm(props: StripePaymentProps) {
         throw new Error("Stripe did not return a usable payment session");
       }
 
-      const card = elements.getElement(CardElement);
-      if (!card) throw new Error("Card details are not available");
+      const cardNumber = elements.getElement(CardNumberElement);
+      if (!cardNumber) throw new Error("Card details are not available");
       const shipping = props.orderData.shippingAddress || {};
       const result = await stripe.confirmCardPayment(setup.clientSecret, {
         payment_method: {
-          card,
+          card: cardNumber,
           billing_details: {
             name: `${shipping.firstName || ""} ${shipping.lastName || ""}`.trim() || undefined,
             email: shipping.email || props.orderData.billingAddress?.email || undefined,
@@ -149,22 +151,70 @@ function StripeCardForm(props: StripePaymentProps) {
     }
   };
 
+  const cardFieldOptions = {
+    style: {
+      base: {
+        fontSize: "16px",
+        lineHeight: "24px",
+        color: "#243b35",
+        "::placeholder": { color: "#87958f" },
+      },
+      invalid: { color: "#9e2146" },
+    },
+  };
+  const cardFieldLabels = props.market === "fr"
+    ? {
+        number: "Numéro de carte",
+        expiration: "Date d’expiration",
+        securityCode: "Cryptogramme (CVC)",
+        expirationPlaceholder: "MM / AA",
+      }
+    : props.market === "ro"
+      ? {
+          number: "Numărul cardului",
+          expiration: "Data expirării",
+          securityCode: "Cod de securitate (CVC)",
+          expirationPlaceholder: "LL / AA",
+        }
+      : {
+          number: "Card number",
+          expiration: "Expiration date",
+          securityCode: "Security code (CVC)",
+          expirationPlaceholder: "MM / YY",
+        };
+
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border p-4">
-        <CardElement
-          options={{
-            hidePostalCode: true,
-            style: {
-              base: {
-                fontSize: "16px",
-                color: "#243b35",
-                "::placeholder": { color: "#87958f" },
-              },
-              invalid: { color: "#9e2146" },
-            },
-          }}
-        />
+      <div className="space-y-3">
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-foreground">{cardFieldLabels.number}</span>
+          <span className="flex min-h-12 items-center rounded-md border bg-background px-3 py-3">
+            <CardNumberElement
+              className="w-full"
+              options={{ ...cardFieldOptions, showIcon: true, placeholder: "1234 1234 1234 1234" }}
+            />
+          </span>
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">{cardFieldLabels.expiration}</span>
+            <span className="flex min-h-12 items-center rounded-md border bg-background px-3 py-3">
+              <CardExpiryElement
+                className="w-full"
+                options={{ ...cardFieldOptions, placeholder: cardFieldLabels.expirationPlaceholder }}
+              />
+            </span>
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">{cardFieldLabels.securityCode}</span>
+            <span className="flex min-h-12 items-center rounded-md border bg-background px-3 py-3">
+              <CardCvcElement
+                className="w-full"
+                options={{ ...cardFieldOptions, placeholder: "CVC" }}
+              />
+            </span>
+          </label>
+        </div>
       </div>
       <Button
         type="button"
