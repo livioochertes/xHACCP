@@ -1111,6 +1111,7 @@
     "deliveryAccepted": "Accepted by SendGrid",
     "deliveryDelivered": "Delivered to server",
     "deliveryDeferred": "Deferred",
+    "deliveryDeferredCurrent": "Currently deferred",
     "deliveryBounced": "Permanent bounces",
     "deliveryDropped": "Dropped by SendGrid",
     "deliveryFailed": "Send failures",

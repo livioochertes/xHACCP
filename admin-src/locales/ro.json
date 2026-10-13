@@ -1111,6 +1111,7 @@
     "deliveryAccepted": "Acceptate de SendGrid",
     "deliveryDelivered": "Livrate la server",
     "deliveryDeferred": "Amânate",
+    "deliveryDeferredCurrent": "Amânate în prezent",
     "deliveryBounced": "Bounce permanent",
     "deliveryDropped": "Oprite de SendGrid",
     "deliveryFailed": "Eșuate la trimitere",

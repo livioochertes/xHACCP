@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import type { PoolClient } from "pg";
 import {
   marketingCampaignBatches,
@@ -855,15 +855,65 @@ export async function getMarketingCampaignDeliverySummaries(
   }).from(marketingCampaignBatches)
     .where(inArray(marketingCampaignBatches.campaignId, ids))
     .orderBy(asc(marketingCampaignBatches.campaignId), asc(marketingCampaignBatches.batchNumber));
+
+  // Batch counters are persisted as a send-time snapshot. Reconcile them in
+  // the response from recipient rows and provider events so older campaigns
+  // and in-progress history backfills don't display stale zeroes.
+  const liveBatchCounts = await db.select({
+    batchId: marketingCampaignRecipients.batchId,
+    acceptedCount: sql<number>`count(*) filter (where ${marketingCampaignRecipients.acceptedAt} is not null)::int`,
+    deliveredCount: sql<number>`count(*) filter (
+      where ${marketingCampaignRecipients.deliveredAt} is not null
+      or exists (
+        select 1 from ${sendgridCampaignWebhookEvents} e
+        where e.recipient_id = ${marketingCampaignRecipients.id}
+          and e.event_type = 'delivered'
+      )
+    )::int`,
+    failedCount: sql<number>`count(*) filter (
+      where ${marketingCampaignRecipients.status} in ('failed', 'unknown', 'bounced', 'dropped', 'spam_report')
+      or exists (
+        select 1 from ${sendgridCampaignWebhookEvents} e
+        where e.recipient_id = ${marketingCampaignRecipients.id}
+          and e.event_type in ('bounce', 'dropped', 'spamreport')
+      )
+    )::int`,
+    pendingCount: sql<number>`count(*) filter (where ${marketingCampaignRecipients.status} in ('queued', 'submitting'))::int`,
+  }).from(marketingCampaignRecipients)
+    .where(and(
+      inArray(marketingCampaignRecipients.campaignId, ids),
+      sql`${marketingCampaignRecipients.batchId} is not null`,
+    ))
+    .groupBy(marketingCampaignRecipients.batchId);
+  const liveBatchCountsById = new Map(liveBatchCounts.map((row) => [
+    row.batchId!,
+    {
+      acceptedCount: Number(row.acceptedCount || 0),
+      deliveredCount: Number(row.deliveredCount || 0),
+      failedCount: Number(row.failedCount || 0),
+      pendingCount: Number(row.pendingCount || 0),
+    },
+  ]));
   for (const batch of batches) {
+    const liveCounts = liveBatchCountsById.get(batch.id);
+    const acceptedCount = liveCounts?.acceptedCount ?? batch.acceptedCount;
+    const deliveredCount = liveCounts?.deliveredCount ?? batch.deliveredCount;
+    const failedCount = liveCounts?.failedCount ?? batch.failedCount;
+    const status = liveCounts
+      ? liveCounts.pendingCount > 0
+        ? "sending"
+        : failedCount > 0
+          ? acceptedCount > failedCount ? "partial" : "failed"
+          : "accepted"
+      : batch.status;
     summaries.get(batch.campaignId)?.batches.push({
       id: batch.id,
       batchNumber: batch.batchNumber,
       recipientCount: batch.recipientCount,
-      acceptedCount: batch.acceptedCount,
-      deliveredCount: batch.deliveredCount,
-      failedCount: batch.failedCount,
-      status: batch.status,
+      acceptedCount,
+      deliveredCount,
+      failedCount,
+      status,
       startedAt: batch.startedAt,
       completedAt: batch.completedAt,
     });
@@ -999,11 +1049,13 @@ async function reconcileStoredSendGridRecipients(recipientIds: number[]): Promis
   }
   const batchesToRefresh = new Set<number>();
 
-  for (const recipientId of recipientIds) {
-    const recipientEvents = (eventsByRecipient.get(recipientId) || [])
-      .sort((left, right) => (left.occurredAt?.getTime() || 0) - (right.occurredAt?.getTime() || 0));
+  for (let offset = 0; offset < recipientIds.length; offset += 25) {
+    const recipientChunk = recipientIds.slice(offset, offset + 25);
+    const changedBatchIds = await Promise.all(recipientChunk.map(async (recipientId) => {
+      const recipientEvents = (eventsByRecipient.get(recipientId) || [])
+        .sort((left, right) => (left.occurredAt?.getTime() || 0) - (right.occurredAt?.getTime() || 0));
 
-    const batchId = await db.transaction(async (tx) => {
+      return db.transaction(async (tx) => {
       const [recipient] = await tx.select().from(marketingCampaignRecipients)
         .where(eq(marketingCampaignRecipients.id, recipientId))
         .for("update")
@@ -1073,8 +1125,9 @@ async function reconcileStoredSendGridRecipients(recipientIds: number[]): Promis
           .where(eq(marketingProspectListContacts.prospectId, recipient.prospectId));
       }
       return recipient.batchId;
-    });
-    if (batchId) batchesToRefresh.add(batchId);
+      });
+    }));
+    for (const batchId of changedBatchIds) if (batchId) batchesToRefresh.add(batchId);
   }
 
   for (const batchId of batchesToRefresh) await refreshBatchCounts(batchId);
@@ -1102,18 +1155,24 @@ export async function reconcileCompletedSendGridCampaignHistories(): Promise<num
         marketingCampaignRecipients.campaignId,
         completedJobs.map((job) => job.campaignId),
       ),
-      inArray(marketingCampaignRecipients.status, [
-        "queued", "submitting", "accepted", "deferred", "failed", "unknown",
-      ]),
-      inArray(sendgridCampaignWebhookEvents.eventType, [
-        "delivered", "deferred", "blocked", "bounce", "dropped", "spamreport",
-        "unsubscribe", "group_unsubscribe", "app_unsubscribe",
-      ]),
-      sql`(
-        ${sendgridCampaignWebhookEvents.occurredAt} IS NULL
-        OR ${marketingCampaignRecipients.lastEventAt} IS NULL
-        OR ${sendgridCampaignWebhookEvents.occurredAt} > ${marketingCampaignRecipients.lastEventAt}
-      )`,
+      or(
+        and(
+          inArray(marketingCampaignRecipients.status, [
+            "queued", "submitting", "accepted", "failed", "unknown",
+          ]),
+          inArray(sendgridCampaignWebhookEvents.eventType, [
+            "delivered", "deferred", "blocked", "bounce", "dropped", "spamreport",
+            "unsubscribe", "group_unsubscribe", "app_unsubscribe",
+          ]),
+        ),
+        and(
+          eq(marketingCampaignRecipients.status, "deferred"),
+          inArray(sendgridCampaignWebhookEvents.eventType, [
+            "delivered", "bounce", "dropped", "spamreport",
+            "unsubscribe", "group_unsubscribe", "app_unsubscribe",
+          ]),
+        ),
+      ),
     ));
   const recipientIds = recipientRows.map((row) => row.recipientId);
   await reconcileStoredSendGridRecipients(recipientIds);

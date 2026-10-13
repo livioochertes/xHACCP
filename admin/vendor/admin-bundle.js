@@ -11538,6 +11538,7 @@
       deliveryAccepted: "Accepted by SendGrid",
       deliveryDelivered: "Delivered to server",
       deliveryDeferred: "Deferred",
+      deliveryDeferredCurrent: "Currently deferred",
       deliveryBounced: "Permanent bounces",
       deliveryDropped: "Dropped by SendGrid",
       deliveryFailed: "Send failures",
@@ -12735,6 +12736,7 @@
       deliveryAccepted: "Acceptate de SendGrid",
       deliveryDelivered: "Livrate la server",
       deliveryDeferred: "Am\xE2nate",
+      deliveryDeferredCurrent: "Am\xE2nate \xEEn prezent",
       deliveryBounced: "Bounce permanent",
       deliveryDropped: "Oprite de SendGrid",
       deliveryFailed: "E\u0219uate la trimitere",
@@ -13932,6 +13934,7 @@
       deliveryAccepted: "Accept\xE9s par SendGrid",
       deliveryDelivered: "Livr\xE9s au serveur",
       deliveryDeferred: "Diff\xE9r\xE9s",
+      deliveryDeferredCurrent: "Actuellement diff\xE9r\xE9s",
       deliveryBounced: "Rebonds permanents",
       deliveryDropped: "Bloqu\xE9s par SendGrid",
       deliveryFailed: "\xC9checs d'envoi",
@@ -23324,6 +23327,9 @@ This action cannot be undone.`)) {
                 const historyJob = historyRecovery.job;
                 const getEventMetric = (key) => campaignEventAnalytics[key] || { eventCount: 0, uniqueRecipients: 0 };
                 const deliveredUniqueRecipients = getEventMetric("delivered").uniqueRecipients;
+                const bouncedUniqueRecipients = getEventMetric("bounces").uniqueRecipients;
+                const droppedUniqueRecipients = getEventMetric("dropped").uniqueRecipients;
+                const unsubscribedUniqueRecipients = getEventMetric("unsubscribes").uniqueRecipients;
                 const campaignAnalyticsMetrics = [
                   { key: "opens", label: "deliveryOpens", rate: true },
                   { key: "machineOpens", label: "deliveryMachineOpens" },
@@ -23381,22 +23387,22 @@ This action cannot be undone.`)) {
                         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
                           t2("marketing.deliveryDelivered"),
                           ": ",
-                          deliveryCounts.delivered || 0
+                          deliveredUniqueRecipients || 0
                         ] }),
                         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
-                          t2("marketing.deliveryDeferred"),
+                          t2("marketing.deliveryDeferredCurrent"),
                           ": ",
                           deliveryCounts.deferred || 0
                         ] }),
                         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
                           t2("marketing.deliveryBounced"),
                           ": ",
-                          deliveryCounts.bounced || 0
+                          bouncedUniqueRecipients || 0
                         ] }),
                         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
                           t2("marketing.deliveryDropped"),
                           ": ",
-                          deliveryCounts.dropped || 0
+                          droppedUniqueRecipients || 0
                         ] }),
                         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
                           t2("marketing.deliveryFailed"),
@@ -23416,7 +23422,7 @@ This action cannot be undone.`)) {
                         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
                           t2("marketing.deliveryUnsubscribed"),
                           ": ",
-                          deliveryCounts.unsubscribed || 0
+                          unsubscribedUniqueRecipients || 0
                         ] })
                       ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "8px", paddingTop: "7px", borderTop: "1px solid #e2e8f0" }, children: [

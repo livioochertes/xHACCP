@@ -6660,6 +6660,9 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                       const historyJob = historyRecovery.job;
                       const getEventMetric = key => campaignEventAnalytics[key] || {eventCount: 0, uniqueRecipients: 0};
                       const deliveredUniqueRecipients = getEventMetric('delivered').uniqueRecipients;
+                      const bouncedUniqueRecipients = getEventMetric('bounces').uniqueRecipients;
+                      const droppedUniqueRecipients = getEventMetric('dropped').uniqueRecipients;
+                      const unsubscribedUniqueRecipients = getEventMetric('unsubscribes').uniqueRecipients;
                       const campaignAnalyticsMetrics = [
                         {key: 'opens', label: 'deliveryOpens', rate: true},
                         {key: 'machineOpens', label: 'deliveryMachineOpens'},
@@ -6708,14 +6711,14 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                               <div style={{marginTop: '7px', fontSize: '12px', color: '#475569'}}>
                                 <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px 12px'}}>
                                   <span>{t('marketing.deliveryAccepted')}: {campaign.sentCount || 0}</span>
-                                  <span>{t('marketing.deliveryDelivered')}: {deliveryCounts.delivered || 0}</span>
-                                  <span>{t('marketing.deliveryDeferred')}: {deliveryCounts.deferred || 0}</span>
-                                  <span>{t('marketing.deliveryBounced')}: {deliveryCounts.bounced || 0}</span>
-                                  <span>{t('marketing.deliveryDropped')}: {deliveryCounts.dropped || 0}</span>
+                                  <span>{t('marketing.deliveryDelivered')}: {deliveredUniqueRecipients || 0}</span>
+                                  <span>{t('marketing.deliveryDeferredCurrent')}: {deliveryCounts.deferred || 0}</span>
+                                  <span>{t('marketing.deliveryBounced')}: {bouncedUniqueRecipients || 0}</span>
+                                  <span>{t('marketing.deliveryDropped')}: {droppedUniqueRecipients || 0}</span>
                                   <span>{t('marketing.deliveryFailed')}: {deliveryCounts.failed || 0}</span>
                                   <span>{t('marketing.deliveryUnknown')}: {deliveryCounts.unknown || 0}</span>
                                   <span>{t('marketing.deliverySuppressed')}: {deliveryCounts.suppressed || 0}</span>
-                                  <span>{t('marketing.deliveryUnsubscribed')}: {deliveryCounts.unsubscribed || 0}</span>
+                                  <span>{t('marketing.deliveryUnsubscribed')}: {unsubscribedUniqueRecipients || 0}</span>
                                 </div>
                                 <div style={{marginTop: '8px', paddingTop: '7px', borderTop: '1px solid #e2e8f0'}}>
                                   <strong>{t('marketing.deliveryEngagementTitle')}</strong>
