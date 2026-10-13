@@ -465,12 +465,22 @@ export function registerMarketingAdminRoutes(
         return res.status(403).json({ message: "Access denied for this market" });
       }
       const campaigns = await storage.getMarketingCampaigns(market);
-      const deliveries = await getMarketingCampaignDeliverySummaries(campaigns);
-      const historyJobs = await getSendGridCampaignHistoryImports(campaigns.map(({ id }) => id));
+      let deliveries: Awaited<ReturnType<typeof getMarketingCampaignDeliverySummaries>> | null = null;
+      try {
+        deliveries = await getMarketingCampaignDeliverySummaries(campaigns);
+      } catch (error) {
+        console.error("Marketing campaign delivery summary unavailable:", error);
+      }
+      let historyJobs = new Map<number, Awaited<ReturnType<typeof getSendGridCampaignHistoryImport>>>();
+      try {
+        historyJobs = await getSendGridCampaignHistoryImports(campaigns.map(({ id }) => id));
+      } catch (error) {
+        console.error("Marketing campaign history status unavailable:", error);
+      }
       const now = Date.now();
       res.json(campaigns.map((campaign) => ({
         ...campaign,
-        delivery: deliveries.get(campaign.id) || null,
+        delivery: deliveries?.get(campaign.id) || null,
         historyRecovery: {
           job: historyJobs.get(campaign.id) || null,
           expiresAt: campaign.sentAt
