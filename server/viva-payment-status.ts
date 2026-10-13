@@ -1,4 +1,5 @@
 import { getVivaCredentials, type VivaMarket } from "./viva-config";
+import { withVivaUserAgent } from "./viva-http";
 
 export type VivaPaymentOrderStatus = {
   MerchantTrns?: unknown;
@@ -27,9 +28,9 @@ export async function getVivaPaymentOrderStatus(
   const response = await fetcher(
     `https://www.vivapayments.com/api/orders/${encodeURIComponent(orderCode)}`,
     {
-      headers: {
+      headers: withVivaUserAgent({
         Authorization: `Basic ${Buffer.from(`${merchantId}:${apiKey}`).toString("base64")}`,
-      },
+      }),
     },
   );
   if (!response.ok) {

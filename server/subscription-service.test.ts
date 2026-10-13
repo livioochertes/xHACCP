@@ -12,6 +12,7 @@ import {
   RETRY_DELAY_HOURS,
 } from "./subscription-service";
 import { buildVivaCheckoutPayload } from "./viva-config";
+import { VIVA_USER_AGENT } from "./viva-http";
 import { db } from "./db";
 import { orders } from "@shared/schema";
 import { storage } from "./storage";
@@ -110,6 +111,7 @@ test("recurring requests preserve each market source and amount", () => {
     sourceCode: "fr-source",
   });
   assert.equal(request.init.headers.Authorization, "Bearer test-access-token");
+  assert.equal(request.init.headers["User-Agent"], VIVA_USER_AGENT);
 });
 
 test("recurring requests reject a currency/source mismatch before Viva is called", () => {

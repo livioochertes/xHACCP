@@ -1,4 +1,5 @@
 import { getVivaCredentials, type VivaMarket } from "./viva-config";
+import { withVivaUserAgent } from "./viva-http";
 import { summarizePaymentAuthFailure } from "./payment-auth-diagnostics";
 import { observePayment } from "./payment-health";
 
@@ -13,10 +14,10 @@ export async function getVivaAccessToken(market: VivaMarket, requestId?: string)
     }
     const response = await fetch("https://accounts.vivapayments.com/connect/token", {
       method: "POST",
-      headers: {
+      headers: withVivaUserAgent({
         Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded",
         Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
-      },
+      }),
       body: "grant_type=client_credentials",
       signal: AbortSignal.timeout(15_000),
     });

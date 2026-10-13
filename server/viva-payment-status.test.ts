@@ -4,6 +4,7 @@ import {
   isVivaOrderStateNonPayable,
   isVivaPaymentOrderNonPayable,
 } from "./viva-payment-status";
+import { VIVA_USER_AGENT } from "./viva-http";
 
 test("only provider-expired and provider-cancelled Viva orders are non-payable", () => {
   assert.equal(isVivaOrderStateNonPayable(0), false);
@@ -23,6 +24,7 @@ test("Viva order reconciliation uses the market credentials and verifies the loc
       requestCount++;
       assert.equal(String(input), "https://www.vivapayments.com/api/orders/123456789");
       const headers = init?.headers as Record<string, string>;
+      assert.equal(headers["User-Agent"], VIVA_USER_AGENT);
       assert.equal(
         headers.Authorization,
         `Basic ${Buffer.from("test-merchant:test-api-key").toString("base64")}`,

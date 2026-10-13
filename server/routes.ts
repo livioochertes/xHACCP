@@ -53,6 +53,7 @@ import {
   getVivaCurrency,
   type VivaMarket,
 } from "./viva-config";
+import { withVivaUserAgent } from "./viva-http";
 import {
   getGoogleMerchantFeedXml,
   type MerchantMarket,
@@ -4355,10 +4356,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       vivaOrderRequestStarted = true;
       const vivaResponse = await fetch("https://api.vivapayments.com/checkout/v2/orders", {
         method: "POST",
-        headers: {
+        headers: withVivaUserAgent({
           "Content-Type": "application/json",
           "Authorization": `Bearer ${accessToken}`,
-        },
+        }),
         body: JSON.stringify(vivaOrderPayload),
       });
 
@@ -5047,9 +5048,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
             const accessToken = await getVivaAccessToken(callbackMarket);
             
             const txResponse = await fetch(`https://api.vivapayments.com/checkout/v2/transactions/${transactionId}`, {
-              headers: {
+              headers: withVivaUserAgent({
                 "Authorization": `Bearer ${accessToken}`,
-              },
+              }),
             });
 
             if (txResponse.ok) {
@@ -5541,9 +5542,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }
 
       const verificationResponse = await fetch("https://www.vivapayments.com/api/messages/config/token", {
-        headers: {
+        headers: withVivaUserAgent({
           "Authorization": "Basic " + Buffer.from(`${merchantId}:${apiKey}`).toString("base64"),
-        },
+        }),
       });
 
       if (verificationResponse.ok) {

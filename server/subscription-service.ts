@@ -3,6 +3,7 @@ import { db } from "./db";
 import { products, subscriptions, subscriptionPayments, orders, orderItems } from "@shared/schema";
 import { storage } from "./storage";
 import { getVivaCredentials, getVivaCurrency, type VivaMarket } from "./viva-config";
+import { withVivaUserAgent } from "./viva-http";
 import { getVivaAccessToken } from "./viva-auth";
 
 export { type VivaMarket };
@@ -90,10 +91,10 @@ export function buildRecurringTransactionRequest(
     url: `https://www.vivapayments.com/api/transactions/${encodeURIComponent(subscription.initialTransactionId)}`,
     init: {
       method: "POST",
-      headers: {
+      headers: withVivaUserAgent({
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-      },
+      }),
       body: JSON.stringify({
         amount: amountCents,
         customerTrns: `xHACCP subscription renewal #${subscription.id}`,
