@@ -116,6 +116,24 @@ export const frenchDepartments: FrenchDepartment[] = [
   { code: "976", name: "Mayotte" },
 ];
 
+function normalizeDepartmentSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("fr")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+export function searchFrenchDepartments(query: string) {
+  const normalizedQuery = normalizeDepartmentSearch(query);
+  if (!normalizedQuery) return frenchDepartments;
+
+  return frenchDepartments.filter(({ code, name }) =>
+    normalizeDepartmentSearch(`${code} ${name}`).includes(normalizedQuery),
+  );
+}
+
 // Complete list of Romanian counties (județe) with major cities
 export const romanianCounties: County[] = [
   {

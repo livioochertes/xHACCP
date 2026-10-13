@@ -32,11 +32,11 @@ import { useTranslation } from "@/hooks/useTranslation";
 import type { TranslationKeys } from "@/translations";
 import Header from "@/components/header";
 import OrderContactDetails from "@/components/order-contact-details";
+import FrenchDepartmentSelect from "@/components/french-department-select";
 
 import VivaPayment from "@/components/viva-payment";
 import PayPalPayment from "@/components/paypal-payment";
 import {
-  frenchDepartments,
   getCountyOptions,
   getCitiesForCounty,
   getCountryCode,
@@ -1417,18 +1417,13 @@ export default function Checkout() {
                                 <FormLabel>{t('checkout.state')} *</FormLabel>
                                 <FormControl>
                                   {isFrenchMarket ? (
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder={t('checkout.countyPlaceholder')} />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {frenchDepartments.map((department) => (
-                                          <SelectItem key={department.code} value={department.code}>
-                                            {department.code} — {department.name}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <FrenchDepartmentSelect
+                                      value={field.value}
+                                      onValueChange={field.onChange}
+                                      placeholder={t('checkout.countyPlaceholder')}
+                                      searchPlaceholder={t('checkout.departmentSearch')}
+                                      noResultsLabel={t('checkout.noDepartmentsFound')}
+                                    />
                                   ) : (
                                     <Input {...field} />
                                   )}
@@ -1598,18 +1593,13 @@ export default function Checkout() {
                                     <FormLabel>{t('checkout.state')} *</FormLabel>
                                     <FormControl>
                                     {isFrenchMarket ? (
-                                      <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger>
-                                          <SelectValue placeholder={t('checkout.countyPlaceholder')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {frenchDepartments.map((department) => (
-                                            <SelectItem key={department.code} value={department.code}>
-                                              {department.code} — {department.name}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
+                                      <FrenchDepartmentSelect
+                                        value={field.value}
+                                        onValueChange={field.onChange}
+                                        placeholder={t('checkout.countyPlaceholder')}
+                                        searchPlaceholder={t('checkout.departmentSearch')}
+                                        noResultsLabel={t('checkout.noDepartmentsFound')}
+                                      />
                                     ) : (
                                       <Input {...field} />
                                     )}

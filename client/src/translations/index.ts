@@ -229,6 +229,8 @@ export interface TranslationKeys {
   'checkout.emailPlaceholder': string;
   'checkout.phonePlaceholder': string;
   'checkout.countyPlaceholder': string;
+  'checkout.departmentSearch': string;
+  'checkout.noDepartmentsFound': string;
   'checkout.companyPlaceholder': string;
   'checkout.vatPlaceholder': string;
   'checkout.regComPlaceholder': string;
@@ -971,6 +973,8 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.emailPlaceholder': 'your@email.com',
     'checkout.phonePlaceholder': '+40 7XX XXX XXX',
     'checkout.countyPlaceholder': 'e.g. Bucharest, Cluj, Ilfov',
+    'checkout.departmentSearch': 'Search by department code or name',
+    'checkout.noDepartmentsFound': 'No matching department found',
     'checkout.companyPlaceholder': 'e.g. SC Example SRL',
     'checkout.vatPlaceholder': 'e.g. RO12345678',
     'checkout.regComPlaceholder': 'e.g. J40/1234/2024',
@@ -2376,6 +2380,8 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.emailPlaceholder': 'your@email.com',
     'checkout.phonePlaceholder': '+40 7XX XXX XXX',
     'checkout.countyPlaceholder': 'ex. 75, 31 ou 2A',
+    'checkout.departmentSearch': 'Rechercher par code ou nom du département',
+    'checkout.noDepartmentsFound': 'Aucun département correspondant trouvé',
     'checkout.companyPlaceholder': 'ex. xHACCP SAS',
     'checkout.vatPlaceholder': 'ex. RO12345678',
     'checkout.regComPlaceholder': 'ex. J40/1234/2024',
@@ -3600,6 +3606,8 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.emailPlaceholder': 'email@exemplu.com',
     'checkout.phonePlaceholder': '+40 7XX XXX XXX',
     'checkout.countyPlaceholder': 'ex. București, Cluj, Ilfov',
+    'checkout.departmentSearch': 'Caută după codul sau numele departamentului',
+    'checkout.noDepartmentsFound': 'Nu a fost găsit niciun departament',
     'checkout.companyPlaceholder': 'ex. SC Exemplu SRL',
     'checkout.vatPlaceholder': 'ex. RO12345678',
     'checkout.regComPlaceholder': 'ex. J40/1234/2024',
