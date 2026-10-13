@@ -80,6 +80,7 @@ import {
   isConfirmedPermanentPayPalCreateRejection,
 } from "./paypal";
 import { isVivaPaymentOrderNonPayable } from "./viva-payment-status";
+import { isVivaCancelCallback } from "./viva-callback";
 import { getRomanianSamedayShippingContext } from "./sameday-shipping";
 import { sendFrenchOrderDocumentsEmail } from "./fr-order-notification.js";
 import { sendFrenchOrderConfirmationEmails } from "./fr-order-confirmation.js";
@@ -5018,7 +5019,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       console.log(`Viva callback received - transactionId: ${transactionId}, orderCode: ${vivaOrderCode}, lang: ${lang}`);
       console.log(`Viva callback full query params:`, JSON.stringify(req.query));
 
-      const returnedWithCancel = Object.prototype.hasOwnProperty.call(req.query, "cancel");
+      const returnedWithCancel = isVivaCancelCallback(req.query);
       if (returnedWithCancel) {
         console.log("Viva checkout cancelled by customer; returning them to checkout");
         for (const reference of [req.query.s, req.query.t]) {

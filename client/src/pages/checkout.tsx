@@ -188,7 +188,7 @@ export default function Checkout() {
   const checkoutSchema = useMemo(() => createCheckoutSchema(t, isFrenchMarket), [t, isFrenchMarket]);
   const { user, isAuthenticated, isLoading: authLoading, login } = useAuth();
   const [step, setStep] = useState(isAuthenticated ? 2 : 1);
-  const checkoutTopRef = useRef<HTMLDivElement>(null);
+  const checkoutFormRef = useRef<HTMLFormElement>(null);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [, navigate] = useLocation();
   const { cart, clearCart, isSessionExpired } = useCart();
@@ -418,9 +418,21 @@ export default function Checkout() {
   }, [authLoading, isAuthenticated, user, market, form]);
 
   useEffect(() => {
-    if (checkoutTopRef.current) {
-      checkoutTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    const formElement = checkoutFormRef.current;
+    if (!formElement) return;
+
+    const stickyHeader = document.querySelector<HTMLElement>("header.sticky");
+    const stickyHeaderHeight = stickyHeader?.getBoundingClientRect().height ?? 0;
+    const targetTop =
+      formElement.getBoundingClientRect().top +
+      window.scrollY -
+      stickyHeaderHeight -
+      12;
+
+    window.scrollTo({
+      top: Math.max(0, targetTop),
+      behavior: "smooth",
+    });
   }, [step]);
 
   useEffect(() => {
@@ -1067,7 +1079,7 @@ export default function Checkout() {
         </div>
 
         {/* Progress Steps */}
-        <div ref={checkoutTopRef} className="flex items-center justify-center mb-6 sm:mb-8">
+        <div className="flex items-center justify-center mb-6 sm:mb-8">
           <div className="flex items-center space-x-2 sm:space-x-4">
             {isAuthenticated ? (
               <>
@@ -1138,6 +1150,7 @@ export default function Checkout() {
           <div className="lg:col-span-2">
             <Form {...form}>
               <form 
+                ref={checkoutFormRef}
                 onSubmit={(e) => {
                   console.log("Form submit event triggered, current step:", step);
                   console.log("Form errors:", JSON.stringify(form.formState.errors));
