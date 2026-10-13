@@ -915,11 +915,35 @@ export const sendgridCampaignWebhookEvents = pgTable("sendgrid_campaign_webhook_
   eventId: varchar("event_id", { length: 255 }).notNull().unique(),
   recipientId: integer("recipient_id").references(() => marketingCampaignRecipients.id, { onDelete: "set null" }),
   eventType: varchar("event_type", { length: 32 }).notNull(),
+  eventSource: varchar("event_source", { length: 24 }).notNull().default("webhook"),
   occurredAt: timestamp("occurred_at"),
   receivedAt: timestamp("received_at").defaultNow().notNull(),
 }, (table) => ({
   sendgridCampaignWebhookRecipientIdx: index("sendgrid_campaign_webhook_recipient_idx")
     .on(table.recipientId, table.eventType),
+  sendgridCampaignWebhookSourceIdx: index("sendgrid_campaign_webhook_source_idx")
+    .on(table.recipientId, table.eventSource, table.eventType),
+}));
+
+export const sendgridCampaignHistoryImports = pgTable("sendgrid_campaign_history_imports", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").notNull()
+    .references(() => marketingCampaigns.id, { onDelete: "cascade" })
+    .unique(),
+  status: varchar("status", { length: 24 }).notNull().default("running"),
+  providerMessageCount: integer("provider_message_count").notNull().default(0),
+  processedMessageCount: integer("processed_message_count").notNull().default(0),
+  matchedMessageCount: integer("matched_message_count").notNull().default(0),
+  unmatchedMessageCount: integer("unmatched_message_count").notNull().default(0),
+  importedEventCount: integer("imported_event_count").notNull().default(0),
+  skippedEventCount: integer("skipped_event_count").notNull().default(0),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  sendgridCampaignHistoryImportStatusIdx: index("sendgrid_campaign_history_imports_status_idx")
+    .on(table.status, table.updatedAt),
 }));
 
 export const marketingProspectListContacts = pgTable("marketing_prospect_list_contacts", {

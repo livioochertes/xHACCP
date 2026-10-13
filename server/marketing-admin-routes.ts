@@ -17,7 +17,9 @@ import {
   getMarketingCampaignDeliveryRecipients,
   getMarketingCampaignDeliverySummary,
   getMarketingCampaignDeliverySummaries,
+  getSendGridCampaignHistoryImport,
   queueProspectMarketingCampaign,
+  startSendGridCampaignHistoryImport,
 } from "./marketing-campaign-delivery";
 import type { MarketingCampaignDeliveryStatus } from "./marketing-campaign-delivery-policy";
 import { getAIMarketCatalogForMarket } from "./routes";
@@ -567,6 +569,55 @@ export function registerMarketingAdminRoutes(
     } catch (error) {
       console.error("Marketing campaign delivery summary error:", error);
       res.status(500).json({ message: "Failed to fetch campaign delivery status" });
+    }
+  });
+
+  app.get("/admin/api/marketing/campaigns/:id/delivery/import-sendgrid-history", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    const campaignId = Number(req.params.id);
+    if (!Number.isSafeInteger(campaignId) || campaignId <= 0) {
+      return res.status(400).json({ message: "Invalid campaign ID" });
+    }
+    try {
+      const campaign = await storage.getMarketingCampaign(campaignId);
+      if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+      if (!canAccessMarket(req as any, campaign.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const job = await getSendGridCampaignHistoryImport(campaignId);
+      if (!job) return res.status(404).json({ message: "No SendGrid history import has been started" });
+      return res.json({ job });
+    } catch (error) {
+      console.error("SendGrid campaign history import status failed", { campaignId });
+      return res.status(500).json({ message: "SendGrid history import status is unavailable" });
+    }
+  });
+
+  app.post("/admin/api/marketing/campaigns/:id/delivery/import-sendgrid-history", authenticateAdmin, async (req: MarketingAdminRequest, res: Response) => {
+    const campaignId = Number(req.params.id);
+    if (!Number.isSafeInteger(campaignId) || campaignId <= 0) {
+      return res.status(400).json({ message: "Invalid campaign ID" });
+    }
+    try {
+      const campaign = await storage.getMarketingCampaign(campaignId);
+      if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+      if (!canAccessMarket(req as any, campaign.market)) {
+        return res.status(403).json({ message: "Access denied for this market" });
+      }
+      const result = await startSendGridCampaignHistoryImport(campaignId);
+      if (!result.job) {
+        return res.status(409).json({ message: "SendGrid history import is starting; try again shortly" });
+      }
+      return res.status(result.started ? 202 : 200).json({ job: result.job });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message === "SendGrid API key is not configured") {
+        return res.status(503).json({ message: "SendGrid history import is not configured on this server" });
+      }
+      if (message === "Campaign history is available only after sending") {
+        return res.status(409).json({ message });
+      }
+      console.error("SendGrid campaign history import could not be started", { campaignId });
+      return res.status(500).json({ message: "SendGrid campaign history import could not be started" });
     }
   });
 

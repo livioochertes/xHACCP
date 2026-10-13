@@ -1,9 +1,11 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import type { PoolClient } from "pg";
 import {
   marketingCampaignBatches,
   marketingCampaignRecipients,
   marketingCampaigns,
   marketingProspects,
+  sendgridCampaignHistoryImports,
   sendgridCampaignWebhookEvents,
   type MarketingCampaign,
 } from "@shared/schema";
@@ -26,9 +28,14 @@ import {
   splitIntoBatches,
   type MarketingCampaignDeliveryStatus,
 } from "./marketing-campaign-delivery-policy";
+import {
+  fetchSendGridCampaignHistory,
+  type SendGridCampaignHistoryProgress,
+} from "./sendgrid-campaign-history";
 
 const SEND_CONCURRENCY = 10;
 const CAMPAIGN_LOCK_NAMESPACE = 1_927_318_421;
+const SENDGRID_HISTORY_LOCK_NAMESPACE = 1_927_318_422;
 const campaignRuns = new Set<number>();
 
 const API_ACCEPTED_STATUSES = [
@@ -48,6 +55,8 @@ export interface MarketingCampaignDeliverySummary {
   batchSize: number;
   counts: Record<MarketingCampaignDeliveryStatus, number>;
   eventAnalytics: Record<string, { eventCount: number; uniqueRecipients: number }>;
+  historicalEventAnalytics: Record<string, { eventCount: number; uniqueRecipients: number }>;
+  applicationEventAnalytics: Record<string, { eventCount: number; uniqueRecipients: number }>;
   batches: Array<{
     id: number;
     batchNumber: number;
@@ -599,6 +608,7 @@ export async function markProspectCampaignRecipientsUnsubscribed(
         eventId: `app-unsubscribe:${campaignId}:${campaignRecipient.id}`,
         recipientId: campaignRecipient.id,
         eventType: "app_unsubscribe",
+        eventSource: "application",
         occurredAt: now,
       }).onConflictDoNothing();
     }
@@ -649,6 +659,23 @@ export async function getMarketingCampaignDeliverySummaries(
         machineOpens: { eventCount: 0, uniqueRecipients: 0 },
         clicks: { eventCount: 0, uniqueRecipients: 0 },
       },
+      historicalEventAnalytics: {
+        processed: { eventCount: 0, uniqueRecipients: 0 },
+        delivered: { eventCount: 0, uniqueRecipients: 0 },
+        deferred: { eventCount: 0, uniqueRecipients: 0 },
+        bounces: { eventCount: 0, uniqueRecipients: 0 },
+        blocked: { eventCount: 0, uniqueRecipients: 0 },
+        dropped: { eventCount: 0, uniqueRecipients: 0 },
+        spamReports: { eventCount: 0, uniqueRecipients: 0 },
+        unsubscribes: { eventCount: 0, uniqueRecipients: 0 },
+        groupResubscribes: { eventCount: 0, uniqueRecipients: 0 },
+        opens: { eventCount: 0, uniqueRecipients: 0 },
+        machineOpens: { eventCount: 0, uniqueRecipients: 0 },
+        clicks: { eventCount: 0, uniqueRecipients: 0 },
+      },
+      applicationEventAnalytics: {
+        unsubscribes: { eventCount: 0, uniqueRecipients: 0 },
+      },
       counts: {
         queued: 0, submitting: 0, accepted: 0, delivered: 0, deferred: 0,
         bounced: 0, dropped: 0, spam_report: 0, unsubscribed: 0,
@@ -684,6 +711,7 @@ export async function getMarketingCampaignDeliverySummaries(
   end`;
   const eventRows = await db.select({
     campaignId: marketingCampaignRecipients.campaignId,
+    eventSource: sendgridCampaignWebhookEvents.eventSource,
     category: eventCategory,
     eventCount: sql<number>`count(*)::int`,
     uniqueRecipients: sql<number>`count(distinct ${sendgridCampaignWebhookEvents.recipientId})::int`,
@@ -693,11 +721,20 @@ export async function getMarketingCampaignDeliverySummaries(
       eq(sendgridCampaignWebhookEvents.recipientId, marketingCampaignRecipients.id),
     )
     .where(inArray(marketingCampaignRecipients.campaignId, ids))
-    .groupBy(marketingCampaignRecipients.campaignId, eventCategory);
+    .groupBy(
+      marketingCampaignRecipients.campaignId,
+      sendgridCampaignWebhookEvents.eventSource,
+      eventCategory,
+    );
   for (const row of eventRows) {
     const summary = summaries.get(row.campaignId);
     if (summary) {
-      summary.eventAnalytics[row.category] = {
+      const analytics = row.eventSource === "historical_import"
+        ? summary.historicalEventAnalytics
+        : row.eventSource === "application"
+          ? summary.applicationEventAnalytics
+          : summary.eventAnalytics;
+      analytics[row.category] = {
         eventCount: Number(row.eventCount),
         uniqueRecipients: Number(row.uniqueRecipients),
       };
@@ -706,6 +743,7 @@ export async function getMarketingCampaignDeliverySummaries(
 
   const machineOpenRows = await db.select({
     campaignId: marketingCampaignRecipients.campaignId,
+    eventSource: sendgridCampaignWebhookEvents.eventSource,
     eventCount: sql<number>`count(*)::int`,
     uniqueRecipients: sql<number>`count(distinct ${sendgridCampaignWebhookEvents.recipientId})::int`,
   }).from(sendgridCampaignWebhookEvents)
@@ -717,11 +755,19 @@ export async function getMarketingCampaignDeliverySummaries(
       inArray(marketingCampaignRecipients.campaignId, ids),
       eq(sendgridCampaignWebhookEvents.eventType, "machine_open"),
     ))
-    .groupBy(marketingCampaignRecipients.campaignId);
+    .groupBy(
+      marketingCampaignRecipients.campaignId,
+      sendgridCampaignWebhookEvents.eventSource,
+    );
   for (const row of machineOpenRows) {
     const summary = summaries.get(row.campaignId);
     if (summary) {
-      summary.eventAnalytics.machineOpens = {
+      const analytics = row.eventSource === "historical_import"
+        ? summary.historicalEventAnalytics
+        : row.eventSource === "application"
+          ? summary.applicationEventAnalytics
+          : summary.eventAnalytics;
+      analytics.machineOpens = {
         eventCount: Number(row.eventCount),
         uniqueRecipients: Number(row.uniqueRecipients),
       };
@@ -771,6 +817,294 @@ export interface SendGridCampaignEvent {
   unique_args?: unknown;
 }
 
+export interface SendGridCampaignHistoryImportJob {
+  campaignId: number;
+  status: string;
+  providerMessageCount: number;
+  processedMessageCount: number;
+  matchedMessageCount: number;
+  unmatchedMessageCount: number;
+  importedEventCount: number;
+  skippedEventCount: number;
+  errorMessage: string | null;
+  startedAt: Date;
+  completedAt: Date | null;
+  updatedAt: Date;
+}
+
+export async function getSendGridCampaignHistoryImport(
+  campaignId: number,
+): Promise<SendGridCampaignHistoryImportJob | null> {
+  const [job] = await db.select({
+    campaignId: sendgridCampaignHistoryImports.campaignId,
+    status: sendgridCampaignHistoryImports.status,
+    providerMessageCount: sendgridCampaignHistoryImports.providerMessageCount,
+    processedMessageCount: sendgridCampaignHistoryImports.processedMessageCount,
+    matchedMessageCount: sendgridCampaignHistoryImports.matchedMessageCount,
+    unmatchedMessageCount: sendgridCampaignHistoryImports.unmatchedMessageCount,
+    importedEventCount: sendgridCampaignHistoryImports.importedEventCount,
+    skippedEventCount: sendgridCampaignHistoryImports.skippedEventCount,
+    errorMessage: sendgridCampaignHistoryImports.errorMessage,
+    startedAt: sendgridCampaignHistoryImports.startedAt,
+    completedAt: sendgridCampaignHistoryImports.completedAt,
+    updatedAt: sendgridCampaignHistoryImports.updatedAt,
+  }).from(sendgridCampaignHistoryImports)
+    .where(eq(sendgridCampaignHistoryImports.campaignId, campaignId))
+    .limit(1);
+  return job || null;
+}
+
+function safeSendGridHistoryImportError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("access denied")) {
+    return "SendGrid Email Logs access was denied. The API key needs permission to read Email Logs.";
+  }
+  if (message === "SendGrid API key is not configured") {
+    return "SendGrid history import is not configured on this server.";
+  }
+  return "SendGrid campaign history could not be imported. Retry the import.";
+}
+
+async function importSendGridCampaignHistory(
+  campaignId: number,
+  callbacks: {
+    onMessagesFound: (count: number) => Promise<void>;
+    onProgress: (progress: SendGridCampaignHistoryProgress) => Promise<void>;
+  },
+): Promise<{
+  providerMessages: number;
+  matchedMessages: number;
+  unmatchedMessages: number;
+  providerEvents: number;
+  skippedEvents: number;
+}> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) throw new Error("SendGrid API key is not configured");
+
+  const [campaign] = await db.select({
+    id: marketingCampaigns.id,
+    status: marketingCampaigns.status,
+    subject: marketingCampaigns.subject,
+  }).from(marketingCampaigns)
+    .where(eq(marketingCampaigns.id, campaignId))
+    .limit(1);
+  if (!campaign) throw new Error("Campaign not found");
+  if (campaign.status !== "sent" && campaign.status !== "partial") {
+    throw new Error("Campaign history is available only after sending");
+  }
+
+  const recipients = await db.select({
+    id: marketingCampaignRecipients.id,
+    email: marketingCampaignRecipients.email,
+    attemptedAt: marketingCampaignRecipients.attemptedAt,
+    acceptedAt: marketingCampaignRecipients.acceptedAt,
+  }).from(marketingCampaignRecipients)
+    .where(eq(marketingCampaignRecipients.campaignId, campaignId));
+  const attemptedRecipients = recipients.filter((recipient) => recipient.attemptedAt);
+  if (!attemptedRecipients.length) {
+    return {
+      providerMessages: 0,
+      matchedMessages: 0,
+      unmatchedMessages: 0,
+      providerEvents: 0,
+      skippedEvents: 0,
+    };
+  }
+
+  const firstAttempt = attemptedRecipients.reduce((first, recipient) => (
+    recipient.attemptedAt! < first ? recipient.attemptedAt! : first
+  ), attemptedRecipients[0].attemptedAt!);
+  const lastAttempt = attemptedRecipients.reduce((last, recipient) => {
+    const latest = recipient.acceptedAt || recipient.attemptedAt!;
+    return latest > last ? latest : last;
+  }, attemptedRecipients[0].acceptedAt || attemptedRecipients[0].attemptedAt!);
+  const from = new Date(firstAttempt.getTime() - 60_000);
+  const to = new Date(lastAttempt.getTime() + 5 * 60_000);
+
+  const result = await fetchSendGridCampaignHistory({
+    apiKey,
+    campaignId,
+    subject: campaign.subject,
+    from,
+    to,
+    recipients: recipients.map(({ id, email }) => ({ id, email })),
+    onMessagesFound: callbacks.onMessagesFound,
+    onProgress: callbacks.onProgress,
+  });
+
+  for (let offset = 0; offset < result.events.length; offset += 250) {
+    const batch = result.events.slice(offset, offset + 250).map((event) => ({
+      eventId: event.eventId,
+      recipientId: event.recipientId,
+      eventType: event.eventType.slice(0, 32),
+      eventSource: "historical_import",
+      occurredAt: event.occurredAt,
+    }));
+    await db.insert(sendgridCampaignWebhookEvents)
+      .values(batch)
+      .onConflictDoUpdate({
+        target: sendgridCampaignWebhookEvents.eventId,
+        set: {
+          eventSource: sql`CASE
+            WHEN EXCLUDED.event_source = 'webhook' THEN 'webhook'
+            WHEN ${sendgridCampaignWebhookEvents.eventSource} = 'webhook' THEN 'webhook'
+            ELSE EXCLUDED.event_source
+          END`,
+        },
+      });
+  }
+
+  return {
+    providerMessages: result.providerMessages,
+    matchedMessages: result.matchedMessages,
+    unmatchedMessages: result.unmatchedMessages,
+    providerEvents: result.events.length,
+    skippedEvents: result.skippedEvents,
+  };
+}
+
+async function runSendGridCampaignHistoryImport(
+  campaignId: number,
+  lockClient: PoolClient,
+): Promise<void> {
+  const updateJob = async (
+    values: Partial<typeof sendgridCampaignHistoryImports.$inferInsert>,
+  ) => {
+    await db.update(sendgridCampaignHistoryImports)
+      .set({ ...values, updatedAt: new Date() })
+      .where(eq(sendgridCampaignHistoryImports.campaignId, campaignId));
+  };
+
+  try {
+    const result = await importSendGridCampaignHistory(campaignId, {
+      onMessagesFound: async (count) => {
+        await updateJob({
+          providerMessageCount: count,
+          processedMessageCount: 0,
+          matchedMessageCount: 0,
+          unmatchedMessageCount: 0,
+        });
+      },
+      onProgress: async (progress) => {
+        await updateJob({
+          processedMessageCount: progress.processedMessages,
+          matchedMessageCount: progress.matchedMessages,
+          unmatchedMessageCount: progress.unmatchedMessages,
+        });
+      },
+    });
+    await updateJob({
+      status: "completed",
+      providerMessageCount: result.providerMessages,
+      processedMessageCount: result.providerMessages,
+      matchedMessageCount: result.matchedMessages,
+      unmatchedMessageCount: result.unmatchedMessages,
+      importedEventCount: result.providerEvents,
+      skippedEventCount: result.skippedEvents,
+      errorMessage: null,
+      completedAt: new Date(),
+    });
+  } catch (error) {
+    console.error("SendGrid campaign history import failed", { campaignId });
+    await updateJob({
+      status: "failed",
+      errorMessage: safeSendGridHistoryImportError(error),
+      completedAt: new Date(),
+    });
+  } finally {
+    try {
+      await lockClient.query(
+        "SELECT pg_advisory_unlock($1, $2)",
+        [SENDGRID_HISTORY_LOCK_NAMESPACE, campaignId],
+      );
+    } catch {
+      // Connection loss also releases the session-level advisory lock.
+    }
+    lockClient.release();
+  }
+}
+
+export async function startSendGridCampaignHistoryImport(campaignId: number): Promise<{
+  started: boolean;
+  job: SendGridCampaignHistoryImportJob | null;
+}> {
+  if (!process.env.SENDGRID_API_KEY) throw new Error("SendGrid API key is not configured");
+  const [campaign] = await db.select({
+    status: marketingCampaigns.status,
+  }).from(marketingCampaigns)
+    .where(eq(marketingCampaigns.id, campaignId))
+    .limit(1);
+  if (!campaign) throw new Error("Campaign not found");
+  if (campaign.status !== "sent" && campaign.status !== "partial") {
+    throw new Error("Campaign history is available only after sending");
+  }
+
+  const lockClient = await pool.connect();
+  let lockAcquired = false;
+  let clientReleased = false;
+  try {
+    const lockResult = await lockClient.query<{ acquired: boolean }>(
+      "SELECT pg_try_advisory_lock($1, $2) AS acquired",
+      [SENDGRID_HISTORY_LOCK_NAMESPACE, campaignId],
+    );
+    lockAcquired = Boolean(lockResult.rows[0]?.acquired);
+    if (!lockAcquired) {
+      lockClient.release();
+      clientReleased = true;
+      return { started: false, job: await getSendGridCampaignHistoryImport(campaignId) };
+    }
+
+    await db.insert(sendgridCampaignHistoryImports).values({
+      campaignId,
+      status: "running",
+      providerMessageCount: 0,
+      processedMessageCount: 0,
+      matchedMessageCount: 0,
+      unmatchedMessageCount: 0,
+      importedEventCount: 0,
+      skippedEventCount: 0,
+      errorMessage: null,
+      startedAt: new Date(),
+      completedAt: null,
+      updatedAt: new Date(),
+    }).onConflictDoUpdate({
+      target: sendgridCampaignHistoryImports.campaignId,
+      set: {
+        status: "running",
+        providerMessageCount: 0,
+        processedMessageCount: 0,
+        matchedMessageCount: 0,
+        unmatchedMessageCount: 0,
+        importedEventCount: 0,
+        skippedEventCount: 0,
+        errorMessage: null,
+        startedAt: new Date(),
+        completedAt: null,
+        updatedAt: new Date(),
+      },
+    });
+    const job = await getSendGridCampaignHistoryImport(campaignId);
+    void runSendGridCampaignHistoryImport(campaignId, lockClient).catch(() => {
+      console.error("Could not save SendGrid campaign history import status", { campaignId });
+    });
+    lockAcquired = false;
+    return { started: true, job };
+  } catch (error) {
+    if (lockAcquired) {
+      try {
+        await lockClient.query(
+          "SELECT pg_advisory_unlock($1, $2)",
+          [SENDGRID_HISTORY_LOCK_NAMESPACE, campaignId],
+        );
+      } catch {
+        // Connection loss also releases the session-level advisory lock.
+      }
+    }
+    if (!clientReleased) lockClient.release();
+    throw error;
+  }
+}
+
 export async function processSendGridCampaignEvents(events: SendGridCampaignEvent[]): Promise<number> {
   if (!Array.isArray(events)) throw new Error("SendGrid event payload must be an array");
   let applied = 0;
@@ -808,9 +1142,18 @@ export async function processSendGridCampaignEvents(events: SendGridCampaignEven
         eventId,
         recipientId: currentRecipient.id,
         eventType: normalizedEvent.storedEventType.slice(0, 32),
+        eventSource: "webhook",
         occurredAt,
       }).onConflictDoNothing().returning({ id: sendgridCampaignWebhookEvents.id });
-      if (!storedEvent) return { inserted: false, applied: false, campaignId: null as number | null };
+      if (!storedEvent) {
+        await tx.update(sendgridCampaignWebhookEvents)
+          .set({ eventSource: "webhook" })
+          .where(and(
+            eq(sendgridCampaignWebhookEvents.eventId, eventId),
+            eq(sendgridCampaignWebhookEvents.recipientId, currentRecipient.id),
+          ));
+        return { inserted: false, applied: false, campaignId: null as number | null };
+      }
 
       const current = currentRecipient.status as MarketingCampaignDeliveryStatus;
       const next = nextDeliveryStatus(current, normalizedEvent.deliveryEventName);

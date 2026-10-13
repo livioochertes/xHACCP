@@ -570,6 +570,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
       const [marketingCampaigns, setMarketingCampaigns] = useState([]);
       const [marketingRecoveryDrafts, setMarketingRecoveryDrafts] = useState([]);
       const [marketingCampaignSendingId, setMarketingCampaignSendingId] = useState(null);
+      const [marketingHistoryImportingCampaignId, setMarketingHistoryImportingCampaignId] = useState(null);
       const [marketingCampaignDeletingId, setMarketingCampaignDeletingId] = useState(null);
       const [marketingCampaignRestoringId, setMarketingCampaignRestoringId] = useState(null);
       const [marketingDeliveryRecipientViews, setMarketingDeliveryRecipientViews] = useState({});
@@ -2025,6 +2026,54 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
             [campaignId]: {...current[campaignId], page, filter: selectedStatus, loading: false}
           }));
           alert(`❌ ${error.message || t('marketing.deliveryRecipientsFailed')}`);
+        }
+      };
+
+      const importMarketingCampaignHistory = async (campaign) => {
+        if (!window.confirm(t('marketing.historyImportConfirm', {name: campaign.name}))) return;
+        setMarketingHistoryImportingCampaignId({campaignId: campaign.id, processed: 0, total: 0});
+        try {
+          const url = `/admin/api/marketing/campaigns/${campaign.id}/delivery/import-sendgrid-history`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {'Authorization': `Bearer ${token}`}
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || t('marketing.historyImportFailed'));
+          let job = data.job;
+          while (job?.status === 'running') {
+            setMarketingHistoryImportingCampaignId({
+              campaignId: campaign.id,
+              processed: job.processedMessageCount || 0,
+              total: job.providerMessageCount || 0
+            });
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const statusResponse = await fetch(url, {headers: {'Authorization': `Bearer ${token}`}});
+            const statusData = await statusResponse.json();
+            if (!statusResponse.ok) throw new Error(statusData.message || t('marketing.historyImportFailed'));
+            job = statusData.job;
+            if (job?.status === 'running' && Date.now() - new Date(job.updatedAt).getTime() > 180000) {
+              throw new Error(t('marketing.historyImportStalled'));
+            }
+          }
+          await fetchMarketing();
+          if (job?.status !== 'completed') {
+            throw new Error(job?.errorMessage || t('marketing.historyImportFailed'));
+          }
+          if (!job.providerMessageCount) {
+            alert(t('marketing.historyImportNoData'));
+          } else {
+            alert(t('marketing.historyImportSuccess', {
+              messages: job.providerMessageCount,
+              matched: job.matchedMessageCount,
+              events: job.importedEventCount,
+              unmatched: job.unmatchedMessageCount
+            }));
+          }
+        } catch (error) {
+          alert(`❌ ${error.message || t('marketing.historyImportFailed')}`);
+        } finally {
+          setMarketingHistoryImportingCampaignId(null);
         }
       };
 
@@ -6595,6 +6644,9 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                 </div>
                                 <div style={{marginTop: '8px', paddingTop: '7px', borderTop: '1px solid #e2e8f0'}}>
                                   <strong>{t('marketing.deliveryEngagementTitle')}</strong>
+                                  <div style={{fontSize: '11px', color: '#64748b', marginTop: '3px'}}>
+                                    {t('marketing.liveWebhookMetrics')}
+                                  </div>
                                   <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px 12px', marginTop: '5px'}}>
                                     {campaignAnalyticsMetrics.map(item => {
                                       const metric = getEventMetric(item.key);
@@ -6616,6 +6668,36 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                   <small style={{display: 'block', marginTop: '5px', color: '#64748b'}}>
                                     {t('marketing.deliveryEngagementDisclaimer')}
                                   </small>
+                                  {Object.values(campaign.delivery?.applicationEventAnalytics || {}).some(metric => metric.eventCount > 0) && (
+                                    <small style={{display: 'block', marginTop: '4px', color: '#64748b'}}>
+                                      {t('marketing.applicationEventSummary', {
+                                        events: campaign.delivery.applicationEventAnalytics.unsubscribes?.eventCount || 0,
+                                        recipients: campaign.delivery.applicationEventAnalytics.unsubscribes?.uniqueRecipients || 0
+                                      })}
+                                    </small>
+                                  )}
+                                  {Object.values(campaign.delivery?.historicalEventAnalytics || {}).some(metric => metric.eventCount > 0) && (
+                                    <div style={{marginTop: '8px', paddingTop: '7px', borderTop: '1px dashed #cbd5e1'}}>
+                                      <strong>{t('marketing.historyMetricsTitle')}</strong>
+                                      <div style={{fontSize: '11px', color: '#64748b', marginTop: '3px'}}>
+                                        {t('marketing.historyMetricsDescription')}
+                                      </div>
+                                      <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px 12px', marginTop: '5px'}}>
+                                        {campaignAnalyticsMetrics.map(item => {
+                                          const metric = campaign.delivery.historicalEventAnalytics[item.key] || {eventCount: 0, uniqueRecipients: 0};
+                                          return (
+                                            <span key={`history-${item.key}`}>
+                                              <strong>{t(`marketing.${item.label}`)}:</strong>{' '}
+                                              {t('marketing.deliveryAnalyticsMetric', {
+                                                events: metric.eventCount,
+                                                recipients: metric.uniqueRecipients
+                                              })}
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                                 <div style={{display: 'grid', gap: '2px', marginTop: '5px'}}>
                                   {campaign.delivery.batches.map(batch => {
@@ -6637,6 +6719,20 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                             )}
                           </div>
                           <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                            {['sent', 'partial'].includes(campaign.status) && (
+                              <button
+                                onClick={() => importMarketingCampaignHistory(campaign)}
+                                disabled={marketingHistoryImportingCampaignId?.campaignId === campaign.id}
+                                style={{background: '#475569', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: marketingHistoryImportingCampaignId?.campaignId === campaign.id ? 'wait' : 'pointer'}}
+                              >
+                                {marketingHistoryImportingCampaignId?.campaignId === campaign.id
+                                  ? t('marketing.historyImporting', {
+                                    processed: marketingHistoryImportingCampaignId.processed,
+                                    total: marketingHistoryImportingCampaignId.total
+                                  })
+                                  : t('marketing.historyImportButton')}
+                              </button>
+                            )}
                             {campaign.market === 'fr' && canSend && (
                               <>
                                 <input

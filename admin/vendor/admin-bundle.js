@@ -11546,6 +11546,17 @@
       deliveryAnalyticsMetric: "{{events}} events \xB7 {{recipients}} unique recipients",
       deliveryAnalyticsRate: "{{rate}} of delivered recipients",
       deliveryEngagementDisclaimer: "Opens can include automated scans or privacy-protection activity; treat them as indicative, not proof that a person read the message.",
+      liveWebhookMetrics: "Live events received by this app's SendGrid webhook",
+      historyMetricsTitle: "Recovered historical SendGrid events",
+      historyMetricsDescription: "Imported from SendGrid Email Logs; shown separately and not added to live webhook counts.",
+      applicationEventSummary: "App-recorded unsubscribe events: {{events}} events \xB7 {{recipients}} recipients",
+      historyImportButton: "Recover SendGrid history",
+      historyImporting: "Recovering SendGrid history ({{processed}}/{{total}} messages)\u2026",
+      historyImportConfirm: "Retrieve retained SendGrid activity for \u201C{{name}}\u201D? Existing webhook events will not be counted twice.",
+      historyImportSuccess: "SendGrid returned {{messages}} messages; {{matched}} matched campaign recipients and {{events}} historical events were found. {{unmatched}} messages could not be matched.",
+      historyImportNoData: "SendGrid returned no retained history matching this campaign. Email Logs retain events for up to 30 days; older events may have expired.",
+      historyImportStalled: "The import has stopped reporting progress. You can retry it; previously imported events will not be counted twice.",
+      historyImportFailed: "SendGrid campaign history could not be retrieved.",
       deliveryBatch: "Batch {{number}}: {{accepted}} accepted \xB7 {{delivered}} delivered \xB7 {{failed}} issues \xB7 {{status}}",
       viewDeliveryRecipients: "View recipient details",
       hideDeliveryRecipients: "Hide recipient details",
@@ -12714,6 +12725,17 @@
       deliveryAnalyticsMetric: "{{events}} evenimente \xB7 {{recipients}} destinatari unici",
       deliveryAnalyticsRate: "{{rate}} din destinatarii livra\u021Bi",
       deliveryEngagementDisclaimer: "Deschiderile pot include scan\u0103ri automate sau protec\u021Bii de confiden\u021Bialitate; sunt indicatori, nu dovad\u0103 c\u0103 mesajul a fost citit.",
+      liveWebhookMetrics: "Evenimente primite \xEEn timp real de webhook-ul SendGrid al aplica\u021Biei",
+      historyMetricsTitle: "Evenimente istorice SendGrid recuperate",
+      historyMetricsDescription: "Importate din SendGrid Email Logs; afi\u0219ate separat \u0219i nead\u0103ugate la totalurile webhook-ului live.",
+      applicationEventSummary: "Dezabon\u0103ri \xEEnregistrate de aplica\u021Bie: {{events}} evenimente \xB7 {{recipients}} destinatari",
+      historyImportButton: "Recupereaz\u0103 istoricul SendGrid",
+      historyImporting: "Se recupereaz\u0103 istoricul SendGrid ({{processed}}/{{total}} mesaje)\u2026",
+      historyImportConfirm: "Recuperezi activitatea SendGrid \xEEnc\u0103 p\u0103strat\u0103 pentru \u201E{{name}}\u201D? Evenimentele deja primite prin webhook nu vor fi num\u0103rate de dou\u0103 ori.",
+      historyImportSuccess: "SendGrid a returnat {{messages}} mesaje; au fost asociate {{matched}} contacte ale campaniei \u0219i {{events}} evenimente istorice. {{unmatched}} mesaje nu au putut fi asociate.",
+      historyImportNoData: "SendGrid nu a returnat istoric p\u0103strat care s\u0103 corespund\u0103 campaniei. Email Logs p\u0103streaz\u0103 evenimentele p\xE2n\u0103 la 30 de zile; cele mai vechi pot fi expirate.",
+      historyImportStalled: "Importul nu mai raporteaz\u0103 progres. \xCEl po\u021Bi relua; evenimentele importate deja nu vor fi num\u0103rate de dou\u0103 ori.",
+      historyImportFailed: "Istoricul SendGrid al campaniei nu a putut fi recuperat.",
       deliveryBatch: "Calup {{number}}: {{accepted}} acceptate \xB7 {{delivered}} livrate \xB7 {{failed}} probleme \xB7 {{status}}",
       viewDeliveryRecipients: "Vezi detaliile destinatarilor",
       hideDeliveryRecipients: "Ascunde detaliile destinatarilor",
@@ -13882,6 +13904,17 @@
       deliveryAnalyticsMetric: "{{events}} \xE9v\xE9nements \xB7 {{recipients}} destinataires uniques",
       deliveryAnalyticsRate: "{{rate}} des destinataires livr\xE9s",
       deliveryEngagementDisclaimer: "Les ouvertures peuvent inclure des robots ou des protections de confidentialit\xE9 ; elles sont indicatives et ne prouvent pas la lecture du message.",
+      liveWebhookMetrics: "\xC9v\xE9nements re\xE7us en direct par le webhook SendGrid de l\u2019application",
+      historyMetricsTitle: "\xC9v\xE9nements SendGrid historiques r\xE9cup\xE9r\xE9s",
+      historyMetricsDescription: "Import\xE9s depuis SendGrid Email Logs ; affich\xE9s s\xE9par\xE9ment, sans les ajouter aux totaux du webhook.",
+      applicationEventSummary: "D\xE9sabonnements enregistr\xE9s par l\u2019application : {{events}} \xE9v\xE9nements \xB7 {{recipients}} destinataires",
+      historyImportButton: "R\xE9cup\xE9rer l\u2019historique SendGrid",
+      historyImporting: "R\xE9cup\xE9ration de l\u2019historique SendGrid ({{processed}}/{{total}} messages)\u2026",
+      historyImportConfirm: "R\xE9cup\xE9rer l\u2019activit\xE9 SendGrid conserv\xE9e pour \xAB {{name}} \xBB ? Les \xE9v\xE9nements d\xE9j\xE0 re\xE7us par webhook ne seront pas compt\xE9s deux fois.",
+      historyImportSuccess: "SendGrid a renvoy\xE9 {{messages}} messages ; {{matched}} destinataires de la campagne et {{events}} \xE9v\xE9nements historiques ont \xE9t\xE9 trouv\xE9s. {{unmatched}} messages n\u2019ont pas pu \xEAtre associ\xE9s.",
+      historyImportNoData: "SendGrid n\u2019a renvoy\xE9 aucun historique conserv\xE9 correspondant \xE0 cette campagne. Email Logs conservent les \xE9v\xE9nements jusqu\u2019\xE0 30 jours ; les \xE9v\xE9nements plus anciens peuvent avoir expir\xE9.",
+      historyImportStalled: "L\u2019import ne signale plus de progression. Vous pouvez le relancer ; les \xE9v\xE9nements d\xE9j\xE0 import\xE9s ne seront pas compt\xE9s deux fois.",
+      historyImportFailed: "Impossible de r\xE9cup\xE9rer l\u2019historique SendGrid de cette campagne.",
       deliveryBatch: "Lot {{number}} : {{accepted}} accept\xE9s \xB7 {{delivered}} livr\xE9s \xB7 {{failed}} probl\xE8mes \xB7 {{status}}",
       viewDeliveryRecipients: "Voir le d\xE9tail des destinataires",
       hideDeliveryRecipients: "Masquer le d\xE9tail des destinataires",
@@ -17212,6 +17245,7 @@
     const [marketingCampaigns, setMarketingCampaigns] = (0, import_react21.useState)([]);
     const [marketingRecoveryDrafts, setMarketingRecoveryDrafts] = (0, import_react21.useState)([]);
     const [marketingCampaignSendingId, setMarketingCampaignSendingId] = (0, import_react21.useState)(null);
+    const [marketingHistoryImportingCampaignId, setMarketingHistoryImportingCampaignId] = (0, import_react21.useState)(null);
     const [marketingCampaignDeletingId, setMarketingCampaignDeletingId] = (0, import_react21.useState)(null);
     const [marketingCampaignRestoringId, setMarketingCampaignRestoringId] = (0, import_react21.useState)(null);
     const [marketingDeliveryRecipientViews, setMarketingDeliveryRecipientViews] = (0, import_react21.useState)({});
@@ -18537,6 +18571,53 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
           [campaignId]: { ...current[campaignId], page, filter: selectedStatus, loading: false }
         }));
         alert(`\u274C ${error2.message || t2("marketing.deliveryRecipientsFailed")}`);
+      }
+    };
+    const importMarketingCampaignHistory = async (campaign) => {
+      if (!window.confirm(t2("marketing.historyImportConfirm", { name: campaign.name }))) return;
+      setMarketingHistoryImportingCampaignId({ campaignId: campaign.id, processed: 0, total: 0 });
+      try {
+        const url = `/admin/api/marketing/campaigns/${campaign.id}/delivery/import-sendgrid-history`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || t2("marketing.historyImportFailed"));
+        let job = data.job;
+        while (job?.status === "running") {
+          setMarketingHistoryImportingCampaignId({
+            campaignId: campaign.id,
+            processed: job.processedMessageCount || 0,
+            total: job.providerMessageCount || 0
+          });
+          await new Promise((resolve) => setTimeout(resolve, 2e3));
+          const statusResponse = await fetch(url, { headers: { "Authorization": `Bearer ${token}` } });
+          const statusData = await statusResponse.json();
+          if (!statusResponse.ok) throw new Error(statusData.message || t2("marketing.historyImportFailed"));
+          job = statusData.job;
+          if (job?.status === "running" && Date.now() - new Date(job.updatedAt).getTime() > 18e4) {
+            throw new Error(t2("marketing.historyImportStalled"));
+          }
+        }
+        await fetchMarketing();
+        if (job?.status !== "completed") {
+          throw new Error(job?.errorMessage || t2("marketing.historyImportFailed"));
+        }
+        if (!job.providerMessageCount) {
+          alert(t2("marketing.historyImportNoData"));
+        } else {
+          alert(t2("marketing.historyImportSuccess", {
+            messages: job.providerMessageCount,
+            matched: job.matchedMessageCount,
+            events: job.importedEventCount,
+            unmatched: job.unmatchedMessageCount
+          }));
+        }
+      } catch (error2) {
+        alert(`\u274C ${error2.message || t2("marketing.historyImportFailed")}`);
+      } finally {
+        setMarketingHistoryImportingCampaignId(null);
       }
     };
     const sendMarketingCampaign = async (campaign) => {
@@ -23222,6 +23303,7 @@ This action cannot be undone.`)) {
                       ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "8px", paddingTop: "7px", borderTop: "1px solid #e2e8f0" }, children: [
                         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: t2("marketing.deliveryEngagementTitle") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { fontSize: "11px", color: "#64748b", marginTop: "3px" }, children: t2("marketing.liveWebhookMetrics") }),
                         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: "5px" }, children: campaignAnalyticsMetrics.map((item) => {
                           const metric = getEventMetric(item.key);
                           const rate = deliveredUniqueRecipients > 0 ? `${(metric.uniqueRecipients / deliveredUniqueRecipients * 100).toFixed(1)}%` : null;
@@ -23238,7 +23320,29 @@ This action cannot be undone.`)) {
                             item.rate && rate ? ` \xB7 ${t2("marketing.deliveryAnalyticsRate", { rate })}` : ""
                           ] }, item.key);
                         }) }),
-                        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("small", { style: { display: "block", marginTop: "5px", color: "#64748b" }, children: t2("marketing.deliveryEngagementDisclaimer") })
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("small", { style: { display: "block", marginTop: "5px", color: "#64748b" }, children: t2("marketing.deliveryEngagementDisclaimer") }),
+                        Object.values(campaign.delivery?.applicationEventAnalytics || {}).some((metric) => metric.eventCount > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("small", { style: { display: "block", marginTop: "4px", color: "#64748b" }, children: t2("marketing.applicationEventSummary", {
+                          events: campaign.delivery.applicationEventAnalytics.unsubscribes?.eventCount || 0,
+                          recipients: campaign.delivery.applicationEventAnalytics.unsubscribes?.uniqueRecipients || 0
+                        }) }),
+                        Object.values(campaign.delivery?.historicalEventAnalytics || {}).some((metric) => metric.eventCount > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "8px", paddingTop: "7px", borderTop: "1px dashed #cbd5e1" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: t2("marketing.historyMetricsTitle") }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { fontSize: "11px", color: "#64748b", marginTop: "3px" }, children: t2("marketing.historyMetricsDescription") }),
+                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: "5px" }, children: campaignAnalyticsMetrics.map((item) => {
+                            const metric = campaign.delivery.historicalEventAnalytics[item.key] || { eventCount: 0, uniqueRecipients: 0 };
+                            return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("strong", { children: [
+                                t2(`marketing.${item.label}`),
+                                ":"
+                              ] }),
+                              " ",
+                              t2("marketing.deliveryAnalyticsMetric", {
+                                events: metric.eventCount,
+                                recipients: metric.uniqueRecipients
+                              })
+                            ] }, `history-${item.key}`);
+                          }) })
+                        ] })
                       ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "grid", gap: "2px", marginTop: "5px" }, children: campaign.delivery.batches.map((batch) => {
                         const batchStatus = batch.status === "sending" ? t2("marketing.statusSending") : batch.status === "partial" ? t2("marketing.statusPartial") : batch.status === "failed" ? t2("marketing.statusFailed") : t2("marketing.statusSent");
@@ -23254,6 +23358,18 @@ This action cannot be undone.`)) {
                     ] })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }, children: [
+                    ["sent", "partial"].includes(campaign.status) && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                      "button",
+                      {
+                        onClick: () => importMarketingCampaignHistory(campaign),
+                        disabled: marketingHistoryImportingCampaignId?.campaignId === campaign.id,
+                        style: { background: "#475569", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: marketingHistoryImportingCampaignId?.campaignId === campaign.id ? "wait" : "pointer" },
+                        children: marketingHistoryImportingCampaignId?.campaignId === campaign.id ? t2("marketing.historyImporting", {
+                          processed: marketingHistoryImportingCampaignId.processed,
+                          total: marketingHistoryImportingCampaignId.total
+                        }) : t2("marketing.historyImportButton")
+                      }
+                    ),
                     campaign.market === "fr" && canSend && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
                       /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                         "input",
