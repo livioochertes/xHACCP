@@ -17183,6 +17183,10 @@
     const [showBulkModal, setShowBulkModal] = (0, import_react21.useState)(false);
     const [bulkOperation, setBulkOperation] = (0, import_react21.useState)("");
     const [bulkResults, setBulkResults] = (0, import_react21.useState)(null);
+    const [deepLinkedOrderId] = (0, import_react21.useState)(() => {
+      const match = window.location.hash.match(/^#orders-(\d+)$/);
+      return match ? Number(match[1]) : null;
+    });
     const [searchTerm, setSearchTerm] = (0, import_react21.useState)("");
     const [companySearch, setCompanySearch] = (0, import_react21.useState)("");
     const [statusFilter, setStatusFilter] = (0, import_react21.useState)("all");
@@ -17694,6 +17698,20 @@
         setReportsError(t2("reports.loadFailed"));
       }
     };
+    (0, import_react21.useEffect)(() => {
+      if (!deepLinkedOrderId) return;
+      setActiveView("orders");
+      fetch(`/admin/api/orders/${deepLinkedOrderId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      }).then(async (response) => ({ response, data: await response.json() })).then(({ response, data }) => {
+        if (response.ok && data.order) {
+          setSelectedOrder(data.order);
+          setShowOrderDetails(true);
+        } else {
+          console.error("Failed to open linked order:", data.message || response.status);
+        }
+      }).catch((error2) => console.error("Failed to open linked order:", error2));
+    }, [deepLinkedOrderId, token]);
     const fetchWmsOriginAddresses = async (markets2) => {
       const requestedMarkets = [...new Set(markets2.filter((market) => ["ro", "fr", "com"].includes(market)))];
       if (!requestedMarkets.length) return;
@@ -29797,6 +29815,35 @@ Cordialement,`
           /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { padding: "15px", background: "#f8f9fa", borderRadius: "6px", marginBottom: "20px" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: "Order Tools" }),
             /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }, children: [
+              selectedOrder.status === "pending" && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
+                "button",
+                {
+                  className: "btn",
+                  style: { background: "#17a2b8", padding: "10px", display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" },
+                  onClick: async () => {
+                    if (!confirm(`Accept order #${selectedOrder.id}?
+
+This will update its status and start the order processing flow.`)) return;
+                    const result = await acceptOrder(selectedOrder.id);
+                    if (!result.success) {
+                      alert("Could not accept this order: " + (result.message || "Unknown error"));
+                      return;
+                    }
+                    setSelectedOrder({ ...selectedOrder, status: "processing" });
+                    let message = `Order #${selectedOrder.id} accepted successfully.`;
+                    if (result.notifications) {
+                      message += "\n\nEmail notifications:";
+                      message += result.notifications.customerEmail ? "\n\u2705 Customer confirmation sent" : "\n\u274C Customer email failed";
+                      message += result.notifications.logisticsEmail ? "\n\u2705 Logistics notification sent" : "\n\u274C Logistics email failed";
+                    }
+                    alert(message);
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "\u2713" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Accept Order" })
+                  ]
+                }
+              ),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
                 "button",
                 {

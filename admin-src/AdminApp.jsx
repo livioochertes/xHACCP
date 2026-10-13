@@ -444,6 +444,10 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
       const [showBulkModal, setShowBulkModal] = useState(false);
       const [bulkOperation, setBulkOperation] = useState('');
       const [bulkResults, setBulkResults] = useState(null);
+      const [deepLinkedOrderId] = useState(() => {
+        const match = window.location.hash.match(/^#orders-(\d+)$/);
+        return match ? Number(match[1]) : null;
+      });
       const [searchTerm, setSearchTerm] = useState('');
       const [companySearch, setCompanySearch] = useState('');
       const [statusFilter, setStatusFilter] = useState('all');
@@ -1032,6 +1036,24 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
           setReportsError(t('reports.loadFailed'));
         }
       };
+
+      useEffect(() => {
+        if (!deepLinkedOrderId) return;
+        setActiveView('orders');
+        fetch(`/admin/api/orders/${deepLinkedOrderId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(async response => ({ response, data: await response.json() }))
+          .then(({ response, data }) => {
+            if (response.ok && data.order) {
+              setSelectedOrder(data.order);
+              setShowOrderDetails(true);
+            } else {
+              console.error('Failed to open linked order:', data.message || response.status);
+            }
+          })
+          .catch(error => console.error('Failed to open linked order:', error));
+      }, [deepLinkedOrderId, token]);
 
       const fetchWmsOriginAddresses = async (markets) => {
         const requestedMarkets = [...new Set(markets.filter(market => ['ro', 'fr', 'com'].includes(market)))];
@@ -12782,6 +12804,31 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                   <div style={{padding: '15px', background: '#f8f9fa', borderRadius: '6px', marginBottom: '20px'}}>
                     <h4 style={{color: '#333', marginBottom: '15px'}}>Order Tools</h4>
                     <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px'}}>
+                      {selectedOrder.status === 'pending' && (
+                        <button
+                          className="btn"
+                          style={{background: '#17a2b8', padding: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px'}}
+                          onClick={async () => {
+                            if (!confirm(`Accept order #${selectedOrder.id}?\n\nThis will update its status and start the order processing flow.`)) return;
+                            const result = await acceptOrder(selectedOrder.id);
+                            if (!result.success) {
+                              alert('Could not accept this order: ' + (result.message || 'Unknown error'));
+                              return;
+                            }
+                            setSelectedOrder({ ...selectedOrder, status: 'processing' });
+                            let message = `Order #${selectedOrder.id} accepted successfully.`;
+                            if (result.notifications) {
+                              message += '\n\nEmail notifications:';
+                              message += result.notifications.customerEmail ? '\n✅ Customer confirmation sent' : '\n❌ Customer email failed';
+                              message += result.notifications.logisticsEmail ? '\n✅ Logistics notification sent' : '\n❌ Logistics email failed';
+                            }
+                            alert(message);
+                          }}
+                        >
+                          <span>✓</span>
+                          <span>Accept Order</span>
+                        </button>
+                      )}
                       <button
                         className="btn"
                         style={{background: '#17a2b8', padding: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px'}}

@@ -668,7 +668,13 @@ export async function sendNewOrderNotificationEmail(
   const isTestEmail = options.testMode === true;
   
   // Create admin URL for order management
-  const adminOrderUrl = isTestEmail ? '' : `https://xhaccp.com/admin#orders-${order.id}`;
+  const orderMarket = (order.market || 'ro').toLowerCase();
+  const adminOrigin = orderMarket === 'fr'
+    ? 'https://xhaccp.fr'
+    : orderMarket === 'com'
+      ? 'https://xhaccp.com'
+      : 'https://xhaccp.ro';
+  const adminOrderUrl = isTestEmail ? '' : `${adminOrigin}/admin#orders-${order.id}`;
   
   const orderItemsText = order.items
     .map(item => `- ${orderItemNameText(item)} (Qty: ${item.quantity}) - ${item.totalPrice} ${orderCurrency(order)}`)
@@ -797,7 +803,7 @@ export async function sendNewOrderNotificationEmail(
       ${isTestEmail ? '' : `<div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
         <p style="margin: 0; color: #666;">
           Direct admin link: 
-          <a href="${adminOrderUrl}" style="color: #27ae60;">xhaccp.com/admin#orders-${order.id}</a>
+          <a href="${adminOrderUrl}" style="color: #27ae60;">${adminOrigin}/admin#orders-${order.id}</a>
         </p>
         <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
           xHACCP - Order Management System
@@ -847,7 +853,7 @@ export async function sendNewOrderNotificationEmail(
     3. Verify product availability
     4. Accept the order to begin processing`}
     
-    Direct link: xhaccp.com/admin#orders-${order.id}
+    Direct link: ${adminOrigin}/admin#orders-${order.id}
   `;
 
   return await sendEmail({
