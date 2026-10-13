@@ -4,6 +4,7 @@ npm install
 # Run safe non-interactive DB migration (avoids drizzle-kit interactive prompts)
 node -e "
 const { Pool } = require('pg');
+const fs = require('fs');
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 async function migrate() {
   const client = await pool.connect();
@@ -44,6 +45,12 @@ async function migrate() {
       ALTER TABLE product_translations
         ADD COLUMN IF NOT EXISTS seo_sources JSONB NOT NULL DEFAULT '[]'::jsonb;
     \`);
+    for (const migrationPath of [
+      'migrations/0023_sendgrid_campaign_history_source.sql',
+      'migrations/0024_sendgrid_campaign_history_imports.sql',
+    ]) {
+      await client.query(fs.readFileSync(migrationPath, 'utf8'));
+    }
     console.log('DB migration OK');
   } finally {
     client.release();
