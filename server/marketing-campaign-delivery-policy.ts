@@ -63,6 +63,26 @@ export function normalizeSendGridEvent(
   return { storedEventType: normalizedName, deliveryEventName: normalizedName };
 }
 
+export function extractCampaignEventCorrelation(event: {
+  custom_args?: unknown;
+  customArgs?: unknown;
+  unique_args?: unknown;
+}): { campaignId: number; recipientId: number } {
+  const argumentSets = [event.custom_args, event.customArgs, event.unique_args]
+    .filter((value): value is Record<string, unknown> => (
+      typeof value === "object" && value !== null && !Array.isArray(value)
+    ));
+  const values = (key: string) => argumentSets
+    .map((args) => args[key])
+    .find((value) => value !== undefined && value !== null && value !== "");
+  // marketing_campaign_id is a SendGrid-owned event property. Prefer our
+  // namespaced key; accept the old custom-argument key for compatible payloads.
+  return {
+    campaignId: Number(values("xhaccp_campaign_id") ?? values("marketing_campaign_id")),
+    recipientId: Number(values("xhaccp_campaign_recipient_id") ?? values("marketing_campaign_recipient_id")),
+  };
+}
+
 export function shouldSuppressDroppedProspect(reason: unknown): boolean {
   return typeof reason === "string"
     && /(invalid|bounce|unsubscr|spam|block|suppress|mailbox not found)/i.test(reason);

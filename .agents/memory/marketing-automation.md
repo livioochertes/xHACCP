@@ -51,6 +51,12 @@ SendGrid's Signed Event Webhook Verification Key may be a bare Base64-encoded SP
 
 **How to apply:** Accept PEM and Base64 SPKI formats, verify the timestamp concatenated with the exact raw request body, and never log the key value.
 
+Campaign correlation values must be namespaced SendGrid custom arguments on each recipient personalization, not top-level mail arguments or SendGrid's reserved `marketing_campaign_id`.
+
+**Why:** SendGrid acknowledged campaign sends, but its webhook events lacked a usable app campaign ID and were silently skipped.
+
+**How to apply:** Send app-specific campaign and recipient IDs in personalization `custom_args`, then validate both IDs and recipient email before storing each event.
+
 Invitation email CTA placement is controlled by the campaign HTML; do not append a generic signup button after the message.
 
 **Why:** An automatically appended signup button appeared beneath the unsubscribe footer even though the campaign already had its intended CTA.

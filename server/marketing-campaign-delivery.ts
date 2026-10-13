@@ -19,6 +19,7 @@ import {
 import { EVENT_VOUCHER_CAMPAIGN_SLUG } from "./event-voucher";
 import {
   MARKETING_CAMPAIGN_BATCH_SIZE,
+  extractCampaignEventCorrelation,
   normalizeSendGridEvent,
   nextDeliveryStatus,
   shouldSuppressDroppedProspect,
@@ -346,8 +347,8 @@ async function sendCampaignRecipient(
       text: personalized.text,
       headers: personalized.headers,
       customArgs: {
-        marketing_campaign_id: String(campaign.id),
-        marketing_campaign_recipient_id: String(recipient.id),
+        xhaccp_campaign_id: String(campaign.id),
+        xhaccp_campaign_recipient_id: String(recipient.id),
       },
       suppressRecipientLog: true,
     });
@@ -362,8 +363,8 @@ async function sendCampaignRecipient(
         text: personalized.text,
         headers: personalized.headers,
         customArgs: {
-          marketing_campaign_id: String(campaign.id),
-          marketing_campaign_recipient_id: String(recipient.id),
+          xhaccp_campaign_id: String(campaign.id),
+          xhaccp_campaign_recipient_id: String(recipient.id),
         },
         suppressRecipientLog: true,
       });
@@ -779,15 +780,7 @@ export async function processSendGridCampaignEvents(events: SendGridCampaignEven
     const eventType = typeof event.event === "string" ? event.event.trim().toLowerCase() : "";
     const normalizedEvent = normalizeSendGridEvent(eventType, event.type, event.sg_machine_open);
     const email = typeof event.email === "string" ? event.email.trim().toLowerCase() : "";
-    const customArgs = event.custom_args && typeof event.custom_args === "object"
-      ? event.custom_args as Record<string, unknown>
-      : event.customArgs && typeof event.customArgs === "object"
-        ? event.customArgs as Record<string, unknown>
-        : event.unique_args && typeof event.unique_args === "object"
-          ? event.unique_args as Record<string, unknown>
-          : {};
-    const recipientId = Number(customArgs.marketing_campaign_recipient_id);
-    const campaignId = Number(customArgs.marketing_campaign_id);
+    const { recipientId, campaignId } = extractCampaignEventCorrelation(event);
     if (!eventId || eventId.length > 255 || !eventType || !email
       || !Number.isSafeInteger(recipientId) || recipientId <= 0
       || !Number.isSafeInteger(campaignId) || campaignId <= 0) {

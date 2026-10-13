@@ -105,19 +105,26 @@ export async function sendEmailWithOutcome(params: EmailParams): Promise<EmailSe
     }
     
     const emailData: any = {
-      to: params.to,
       from: params.from,
       subject: params.subject,
       text: params.text || '',
       html: params.html || '',
     };
 
-    if (params.headers) {
-      emailData.headers = params.headers;
+    if (params.customArgs) {
+      // SendGrid custom arguments belong to the recipient personalization. The
+      // top-level legacy field can be accepted by the API without appearing in
+      // Event Webhook payloads for the recipient.
+      emailData.personalizations = [{
+        to: params.to,
+        customArgs: params.customArgs,
+      }];
+    } else {
+      emailData.to = params.to;
     }
 
-    if (params.customArgs) {
-      emailData.customArgs = params.customArgs;
+    if (params.headers) {
+      emailData.headers = params.headers;
     }
     
     if (params.replyTo) {

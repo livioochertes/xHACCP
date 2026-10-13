@@ -2,12 +2,30 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { test } from "node:test";
 import {
+  extractCampaignEventCorrelation,
   normalizeSendGridEvent,
   nextDeliveryStatus,
   shouldSuppressDroppedProspect,
   splitIntoBatches,
   verifySendGridEventSignature,
 } from "./marketing-campaign-delivery-policy";
+
+test("SendGrid campaign correlation avoids the reserved marketing_campaign_id property", () => {
+  assert.deepEqual(extractCampaignEventCorrelation({
+    custom_args: {
+      marketing_campaign_id: "9001",
+      xhaccp_campaign_id: "8",
+      xhaccp_campaign_recipient_id: "1425",
+    },
+  }), { campaignId: 8, recipientId: 1425 });
+
+  assert.deepEqual(extractCampaignEventCorrelation({
+    unique_args: {
+      marketing_campaign_id: "8",
+      marketing_campaign_recipient_id: "1425",
+    },
+  }), { campaignId: 8, recipientId: 1425 });
+});
 
 test("marketing sends are divided into ordered batches of at most 500", () => {
   const recipients = Array.from({ length: 1201 }, (_, index) => index);
