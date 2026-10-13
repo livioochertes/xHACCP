@@ -90,13 +90,13 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
         throw new Error("No checkout URL received");
       }
     } catch (error: any) {
+      setIsLoading(false);
       toast({
         title: "Payment Error",
         description: error.message || "Failed to initiate payment",
         variant: "destructive",
       });
       onError(error.message || "Failed to initiate payment");
-      setIsLoading(false);
     }
   };
 

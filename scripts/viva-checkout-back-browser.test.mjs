@@ -92,7 +92,7 @@ async function waitForHttpServer() {
   throw new Error(`The app is not reachable at ${baseUrl}: ${lastError?.message}`);
 }
 
-test("Viva checkout clears its loading state after browser Back restores it from the back-forward cache", { timeout: 90_000 }, async (t) => {
+test("Viva checkout recovers after browser Back and a failed order request", { timeout: 90_000 }, async (t) => {
   await waitForHttpServer();
 
   const profile = await mkdtemp(join(tmpdir(), "viva-checkout-back-browser-"));
@@ -229,13 +229,18 @@ test("Viva checkout clears its loading state after browser Back restores it from
       const { requestId, request } = event.params;
       if (new URL(request.url).pathname === "/api/payments/viva/create-order") {
         paymentRequests.push({ method: request.method, url: request.url });
+        const isControlledFailure = paymentRequests.length === 2;
         const body = Buffer.from(JSON.stringify({
-          checkoutUrl: `${baseUrl}/cart?viva-back-browser-test=1`,
-          dbOrderId: 352001,
+          ...(isControlledFailure
+            ? { error: "Controlled Viva order-creation failure" }
+            : {
+                checkoutUrl: `${baseUrl}/cart?viva-back-browser-test=1`,
+                dbOrderId: 352001,
+              }),
         })).toString("base64");
         await client.send("Fetch.fulfillRequest", {
           requestId,
-          responseCode: 200,
+          responseCode: isControlledFailure ? 503 : 200,
           responseHeaders: [{ name: "Content-Type", value: "application/json" }],
           body,
         });
@@ -278,6 +283,27 @@ test("Viva checkout clears its loading state after browser Back restores it from
   assert.equal(vivaState.disabled, false, "the restored Viva button is enabled");
   assert.ok(vivaState.label.startsWith("Pay "), "the restored Viva button is no longer showing a redirect/loading state");
 
+  await evaluate(`(() => {
+    const button = [...document.querySelectorAll("button")]
+      .find((candidate) => /^Pay\\b/.test(candidate.textContent.trim()));
+    if (!button || button.disabled) throw new Error("Viva pay button is not available for the failure test");
+    button.click();
+  })()`);
+  await waitFor(
+    `(() => {
+      const button = [...document.querySelectorAll("button")]
+        .find((candidate) => /^Pay\\b/.test(candidate.textContent.trim()));
+      return !!button && !button.disabled && button.textContent.trim().startsWith("Pay ");
+    })()`,
+    "Viva button returns to idle after a controlled create-order failure",
+  );
+  assert.equal(paymentRequests.length, 2, "the failed create-order request was intercepted before reaching Viva");
+  assert.equal(paymentRequests[1].method, "POST");
+  assert.ok(
+    await evaluate(`document.body.innerText.includes("Controlled Viva order-creation failure")`),
+    "the checkout reports the controlled payment failure",
+  );
+
   const alternateMethod = await evaluate(`(() => {
     const option = document.querySelector("#cash") || document.querySelector("#paypal");
     if (!option) return null;
@@ -294,5 +320,6 @@ test("Viva checkout clears its loading state after browser Back restores it from
     false,
     "selecting another payment method leaves the Viva payment form",
   );
-  assert.equal(paymentRequests.length, 1, "changing payment methods does not start another payment");
+  assert.equal(paymentRequests.length, 2, "changing payment methods does not start another payment");
+  assert.deepEqual(interceptionErrors, [], "the controlled payment failure was fulfilled without browser interception errors");
 });
