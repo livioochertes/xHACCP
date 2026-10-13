@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import type { PoolClient } from "pg";
 import {
   marketingCampaignBatches,
@@ -37,6 +37,10 @@ const SEND_CONCURRENCY = 10;
 const CAMPAIGN_LOCK_NAMESPACE = 1_927_318_421;
 const SENDGRID_HISTORY_LOCK_NAMESPACE = 1_927_318_422;
 const campaignRuns = new Set<number>();
+export const SENDGRID_CAMPAIGN_HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1_000;
+const SENDGRID_HISTORY_INDEXING_DELAY_MS = 2 * 60 * 1_000;
+const SENDGRID_HISTORY_RETRY_DELAY_MS = 15 * 60 * 1_000;
+const SENDGRID_HISTORY_STALE_JOB_MS = 3 * 60 * 1_000;
 
 const API_ACCEPTED_STATUSES = [
   "accepted",
@@ -159,6 +163,77 @@ export function startMarketingCampaignDeliveryWorker(): void {
   void scan();
   const timer = setInterval(() => void scan(), 10_000);
   timer.unref?.();
+
+  const scanHistoryImports = async () => {
+    let lockClient: PoolClient | null = null;
+    let lockAcquired = false;
+    try {
+      lockClient = await pool.connect();
+      const lockResult = await lockClient.query(
+        "SELECT pg_try_advisory_lock($1, $2) AS locked",
+        [SENDGRID_HISTORY_LOCK_NAMESPACE, 0],
+      );
+      lockAcquired = Boolean(lockResult.rows?.[0]?.locked);
+      if (!lockAcquired) return;
+
+      const now = Date.now();
+      const campaigns = await db.select({
+        id: marketingCampaigns.id,
+        sentAt: marketingCampaigns.sentAt,
+      }).from(marketingCampaigns)
+        .where(and(
+          inArray(marketingCampaigns.status, ["sent", "partial"]),
+          gte(marketingCampaigns.sentAt, new Date(now - SENDGRID_CAMPAIGN_HISTORY_RETENTION_MS)),
+          lt(marketingCampaigns.sentAt, new Date(now - SENDGRID_HISTORY_INDEXING_DELAY_MS)),
+          sql`exists (
+            select 1 from marketing_campaign_recipients
+            where marketing_campaign_recipients.campaign_id = ${marketingCampaigns.id}
+              and marketing_campaign_recipients.attempted_at is not null
+          )`,
+        ))
+        .orderBy(asc(marketingCampaigns.sentAt));
+      if (!campaigns.length) return;
+
+      const jobs = await getSendGridCampaignHistoryImports(campaigns.map(({ id }) => id));
+      let activeJobs = [...jobs.values()].filter((job) => (
+        job.status === "running" && now - job.updatedAt.getTime() < SENDGRID_HISTORY_STALE_JOB_MS
+      )).length;
+      for (const campaign of campaigns) {
+        const job = jobs.get(campaign.id);
+        const age = job ? now - job.updatedAt.getTime() : Number.POSITIVE_INFINITY;
+        const shouldStart = !job
+          || (job.status === "failed" && age >= SENDGRID_HISTORY_RETRY_DELAY_MS)
+          || (job.status === "running" && age >= SENDGRID_HISTORY_STALE_JOB_MS);
+        if (!shouldStart || activeJobs >= 3) continue;
+        try {
+          const result = await startSendGridCampaignHistoryImport(campaign.id);
+          if (result.started) activeJobs++;
+        } catch (error) {
+          console.error("Automatic SendGrid campaign history recovery could not start", {
+            campaignId: campaign.id,
+            message: error instanceof Error ? error.message : "unknown",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Automatic SendGrid campaign history scan failed:", error instanceof Error ? error.message : "unknown");
+    } finally {
+      if (lockAcquired) {
+        try {
+          await lockClient?.query(
+            "SELECT pg_advisory_unlock($1, $2)",
+            [SENDGRID_HISTORY_LOCK_NAMESPACE, 0],
+          );
+        } catch {
+          // Connection loss also releases the session-level advisory lock.
+        }
+      }
+      lockClient?.release();
+    }
+  };
+  void scanHistoryImports();
+  const historyTimer = setInterval(() => void scanHistoryImports(), 60_000);
+  historyTimer.unref?.();
 }
 
 function processMarketingCampaign(campaignId: number): void {
@@ -721,11 +796,7 @@ export async function getMarketingCampaignDeliverySummaries(
       eq(sendgridCampaignWebhookEvents.recipientId, marketingCampaignRecipients.id),
     )
     .where(inArray(marketingCampaignRecipients.campaignId, ids))
-    .groupBy(
-      marketingCampaignRecipients.campaignId,
-      sendgridCampaignWebhookEvents.eventSource,
-      eventCategory,
-    );
+    .groupBy(sql.raw("1"), sql.raw("2"), sql.raw("3"));
   for (const row of eventRows) {
     const summary = summaries.get(row.campaignId);
     if (summary) {
@@ -852,6 +923,28 @@ export async function getSendGridCampaignHistoryImport(
     .where(eq(sendgridCampaignHistoryImports.campaignId, campaignId))
     .limit(1);
   return job || null;
+}
+
+export async function getSendGridCampaignHistoryImports(
+  campaignIds: number[],
+): Promise<Map<number, SendGridCampaignHistoryImportJob>> {
+  if (!campaignIds.length) return new Map();
+  const jobs = await db.select({
+    campaignId: sendgridCampaignHistoryImports.campaignId,
+    status: sendgridCampaignHistoryImports.status,
+    providerMessageCount: sendgridCampaignHistoryImports.providerMessageCount,
+    processedMessageCount: sendgridCampaignHistoryImports.processedMessageCount,
+    matchedMessageCount: sendgridCampaignHistoryImports.matchedMessageCount,
+    unmatchedMessageCount: sendgridCampaignHistoryImports.unmatchedMessageCount,
+    importedEventCount: sendgridCampaignHistoryImports.importedEventCount,
+    skippedEventCount: sendgridCampaignHistoryImports.skippedEventCount,
+    errorMessage: sendgridCampaignHistoryImports.errorMessage,
+    startedAt: sendgridCampaignHistoryImports.startedAt,
+    completedAt: sendgridCampaignHistoryImports.completedAt,
+    updatedAt: sendgridCampaignHistoryImports.updatedAt,
+  }).from(sendgridCampaignHistoryImports)
+    .where(inArray(sendgridCampaignHistoryImports.campaignId, campaignIds));
+  return new Map(jobs.map((job) => [job.campaignId, job]));
 }
 
 function safeSendGridHistoryImportError(error: unknown): string {
@@ -1028,7 +1121,6 @@ export async function startSendGridCampaignHistoryImport(campaignId: number): Pr
   started: boolean;
   job: SendGridCampaignHistoryImportJob | null;
 }> {
-  if (!process.env.SENDGRID_API_KEY) throw new Error("SendGrid API key is not configured");
   const [campaign] = await db.select({
     status: marketingCampaigns.status,
   }).from(marketingCampaigns)

@@ -18,7 +18,9 @@ import {
   getMarketingCampaignDeliverySummary,
   getMarketingCampaignDeliverySummaries,
   getSendGridCampaignHistoryImport,
+  getSendGridCampaignHistoryImports,
   queueProspectMarketingCampaign,
+  SENDGRID_CAMPAIGN_HISTORY_RETENTION_MS,
   startSendGridCampaignHistoryImport,
 } from "./marketing-campaign-delivery";
 import type { MarketingCampaignDeliveryStatus } from "./marketing-campaign-delivery-policy";
@@ -464,9 +466,22 @@ export function registerMarketingAdminRoutes(
       }
       const campaigns = await storage.getMarketingCampaigns(market);
       const deliveries = await getMarketingCampaignDeliverySummaries(campaigns);
+      const historyJobs = await getSendGridCampaignHistoryImports(campaigns.map(({ id }) => id));
+      const now = Date.now();
       res.json(campaigns.map((campaign) => ({
         ...campaign,
         delivery: deliveries.get(campaign.id) || null,
+        historyRecovery: {
+          job: historyJobs.get(campaign.id) || null,
+          expiresAt: campaign.sentAt
+            ? new Date(campaign.sentAt.getTime() + SENDGRID_CAMPAIGN_HISTORY_RETENTION_MS).toISOString()
+            : null,
+          expired: Boolean(
+            campaign.sentAt
+            && campaign.sentAt.getTime() + SENDGRID_CAMPAIGN_HISTORY_RETENTION_MS <= now
+            && historyJobs.get(campaign.id)?.status !== "completed",
+          ),
+        },
       })));
     } catch (error) {
       console.error("Marketing campaigns list error:", error);

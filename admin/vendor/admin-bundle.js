@@ -11552,6 +11552,14 @@
       applicationEventSummary: "App-recorded unsubscribe events: {{events}} events \xB7 {{recipients}} recipients",
       historyImportButton: "Recover SendGrid history",
       historyImporting: "Recovering SendGrid history ({{processed}}/{{total}} messages)\u2026",
+      historyRecoveryTitle: "Automatic SendGrid history recovery",
+      historyImportPending: "Waiting for SendGrid logs to become available. History expires {{date}}.",
+      historyImportAutoRunning: "In progress ({{processed}}/{{total}} messages).",
+      historyImportAutoFailed: "Recovery failed: {{error}}",
+      historyImportAutoComplete: "Complete: {{events}} historical events recovered.",
+      historyImportAutoNoData: "Complete: no matching SendGrid history was found.",
+      historyImportAutoNoMissing: "Complete: SendGrid logs were checked; no additional events were missing.",
+      historyImportExpired: "SendGrid's 30-day history window expired {{date}}; it can no longer be recovered.",
       historyImportConfirm: "Retrieve retained SendGrid activity for \u201C{{name}}\u201D? Existing webhook events will not be counted twice.",
       historyImportSuccess: "SendGrid returned {{messages}} messages; {{matched}} matched campaign recipients and {{events}} historical events were found. {{unmatched}} messages could not be matched.",
       historyImportNoData: "SendGrid returned no retained history matching this campaign. Email Logs retain events for up to 30 days; older events may have expired.",
@@ -12731,6 +12739,14 @@
       applicationEventSummary: "Dezabon\u0103ri \xEEnregistrate de aplica\u021Bie: {{events}} evenimente \xB7 {{recipients}} destinatari",
       historyImportButton: "Recupereaz\u0103 istoricul SendGrid",
       historyImporting: "Se recupereaz\u0103 istoricul SendGrid ({{processed}}/{{total}} mesaje)\u2026",
+      historyRecoveryTitle: "Recuperare automat\u0103 a istoricului SendGrid",
+      historyImportPending: "Se a\u0219teapt\u0103 jurnalele SendGrid. Istoricul expir\u0103 la {{date}}.",
+      historyImportAutoRunning: "\xCEn curs ({{processed}}/{{total}} mesaje).",
+      historyImportAutoFailed: "Recuperarea a e\u0219uat: {{error}}",
+      historyImportAutoComplete: "Finalizat: {{events}} evenimente istorice recuperate.",
+      historyImportAutoNoData: "Finalizat: nu a fost g\u0103sit istoric SendGrid corespunz\u0103tor.",
+      historyImportAutoNoMissing: "Finalizat: jurnalele SendGrid au fost verificate; nu lipseau evenimente suplimentare.",
+      historyImportExpired: "Fereastra SendGrid de p\u0103strare a istoricului de 30 de zile a expirat la {{date}}; datele nu mai pot fi recuperate.",
       historyImportConfirm: "Recuperezi activitatea SendGrid \xEEnc\u0103 p\u0103strat\u0103 pentru \u201E{{name}}\u201D? Evenimentele deja primite prin webhook nu vor fi num\u0103rate de dou\u0103 ori.",
       historyImportSuccess: "SendGrid a returnat {{messages}} mesaje; au fost asociate {{matched}} contacte ale campaniei \u0219i {{events}} evenimente istorice. {{unmatched}} mesaje nu au putut fi asociate.",
       historyImportNoData: "SendGrid nu a returnat istoric p\u0103strat care s\u0103 corespund\u0103 campaniei. Email Logs p\u0103streaz\u0103 evenimentele p\xE2n\u0103 la 30 de zile; cele mai vechi pot fi expirate.",
@@ -13910,6 +13926,14 @@
       applicationEventSummary: "D\xE9sabonnements enregistr\xE9s par l\u2019application : {{events}} \xE9v\xE9nements \xB7 {{recipients}} destinataires",
       historyImportButton: "R\xE9cup\xE9rer l\u2019historique SendGrid",
       historyImporting: "R\xE9cup\xE9ration de l\u2019historique SendGrid ({{processed}}/{{total}} messages)\u2026",
+      historyRecoveryTitle: "R\xE9cup\xE9ration automatique de l\u2019historique SendGrid",
+      historyImportPending: "En attente des journaux SendGrid. L\u2019historique expire le {{date}}.",
+      historyImportAutoRunning: "En cours ({{processed}}/{{total}} messages).",
+      historyImportAutoFailed: "\xC9chec de la r\xE9cup\xE9ration : {{error}}",
+      historyImportAutoComplete: "Termin\xE9 : {{events}} \xE9v\xE9nements historiques r\xE9cup\xE9r\xE9s.",
+      historyImportAutoNoData: "Termin\xE9 : aucun historique SendGrid correspondant n\u2019a \xE9t\xE9 trouv\xE9.",
+      historyImportAutoNoMissing: "Termin\xE9 : les journaux SendGrid ont \xE9t\xE9 v\xE9rifi\xE9s ; aucun \xE9v\xE9nement suppl\xE9mentaire ne manquait.",
+      historyImportExpired: "La p\xE9riode de conservation SendGrid de 30 jours a expir\xE9 le {{date}} ; l\u2019historique ne peut plus \xEAtre r\xE9cup\xE9r\xE9.",
       historyImportConfirm: "R\xE9cup\xE9rer l\u2019activit\xE9 SendGrid conserv\xE9e pour \xAB {{name}} \xBB ? Les \xE9v\xE9nements d\xE9j\xE0 re\xE7us par webhook ne seront pas compt\xE9s deux fois.",
       historyImportSuccess: "SendGrid a renvoy\xE9 {{messages}} messages ; {{matched}} destinataires de la campagne et {{events}} \xE9v\xE9nements historiques ont \xE9t\xE9 trouv\xE9s. {{unmatched}} messages n\u2019ont pas pu \xEAtre associ\xE9s.",
       historyImportNoData: "SendGrid n\u2019a renvoy\xE9 aucun historique conserv\xE9 correspondant \xE0 cette campagne. Email Logs conservent les \xE9v\xE9nements jusqu\u2019\xE0 30 jours ; les \xE9v\xE9nements plus anciens peuvent avoir expir\xE9.",
@@ -23204,6 +23228,8 @@ This action cannot be undone.`)) {
               /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "18px", display: "grid", gap: "8px" }, children: marketingCampaigns.map((campaign) => {
                 const deliveryCounts = campaign.delivery?.counts || {};
                 const campaignEventAnalytics = campaign.delivery?.eventAnalytics || {};
+                const historyRecovery = campaign.historyRecovery || {};
+                const historyJob = historyRecovery.job;
                 const getEventMetric = (key) => campaignEventAnalytics[key] || { eventCount: 0, uniqueRecipients: 0 };
                 const deliveredUniqueRecipients = getEventMetric("delivered").uniqueRecipients;
                 const campaignAnalyticsMetrics = [
@@ -23355,10 +23381,22 @@ This action cannot be undone.`)) {
                           status: batchStatus
                         }) }, batch.id);
                       }) })
+                    ] }),
+                    ["sent", "partial"].includes(campaign.status) && campaign.delivery?.batches?.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "8px", padding: "7px 9px", borderRadius: "4px", background: historyJob?.status === "failed" || historyRecovery.expired ? "#fff7ed" : "#f8fafc", color: "#475569" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("strong", { children: [
+                        t2("marketing.historyRecoveryTitle"),
+                        ":"
+                      ] }),
+                      " ",
+                      !historyJob ? historyRecovery.expired ? t2("marketing.historyImportExpired", { date: historyRecovery.expiresAt ? new Date(historyRecovery.expiresAt).toLocaleDateString() : "" }) : t2("marketing.historyImportPending", { date: historyRecovery.expiresAt ? new Date(historyRecovery.expiresAt).toLocaleDateString() : "" }) : historyJob.status === "running" ? t2("marketing.historyImportAutoRunning", {
+                        processed: historyJob.processedMessageCount || 0,
+                        total: historyJob.providerMessageCount || 0
+                      }) : historyJob.status === "failed" ? t2("marketing.historyImportAutoFailed", { error: historyJob.errorMessage || t2("marketing.historyImportFailed") }) : historyJob.importedEventCount > 0 ? t2("marketing.historyImportAutoComplete", { events: historyJob.importedEventCount }) : historyJob.providerMessageCount > 0 ? t2("marketing.historyImportAutoNoMissing") : t2("marketing.historyImportAutoNoData"),
+                      historyRecovery.expired && historyJob && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { marginTop: "3px" }, children: t2("marketing.historyImportExpired", { date: historyRecovery.expiresAt ? new Date(historyRecovery.expiresAt).toLocaleDateString() : "" }) })
                     ] })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }, children: [
-                    ["sent", "partial"].includes(campaign.status) && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    ["sent", "partial"].includes(campaign.status) && !historyRecovery.expired && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                       "button",
                       {
                         onClick: () => importMarketingCampaignHistory(campaign),

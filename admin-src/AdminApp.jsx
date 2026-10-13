@@ -6583,6 +6583,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                     {marketingCampaigns.map(campaign => {
                       const deliveryCounts = campaign.delivery?.counts || {};
                       const campaignEventAnalytics = campaign.delivery?.eventAnalytics || {};
+                      const historyRecovery = campaign.historyRecovery || {};
+                      const historyJob = historyRecovery.job;
                       const getEventMetric = key => campaignEventAnalytics[key] || {eventCount: 0, uniqueRecipients: 0};
                       const deliveredUniqueRecipients = getEventMetric('delivered').uniqueRecipients;
                       const campaignAnalyticsMetrics = [
@@ -6717,9 +6719,33 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                 </div>
                               </div>
                             )}
+                            {['sent', 'partial'].includes(campaign.status) && campaign.delivery?.batches?.length > 0 && (
+                              <div style={{marginTop: '8px', padding: '7px 9px', borderRadius: '4px', background: historyJob?.status === 'failed' || historyRecovery.expired ? '#fff7ed' : '#f8fafc', color: '#475569'}}>
+                                <strong>{t('marketing.historyRecoveryTitle')}:</strong>{' '}
+                                {!historyJob
+                                  ? historyRecovery.expired
+                                    ? t('marketing.historyImportExpired', {date: historyRecovery.expiresAt ? new Date(historyRecovery.expiresAt).toLocaleDateString() : ''})
+                                    : t('marketing.historyImportPending', {date: historyRecovery.expiresAt ? new Date(historyRecovery.expiresAt).toLocaleDateString() : ''})
+                                  : historyJob.status === 'running'
+                                    ? t('marketing.historyImportAutoRunning', {
+                                      processed: historyJob.processedMessageCount || 0,
+                                      total: historyJob.providerMessageCount || 0
+                                    })
+                                    : historyJob.status === 'failed'
+                                      ? t('marketing.historyImportAutoFailed', {error: historyJob.errorMessage || t('marketing.historyImportFailed')})
+                                      : historyJob.importedEventCount > 0
+                                        ? t('marketing.historyImportAutoComplete', {events: historyJob.importedEventCount})
+                                        : historyJob.providerMessageCount > 0
+                                          ? t('marketing.historyImportAutoNoMissing')
+                                          : t('marketing.historyImportAutoNoData')}
+                                {historyRecovery.expired && historyJob && (
+                                  <div style={{marginTop: '3px'}}>{t('marketing.historyImportExpired', {date: historyRecovery.expiresAt ? new Date(historyRecovery.expiresAt).toLocaleDateString() : ''})}</div>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
-                            {['sent', 'partial'].includes(campaign.status) && (
+                            {['sent', 'partial'].includes(campaign.status) && !historyRecovery.expired && (
                               <button
                                 onClick={() => importMarketingCampaignHistory(campaign)}
                                 disabled={marketingHistoryImportingCampaignId?.campaignId === campaign.id}
