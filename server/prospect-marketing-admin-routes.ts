@@ -4,8 +4,9 @@ import { authenticateAdmin, canAccessMarket } from "./admin-routes";
 import { parseProspectCsv } from "./prospect-csv";
 import {
   importProspectList,
+  listProspectMembershipsForCleanup,
   listProspectLists,
-  removeUnsubscribedProspectsFromLists,
+  removeSuppressedProspectsFromLists,
 } from "./prospect-marketing-db";
 
 type ProspectAdminRequest = Request & {
@@ -60,14 +61,29 @@ export function registerProspectMarketingAdminRoutes(
     }
   });
 
-  app.delete("/admin/api/marketing/prospects/unsubscribed-memberships", authenticate, async (req, res) => {
+  app.get("/admin/api/marketing/prospects/suppressed-memberships", authenticate, async (req, res) => {
     try {
       if (!canManageFrenchProspects(req, res)) return;
-      const removedMemberships = await removeUnsubscribedProspectsFromLists("fr");
+      const contacts = await listProspectMembershipsForCleanup("fr");
+      res.json({
+        contacts,
+        totalContacts: contacts.length,
+        totalMemberships: contacts.reduce((total, contact) => total + contact.membershipCount, 0),
+      });
+    } catch (error) {
+      console.error("Suppressed prospect list preview failed");
+      res.status(500).json({ message: "Could not load suppressed contacts from lists" });
+    }
+  });
+
+  app.delete("/admin/api/marketing/prospects/suppressed-memberships", authenticate, async (req, res) => {
+    try {
+      if (!canManageFrenchProspects(req, res)) return;
+      const removedMemberships = await removeSuppressedProspectsFromLists("fr");
       res.json({ removedMemberships });
     } catch (error) {
-      console.error("Unsubscribed prospect list cleanup failed");
-      res.status(500).json({ message: "Could not remove unsubscribed contacts from lists" });
+      console.error("Suppressed prospect list cleanup failed");
+      res.status(500).json({ message: "Could not remove suppressed contacts from lists" });
     }
   });
 

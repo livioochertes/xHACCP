@@ -11444,10 +11444,18 @@
       prospectImportFailed: "The prospect list could not be imported.",
       prospectImported: "Import complete. New: {{created}}; already existed: {{existing}}; invalid emails: {{invalid}}; duplicates in file: {{duplicates}}. Invitation and newsletter segments were created.",
       prospectSavedLists: "Imported lists",
-      prospectRemoveUnsubscribedButton: "Remove unsubscribed from all lists",
-      prospectRemoveUnsubscribedConfirm: "This will remove {{count}} list memberships for unsubscribed contacts. Prospect records and suppression markers will remain, preventing them from being re-added to campaigns. Continue?",
-      prospectRemoveUnsubscribedDone: "Removed {{count}} list memberships. Unsubscribe markers were retained.",
-      prospectRemoveUnsubscribedFailed: "Could not remove unsubscribed contacts from lists.",
+      prospectCleanupButton: "Review and remove {{contacts}} suppressed contacts ({{memberships}} memberships)",
+      prospectCleanupConfirm: "Remove {{memberships}} French-list memberships for {{contacts}} unsubscribed or permanently undeliverable contacts? Their prospect records and suppression markers will remain, so reimporting them cannot make them mailable. Temporary deferrals are not included. Continue?",
+      prospectCleanupDone: "Removed {{count}} memberships. Prospect records and suppression markers were retained.",
+      prospectCleanupFailed: "Could not remove suppressed contacts from lists.",
+      prospectCleanupReview: "Reviewing {{contacts}} affected contacts across {{memberships}} list memberships. Temporary deferrals and generic SendGrid drops are excluded.",
+      prospectCleanupContact: "Contact",
+      prospectCleanupReason: "Suppression reason",
+      prospectCleanupLists: "French lists",
+      prospectCleanupUnsubscribed: "Unsubscribed",
+      prospectCleanupReason_hard_bounce: "Hard bounce",
+      prospectCleanupReason_spam_report: "Spam report",
+      prospectCleanupReason_invalid_recipient: "Confirmed invalid address",
       prospectNoLists: "No prospect lists have been imported.",
       prospectTotal: "Contacts",
       prospectInvitable: "Eligible for invitation",
@@ -12635,10 +12643,18 @@
       prospectImportFailed: "Lista de prospecte nu a putut fi importat\u0103.",
       prospectImported: "Import finalizat. Noi: {{created}}; deja existente: {{existing}}; emailuri invalide: {{invalid}}; duplicate \xEEn fi\u0219ier: {{duplicates}}. Segmentele pentru invita\u021Bie \u0219i newsletter au fost create.",
       prospectSavedLists: "Liste importate",
-      prospectRemoveUnsubscribedButton: "Elimin\u0103 dezabona\u021Bii din toate listele",
-      prospectRemoveUnsubscribedConfirm: "Vor fi eliminate {{count}} apartenen\u021Be la liste pentru contactele dezabonate. Prospectele \u0219i marcajele de suprimare r\u0103m\xE2n p\u0103strate, astfel \xEEnc\xE2t s\u0103 nu poat\u0103 fi reimportate \xEEn campanii. Continui?",
-      prospectRemoveUnsubscribedDone: "Au fost eliminate {{count}} apartenen\u021Be la liste. Marcajele de dezabonare au fost p\u0103strate.",
-      prospectRemoveUnsubscribedFailed: "Adresele dezabonate nu au putut fi eliminate din liste.",
+      prospectCleanupButton: "Verific\u0103 \u0219i elimin\u0103 {{contacts}} contacte suprimate ({{memberships}} apartenen\u021Be)",
+      prospectCleanupConfirm: "Elimini {{memberships}} apartenen\u021Be la listele franceze pentru {{contacts}} contacte dezabonate sau permanent nedistribuibile? \xCEnregistr\u0103rile prospectelor \u0219i marcajele de suprimare vor fi p\u0103strate, astfel \xEEnc\xE2t reimportarea s\u0103 nu permit\u0103 trimiterea de emailuri. Am\xE2n\u0103rile temporare nu sunt incluse. Continui?",
+      prospectCleanupDone: "Au fost eliminate {{count}} apartenen\u021Be. \xCEnregistr\u0103rile prospectelor \u0219i marcajele de suprimare au fost p\u0103strate.",
+      prospectCleanupFailed: "Contactele suprimate nu au putut fi eliminate din liste.",
+      prospectCleanupReview: "Revizuie\u0219ti {{contacts}} contacte afectate din {{memberships}} apartenen\u021Be la liste. Am\xE2n\u0103rile temporare \u0219i respingerile generice SendGrid sunt excluse.",
+      prospectCleanupContact: "Contact",
+      prospectCleanupReason: "Motivul suprim\u0103rii",
+      prospectCleanupLists: "Liste franceze",
+      prospectCleanupUnsubscribed: "Dezabonat",
+      prospectCleanupReason_hard_bounce: "Bounce definitiv",
+      prospectCleanupReason_spam_report: "Raportare ca spam",
+      prospectCleanupReason_invalid_recipient: "Adres\u0103 confirmat\u0103 invalid\u0103",
       prospectNoLists: "Nu exist\u0103 liste de prospecte importate.",
       prospectTotal: "Contacte",
       prospectInvitable: "Eligibile pentru invita\u021Bie",
@@ -13826,10 +13842,18 @@
       prospectImportFailed: "Impossible d'importer la liste de prospects.",
       prospectImported: "Import termin\xE9. Nouveaux : {{created}} ; d\xE9j\xE0 existants : {{existing}} ; emails invalides : {{invalid}} ; doublons dans le fichier : {{duplicates}}. Les segments invitation et newsletter ont \xE9t\xE9 cr\xE9\xE9s.",
       prospectSavedLists: "Listes import\xE9es",
-      prospectRemoveUnsubscribedButton: "Retirer les d\xE9sabonn\xE9s de toutes les listes",
-      prospectRemoveUnsubscribedConfirm: "Cette action supprimera {{count}} appartenances aux listes pour les contacts d\xE9sabonn\xE9s. Les fiches prospects et les marqueurs de suppression seront conserv\xE9s pour emp\xEAcher leur r\xE9int\xE9gration dans les campagnes. Continuer ?",
-      prospectRemoveUnsubscribedDone: "{{count}} appartenances aux listes ont \xE9t\xE9 supprim\xE9es. Les marqueurs de d\xE9sabonnement ont \xE9t\xE9 conserv\xE9s.",
-      prospectRemoveUnsubscribedFailed: "Impossible de retirer les contacts d\xE9sabonn\xE9s des listes.",
+      prospectCleanupButton: "Examiner et retirer {{contacts}} contacts \xE9cart\xE9s ({{memberships}} appartenances)",
+      prospectCleanupConfirm: "Retirer {{memberships}} appartenances aux listes fran\xE7aises pour {{contacts}} contacts d\xE9sabonn\xE9s ou d\xE9finitivement non distribuables ? Leurs fiches prospects et marqueurs de suppression seront conserv\xE9s afin qu'une r\xE9importation ne permette pas de leur envoyer des emails. Les reports temporaires ne sont pas inclus. Continuer ?",
+      prospectCleanupDone: "{{count}} appartenances ont \xE9t\xE9 supprim\xE9es. Les fiches prospects et marqueurs de suppression ont \xE9t\xE9 conserv\xE9s.",
+      prospectCleanupFailed: "Impossible de retirer les contacts \xE9cart\xE9s des listes.",
+      prospectCleanupReview: "Examen de {{contacts}} contacts concern\xE9s dans {{memberships}} appartenances aux listes. Les reports temporaires et les rejets SendGrid g\xE9n\xE9riques sont exclus.",
+      prospectCleanupContact: "Contact",
+      prospectCleanupReason: "Motif de suppression",
+      prospectCleanupLists: "Listes fran\xE7aises",
+      prospectCleanupUnsubscribed: "D\xE9sabonn\xE9",
+      prospectCleanupReason_hard_bounce: "Rejet d\xE9finitif",
+      prospectCleanupReason_spam_report: "Signalement comme spam",
+      prospectCleanupReason_invalid_recipient: "Adresse confirm\xE9e invalide",
       prospectNoLists: "Aucune liste de prospects import\xE9e.",
       prospectTotal: "Contacts",
       prospectInvitable: "\xC9ligibles \xE0 l'invitation",
@@ -17295,6 +17319,7 @@
     const [eventVoucherContactsLoading, setEventVoucherContactsLoading] = (0, import_react21.useState)(false);
     const [eventVoucherContactSearch, setEventVoucherContactSearch] = (0, import_react21.useState)("");
     const [prospectLists, setProspectLists] = (0, import_react21.useState)([]);
+    const [prospectCleanup, setProspectCleanup] = (0, import_react21.useState)({ contacts: [], totalContacts: 0, totalMemberships: 0 });
     const [prospectCsvFile, setProspectCsvFile] = (0, import_react21.useState)(null);
     const [prospectListName, setProspectListName] = (0, import_react21.useState)("");
     const [prospectB2bConfirmed, setProspectB2bConfirmed] = (0, import_react21.useState)(false);
@@ -18373,12 +18398,13 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
       setEventVoucherContactsLoading(isFranceVisible);
       try {
         const market = selectedMarketTab || "all";
-        const [segmentsRes, campaignsRes, recoveryRes, contactsRes, prospectListsRes] = await Promise.all([
+        const [segmentsRes, campaignsRes, recoveryRes, contactsRes, prospectListsRes, prospectCleanupRes] = await Promise.all([
           fetch(`/admin/api/marketing/segments?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } }),
           fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } }),
           fetch(`/admin/api/marketing/campaigns/recovery?market=${encodeURIComponent(market)}`, { headers: { "Authorization": `Bearer ${token}` } }),
           isFranceVisible ? fetch("/admin/api/marketing/event-voucher-contacts?campaign=chef-event-fr", { headers: { "Authorization": `Bearer ${token}` } }) : Promise.resolve(null),
-          isFranceVisible ? fetch("/admin/api/marketing/prospects/lists?market=fr", { headers: { "Authorization": `Bearer ${token}` } }) : Promise.resolve(null)
+          isFranceVisible ? fetch("/admin/api/marketing/prospects/lists?market=fr", { headers: { "Authorization": `Bearer ${token}` } }) : Promise.resolve(null),
+          isFranceVisible ? fetch("/admin/api/marketing/prospects/suppressed-memberships", { headers: { "Authorization": `Bearer ${token}` } }) : Promise.resolve(null)
         ]);
         if (segmentsRes.ok) setMarketingSegments(await segmentsRes.json());
         if (campaignsRes.ok) setMarketingCampaigns(await campaignsRes.json());
@@ -18392,6 +18418,8 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         }
         if (prospectListsRes?.ok) setProspectLists(await prospectListsRes.json());
         else if (!isFranceVisible) setProspectLists([]);
+        if (prospectCleanupRes?.ok) setProspectCleanup(await prospectCleanupRes.json());
+        else if (!isFranceVisible) setProspectCleanup({ contacts: [], totalContacts: 0, totalMemberships: 0 });
       } catch (err) {
         console.error("Error fetching marketing data:", err);
         alert(t2("marketing.loadFailed"));
@@ -18458,22 +18486,24 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         setProspectBusy(false);
       }
     };
-    const removeUnsubscribedProspectsFromLists = async () => {
-      const unsubscribedMemberships = prospectLists.reduce((total, list) => total + (list.unsubscribed || 0), 0);
-      if (!unsubscribedMemberships) return;
-      if (!window.confirm(t2("marketing.prospectRemoveUnsubscribedConfirm", { count: unsubscribedMemberships }))) return;
+    const removeSuppressedProspectsFromLists = async () => {
+      if (!prospectCleanup.totalMemberships) return;
+      if (!window.confirm(t2("marketing.prospectCleanupConfirm", {
+        contacts: prospectCleanup.totalContacts,
+        memberships: prospectCleanup.totalMemberships
+      }))) return;
       setProspectBusy(true);
       try {
-        const res = await fetch("/admin/api/marketing/prospects/unsubscribed-memberships", {
+        const res = await fetch("/admin/api/marketing/prospects/suppressed-memberships", {
           method: "DELETE",
           headers: { "Authorization": `Bearer ${token}` }
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || t2("marketing.prospectRemoveUnsubscribedFailed"));
-        alert(t2("marketing.prospectRemoveUnsubscribedDone", { count: data.removedMemberships || 0 }));
+        if (!res.ok) throw new Error(data.message || t2("marketing.prospectCleanupFailed"));
+        alert(t2("marketing.prospectCleanupDone", { count: data.removedMemberships || 0 }));
         await fetchMarketing();
       } catch (err) {
-        alert(`\u274C ${err.message}`);
+        alert(`\u274C ${err.message || t2("marketing.prospectCleanupFailed")}`);
       } finally {
         setProspectBusy(false);
       }
@@ -23020,16 +23050,40 @@ This action cannot be undone.`)) {
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "18px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { style: { fontSize: "13px", color: "#41375b" }, children: t2("marketing.prospectSavedLists") }),
-                  prospectLists.some((list) => list.unsubscribed > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                  prospectCleanup.totalMemberships > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                     "button",
                     {
                       type: "button",
-                      onClick: removeUnsubscribedProspectsFromLists,
+                      onClick: removeSuppressedProspectsFromLists,
                       disabled: prospectBusy,
                       style: { background: "#9f2d2d", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: prospectBusy ? "wait" : "pointer", fontSize: "12px" },
-                      children: t2("marketing.prospectRemoveUnsubscribedButton")
+                      children: t2("marketing.prospectCleanupButton", { contacts: prospectCleanup.totalContacts, memberships: prospectCleanup.totalMemberships })
                     }
                   )
+                ] }),
+                prospectCleanup.contacts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "10px", border: "1px solid #f0caca", borderRadius: "6px", padding: "10px", background: "#fffafa" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "12px", color: "#6b3030", margin: "0 0 8px" }, children: t2("marketing.prospectCleanupReview", {
+                    contacts: prospectCleanup.totalContacts,
+                    memberships: prospectCleanup.totalMemberships
+                  }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { maxHeight: "240px", overflow: "auto" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "12px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { style: { background: "#fce8e8" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left" }, children: t2("marketing.prospectCleanupContact") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left" }, children: t2("marketing.prospectCleanupReason") }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "7px", textAlign: "left" }, children: t2("marketing.prospectCleanupLists") })
+                    ] }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("tbody", { children: prospectCleanup.contacts.map((contact) => /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { style: { borderTop: "1px solid #f3dddd" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("td", { style: { padding: "7px" }, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: contact.email }),
+                        contact.restaurantName && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { color: "#64748b", marginTop: "2px" }, children: contact.restaurantName })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("td", { style: { padding: "7px" }, children: [
+                        contact.unsubscribed && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { children: t2("marketing.prospectCleanupUnsubscribed") }),
+                        contact.emailSuppressionReason && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { children: t2(`marketing.prospectCleanupReason_${contact.emailSuppressionReason}`, { defaultValue: contact.emailSuppressionReason }) })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("td", { style: { padding: "7px" }, children: contact.listNames.join(", ") })
+                    ] }, contact.id)) })
+                  ] }) })
                 ] }),
                 marketingLoading ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "13px", color: "#6c757d" }, children: t2("marketing.loading") }) : prospectLists.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "13px", color: "#6c757d" }, children: t2("marketing.prospectNoLists") }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { overflowX: "auto", marginTop: "8px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "12px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { style: { background: "#ede7f6" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [

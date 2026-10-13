@@ -14,6 +14,7 @@ import { db } from "./db";
 import type { ProspectCsvRow } from "./prospect-csv";
 import { EVENT_VOUCHER_ACTIVATION_DAYS, EVENT_VOUCHER_CAMPAIGN_SLUG } from "./event-voucher";
 import { addDays } from "./voucher-validity";
+import { PROSPECT_CLEANUP_SUPPRESSION_REASONS } from "./marketing-campaign-delivery-policy";
 import {
   attachVoucherToMarketingClient,
   createOrFindMarketingClientAccount,
@@ -30,6 +31,30 @@ export type ProspectListSummary = Pick<
   unsubscribed: number;
   suppressed: number;
 };
+
+export type ProspectMembershipCleanupContact = {
+  id: number;
+  email: string;
+  restaurantName: string | null;
+  unsubscribed: boolean;
+  emailSuppressionReason: string | null;
+  listNames: string[];
+  membershipCount: number;
+};
+
+function prospectMembershipCleanupFilter(market: string) {
+  return and(
+    eq(marketingProspects.market, market),
+    or(
+      eq(marketingProspects.subscriptionStatus, "unsubscribed"),
+      isNotNull(marketingProspects.unsubscribedAt),
+      and(
+        isNotNull(marketingProspects.emailSuppressedAt),
+        inArray(marketingProspects.emailSuppressionReason, [...PROSPECT_CLEANUP_SUPPRESSION_REASONS]),
+      ),
+    ),
+  );
+}
 
 export async function listProspectLists(market = "fr"): Promise<ProspectListSummary[]> {
   const rows = await db.select({
@@ -81,18 +106,57 @@ export async function listProspectLists(market = "fr"): Promise<ProspectListSumm
   }));
 }
 
-export async function removeUnsubscribedProspectsFromLists(market = "fr"): Promise<number> {
-  const unsubscribedProspects = db.select({ id: marketingProspects.id })
-    .from(marketingProspects)
+export async function listProspectMembershipsForCleanup(
+  market = "fr",
+): Promise<ProspectMembershipCleanupContact[]> {
+  const rows = await db.select({
+    id: marketingProspects.id,
+    email: marketingProspects.email,
+    restaurantName: marketingProspects.restaurantName,
+    unsubscribed: sql<boolean>`(
+      ${marketingProspects.subscriptionStatus} = 'unsubscribed'
+      or ${marketingProspects.unsubscribedAt} is not null
+    )`,
+    emailSuppressionReason: marketingProspects.emailSuppressionReason,
+    listNames: sql<string[]>`array_agg(${marketingProspectLists.name} order by ${marketingProspectLists.name})`,
+    membershipCount: sql<number>`count(*)::int`,
+  })
+    .from(marketingProspectListContacts)
+    .innerJoin(
+      marketingProspects,
+      eq(marketingProspectListContacts.prospectId, marketingProspects.id),
+    )
+    .innerJoin(
+      marketingProspectLists,
+      eq(marketingProspectListContacts.listId, marketingProspectLists.id),
+    )
     .where(and(
-      eq(marketingProspects.market, market),
-      or(
-        eq(marketingProspects.subscriptionStatus, "unsubscribed"),
-        isNotNull(marketingProspects.unsubscribedAt),
-      ),
-    ));
+      prospectMembershipCleanupFilter(market),
+      eq(marketingProspectLists.market, market),
+    ))
+    .groupBy(marketingProspects.id)
+    .orderBy(marketingProspects.email);
+
+  return rows.map((row) => ({
+    ...row,
+    unsubscribed: Boolean(row.unsubscribed),
+    listNames: row.listNames || [],
+    membershipCount: Number(row.membershipCount || 0),
+  }));
+}
+
+export async function removeSuppressedProspectsFromLists(market = "fr"): Promise<number> {
+  const cleanupProspects = db.select({ id: marketingProspects.id })
+    .from(marketingProspects)
+    .where(prospectMembershipCleanupFilter(market));
+  const marketLists = db.select({ id: marketingProspectLists.id })
+    .from(marketingProspectLists)
+    .where(eq(marketingProspectLists.market, market));
   const removed = await db.delete(marketingProspectListContacts)
-    .where(inArray(marketingProspectListContacts.prospectId, unsubscribedProspects))
+    .where(and(
+      inArray(marketingProspectListContacts.prospectId, cleanupProspects),
+      inArray(marketingProspectListContacts.listId, marketLists),
+    ))
     .returning({ prospectId: marketingProspectListContacts.prospectId });
   return removed.length;
 }

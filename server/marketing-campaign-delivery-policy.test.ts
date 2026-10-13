@@ -5,6 +5,7 @@ import {
   extractCampaignEventCorrelation,
   normalizeSendGridEvent,
   nextDeliveryStatus,
+  PROSPECT_CLEANUP_SUPPRESSION_REASONS,
   shouldSuppressDroppedProspect,
   splitIntoBatches,
   verifySendGridEventSignature,
@@ -58,6 +59,17 @@ test("SendGrid blocked events remain temporary and machine opens are identified"
     storedEventType: "click",
     deliveryEventName: "click",
   });
+  const cleanupReasons: readonly string[] = PROSPECT_CLEANUP_SUPPRESSION_REASONS;
+  assert.equal(cleanupReasons.includes("deferred"), false);
+  assert.equal(cleanupReasons.includes("sendgrid_dropped"), false);
+});
+
+test("only confirmed permanent address failures are removed from prospect lists", () => {
+  assert.deepEqual(PROSPECT_CLEANUP_SUPPRESSION_REASONS, [
+    "hard_bounce",
+    "spam_report",
+    "invalid_recipient",
+  ]);
 });
 
 test("only permanent address-related SendGrid drops are eligible for suppression", () => {

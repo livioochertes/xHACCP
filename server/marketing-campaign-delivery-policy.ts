@@ -1,6 +1,11 @@
 import { createPublicKey, verify as verifySignature } from "node:crypto";
 
 export const MARKETING_CAMPAIGN_BATCH_SIZE = 500;
+export const PROSPECT_CLEANUP_SUPPRESSION_REASONS = [
+  "hard_bounce",
+  "spam_report",
+  "invalid_recipient",
+] as const;
 
 export type MarketingCampaignDeliveryStatus =
   | "queued"

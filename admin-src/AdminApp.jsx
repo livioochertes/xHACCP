@@ -584,6 +584,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
       const [eventVoucherContactsLoading, setEventVoucherContactsLoading] = useState(false);
       const [eventVoucherContactSearch, setEventVoucherContactSearch] = useState('');
       const [prospectLists, setProspectLists] = useState([]);
+      const [prospectCleanup, setProspectCleanup] = useState({ contacts: [], totalContacts: 0, totalMemberships: 0 });
       const [prospectCsvFile, setProspectCsvFile] = useState(null);
       const [prospectListName, setProspectListName] = useState('');
       const [prospectB2bConfirmed, setProspectB2bConfirmed] = useState(false);
@@ -1776,7 +1777,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         setEventVoucherContactsLoading(isFranceVisible);
         try {
           const market = selectedMarketTab || 'all';
-          const [segmentsRes, campaignsRes, recoveryRes, contactsRes, prospectListsRes] = await Promise.all([
+          const [segmentsRes, campaignsRes, recoveryRes, contactsRes, prospectListsRes, prospectCleanupRes] = await Promise.all([
             fetch(`/admin/api/marketing/segments?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
             fetch(`/admin/api/marketing/campaigns?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
             fetch(`/admin/api/marketing/campaigns/recovery?market=${encodeURIComponent(market)}`, { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -1785,6 +1786,9 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
               : Promise.resolve(null),
             isFranceVisible
               ? fetch('/admin/api/marketing/prospects/lists?market=fr', { headers: { 'Authorization': `Bearer ${token}` } })
+              : Promise.resolve(null),
+            isFranceVisible
+              ? fetch('/admin/api/marketing/prospects/suppressed-memberships', { headers: { 'Authorization': `Bearer ${token}` } })
               : Promise.resolve(null)
           ]);
           if (segmentsRes.ok) setMarketingSegments(await segmentsRes.json());
@@ -1799,6 +1803,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
           }
           if (prospectListsRes?.ok) setProspectLists(await prospectListsRes.json());
           else if (!isFranceVisible) setProspectLists([]);
+          if (prospectCleanupRes?.ok) setProspectCleanup(await prospectCleanupRes.json());
+          else if (!isFranceVisible) setProspectCleanup({ contacts: [], totalContacts: 0, totalMemberships: 0 });
         } catch (err) {
           console.error('Error fetching marketing data:', err);
           alert(t('marketing.loadFailed'));
@@ -1868,22 +1874,24 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         }
       };
 
-      const removeUnsubscribedProspectsFromLists = async () => {
-        const unsubscribedMemberships = prospectLists.reduce((total, list) => total + (list.unsubscribed || 0), 0);
-        if (!unsubscribedMemberships) return;
-        if (!window.confirm(t('marketing.prospectRemoveUnsubscribedConfirm', { count: unsubscribedMemberships }))) return;
+      const removeSuppressedProspectsFromLists = async () => {
+        if (!prospectCleanup.totalMemberships) return;
+        if (!window.confirm(t('marketing.prospectCleanupConfirm', {
+          contacts: prospectCleanup.totalContacts,
+          memberships: prospectCleanup.totalMemberships
+        }))) return;
         setProspectBusy(true);
         try {
-          const res = await fetch('/admin/api/marketing/prospects/unsubscribed-memberships', {
+          const res = await fetch('/admin/api/marketing/prospects/suppressed-memberships', {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.message || t('marketing.prospectRemoveUnsubscribedFailed'));
-          alert(t('marketing.prospectRemoveUnsubscribedDone', { count: data.removedMemberships || 0 }));
+          if (!res.ok) throw new Error(data.message || t('marketing.prospectCleanupFailed'));
+          alert(t('marketing.prospectCleanupDone', { count: data.removedMemberships || 0 }));
           await fetchMarketing();
         } catch (err) {
-          alert(`❌ ${err.message}`);
+          alert(`❌ ${err.message || t('marketing.prospectCleanupFailed')}`);
         } finally {
           setProspectBusy(false);
         }
@@ -6407,15 +6415,49 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                     <div style={{marginTop: '18px'}}>
                       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap'}}>
                         <strong style={{fontSize: '13px', color: '#41375b'}}>{t('marketing.prospectSavedLists')}</strong>
-                        {prospectLists.some(list => list.unsubscribed > 0) && (
+                        {prospectCleanup.totalMemberships > 0 && (
                           <button
                             type="button"
-                            onClick={removeUnsubscribedProspectsFromLists}
+                            onClick={removeSuppressedProspectsFromLists}
                             disabled={prospectBusy}
                             style={{background: '#9f2d2d', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: prospectBusy ? 'wait' : 'pointer', fontSize: '12px'}}
-                          >{t('marketing.prospectRemoveUnsubscribedButton')}</button>
+                          >{t('marketing.prospectCleanupButton', { contacts: prospectCleanup.totalContacts, memberships: prospectCleanup.totalMemberships })}</button>
                         )}
                       </div>
+                      {prospectCleanup.contacts.length > 0 && (
+                        <div style={{marginTop: '10px', border: '1px solid #f0caca', borderRadius: '6px', padding: '10px', background: '#fffafa'}}>
+                          <p style={{fontSize: '12px', color: '#6b3030', margin: '0 0 8px'}}>
+                            {t('marketing.prospectCleanupReview', {
+                              contacts: prospectCleanup.totalContacts,
+                              memberships: prospectCleanup.totalMemberships
+                            })}
+                          </p>
+                          <div style={{maxHeight: '240px', overflow: 'auto'}}>
+                            <table style={{width: '100%', borderCollapse: 'collapse', background: 'white', fontSize: '12px'}}>
+                              <thead style={{background: '#fce8e8'}}><tr>
+                                <th style={{padding: '7px', textAlign: 'left'}}>{t('marketing.prospectCleanupContact')}</th>
+                                <th style={{padding: '7px', textAlign: 'left'}}>{t('marketing.prospectCleanupReason')}</th>
+                                <th style={{padding: '7px', textAlign: 'left'}}>{t('marketing.prospectCleanupLists')}</th>
+                              </tr></thead>
+                              <tbody>{prospectCleanup.contacts.map(contact => (
+                                <tr key={contact.id} style={{borderTop: '1px solid #f3dddd'}}>
+                                  <td style={{padding: '7px'}}>
+                                    <strong>{contact.email}</strong>
+                                    {contact.restaurantName && <div style={{color: '#64748b', marginTop: '2px'}}>{contact.restaurantName}</div>}
+                                  </td>
+                                  <td style={{padding: '7px'}}>
+                                    {contact.unsubscribed && <div>{t('marketing.prospectCleanupUnsubscribed')}</div>}
+                                    {contact.emailSuppressionReason && (
+                                      <div>{t(`marketing.prospectCleanupReason_${contact.emailSuppressionReason}`, { defaultValue: contact.emailSuppressionReason })}</div>
+                                    )}
+                                  </td>
+                                  <td style={{padding: '7px'}}>{contact.listNames.join(', ')}</td>
+                                </tr>
+                              ))}</tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
                       {marketingLoading ? <p style={{fontSize: '13px', color: '#6c757d'}}>{t('marketing.loading')}</p> : prospectLists.length === 0 ? (
                         <p style={{fontSize: '13px', color: '#6c757d'}}>{t('marketing.prospectNoLists')}</p>
                       ) : (
