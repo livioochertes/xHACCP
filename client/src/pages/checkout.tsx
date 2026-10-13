@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { FaCcAmex, FaCcMastercard, FaCcVisa } from "react-icons/fa";
+import { SiStripe } from "react-icons/si";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -1930,13 +1932,22 @@ export default function Checkout() {
                                       <RadioGroupItem value="stripe" id="stripe" />
                                       <Label htmlFor="stripe" className="flex-1 cursor-pointer">
                                         <div className="flex items-center gap-3">
-                                          <CreditCard className="h-7 w-7 text-[#635bff]" />
-                                          <span className="font-medium">Stripe · {isFrenchMarket ? "Carte bancaire" : market === "ro" ? "Plată cu cardul" : "Card payment"}</span>
+                                          <SiStripe aria-hidden="true" className="h-7 w-7 shrink-0 text-[#635bff]" />
+                                          <span className="font-medium"><span className="font-semibold text-[#635bff]">Stripe</span> · {isFrenchMarket ? "Carte bancaire" : market === "ro" ? "Plată cu cardul" : "Card payment"}</span>
                                           <Badge variant="secondary" className="text-xs">{t('checkout.recommended')}</Badge>
                                         </div>
-                                        <div className="flex items-center gap-1.5 mt-2">
-                                          <span className="text-xs text-muted-foreground">{t('checkout.poweredBy')}</span>
-                                          <span className="text-xs font-semibold text-[#635bff]">Stripe</span>
+                                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                          <div className="flex items-center gap-1.5" aria-label="Visa, Mastercard and American Express cards">
+                                            <FaCcVisa title="Visa" aria-hidden="true" className="h-6 w-8 text-[#1434CB]" />
+                                            <FaCcMastercard title="Mastercard" aria-hidden="true" className="h-6 w-8 text-[#EB001B]" />
+                                            <FaCcAmex title="American Express" aria-hidden="true" className="h-6 w-8 text-[#006FCF]" />
+                                            <span className="sr-only">Visa, Mastercard, American Express</span>
+                                          </div>
+                                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                            {t('checkout.poweredBy')}
+                                            <SiStripe aria-hidden="true" className="h-4 w-4 text-[#635bff]" />
+                                            <span className="font-semibold text-[#635bff]">Stripe</span>
+                                          </span>
                                         </div>
                                       </Label>
                                     </div>

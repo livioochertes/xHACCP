@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
+import { SiStripe } from "react-icons/si";
 import {
   CardCvcElement,
   CardExpiryElement,
@@ -234,8 +235,8 @@ export default function StripePayment(props: StripePaymentProps) {
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#635bff] text-sm font-bold text-white">S</span>
-          Stripe · credit or debit card
+          <SiStripe aria-hidden="true" className="h-7 w-7 text-[#635bff]" />
+          <span><span className="font-semibold text-[#635bff]">Stripe</span> · {props.market === "fr" ? "Carte bancaire" : props.market === "ro" ? "Plată cu cardul" : "Credit or debit card"}</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
