@@ -22,8 +22,8 @@ export function classifyPaymentResponse(input: {
       ...base,
       status: "error",
       httpStatus: input.providerHttpStatus ?? input.httpStatus,
-      responseType: input.responseType,
-      reference: input.reference,
+      ...(input.responseType === undefined ? {} : { responseType: input.responseType }),
+      ...(input.reference === undefined ? {} : { reference: input.reference }),
       code: input.code || `PAYMENT_${stage.toUpperCase()}_FAILED`,
     };
   }

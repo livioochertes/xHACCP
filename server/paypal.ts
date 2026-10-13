@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { summarizePaymentAuthFailure } from "./payment-auth-diagnostics";
+import { summarizePaymentProviderFailure } from "./payment-auth-diagnostics";
 import { observePayment } from "./payment-health";
 
 const PAYPAL_API = "https://api-m.paypal.com";
@@ -403,7 +403,7 @@ async function accessToken(): Promise<string> {
     throw error;
   }
   if (!response.ok) {
-    const diagnostic = summarizePaymentAuthFailure(
+    const diagnostic = summarizePaymentProviderFailure(
       response.status,
       response.headers.get("content-type") || "",
       await response.text(),
