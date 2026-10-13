@@ -78,6 +78,7 @@ import {
   createAuthenticateAdmin,
 } from "./admin-auth";
 import { registerAdminAccountManagementRoutes } from "./admin-account-management-routes";
+import { registerPaymentHealthAdminRoutes } from "./payment-health-admin-routes";
 import { registerProductSeoAdminRoutes } from "./product-seo-admin-routes";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
@@ -793,6 +794,7 @@ async function performSupplierSync(supplier: any, order: any, action: string) {
 }
 
 export async function registerAdminRoutes(app: Express) {
+  registerPaymentHealthAdminRoutes(app, authenticateAdmin);
   registerAdminAccountManagementRoutes(app, {
     authenticateAdmin,
     listAdminAccounts: async ({ isSuperAdmin, adminId }) => db.select({

@@ -1,4 +1,5 @@
 import { MailService } from '@sendgrid/mail';
+import { nonEmptyEmailContent } from './email-content';
 import type { OrderWithItems, User } from '../shared/schema';
 import { getOrderTaxSummary } from '../shared/market-pricing.js';
 import {
@@ -93,6 +94,9 @@ export type EmailSendOutcome =
   | { status: "unknown"; reason: string };
 
 export async function sendEmailWithOutcome(params: EmailParams): Promise<EmailSendOutcome> {
+  if (!params.text && !params.html) {
+    return { status: "rejected", retryable: false, reason: "missing_email_content" };
+  }
   if (!mailService) {
     console.warn("Email service not configured. Skipping email send.");
     return { status: "rejected", retryable: false, reason: "email_service_unavailable" };
@@ -107,8 +111,7 @@ export async function sendEmailWithOutcome(params: EmailParams): Promise<EmailSe
     const emailData: any = {
       from: params.from,
       subject: params.subject,
-      text: params.text || '',
-      html: params.html || '',
+      ...nonEmptyEmailContent(params.text, params.html),
     };
 
     if (params.customArgs) {
@@ -143,7 +146,7 @@ export async function sendEmailWithOutcome(params: EmailParams): Promise<EmailSe
     }
     return { status: "accepted" };
   } catch (error: any) {
-    const statusCode = Number(error?.response?.statusCode || error?.statusCode || 0);
+    const statusCode = Number(error?.response?.statusCode || error?.response?.status || error?.statusCode || error?.code || 0) || 0;
     const providerErrors = Array.isArray(error?.response?.body?.errors)
       ? error.response.body.errors.map((item: any) => String(item?.message || "")).join(" ").toLowerCase()
       : "";

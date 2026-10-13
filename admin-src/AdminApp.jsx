@@ -7,6 +7,7 @@ import AdminNavigation from "./AdminNavigation.jsx";
 import AIRecommendationCampaigns from "./AIRecommendationCampaigns.jsx";
 import AdminReports from "./AdminReports.jsx";
 import AdminTwoFactorSettings from "./AdminTwoFactorSettings.jsx";
+import PaymentHealth from "./PaymentHealth.jsx";
 import { defaultPriceDisplayMode, resolveMarketPricePair } from "../shared/market-pricing";
 import {
   broadcastCategoryTranslationUpdate,
@@ -3669,6 +3670,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
       
       const renderContent = () => {
         switch (activeView) {
+          case 'payment-health':
+            return <PaymentHealth token={token} market={selectedMarketTab} locale={i18n.language} t={t} />;
           case 'admin-accounts':
             return (
               <AdminTwoFactorSettings

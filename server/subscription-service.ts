@@ -3,6 +3,7 @@ import { db } from "./db";
 import { products, subscriptions, subscriptionPayments, orders, orderItems } from "@shared/schema";
 import { storage } from "./storage";
 import { getVivaCredentials, getVivaCurrency, type VivaMarket } from "./viva-config";
+import { getVivaAccessToken } from "./viva-auth";
 
 export { type VivaMarket };
 
@@ -18,25 +19,7 @@ export function getSubscriptionMarketConfig(market: VivaMarket) {
 }
 
 async function getAccessToken(market: VivaMarket) {
-  const credentials = getSubscriptionMarketConfig(market).credentials;
-  if (!credentials.clientId || !credentials.clientSecret) {
-    throw new Error(`Viva ${market} recurring credentials are not configured`);
-  }
-  const response = await fetch("https://accounts.vivapayments.com/connect/token", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: `Basic ${Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString("base64")}`,
-    },
-    body: new URLSearchParams({ grant_type: "client_credentials" }).toString(),
-  });
-  if (!response.ok) {
-    throw new Error(`Viva recurring authentication failed: ${response.status}`);
-  }
-  const data = await response.json() as { access_token?: string };
-  if (!data.access_token) throw new Error("Viva recurring authentication returned no token");
-  return data.access_token;
+  return getVivaAccessToken(market, "subscription-renewal");
 }
 
 export function addOneMonth(value: Date) {

@@ -19,6 +19,7 @@ import {
   Truck,
   UsersRound,
   Image as ImageIcon,
+  CircleDollarSign,
   X,
 } from 'lucide-react';
 
@@ -70,6 +71,7 @@ const navGroups = [
       { id: 'admin-accounts', labelKey: 'nav.adminAccounts', icon: ShieldCheck },
       { id: 'company-settings', labelKey: 'nav.companySettings', icon: Settings2 },
       { id: 'wms', labelKey: 'nav.wms', icon: Truck },
+      { id: 'payment-health', labelKey: 'nav.paymentHealth', icon: CircleDollarSign },
     ],
   },
 ];

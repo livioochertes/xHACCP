@@ -10,6 +10,8 @@ import { registerProspectMarketingAdminRoutes } from "./prospect-marketing-admin
 import { registerProspectMarketingPublicRoutes } from "./prospect-marketing-public-routes";
 import { registerEventVoucherPublicRoutes } from "./event-voucher-public-routes";
 import { registerCustomerPasswordSetupRoutes } from "./customer-password-setup-routes";
+import { createPaymentHealthMiddleware } from "./payment-health-middleware";
+import { startPaymentHealthNotifications } from "./payment-health";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase, seedCategoryTranslations, seedMarketSettings } from "./sample-data";
 import { loadAllDataIntoMemory } from "./routes";
@@ -156,6 +158,7 @@ app.use((req, res, next) => {
   registerProspectMarketingPublicRoutes(app);
   registerCustomerPasswordSetupRoutes(app);
   
+  app.use(createPaymentHealthMiddleware());
   const server = await registerRoutes(app);
 
   startMarketingCampaignDeliveryWorker();
@@ -168,6 +171,7 @@ app.use((req, res, next) => {
   startCartReminderScheduler();
   startSubscriptionScheduler();
   startPaymentExpiryScheduler();
+  startPaymentHealthNotifications();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

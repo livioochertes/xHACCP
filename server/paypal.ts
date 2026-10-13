@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import { summarizePaymentAuthFailure } from "./payment-auth-diagnostics";
+import { observePayment } from "./payment-health";
 
 const PAYPAL_API = "https://api-m.paypal.com";
 
@@ -377,8 +379,16 @@ function credentials() {
 }
 
 async function accessToken(): Promise<string> {
-  const { clientId, clientSecret } = credentials();
-  const response = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
+  let clientId: string, clientSecret: string;
+  try {
+    ({ clientId, clientSecret } = credentials());
+  } catch (error) {
+    await observePayment({ provider: "paypal", market: "fr", stage: "auth", status: "error", code: "PAYPAL_AUTH_CONFIGURATION" });
+    throw error;
+  }
+  let response: Response;
+  try {
+    response = await fetch(`${PAYPAL_API}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -386,11 +396,40 @@ async function accessToken(): Promise<string> {
       Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
     },
     body: "grant_type=client_credentials",
-  });
-  if (!response.ok) throw new Error("PayPal authentication failed");
-  const body = await response.json() as { access_token?: string };
-  if (!body.access_token) throw new Error("PayPal authentication returned no access token");
+    signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    await observePayment({ provider: "paypal", market: "fr", stage: "auth", status: "error", code: "PAYPAL_AUTH_NETWORK_FAILURE" });
+    throw error;
+  }
+  if (!response.ok) {
+    const diagnostic = summarizePaymentAuthFailure(
+      response.status,
+      response.headers.get("content-type") || "",
+      await response.text(),
+    );
+    console.error("[PayPal OAuth] token request failed:", JSON.stringify(diagnostic));
+    await observePayment({
+      provider: "paypal", market: "fr", stage: "auth", status: "error",
+      code: `PAYPAL_AUTH_${(diagnostic.oauthError || diagnostic.kind).toUpperCase()}`,
+      httpStatus: response.status, responseType: diagnostic.responseType, reference: diagnostic.edgeReference,
+    });
+    throw new Error(`PayPal authentication failed: ${response.status} (${diagnostic.kind})`);
+  }
+  let body: { access_token?: string };
+  try {
+    body = await response.json();
+    if (typeof body.access_token !== "string" || !body.access_token) throw new Error("PayPal authentication returned no access token");
+  } catch (error) {
+    await observePayment({ provider: "paypal", market: "fr", stage: "auth", status: "error", code: "PAYPAL_AUTH_INVALID_RESPONSE", httpStatus: response.status });
+    throw error;
+  }
+  await observePayment({ provider: "paypal", market: "fr", stage: "auth", status: "ok", httpStatus: response.status });
   return body.access_token;
+}
+
+export async function checkPayPalAuthentication(): Promise<void> {
+  await accessToken();
 }
 
 async function paypalRequest<T>(path: string, init: RequestInit, requestId: string): Promise<T> {
@@ -430,9 +469,10 @@ export async function verifyPayPalWebhook(input: {
   return result.verification_status === "SUCCESS";
 }
 
-export async function createPayPalOrder(input: PayPalCreateOrderInput): Promise<PayPalOrder> {
-  return paypalRequest<PayPalOrder>("/v2/checkout/orders", {
+export function buildPayPalCreateRequest(input: PayPalCreateOrderInput): RequestInit {
+  return {
     method: "POST",
+    headers: { Prefer: "return=representation" },
     body: JSON.stringify({
       intent: "CAPTURE",
       purchase_units: [{
@@ -448,7 +488,32 @@ export async function createPayPalOrder(input: PayPalCreateOrderInput): Promise<
         cancel_url: input.cancelUrl,
       },
     }),
-  }, input.requestId);
+  };
+}
+
+export async function createPayPalOrder(input: PayPalCreateOrderInput): Promise<PayPalOrder> {
+  return paypalRequest<PayPalOrder>("/v2/checkout/orders", buildPayPalCreateRequest(input), input.requestId);
+}
+
+/** Old idempotent create responses may still be minimal; read, never recreate, the order. */
+export async function completePayPalOrder(
+  order: PayPalOrder,
+  requestId: string,
+  lookup: typeof getPayPalOrder = getPayPalOrder,
+): Promise<PayPalOrder> {
+  const unit = order.purchase_units?.[0];
+  if (typeof unit?.custom_id === "string" && typeof unit.invoice_id === "string" &&
+      typeof unit.amount?.currency_code === "string" && typeof unit.amount.value === "string") {
+    return order;
+  }
+  if (typeof order.id !== "string" || !order.id) {
+    throw new Error("PayPal returned no order ID");
+  }
+  const fullOrder = await lookup(order.id, requestId);
+  if (fullOrder.id !== order.id) {
+    throw new Error("PayPal order lookup returned a different order ID");
+  }
+  return fullOrder;
 }
 
 function isAmbiguousPayPalCreateError(error: unknown) {

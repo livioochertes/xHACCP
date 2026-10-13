@@ -1,4 +1,6 @@
 - [SPA routes must pass through Vite in dev](spa-vite-dev-routing.md) — in dev, all HTML must go through Vite's transformIndexHtml or React preamble is missing and app is blank.
+- [Payment credential debugging](payment-credential-debugging.md) — user verified existing payment secrets; do not request re-entry unless explicitly asked to update them.
+- [Payment health monitoring](payment-health-monitoring.md) — passive real-error alerts and admin history only; daily synthetic testing requires a new request.
 - [Localized product routing](localized-slugs.md) — when Wouter observes a slug replacement, seed the new product-query cache first to avoid a duplicate fetch.
 - [Admin i18n Architecture](admin-i18n-architecture.md) — react-i18next in admin-src/; rebuild with `node admin-src/build.js`; source recovered from git history.
 - [Admin navigation grouping](admin-navigation-grouping.md) — keep WMS under Administration for PAI-to-WMS settings; the marketplace selector remains separate.
@@ -6,6 +8,7 @@
 - [Volume discount must be applied server-side](volume-discount-server-side.md) — backend recalculates prices from DB for security; must also call applyVolumeDiscount() or volume-tier prices are ignored in emails/Viva.
 - [SendGrid sender by market](sendgrid-sender-by-market.md) — French-market email must use the verified info@xhaccp.fr sender; RO/COM retain the default identity.
 - [SendGrid Email Logs recovery](sendgrid-email-logs-recovery.md) — historical results are available for up to 30 days; searches cap at 1,000 messages and require per-message details.
+- [SendGrid content parts](sendgrid-content-parts.md) — omit absent text/HTML parts; empty content can make operational alerts fail with HTTP 400.
 - [Marketplace product removal](marketplace-product-removal.md) — market removal preserves shared data; global deletion transactionally removes SEO translations while historical orders stay protected.
 - [Market price and shipping basis](market-price-preservation.md) — payment summaries use net products/shipping plus VAT; service products are excluded from shipping.
 - [Composite product invariants](composite-product-invariants.md) — components require an explicit same-market row; marketplace currency is authoritative and order configurations are immutable snapshots.
@@ -39,6 +42,7 @@
 - [MyFlyingBox address contract](myflyingbox-address-contract.md) — French checkout uses ISO country codes and one official-code département field; Romanian county remains market-specific.
 - [PayPal capture recovery](paypal-capture-recovery.md) — direct PayPal payments need verified webhook reconciliation because a capture can succeed while the browser callback is lost.
 - [PayPal checkout attempt idempotency](paypal-checkout-attempt-idempotency.md) — retries must reuse one persisted local order and its stable PayPal request ID.
+- [PayPal order representation](paypal-order-representation.md) — create responses default to minimal; fetch missing details before validation without failing an existing checkout.
 - [Shared auth loading state](shared-auth-loading-state.md) — late subscribers must sync with global auth state or parent UI can remain in an endless loading state.
 - [WMS origin ownership](wms-origin-ownership.md) — logistics origins are market-scoped WMS data, not commercial company settings or environment fallbacks.
 - [Autoscale startup readiness](deployment-readiness.md) — bind the HTTP port before slow database warm-up so publishing health checks can pass.

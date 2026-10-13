@@ -22,6 +22,8 @@ import path from "path";
 import { createInvoiceService } from './invoice-service.js';
 import { sendNotificationPreferencesEmail, sendContactFormEmails } from './email-service.js';
 import { getMarketFromRequest, marketMatches } from "./market-routing.js";
+import { getVivaAccessToken } from "./viva-auth";
+import { observePayment } from "./payment-health";
 import { getVoucherValidityError } from "./voucher-validity.js";
 import { getVoucherOrderUserId, getVoucherOwnershipError } from "./voucher-ownership.js";
 import { registerSeoRoutes } from './seo-routes.js';
@@ -63,6 +65,7 @@ import {
 import { activateSubscriptionForOrder, cancelUserSubscription, listUserSubscriptions } from "./subscription-service";
 import {
   createPayPalOrderWithRecovery,
+  completePayPalOrder,
   getPayPalOrder,
   capturePayPalOrder,
   paypalApprovalUrl,
@@ -4073,39 +4076,6 @@ Always be helpful, professional, and focus on practical solutions. When recommen
 
   // ============ VIVA PAYMENTS INTEGRATION ============
 
-  // Helper: Get Viva OAuth2 access token
-  async function getVivaAccessToken(market: VivaMarket, requestId?: string): Promise<string> {
-    const credentials = getVivaCredentials(market);
-    const clientId = credentials.clientId?.trim();
-    const clientSecret = credentials.clientSecret?.trim();
-    
-    if (!clientId || !clientSecret) {
-      throw new Error(`Viva ${market} OAuth credentials not configured`);
-    }
-
-    const response = await fetch("https://accounts.vivapayments.com/connect/token", {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64"),
-      },
-      body: new URLSearchParams({ grant_type: "client_credentials" }).toString(),
-    });
-
-    if (!response.ok) {
-      const errorText = (await response.text()).replace(/\s+/g, " ").slice(0, 300);
-      console.error(`[Viva ${requestId || "unknown"}] OAuth error:`, response.status, errorText);
-      if (response.status === 403 && /<html|access denied/i.test(errorText)) {
-        throw new Error("Viva Production endpoint blocked the request: 403");
-      }
-      throw new Error(`Viva authentication failed: ${response.status}`);
-    }
-
-    const data = await response.json() as any;
-    return data.access_token;
-  }
-
   async function failVivaOrderOnlyIfProviderConfirms(
     order: { id: number; market: string | null; paymentMethod: string | null; paymentStatus: string; paymentProviderOrderId: string | null },
   ) {
@@ -4931,6 +4901,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
             throw error;
           }
         }
+        // A detail-read failure must not be classified as a rejected create:
+        // the remote order already exists and its voucher hold must remain pending.
+        paypalOrder = await completePayPalOrder(paypalOrder, requestId);
       } catch (error) {
         console.error(`[PayPal ${requestId}] order creation failed:`, error instanceof Error ? error.message : "unknown error");
         return res.status(502).json({ message: "PayPal payment could not be started" });
@@ -5023,6 +4996,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       return orderId ? res.redirect(`/merci?payment=paypal&orderId=${orderId}`) : failed();
     } catch (error) {
       console.error(`[PayPal ${requestId}] callback failed:`, error instanceof Error ? error.message : "unknown error");
+      res.locals.paymentHealthCallbackException = true;
       return failed();
     }
   });
@@ -5038,6 +5012,8 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       console.log(`Viva callback full query params:`, JSON.stringify(req.query));
 
       if (transactionId) {
+        // Redirect is only an acknowledgement; verification completes asynchronously.
+        res.locals.paymentHealthCallbackPending = true;
         res.redirect(`${resultPath}?payment=success`);
 
         (async () => {
@@ -5241,13 +5217,24 @@ Always be helpful, professional, and focus on practical solutions. When recommen
                 }
               } else {
                 console.error(`Viva callback: Could not extract orderId from merchantTrns: "${merchantTrns}"`);
+                await observePayment({ provider: "viva", market: callbackMarket, stage: "callback",
+                  status: "error", code: "VIVA_CALLBACK_ORDER_REFERENCE_MISSING" });
+              }
+              if (orderIdMatch) {
+                await observePayment({ provider: "viva", market: callbackMarket, stage: "callback", status: "ok", httpStatus: txResponse.status });
               }
             } else {
               const errorText = await txResponse.text();
               console.error(`Viva transaction verification failed: ${txResponse.status}`, errorText);
+              if (txResponse.status >= 500 || [401, 403, 429].includes(txResponse.status)) {
+                await observePayment({ provider: "viva", market: callbackMarket, stage: "callback",
+                  status: "error", code: "VIVA_CALLBACK_TRANSACTION_READ_FAILED", httpStatus: txResponse.status });
+              }
             }
           } catch (verifyError) {
             console.error("Error in background Viva verification:", verifyError);
+            await observePayment({ provider: "viva", market: callbackMarket, stage: "callback",
+              status: "error", code: "VIVA_CALLBACK_VERIFICATION_FAILED" });
           }
         })();
       } else {
@@ -5260,6 +5247,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       }
     } catch (error) {
       console.error("Error processing Viva callback:", error);
+      res.locals.paymentHealthCallbackException = true;
       res.redirect(`${resultPath}?payment=error`);
     }
   });
@@ -5282,6 +5270,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         if (orderIdMatch) {
           const orderId = parseInt(orderIdMatch[1]);
           console.log(`Viva webhook: Payment succeeded for order ${orderId}, transaction ${transactionId}`);
+          const observedOrder = await storage.getOrder(orderId);
+          if (observedOrder) {
+            res.locals.paymentHealthMarket = observedOrder.market || "ro";
+            res.locals.paymentHealthWebhookAccepted = true;
+          }
 
           const claimedOrder = await storage.markOrderPaid(
             orderId,
@@ -5488,6 +5481,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           const orderId = parseInt(orderIdMatch[1]);
           console.log(`Viva webhook: Payment failed for order ${orderId}`);
           const order = await storage.getOrder(orderId);
+          if (order) {
+            res.locals.paymentHealthMarket = order.market || "ro";
+            res.locals.paymentHealthWebhookAccepted = true;
+          }
           if (order) await failVivaOrderOnlyIfProviderConfirms(order);
         }
       }

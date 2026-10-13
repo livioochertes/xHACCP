@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, decimal, timestamp, jsonb, varchar, index, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, bigserial, integer, boolean, decimal, timestamp, jsonb, varchar, index, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -1397,3 +1397,55 @@ export type ProductWithCategory = Product & { category: Category | null; supplie
 export type OrderWithItems = Order & { items: (OrderItem & { product: Product })[] };
 export type CartItemWithProduct = CartItem & { product: Product };
 export type InvoiceWithItems = Invoice & { items: (InvoiceItem & { product?: Product })[], user: User };
+
+// Additive operational history, isolated by runtime environment and market.
+export const paymentHealthStates = pgTable("payment_health_states", {
+  environment: text("environment").notNull(),
+  provider: text("provider").notNull(),
+  market: text("market").notNull(),
+  stage: text("stage").notNull(),
+  status: text("status").notNull().default("unknown"),
+  lastObservedAt: timestamp("last_observed_at", { withTimezone: true }),
+  lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
+  lastFailureAt: timestamp("last_failure_at", { withTimezone: true }),
+  errorCode: text("error_code"),
+  httpStatus: integer("http_status"),
+  responseType: text("response_type"),
+  reference: text("reference"),
+  lastAlertAt: timestamp("last_alert_at", { withTimezone: true }),
+  incidentAlerted: boolean("incident_alerted").notNull().default(false),
+}, table => ({
+  pk: primaryKey({ name: "payment_health_states_pkey", columns: [table.environment, table.provider, table.market, table.stage] }),
+}));
+
+export const paymentHealthEvents = pgTable("payment_health_events", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  environment: text("environment").notNull(),
+  provider: text("provider").notNull(),
+  market: text("market").notNull(),
+  stage: text("stage").notNull(),
+  status: text("status").notNull(),
+  code: text("code"),
+  httpStatus: integer("http_status"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => ({
+  scope: index("payment_health_events_scope").on(table.environment, table.createdAt.desc()),
+}));
+
+export const paymentHealthNotifications = pgTable("payment_health_notifications", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  environment: text("environment").notNull(),
+  provider: text("provider").notNull(),
+  market: text("market").notNull(),
+  stage: text("stage").notNull(),
+  kind: text("kind").notNull(),
+  payload: jsonb("payload").notNull(),
+  status: text("status").notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+}, table => ({
+  scope: index("payment_health_notifications_scope").on(table.environment, table.nextAttemptAt),
+}));
