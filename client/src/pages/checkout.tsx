@@ -388,6 +388,26 @@ export default function Checkout() {
     }
   }, [step]);
 
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const paymentStatus = url.searchParams.get("payment");
+    if (
+      url.searchParams.get("provider") !== "viva" ||
+      !["cancelled", "failed", "error"].includes(paymentStatus || "")
+    ) {
+      return;
+    }
+
+    toast({
+      title: t("checkout.paymentFailed"),
+      description: t("checkout.paymentFailedDesc"),
+      variant: "destructive",
+    });
+    url.searchParams.delete("payment");
+    url.searchParams.delete("provider");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [toast, t]);
+
   const sameAsBilling = form.watch("sameAsBilling");
   const watchedEmail = form.watch("email");
   const watchedPhone = form.watch("phone");

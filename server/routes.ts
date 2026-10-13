@@ -5005,11 +5005,36 @@ Always be helpful, professional, and focus on practical solutions. When recommen
   app.get("/api/payments/viva/callback", async (req, res) => {
     const callbackMarket = getMarketFromRequest(req);
     const resultPath = callbackMarket === "fr" ? "/merci" : "/";
+    const checkoutBaseUrl = callbackMarket === "fr"
+      ? "https://www.xhaccp.fr"
+      : callbackMarket === "com"
+        ? "https://www.xhaccp.com"
+        : "https://www.xhaccp.ro";
+    const checkoutReturnUrl = (payment: "cancelled" | "failed" | "error") =>
+      `${checkoutBaseUrl}/checkout?payment=${payment}&provider=viva`;
     try {
       const { s: transactionId, t: vivaOrderCode, lang } = req.query;
       
       console.log(`Viva callback received - transactionId: ${transactionId}, orderCode: ${vivaOrderCode}, lang: ${lang}`);
       console.log(`Viva callback full query params:`, JSON.stringify(req.query));
+
+      const returnedWithCancel = Object.prototype.hasOwnProperty.call(req.query, "cancel");
+      if (returnedWithCancel) {
+        console.log("Viva checkout cancelled by customer; returning them to checkout");
+        for (const reference of [req.query.s, req.query.t]) {
+          if (typeof reference !== "string" || !reference) continue;
+          const order = await storage.getOrderByPaymentProviderOrderId(reference);
+          if (!order) continue;
+          try {
+            await failVivaOrderOnlyIfProviderConfirms(order);
+          } catch (statusError) {
+            console.error("Could not confirm cancelled Viva order status; keeping it pending:",
+              statusError instanceof Error ? statusError.message : "unknown error");
+          }
+          break;
+        }
+        return res.redirect(checkoutReturnUrl("cancelled"));
+      }
 
       if (transactionId) {
         // Redirect is only an acknowledgement; verification completes asynchronously.
@@ -5239,16 +5264,24 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         })();
       } else {
         console.log("Viva callback without transactionId - payment likely failed/cancelled");
-        if (typeof vivaOrderCode === "string") {
-          const order = await storage.getOrderByPaymentProviderOrderId(vivaOrderCode);
-          if (order) await failVivaOrderOnlyIfProviderConfirms(order);
+        for (const reference of [req.query.s, req.query.t]) {
+          if (typeof reference !== "string" || !reference) continue;
+          const order = await storage.getOrderByPaymentProviderOrderId(reference);
+          if (!order) continue;
+          try {
+            await failVivaOrderOnlyIfProviderConfirms(order);
+          } catch (statusError) {
+            console.error("Could not confirm failed Viva order status; keeping it pending:",
+              statusError instanceof Error ? statusError.message : "unknown error");
+          }
+          break;
         }
-        res.redirect(`${resultPath}?payment=failed`);
+        res.redirect(checkoutReturnUrl("failed"));
       }
     } catch (error) {
       console.error("Error processing Viva callback:", error);
       res.locals.paymentHealthCallbackException = true;
-      res.redirect(`${resultPath}?payment=error`);
+      res.redirect(checkoutReturnUrl("error"));
     }
   });
 
