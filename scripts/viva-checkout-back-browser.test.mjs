@@ -113,6 +113,10 @@ test("Viva checkout recovers after browser Back and a failed order request", { t
   let client;
   const paymentRequests = [];
   const interceptionErrors = [];
+  let firstRequestPausedResolve;
+  const firstRequestPaused = new Promise((resolve) => {
+    firstRequestPausedResolve = resolve;
+  });
   t.after(async () => {
     client?.close();
     if (browser.exitCode === null) {
@@ -229,6 +233,10 @@ test("Viva checkout recovers after browser Back and a failed order request", { t
       const { requestId, request } = event.params;
       if (new URL(request.url).pathname === "/api/payments/viva/create-order") {
         paymentRequests.push({ method: request.method, url: request.url });
+        if (paymentRequests.length === 1) {
+          firstRequestPausedResolve(requestId);
+          return;
+        }
         const isControlledFailure = paymentRequests.length === 2;
         const body = Buffer.from(JSON.stringify({
           ...(isControlledFailure
@@ -259,10 +267,34 @@ test("Viva checkout recovers after browser Back and a failed order request", { t
     if (!button || button.disabled) throw new Error("Viva pay button is not available");
     button.click();
   })()`);
+  const firstRequestId = await firstRequestPaused;
+  assert.equal(paymentRequests.length, 1, "the first Viva create-order request is pending");
+  assert.equal(paymentRequests[0].method, "POST");
+
+  const pendingButtonState = await evaluate(`(() => {
+    const button = [...document.querySelectorAll("button")]
+      .find((candidate) => /^Redirecting to payment/i.test(candidate.textContent.trim()));
+    if (!button) throw new Error("Could not find the Viva button while its request was pending");
+    const disabled = button.disabled;
+    for (let attempt = 0; attempt < 4; attempt += 1) button.click();
+    return { disabled, label: button.textContent.trim() };
+  })()`);
+  assert.equal(pendingButtonState.disabled, true, "the Viva button is disabled while create-order is pending");
+  assert.equal(paymentRequests.length, 1, "rapid extra clicks do not create additional Viva requests");
+
+  const firstResponseBody = Buffer.from(JSON.stringify({
+    checkoutUrl: `${baseUrl}/cart?viva-back-browser-test=1`,
+    dbOrderId: 352001,
+  })).toString("base64");
+  await client.send("Fetch.fulfillRequest", {
+    requestId: firstRequestId,
+    responseCode: 200,
+    responseHeaders: [{ name: "Content-Type", value: "application/json" }],
+    body: firstResponseBody,
+  });
   await waitFor(`location.pathname === "/cart" && location.search.includes("viva-back-browser-test=1")`, "simulated Viva checkout page");
   assert.deepEqual(interceptionErrors, [], "the mock checkout redirect completed without browser interception errors");
   assert.equal(paymentRequests.length, 1, "the Viva create-order request was intercepted and never reached the payment provider");
-  assert.equal(paymentRequests[0].method, "POST");
 
   await evaluate("history.back()");
   await waitFor(`location.pathname === "/checkout" && !!document.querySelector("#viva")`, "checkout restored after browser Back");

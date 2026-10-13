@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +30,7 @@ interface VivaPaymentProps {
 
 export default function VivaPayment({ amount, currency, onError, disabled, cartItems, voucherCode, orderData, isFrenchMarket = false, isRecurring = false, checkoutDraft }: VivaPaymentProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const paymentInProgress = useRef(false);
   const { toast } = useToast();
   const { t } = useTranslation();
 
@@ -37,6 +38,7 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
     // Returning from Viva can restore this page from the browser's back-forward
     // cache, including the stale loading state from before the redirect.
     const handlePageShow = (event: PageTransitionEvent) => {
+      paymentInProgress.current = false;
       setIsLoading(false);
       if (event.persisted) clearVivaCheckoutDraft(getMarketFromHostname());
     };
@@ -45,7 +47,8 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
   }, []);
 
   const handlePayment = async () => {
-    if (isLoading || disabled) return;
+    if (paymentInProgress.current || disabled) return;
+    paymentInProgress.current = true;
     setIsLoading(true);
 
     try {
@@ -90,6 +93,7 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
         throw new Error("No checkout URL received");
       }
     } catch (error: any) {
+      paymentInProgress.current = false;
       setIsLoading(false);
       toast({
         title: "Payment Error",
