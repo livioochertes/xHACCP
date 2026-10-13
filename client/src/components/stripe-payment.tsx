@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
+import { useEffect, useRef } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { SiStripe } from "react-icons/si";
 import {
   CardCvcElement,
   CardExpiryElement,
   CardNumberElement,
+  ExpressCheckoutElement,
   Elements,
   useElements,
   useStripe,
@@ -67,6 +69,54 @@ function clearCheckoutAttempt(market: string, attemptId: string) {
   }
 }
 
+function buildStripeRequestBody(props: StripePaymentProps) {
+  return {
+    market: props.market,
+    currency: props.currency,
+    cartItems: props.cartItems,
+    voucherCode: props.voucherCode || null,
+    orderData: props.orderData,
+  };
+}
+
+async function createStripePaymentSession(props: StripePaymentProps) {
+  const requestBody = buildStripeRequestBody(props);
+  const fingerprint = JSON.stringify(requestBody);
+  const attemptId = makeCheckoutAttemptId(fingerprint, props.market);
+  saveVivaCheckoutDraft(getMarketFromHostname(), props.checkoutDraft());
+  const response = await apiRequest("POST", "/api/payments/stripe/create-payment-intent", {
+    ...requestBody,
+    attemptId,
+  });
+  const setup = await response.json();
+  if (!response.ok) {
+    throw new Error(setup?.message || "Stripe could not prepare the payment");
+  }
+  return { setup, attemptId };
+}
+
+async function confirmStripeOrder(
+  props: StripePaymentProps,
+  setup: any,
+  attemptId: string,
+  paymentIntentId: string,
+  toast: ReturnType<typeof useToast>["toast"],
+) {
+  const confirmation = await apiRequest("POST", "/api/payments/stripe/confirm", {
+    paymentIntentId,
+  });
+  const confirmed = await confirmation.json();
+  if (confirmed.status !== "paid" || Number(confirmed.orderId) !== Number(setup.orderId)) {
+    throw new Error("The payment is still being verified. Please do not submit it again.");
+  }
+  clearCheckoutAttempt(props.market, attemptId);
+  toast({
+    title: "Payment successful",
+    description: "Your payment has been confirmed.",
+  });
+  props.onSuccess(paymentIntentId, Number(setup.orderId));
+}
+
 function StripeCardForm(props: StripePaymentProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -76,22 +126,8 @@ function StripeCardForm(props: StripePaymentProps) {
   const handleSubmit = async () => {
     if (!stripe || !elements || isLoading || props.disabled) return;
     setIsLoading(true);
-    const requestBody = {
-      market: props.market,
-      currency: props.currency,
-      cartItems: props.cartItems,
-      voucherCode: props.voucherCode || null,
-      orderData: props.orderData,
-    };
-    const fingerprint = JSON.stringify(requestBody);
-    const attemptId = makeCheckoutAttemptId(fingerprint, props.market);
     try {
-      saveVivaCheckoutDraft(getMarketFromHostname(), props.checkoutDraft());
-      const response = await apiRequest("POST", "/api/payments/stripe/create-payment-intent", {
-        ...requestBody,
-        attemptId,
-      });
-      const setup = await response.json();
+      const { setup, attemptId } = await createStripePaymentSession(props);
 
       if (setup.alreadyPaid && setup.orderId && setup.paymentIntentId) {
         clearCheckoutAttempt(props.market, attemptId);
@@ -138,7 +174,7 @@ function StripeCardForm(props: StripePaymentProps) {
         title: "Payment successful",
         description: "Your card payment has been confirmed.",
       });
-      props.onSuccess(result.paymentIntent.id, Number(setup.orderId));
+      await confirmStripeOrder(props, setup, attemptId, result.paymentIntent.id, toast);
     } catch (error: any) {
       const message = error?.message || "Card payment could not be completed";
       toast({
