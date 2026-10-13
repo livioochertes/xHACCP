@@ -1,5 +1,3 @@
-import { extractCampaignEventCorrelation } from "./marketing-campaign-delivery-policy";
-
 const SENDGRID_API_BASE_URL = "https://api.sendgrid.com/v3";
 const SENDGRID_LOG_LIMIT = 1_000;
 const SENDGRID_HISTORY_CONCURRENCY = 4;
@@ -43,6 +41,7 @@ export interface SendGridCampaignHistoryProgress {
   matchedMessages: number;
   unmatchedMessages: number;
   eventCount: number;
+  newEvents: SendGridHistoryEvent[];
 }
 
 interface SendGridLogMessage {
@@ -67,6 +66,27 @@ interface SendGridLogDetails extends SendGridLogMessage {
   custom_args?: unknown;
   customArgs?: unknown;
   events?: unknown;
+}
+
+function getAppCampaignCorrelation(event: {
+  custom_args?: unknown;
+  customArgs?: unknown;
+  unique_args?: unknown;
+}): { campaignId: number | null; recipientId: number | null } {
+  const argumentSets = [event.custom_args, event.customArgs, event.unique_args]
+    .filter((value): value is Record<string, unknown> => (
+      typeof value === "object" && value !== null && !Array.isArray(value)
+    ));
+  const readId = (key: string): number | null => {
+    const value = argumentSets.map((args) => args[key])
+      .find((candidate) => candidate !== undefined && candidate !== null && candidate !== "");
+    const id = Number(value);
+    return Number.isSafeInteger(id) && id > 0 ? id : null;
+  };
+  return {
+    campaignId: readId("xhaccp_campaign_id"),
+    recipientId: readId("xhaccp_campaign_recipient_id"),
+  };
 }
 
 function quoteQueryString(value: string): string {
@@ -223,23 +243,36 @@ export async function fetchSendGridCampaignHistory(options: {
     recipient.id,
     recipient.email.trim().toLowerCase(),
   ]));
+  const recipientIdByEmail = new Map(recipients.map((recipient) => [
+    recipient.email.trim().toLowerCase(),
+    recipient.id,
+  ]));
+  const recipientEmails = new Set(recipientById.values());
   const messageRows = await listMessagesForWindow(apiKey, subject, from, to, fetchImpl);
   const messages = [...new Map(messageRows
     .filter((message) => typeof message.sg_message_id === "string" && message.sg_message_id.length > 0)
     .map((message) => [message.sg_message_id as string, message])).values()];
   await options.onMessagesFound?.(messages.length);
+  const messagesToFetch = messages.filter((message) => (
+    typeof message.to_email !== "string"
+    || recipientEmails.has(message.to_email.trim().toLowerCase())
+  ));
   let matchedMessages = 0;
-  let unmatchedMessages = 0;
+  let unmatchedMessages = messages.length - messagesToFetch.length;
   let skippedEvents = 0;
-  let processedMessages = 0;
+  let processedMessages = unmatchedMessages;
   let progressQueue = Promise.resolve();
   const eventsById = new Map<string, SendGridHistoryEvent>();
+  const reportedEventIds = new Set<string>();
   const reportProgress = () => {
+    const newEvents = [...eventsById.values()].filter((event) => !reportedEventIds.has(event.eventId));
+    for (const event of newEvents) reportedEventIds.add(event.eventId);
     const progress = {
       processedMessages,
       matchedMessages,
       unmatchedMessages,
       eventCount: eventsById.size,
+      newEvents,
     };
     progressQueue = progressQueue.then(async () => {
       await options.onProgress?.(progress);
@@ -247,7 +280,7 @@ export async function fetchSendGridCampaignHistory(options: {
     return progressQueue;
   };
 
-  await mapWithConcurrency(messages, SENDGRID_HISTORY_CONCURRENCY, async (message) => {
+  await mapWithConcurrency(messagesToFetch, SENDGRID_HISTORY_CONCURRENCY, async (message) => {
     try {
       const messageId = message.sg_message_id as string;
       const detail = await requestSendGridJson<SendGridLogDetails>(
@@ -261,10 +294,14 @@ export async function fetchSendGridCampaignHistory(options: {
         return;
       }
 
-      const correlation = extractCampaignEventCorrelation(detail);
-      const recipientId = correlation.campaignId === campaignId ? correlation.recipientId : 0;
-      const recipientEmail = recipientById.get(recipientId);
+      const correlation = getAppCampaignCorrelation(detail);
       const messageEmail = typeof detail.to_email === "string" ? detail.to_email.trim().toLowerCase() : "";
+      if (correlation.campaignId !== null && correlation.campaignId !== campaignId) {
+        unmatchedMessages++;
+        return;
+      }
+      const recipientId = correlation.recipientId ?? recipientIdByEmail.get(messageEmail) ?? 0;
+      const recipientEmail = recipientById.get(recipientId);
       if (!recipientEmail || !messageEmail || recipientEmail !== messageEmail) {
         unmatchedMessages++;
         return;
@@ -276,15 +313,15 @@ export async function fetchSendGridCampaignHistory(options: {
         const eventType = typeof event.event === "string" ? event.event.trim().toLowerCase() : "";
         const eventId = typeof event.sg_event_id === "string" ? event.sg_event_id.trim() : "";
         const eventEmail = typeof event.email === "string" ? event.email.trim().toLowerCase() : messageEmail;
-        const eventCorrelation = extractCampaignEventCorrelation(event);
+        const eventCorrelation = getAppCampaignCorrelation(event);
         const timestamp = getTimestamp(event.timestamp);
         if (
           !IMPORTABLE_EVENT_TYPES.has(eventType)
           || !eventId
           || eventId.length > 255
           || eventEmail !== recipientEmail
-          || (eventCorrelation.campaignId && eventCorrelation.campaignId !== campaignId)
-          || (eventCorrelation.recipientId && eventCorrelation.recipientId !== recipientId)
+          || (eventCorrelation.campaignId !== null && eventCorrelation.campaignId !== campaignId)
+          || (eventCorrelation.recipientId !== null && eventCorrelation.recipientId !== recipientId)
         ) {
           skippedEvents++;
           continue;
@@ -308,6 +345,9 @@ export async function fetchSendGridCampaignHistory(options: {
       }
     }
   });
+  if (options.onProgress && messagesToFetch.length === 0) {
+    await reportProgress();
+  }
   await progressQueue;
 
   return {

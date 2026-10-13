@@ -1868,6 +1868,27 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         }
       };
 
+      const removeUnsubscribedProspectsFromLists = async () => {
+        const unsubscribedMemberships = prospectLists.reduce((total, list) => total + (list.unsubscribed || 0), 0);
+        if (!unsubscribedMemberships) return;
+        if (!window.confirm(t('marketing.prospectRemoveUnsubscribedConfirm', { count: unsubscribedMemberships }))) return;
+        setProspectBusy(true);
+        try {
+          const res = await fetch('/admin/api/marketing/prospects/unsubscribed-memberships', {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || t('marketing.prospectRemoveUnsubscribedFailed'));
+          alert(t('marketing.prospectRemoveUnsubscribedDone', { count: data.removedMemberships || 0 }));
+          await fetchMarketing();
+        } catch (err) {
+          alert(`❌ ${err.message}`);
+        } finally {
+          setProspectBusy(false);
+        }
+      };
+
       const saveReminderThresholds = async (market) => {
         setMarketingSaving(true);
         try {
@@ -6384,7 +6405,17 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                     >{t('marketing.prospectImport')}</button>
 
                     <div style={{marginTop: '18px'}}>
-                      <strong style={{fontSize: '13px', color: '#41375b'}}>{t('marketing.prospectSavedLists')}</strong>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap'}}>
+                        <strong style={{fontSize: '13px', color: '#41375b'}}>{t('marketing.prospectSavedLists')}</strong>
+                        {prospectLists.some(list => list.unsubscribed > 0) && (
+                          <button
+                            type="button"
+                            onClick={removeUnsubscribedProspectsFromLists}
+                            disabled={prospectBusy}
+                            style={{background: '#9f2d2d', color: 'white', border: 'none', borderRadius: '4px', padding: '7px 10px', cursor: prospectBusy ? 'wait' : 'pointer', fontSize: '12px'}}
+                          >{t('marketing.prospectRemoveUnsubscribedButton')}</button>
+                        )}
+                      </div>
                       {marketingLoading ? <p style={{fontSize: '13px', color: '#6c757d'}}>{t('marketing.loading')}</p> : prospectLists.length === 0 ? (
                         <p style={{fontSize: '13px', color: '#6c757d'}}>{t('marketing.prospectNoLists')}</p>
                       ) : (

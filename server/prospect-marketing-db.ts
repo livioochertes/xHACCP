@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import crypto from "node:crypto";
 import {
   marketingProspectListContacts,
@@ -38,7 +38,7 @@ export async function listProspectLists(market = "fr"): Promise<ProspectListSumm
     market: marketingProspectLists.market,
     sourceFile: marketingProspectLists.sourceFile,
     contactBasis: marketingProspectLists.contactBasis,
-    totalContacts: marketingProspectLists.totalContacts,
+    totalContacts: sql<number>`count(${marketingProspectListContacts.prospectId})::int`,
     createdAt: marketingProspectLists.createdAt,
     invitationEligible: sql<number>`count(*) filter (
       where ${marketingProspects.subscriptionStatus} = 'not_subscribed'
@@ -79,6 +79,22 @@ export async function listProspectLists(market = "fr"): Promise<ProspectListSumm
     unsubscribed: Number(row.unsubscribed || 0),
     suppressed: Number(row.suppressed || 0),
   }));
+}
+
+export async function removeUnsubscribedProspectsFromLists(market = "fr"): Promise<number> {
+  const unsubscribedProspects = db.select({ id: marketingProspects.id })
+    .from(marketingProspects)
+    .where(and(
+      eq(marketingProspects.market, market),
+      or(
+        eq(marketingProspects.subscriptionStatus, "unsubscribed"),
+        isNotNull(marketingProspects.unsubscribedAt),
+      ),
+    ));
+  const removed = await db.delete(marketingProspectListContacts)
+    .where(inArray(marketingProspectListContacts.prospectId, unsubscribedProspects))
+    .returning({ prospectId: marketingProspectListContacts.prospectId });
+  return removed.length;
 }
 
 export async function importProspectList(data: {
@@ -203,16 +219,21 @@ export async function markProspectInvitationSent(prospectId: number): Promise<vo
 }
 
 export async function unsubscribeProspect(prospectId: number): Promise<void> {
-  await db.update(marketingProspects)
-    .set({
-      subscriptionStatus: "unsubscribed",
-      unsubscribedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(and(
-      eq(marketingProspects.id, prospectId),
-      eq(marketingProspects.market, "fr"),
-    ));
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    await tx.update(marketingProspects)
+      .set({
+        subscriptionStatus: "unsubscribed",
+        unsubscribedAt: sql`COALESCE(${marketingProspects.unsubscribedAt}, ${now})`,
+        updatedAt: now,
+      })
+      .where(and(
+        eq(marketingProspects.id, prospectId),
+        eq(marketingProspects.market, "fr"),
+      ));
+    await tx.delete(marketingProspectListContacts)
+      .where(eq(marketingProspectListContacts.prospectId, prospectId));
+  });
 }
 
 export type ProspectEmailSuppressionReason =

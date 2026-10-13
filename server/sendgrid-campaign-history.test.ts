@@ -9,7 +9,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-test("historical SendGrid events require matching campaign, recipient ID, and email", async () => {
+test("historical SendGrid events can be matched by recipient email when legacy custom args are absent", async () => {
   let messagesFound = 0;
   const progressUpdates: Array<{ processedMessages: number; matchedMessages: number }> = [];
   const fetchImpl: typeof fetch = async (input, init) => {
@@ -82,6 +82,36 @@ test("historical SendGrid events require matching campaign, recipient ID, and em
     { eventId: "event-2", recipientId: 72, eventType: "delivered" },
     { eventId: "event-3", recipientId: 72, eventType: "open" },
   ]);
+});
+
+test("historical SendGrid events with a conflicting xHACCP campaign ID are rejected", async () => {
+  const fetchImpl: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith("/v3/logs")) {
+      return jsonResponse({
+        messages: [{ sg_message_id: "message-conflict", to_email: "one@example.com" }],
+      });
+    }
+    return jsonResponse({
+      to_email: "one@example.com",
+      custom_args: { xhaccp_campaign_id: "99", xhaccp_campaign_recipient_id: "72" },
+      events: [{ event: "open", sg_event_id: "event-conflict", timestamp: 1791874000 }],
+    });
+  };
+
+  const result = await fetchSendGridCampaignHistory({
+    apiKey: "test-key",
+    campaignId: 7,
+    subject: "Campaign subject",
+    from: new Date("2026-10-13T00:00:00.000Z"),
+    to: new Date("2026-10-14T00:00:00.000Z"),
+    recipients: [{ id: 72, email: "one@example.com" }],
+    fetchImpl,
+  });
+
+  assert.equal(result.matchedMessages, 0);
+  assert.equal(result.unmatchedMessages, 1);
+  assert.equal(result.events.length, 0);
 });
 
 test("historical SendGrid API errors do not leak response bodies", async () => {

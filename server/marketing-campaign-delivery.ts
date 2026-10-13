@@ -4,6 +4,7 @@ import {
   marketingCampaignBatches,
   marketingCampaignRecipients,
   marketingCampaigns,
+  marketingProspectListContacts,
   marketingProspects,
   sendgridCampaignHistoryImports,
   sendgridCampaignWebhookEvents,
@@ -31,6 +32,7 @@ import {
 import {
   fetchSendGridCampaignHistory,
   type SendGridCampaignHistoryProgress,
+  type SendGridHistoryEvent,
 } from "./sendgrid-campaign-history";
 
 const SEND_CONCURRENCY = 10;
@@ -958,6 +960,60 @@ function safeSendGridHistoryImportError(error: unknown): string {
   return "SendGrid campaign history could not be imported. Retry the import.";
 }
 
+async function persistHistoricalCampaignEvents(events: SendGridHistoryEvent[]): Promise<void> {
+  for (let offset = 0; offset < events.length; offset += 250) {
+    const batch = events.slice(offset, offset + 250).map((event) => ({
+      eventId: event.eventId,
+      recipientId: event.recipientId,
+      eventType: event.eventType.slice(0, 32),
+      eventSource: "historical_import",
+      occurredAt: event.occurredAt,
+    }));
+    await db.insert(sendgridCampaignWebhookEvents)
+      .values(batch)
+      .onConflictDoUpdate({
+        target: sendgridCampaignWebhookEvents.eventId,
+        set: {
+          eventSource: sql`CASE
+            WHEN EXCLUDED.event_source = 'webhook' THEN 'webhook'
+            WHEN ${sendgridCampaignWebhookEvents.eventSource} = 'webhook' THEN 'webhook'
+            ELSE EXCLUDED.event_source
+          END`,
+        },
+      });
+  }
+
+  const unsubscribedRecipientIds = [...new Set(events
+    .filter((event) => ["unsubscribe", "group_unsubscribe", "app_unsubscribe"].includes(event.eventType))
+    .map((event) => event.recipientId))];
+  if (!unsubscribedRecipientIds.length) return;
+
+  const unsubscribeRecipients = await db.select({
+    prospectId: marketingCampaignRecipients.prospectId,
+  }).from(marketingCampaignRecipients)
+    .where(and(
+      inArray(marketingCampaignRecipients.id, unsubscribedRecipientIds),
+      sql`${marketingCampaignRecipients.prospectId} IS NOT NULL`,
+    ));
+  const prospectIds = [...new Set(unsubscribeRecipients
+    .map((row) => row.prospectId)
+    .filter((id): id is number => id !== null))];
+  if (!prospectIds.length) return;
+
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    await tx.update(marketingProspects)
+      .set({
+        subscriptionStatus: "unsubscribed",
+        unsubscribedAt: sql`COALESCE(${marketingProspects.unsubscribedAt}, ${now})`,
+        updatedAt: now,
+      })
+      .where(inArray(marketingProspects.id, prospectIds));
+    await tx.delete(marketingProspectListContacts)
+      .where(inArray(marketingProspectListContacts.prospectId, prospectIds));
+  });
+}
+
 async function importSendGridCampaignHistory(
   campaignId: number,
   callbacks: {
@@ -1025,28 +1081,6 @@ async function importSendGridCampaignHistory(
     onProgress: callbacks.onProgress,
   });
 
-  for (let offset = 0; offset < result.events.length; offset += 250) {
-    const batch = result.events.slice(offset, offset + 250).map((event) => ({
-      eventId: event.eventId,
-      recipientId: event.recipientId,
-      eventType: event.eventType.slice(0, 32),
-      eventSource: "historical_import",
-      occurredAt: event.occurredAt,
-    }));
-    await db.insert(sendgridCampaignWebhookEvents)
-      .values(batch)
-      .onConflictDoUpdate({
-        target: sendgridCampaignWebhookEvents.eventId,
-        set: {
-          eventSource: sql`CASE
-            WHEN EXCLUDED.event_source = 'webhook' THEN 'webhook'
-            WHEN ${sendgridCampaignWebhookEvents.eventSource} = 'webhook' THEN 'webhook'
-            ELSE EXCLUDED.event_source
-          END`,
-        },
-      });
-  }
-
   return {
     providerMessages: result.providerMessages,
     matchedMessages: result.matchedMessages,
@@ -1079,10 +1113,12 @@ async function runSendGridCampaignHistoryImport(
         });
       },
       onProgress: async (progress) => {
+        await persistHistoricalCampaignEvents(progress.newEvents);
         await updateJob({
           processedMessageCount: progress.processedMessages,
           matchedMessageCount: progress.matchedMessages,
           unmatchedMessageCount: progress.unmatchedMessages,
+          importedEventCount: progress.eventCount,
         });
       },
     });
@@ -1293,6 +1329,8 @@ export async function processSendGridCampaignEvents(events: SendGridCampaignEven
             updatedAt: now,
           })
           .where(eq(marketingProspects.id, currentRecipient.prospectId));
+        await tx.delete(marketingProspectListContacts)
+          .where(eq(marketingProspectListContacts.prospectId, currentRecipient.prospectId));
       } else if (
         currentRecipient.prospectId
         && next === "dropped"

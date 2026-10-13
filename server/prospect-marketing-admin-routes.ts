@@ -2,7 +2,11 @@ import type { Express, Request, RequestHandler, Response } from "express";
 import multer from "multer";
 import { authenticateAdmin, canAccessMarket } from "./admin-routes";
 import { parseProspectCsv } from "./prospect-csv";
-import { importProspectList, listProspectLists } from "./prospect-marketing-db";
+import {
+  importProspectList,
+  listProspectLists,
+  removeUnsubscribedProspectsFromLists,
+} from "./prospect-marketing-db";
 
 type ProspectAdminRequest = Request & {
   adminId?: number;
@@ -53,6 +57,17 @@ export function registerProspectMarketingAdminRoutes(
     } catch (error) {
       console.error("Prospect list query failed");
       res.status(500).json({ message: "Could not load prospect lists" });
+    }
+  });
+
+  app.delete("/admin/api/marketing/prospects/unsubscribed-memberships", authenticate, async (req, res) => {
+    try {
+      if (!canManageFrenchProspects(req, res)) return;
+      const removedMemberships = await removeUnsubscribedProspectsFromLists("fr");
+      res.json({ removedMemberships });
+    } catch (error) {
+      console.error("Unsubscribed prospect list cleanup failed");
+      res.status(500).json({ message: "Could not remove unsubscribed contacts from lists" });
     }
   });
 

@@ -11444,6 +11444,10 @@
       prospectImportFailed: "The prospect list could not be imported.",
       prospectImported: "Import complete. New: {{created}}; already existed: {{existing}}; invalid emails: {{invalid}}; duplicates in file: {{duplicates}}. Invitation and newsletter segments were created.",
       prospectSavedLists: "Imported lists",
+      prospectRemoveUnsubscribedButton: "Remove unsubscribed from all lists",
+      prospectRemoveUnsubscribedConfirm: "This will remove {{count}} list memberships for unsubscribed contacts. Prospect records and suppression markers will remain, preventing them from being re-added to campaigns. Continue?",
+      prospectRemoveUnsubscribedDone: "Removed {{count}} list memberships. Unsubscribe markers were retained.",
+      prospectRemoveUnsubscribedFailed: "Could not remove unsubscribed contacts from lists.",
       prospectNoLists: "No prospect lists have been imported.",
       prospectTotal: "Contacts",
       prospectInvitable: "Eligible for invitation",
@@ -12631,6 +12635,10 @@
       prospectImportFailed: "Lista de prospecte nu a putut fi importat\u0103.",
       prospectImported: "Import finalizat. Noi: {{created}}; deja existente: {{existing}}; emailuri invalide: {{invalid}}; duplicate \xEEn fi\u0219ier: {{duplicates}}. Segmentele pentru invita\u021Bie \u0219i newsletter au fost create.",
       prospectSavedLists: "Liste importate",
+      prospectRemoveUnsubscribedButton: "Elimin\u0103 dezabona\u021Bii din toate listele",
+      prospectRemoveUnsubscribedConfirm: "Vor fi eliminate {{count}} apartenen\u021Be la liste pentru contactele dezabonate. Prospectele \u0219i marcajele de suprimare r\u0103m\xE2n p\u0103strate, astfel \xEEnc\xE2t s\u0103 nu poat\u0103 fi reimportate \xEEn campanii. Continui?",
+      prospectRemoveUnsubscribedDone: "Au fost eliminate {{count}} apartenen\u021Be la liste. Marcajele de dezabonare au fost p\u0103strate.",
+      prospectRemoveUnsubscribedFailed: "Adresele dezabonate nu au putut fi eliminate din liste.",
       prospectNoLists: "Nu exist\u0103 liste de prospecte importate.",
       prospectTotal: "Contacte",
       prospectInvitable: "Eligibile pentru invita\u021Bie",
@@ -13818,6 +13826,10 @@
       prospectImportFailed: "Impossible d'importer la liste de prospects.",
       prospectImported: "Import termin\xE9. Nouveaux : {{created}} ; d\xE9j\xE0 existants : {{existing}} ; emails invalides : {{invalid}} ; doublons dans le fichier : {{duplicates}}. Les segments invitation et newsletter ont \xE9t\xE9 cr\xE9\xE9s.",
       prospectSavedLists: "Listes import\xE9es",
+      prospectRemoveUnsubscribedButton: "Retirer les d\xE9sabonn\xE9s de toutes les listes",
+      prospectRemoveUnsubscribedConfirm: "Cette action supprimera {{count}} appartenances aux listes pour les contacts d\xE9sabonn\xE9s. Les fiches prospects et les marqueurs de suppression seront conserv\xE9s pour emp\xEAcher leur r\xE9int\xE9gration dans les campagnes. Continuer ?",
+      prospectRemoveUnsubscribedDone: "{{count}} appartenances aux listes ont \xE9t\xE9 supprim\xE9es. Les marqueurs de d\xE9sabonnement ont \xE9t\xE9 conserv\xE9s.",
+      prospectRemoveUnsubscribedFailed: "Impossible de retirer les contacts d\xE9sabonn\xE9s des listes.",
       prospectNoLists: "Aucune liste de prospects import\xE9e.",
       prospectTotal: "Contacts",
       prospectInvitable: "\xC9ligibles \xE0 l'invitation",
@@ -18446,6 +18458,26 @@ Actualizate: ${result.updated || 0}${errorSuffix}`);
         setProspectBusy(false);
       }
     };
+    const removeUnsubscribedProspectsFromLists = async () => {
+      const unsubscribedMemberships = prospectLists.reduce((total, list) => total + (list.unsubscribed || 0), 0);
+      if (!unsubscribedMemberships) return;
+      if (!window.confirm(t2("marketing.prospectRemoveUnsubscribedConfirm", { count: unsubscribedMemberships }))) return;
+      setProspectBusy(true);
+      try {
+        const res = await fetch("/admin/api/marketing/prospects/unsubscribed-memberships", {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || t2("marketing.prospectRemoveUnsubscribedFailed"));
+        alert(t2("marketing.prospectRemoveUnsubscribedDone", { count: data.removedMemberships || 0 }));
+        await fetchMarketing();
+      } catch (err) {
+        alert(`\u274C ${err.message}`);
+      } finally {
+        setProspectBusy(false);
+      }
+    };
     const saveReminderThresholds = async (market) => {
       setMarketingSaving(true);
       try {
@@ -22986,7 +23018,19 @@ This action cannot be undone.`)) {
                 }
               ),
               /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "18px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { style: { fontSize: "13px", color: "#41375b" }, children: t2("marketing.prospectSavedLists") }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { style: { fontSize: "13px", color: "#41375b" }, children: t2("marketing.prospectSavedLists") }),
+                  prospectLists.some((list) => list.unsubscribed > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: removeUnsubscribedProspectsFromLists,
+                      disabled: prospectBusy,
+                      style: { background: "#9f2d2d", color: "white", border: "none", borderRadius: "4px", padding: "7px 10px", cursor: prospectBusy ? "wait" : "pointer", fontSize: "12px" },
+                      children: t2("marketing.prospectRemoveUnsubscribedButton")
+                    }
+                  )
+                ] }),
                 marketingLoading ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "13px", color: "#6c757d" }, children: t2("marketing.loading") }) : prospectLists.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("p", { style: { fontSize: "13px", color: "#6c757d" }, children: t2("marketing.prospectNoLists") }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { overflowX: "auto", marginTop: "8px" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", background: "white", fontSize: "12px" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("thead", { style: { background: "#ede7f6" }, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("tr", { children: [
                     /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("th", { style: { padding: "8px", textAlign: "left" }, children: t2("marketing.prospectListName") }),
