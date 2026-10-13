@@ -58,3 +58,4 @@
 - [UUID security upgrade compatibility](uuid-upgrade-compatibility.md) — ExcelJS needs a patched UUID release that still supports CommonJS; test extended conditional formatting.
 - [Market-specific legal pages](market-specific-legal-pages.md) — select legal copy and seller/return details by storefront market, independently of UI language.
 - [Product SEO generation](product-seo-generation.md) — draft from same-market catalog products first; require manual review and activation before publishing localized copy.
+- [Workflow port timeouts](workflow-port-timeouts.md) — verify a live listener and HTTP response before retrying; a startup log alone does not prove the web port remains available.
