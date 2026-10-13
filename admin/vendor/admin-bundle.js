@@ -10752,6 +10752,16 @@
     },
     orders: {
       title: "Order Management",
+      normalOrdersTab: "Orders",
+      paymentAttemptsTab: "Unfinished payments",
+      paymentAttemptsTitle: "Unfinished payments",
+      paymentAttemptsDescription: "Unpaid Viva and PayPal checkout attempts are retained for reconciliation but kept out of the normal orders list.",
+      refreshPaymentAttempts: "Refresh",
+      loadingOrders: "Loading...",
+      paymentAttemptsShowing: "Showing {{count}} of {{total}} payment attempts",
+      paymentAttemptsTotal: "payment attempts",
+      noPaymentAttempts: "No unfinished payments",
+      noPaymentAttemptsDesc: "Unpaid Viva and PayPal checkout attempts will appear here.",
       order: "Order",
       exportOrders: "Export Orders",
       analytics: "Analytics",
@@ -12002,6 +12012,16 @@
     },
     orders: {
       title: "Gestionare Comenzi",
+      normalOrdersTab: "Comenzi",
+      paymentAttemptsTab: "Pl\u0103\u021Bi nefinalizate",
+      paymentAttemptsTitle: "Pl\u0103\u021Bi nefinalizate",
+      paymentAttemptsDescription: "\xCEncerc\u0103rile Viva \u0219i PayPal f\u0103r\u0103 plat\u0103 confirmat\u0103 sunt p\u0103strate pentru reconciliere, dar nu apar \xEEn lista comenzilor normale.",
+      refreshPaymentAttempts: "Re\xEEmprosp\u0103teaz\u0103",
+      loadingOrders: "Se \xEEncarc\u0103...",
+      paymentAttemptsShowing: "Se afi\u0219eaz\u0103 {{count}} din {{total}} \xEEncerc\u0103ri de plat\u0103",
+      paymentAttemptsTotal: "\xEEncerc\u0103ri de plat\u0103",
+      noPaymentAttempts: "Nu exist\u0103 pl\u0103\u021Bi nefinalizate",
+      noPaymentAttemptsDesc: "\xCEncerc\u0103rile Viva \u0219i PayPal f\u0103r\u0103 plat\u0103 confirmat\u0103 vor ap\u0103rea aici.",
       order: "Comand\u0103",
       exportOrders: "Export\u0103 Comenzi",
       analytics: "Analiz\u0103",
@@ -13252,6 +13272,16 @@
     },
     orders: {
       title: "Gestion des commandes",
+      normalOrdersTab: "Commandes",
+      paymentAttemptsTab: "Paiements inachev\xE9s",
+      paymentAttemptsTitle: "Paiements inachev\xE9s",
+      paymentAttemptsDescription: "Les tentatives de paiement Viva et PayPal non confirm\xE9es sont conserv\xE9es pour rapprochement, mais exclues de la liste normale des commandes.",
+      refreshPaymentAttempts: "Actualiser",
+      loadingOrders: "Chargement...",
+      paymentAttemptsShowing: "Affichage de {{count}} sur {{total}} tentatives de paiement",
+      paymentAttemptsTotal: "tentatives de paiement",
+      noPaymentAttempts: "Aucun paiement inachev\xE9",
+      noPaymentAttemptsDesc: "Les tentatives Viva et PayPal sans paiement confirm\xE9 appara\xEEtront ici.",
       order: "Commande",
       exportOrders: "Exporter commandes",
       analytics: "Analytique",
@@ -17602,6 +17632,9 @@
       return saved || "all";
     });
     const [orders, setOrders] = (0, import_react22.useState)([]);
+    const [ordersLoading, setOrdersLoading] = (0, import_react22.useState)(false);
+    const ordersRequestIdRef = import_react22.default.useRef(0);
+    const [ordersViewMode, setOrdersViewMode] = (0, import_react22.useState)("orders");
     const [wmsOverview, setWmsOverview] = (0, import_react22.useState)({ partners: [], routing: [] });
     const [wmsLoading, setWmsLoading] = (0, import_react22.useState)(false);
     const [wmsPartnerForm, setWmsPartnerForm] = (0, import_react22.useState)({ name: "", code: "" });
@@ -18001,9 +18034,9 @@
     }, [selectedMarketTab]);
     (0, import_react22.useEffect)(() => {
       if (activeView === "orders") {
-        fetchOrders(marketFilter);
+        fetchOrders(marketFilter, ordersViewMode);
       }
-    }, [marketFilter, activeView]);
+    }, [marketFilter, activeView, ordersViewMode]);
     (0, import_react22.useEffect)(() => {
       if (activeView !== "dashboard") return void 0;
       const controller = new AbortController();
@@ -18046,9 +18079,12 @@
     (0, import_react22.useEffect)(() => {
       let filtered = orders;
       if (searchTerm) {
-        filtered = filtered.filter(
-          (order) => order.id.toString().includes(searchTerm) || ((order.shippingAddress.firstName || "") + " " + (order.shippingAddress.lastName || "")).toLowerCase().includes(searchTerm.toLowerCase()) || order.shippingAddress.city.toLowerCase().includes(searchTerm.toLowerCase()) || order.status.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        const normalizedSearch = searchTerm.toLowerCase();
+        filtered = filtered.filter((order) => {
+          const shippingAddress = order.shippingAddress && typeof order.shippingAddress === "object" ? order.shippingAddress : {};
+          const customerName = `${shippingAddress.firstName || ""} ${shippingAddress.lastName || ""}`.toLowerCase();
+          return String(order.id).includes(searchTerm) || customerName.includes(normalizedSearch) || String(shippingAddress.city || "").toLowerCase().includes(normalizedSearch) || String(order.status || "").toLowerCase().includes(normalizedSearch) || String(order.paymentStatus || "").toLowerCase().includes(normalizedSearch) || String(order.paymentMethod || "").toLowerCase().includes(normalizedSearch);
+        });
       }
       if (companySearch) {
         filtered = filtered.filter(
@@ -18128,23 +18164,38 @@
         console.error("Network error fetching users:", err);
       }
     };
-    const fetchOrders = async (mktFilter) => {
+    const fetchOrders = async (mktFilter, viewMode = ordersViewMode) => {
+      const requestId = ++ordersRequestIdRef.current;
+      setOrdersLoading(true);
       try {
         const mkt = mktFilter || marketFilter;
-        const url = mkt && mkt !== "all" ? `/admin/api/orders?market=${mkt}` : "/admin/api/orders";
+        const params = new URLSearchParams();
+        if (mkt && mkt !== "all") params.set("market", mkt);
+        if (viewMode === "payment-attempts") {
+          params.set("view", "payment-attempts");
+          params.set("limit", "500");
+        }
+        const query = params.toString();
+        const url = query ? `/admin/api/orders?${query}` : "/admin/api/orders";
         const response = await fetch(url, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
         });
         const data = await response.json();
-        if (response.ok) {
+        if (response.ok && requestId === ordersRequestIdRef.current) {
           setOrders(data);
-        } else {
+        } else if (!response.ok && requestId === ordersRequestIdRef.current) {
           console.error("Failed to fetch orders:", data.message);
         }
       } catch (err) {
-        console.error("Network error fetching orders:", err);
+        if (requestId === ordersRequestIdRef.current) {
+          console.error("Network error fetching orders:", err);
+        }
+      } finally {
+        if (requestId === ordersRequestIdRef.current) {
+          setOrdersLoading(false);
+        }
       }
     };
     const openReportedOrder = async (orderSummary) => {
@@ -20899,8 +20950,8 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
         case "orders":
           return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { background: "white", padding: "30px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h3", { style: { color: "#333", margin: "0" }, children: "\u{1F4CB} Order Management" }),
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", gap: "10px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h3", { style: { color: "#333", margin: "0" }, children: ordersViewMode === "payment-attempts" ? `\u{1F4B3} ${t2("orders.paymentAttemptsTitle")}` : `\u{1F4CB} ${t2("orders.title")}` }),
+              ordersViewMode === "orders" && /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", gap: "10px" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
                   "button",
                   {
@@ -20930,8 +20981,57 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                 )
               ] })
             ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { role: "tablist", "aria-label": t2("orders.title"), style: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }, children: [
+              [
+                { mode: "orders", label: t2("orders.normalOrdersTab") },
+                { mode: "payment-attempts", label: t2("orders.paymentAttemptsTab") }
+              ].map((tab) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                "button",
+                {
+                  type: "button",
+                  role: "tab",
+                  "aria-selected": ordersViewMode === tab.mode,
+                  onClick: () => {
+                    if (ordersViewMode === tab.mode) return;
+                    setOrdersViewMode(tab.mode);
+                    setOrders([]);
+                    setOrdersPage(1);
+                    setSelectedOrders([]);
+                    setSearchTerm("");
+                    setCompanySearch("");
+                    setStatusFilter("all");
+                  },
+                  style: {
+                    width: "auto",
+                    padding: "9px 14px",
+                    border: `1px solid ${ordersViewMode === tab.mode ? "#0d6efd" : "#ced4da"}`,
+                    borderRadius: "6px",
+                    background: ordersViewMode === tab.mode ? "#0d6efd" : "#fff",
+                    color: ordersViewMode === tab.mode ? "#fff" : "#343a40",
+                    fontWeight: ordersViewMode === tab.mode ? 700 : 500,
+                    cursor: "pointer"
+                  },
+                  children: tab.label
+                },
+                tab.mode
+              )),
+              ordersViewMode === "payment-attempts" && /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => fetchOrders(marketFilter, ordersViewMode),
+                  disabled: ordersLoading,
+                  style: { width: "auto", padding: "9px 14px", border: "1px solid #ced4da", borderRadius: "6px", background: "#fff", color: "#343a40", cursor: "pointer" },
+                  children: [
+                    "\u21BB ",
+                    ordersLoading ? t2("orders.loadingOrders") : t2("orders.refreshPaymentAttempts")
+                  ]
+                }
+              )
+            ] }),
+            ordersViewMode === "payment-attempts" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { role: "note", style: { padding: "11px 14px", marginBottom: "18px", border: "1px solid #b8daff", borderRadius: "6px", background: "#f1f7ff", color: "#23456b", fontSize: "13px" }, children: t2("orders.paymentAttemptsDescription") }),
             /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { marginBottom: "20px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: "Order Actions" }),
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h4", { style: { color: "#333", marginBottom: "15px" }, children: t2("orders.orderActions") }),
               /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
                   "button",
@@ -20942,7 +21042,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                     children: "\u{1F50D} Search & Filter"
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                ordersViewMode === "orders" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
                   "button",
                   {
                     className: "btn",
@@ -20958,7 +21058,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                     children: "\u{1F504} Bulk Operations"
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                ordersViewMode === "orders" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
                   "button",
                   {
                     className: "btn",
@@ -21069,18 +21169,12 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                   }
                 )
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { marginTop: "10px", color: "#666", fontSize: "14px" }, children: [
-                "Showing ",
-                filteredOrders.length,
-                " of ",
-                orders.length,
-                " orders"
-              ] })
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginTop: "10px", color: "#666", fontSize: "14px" }, children: ordersViewMode === "payment-attempts" ? t2("orders.paymentAttemptsShowing", { count: filteredOrders.length, total: orders.length }) : t2("orders.showing", { count: filteredOrders.length, total: orders.length }) })
             ] }),
             orders.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { overflowX: "auto" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("tr", { style: { backgroundColor: "#f5f5f5" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("th", { style: { padding: "8px", textAlign: "center", borderBottom: "2px solid #ddd", width: "40px", minWidth: "40px", whiteSpace: "nowrap" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                  ordersViewMode === "orders" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("th", { style: { padding: "8px", textAlign: "center", borderBottom: "2px solid #ddd", width: "40px", minWidth: "40px", whiteSpace: "nowrap" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
                     "input",
                     {
                       type: "checkbox",
@@ -21103,7 +21197,7 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                   /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("th", { style: { padding: "8px 12px", textAlign: "left", borderBottom: "2px solid #ddd" }, children: "Ac\u021Biuni" })
                 ] }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("tbody", { children: filteredOrders.slice((ordersPage - 1) * 50, ordersPage * 50).map((order, index) => /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("tr", { style: { borderBottom: "1px solid #eee" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("td", { style: { padding: "8px", textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                  ordersViewMode === "orders" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("td", { style: { padding: "8px", textAlign: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
                     "input",
                     {
                       type: "checkbox",
@@ -21140,6 +21234,11 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                       backgroundColor: order.status === "pending" ? "#fff3cd" : order.status === "accepted" ? "#d1ecf1" : order.status === "processing" ? "#cce5ff" : order.status === "shipped" ? "#d4edda" : order.status === "in_delivery" ? "#d4f4f4" : order.status === "delivered" ? "#d4edda" : order.status === "cancelled" ? "#f8d7da" : order.status === "manual_processing" ? "#fff0d6" : order.status === "manual_failed" ? "#f8d7da" : "#e2e3e5",
                       color: order.status === "pending" ? "#856404" : order.status === "accepted" ? "#0c5460" : order.status === "processing" ? "#0056b3" : order.status === "shipped" ? "#155724" : order.status === "in_delivery" ? "#0e7c7b" : order.status === "delivered" ? "#155724" : order.status === "cancelled" ? "#721c24" : order.status === "manual_processing" ? "#8a4a00" : order.status === "manual_failed" ? "#7a1a1a" : "#383d41"
                     }, children: order.status === "in_delivery" ? "In Delivery" : order.status === "manual_processing" ? "\u23F3 Manual..." : order.status === "manual_failed" ? "\u274C Manual e\u0219uat" : order.status === "cash_on_delivery" ? "COD" : order.status }),
+                    ordersViewMode === "payment-attempts" && /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { marginTop: "5px", fontSize: "11px", color: "#6c757d" }, children: [
+                      String(order.paymentMethod || "").toUpperCase(),
+                      " \xB7 ",
+                      order.paymentStatus || "pending"
+                    ] }),
                     order.source === "manual_admin" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { style: { display: "inline-block", marginLeft: "4px", padding: "2px 5px", borderRadius: "3px", backgroundColor: "#fd7e14", color: "white", fontSize: "10px", fontWeight: "bold", verticalAlign: "middle" }, title: "Comanda procesata manual de admin", children: "\u{1F590} Manual" })
                   ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("td", { style: { padding: "8px 12px", whiteSpace: "nowrap" }, children: new Date(order.createdAt).toLocaleDateString() }),
@@ -21163,146 +21262,148 @@ Categoriile deja existente \xEEn ${targetMarket.toUpperCase()} nu vor fi modific
                         children: "\u{1F441}\uFE0F View"
                       }
                     ),
-                    order.status === "pending" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                      "button",
-                      {
-                        style: {
-                          padding: "4px 8px",
-                          border: "none",
-                          borderRadius: "3px",
-                          backgroundColor: "#17a2b8",
-                          color: "white",
-                          cursor: "pointer",
-                          fontSize: "12px"
-                        },
-                        onClick: async () => {
-                          if (confirm(`Accept order #${order.id}?
+                    ordersViewMode === "orders" && /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
+                      order.status === "pending" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#17a2b8",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: async () => {
+                            if (confirm(`Accept order #${order.id}?
 
 This will:
 \u2022 Update order status to 'processing'
 \u2022 Send confirmation email to customer
 \u2022 Send notification to logistics team
 \u2022 Enable AWB generation button`)) {
-                            const result = await acceptOrder(order.id);
-                            if (result.success) {
-                              let message = "Order accepted successfully!";
-                              if (result.notifications) {
-                                message += "\n\nEmail notifications:";
-                                message += result.notifications.customerEmail ? "\n\u2705 Customer confirmation sent" : "\n\u274C Customer email failed";
-                                message += result.notifications.logisticsEmail ? "\n\u2705 Logistics notification sent" : "\n\u274C Logistics email failed";
+                              const result = await acceptOrder(order.id);
+                              if (result.success) {
+                                let message = "Order accepted successfully!";
+                                if (result.notifications) {
+                                  message += "\n\nEmail notifications:";
+                                  message += result.notifications.customerEmail ? "\n\u2705 Customer confirmation sent" : "\n\u274C Customer email failed";
+                                  message += result.notifications.logisticsEmail ? "\n\u2705 Logistics notification sent" : "\n\u274C Logistics email failed";
+                                }
+                                alert(message);
+                              } else {
+                                alert("Error: " + result.message);
                               }
-                              alert(message);
-                            } else {
-                              alert("Error: " + result.message);
                             }
-                          }
-                        },
-                        children: "\u2705 Accept"
-                      }
-                    ),
-                    order.status === "pending" && !order.awbNumber && order.source !== "manual_admin" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                      "button",
-                      {
-                        style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#e67e22", color: "white", cursor: "pointer", fontSize: "12px" },
-                        onClick: () => {
-                          if (confirm("\u{1F590} Procesare manuala comanda #" + order.id + "\n\nVa genera AWB + factura\nFara mailuri trimise.\n\nContinui?")) {
-                            processManualOrder(order.id);
-                          }
-                        },
-                        children: "\u{1F590} Manual"
-                      }
-                    ),
-                    order.source === "manual_admin" && order.status === "manual_failed" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                      "button",
-                      {
-                        style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#dc3545", color: "white", cursor: "pointer", fontSize: "12px" },
-                        onClick: () => {
-                          if (confirm("\u{1F504} Re\xEEncearc\u0103 procesarea manual\u0103 pentru comanda #" + order.id + "?\n\nVa relua generarea AWB/facturii (cele deja existente NU se duplic\u0103).")) {
-                            processManualOrder(order.id);
-                          }
-                        },
-                        children: "\u{1F504} Retry Manual"
-                      }
-                    ),
-                    !["delivered", "cancelled"].includes(order.status) && (!order.awbNumber || order.awbNumber.includes("-API") || order.awbNumber.includes("-MANUAL-")) && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                      "button",
-                      {
-                        style: {
-                          padding: "4px 8px",
-                          border: "none",
-                          borderRadius: "3px",
-                          backgroundColor: "#8e44ad",
-                          color: "white",
-                          cursor: "pointer",
-                          fontSize: "12px"
-                        },
-                        onClick: () => generateAWB(order.id),
-                        children: "\u{1F69B} Generate AWB"
-                      }
-                    ),
-                    order.awbNumber && !order.awbNumber.includes("-API") && !order.awbNumber.includes("-MANUAL-") && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                      "button",
-                      {
-                        style: {
-                          padding: "4px 8px",
-                          border: "none",
-                          borderRadius: "3px",
-                          backgroundColor: "#17a2b8",
-                          color: "white",
-                          cursor: "pointer",
-                          fontSize: "12px"
-                        },
-                        onClick: () => window.open(`https://sameday.ro/status-colet/?awb=${order.awbNumber}`, "_blank"),
-                        children: "\u{1F4E6} Track Package"
-                      }
-                    ),
-                    order.awbNumber && !order.awbNumber.includes("-API") && !order.awbNumber.includes("-MANUAL-") && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                      "button",
-                      {
-                        style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#20c997", color: "white", cursor: "pointer", fontSize: "12px" },
-                        onClick: () => {
-                          if (confirm("\u2709\uFE0F Trimite mail acceptare comanda #" + order.id + "?\n\nVa trimite mailul cu AWB atasat catre client.")) {
-                            sendAcceptanceEmailFn(order.id);
-                          }
-                        },
-                        children: "\u2709\uFE0F Mail AWB"
-                      }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                      "button",
-                      {
-                        style: {
-                          padding: "4px 8px",
-                          border: "none",
-                          borderRadius: "3px",
-                          backgroundColor: "#fd7e14",
-                          color: "white",
-                          cursor: "pointer",
-                          fontSize: "12px"
-                        },
-                        onClick: () => forwardOrderToSuppliers(order.id),
-                        children: "\u{1F4E4} Forward to Suppliers"
-                      }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                      "button",
-                      {
-                        style: {
-                          padding: "4px 8px",
-                          border: "none",
-                          borderRadius: "3px",
-                          backgroundColor: "#28a745",
-                          color: "white",
-                          cursor: "pointer",
-                          fontSize: "12px"
-                        },
-                        onClick: () => {
-                          setStatusChangeOrderId(order.id);
-                          setStatusChangeValue(order.status);
-                        },
-                        children: "\u270F\uFE0F Update"
-                      }
-                    )
+                          },
+                          children: "\u2705 Accept"
+                        }
+                      ),
+                      order.status === "pending" && !order.awbNumber && order.source !== "manual_admin" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                        "button",
+                        {
+                          style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#e67e22", color: "white", cursor: "pointer", fontSize: "12px" },
+                          onClick: () => {
+                            if (confirm("\u{1F590} Procesare manuala comanda #" + order.id + "\n\nVa genera AWB + factura\nFara mailuri trimise.\n\nContinui?")) {
+                              processManualOrder(order.id);
+                            }
+                          },
+                          children: "\u{1F590} Manual"
+                        }
+                      ),
+                      order.source === "manual_admin" && order.status === "manual_failed" && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                        "button",
+                        {
+                          style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#dc3545", color: "white", cursor: "pointer", fontSize: "12px" },
+                          onClick: () => {
+                            if (confirm("\u{1F504} Re\xEEncearc\u0103 procesarea manual\u0103 pentru comanda #" + order.id + "?\n\nVa relua generarea AWB/facturii (cele deja existente NU se duplic\u0103).")) {
+                              processManualOrder(order.id);
+                            }
+                          },
+                          children: "\u{1F504} Retry Manual"
+                        }
+                      ),
+                      !["delivered", "cancelled"].includes(order.status) && (!order.awbNumber || order.awbNumber.includes("-API") || order.awbNumber.includes("-MANUAL-")) && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#8e44ad",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: () => generateAWB(order.id),
+                          children: "\u{1F69B} Generate AWB"
+                        }
+                      ),
+                      order.awbNumber && !order.awbNumber.includes("-API") && !order.awbNumber.includes("-MANUAL-") && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#17a2b8",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: () => window.open(`https://sameday.ro/status-colet/?awb=${order.awbNumber}`, "_blank"),
+                          children: "\u{1F4E6} Track Package"
+                        }
+                      ),
+                      order.awbNumber && !order.awbNumber.includes("-API") && !order.awbNumber.includes("-MANUAL-") && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                        "button",
+                        {
+                          style: { padding: "4px 8px", border: "none", borderRadius: "3px", backgroundColor: "#20c997", color: "white", cursor: "pointer", fontSize: "12px" },
+                          onClick: () => {
+                            if (confirm("\u2709\uFE0F Trimite mail acceptare comanda #" + order.id + "?\n\nVa trimite mailul cu AWB atasat catre client.")) {
+                              sendAcceptanceEmailFn(order.id);
+                            }
+                          },
+                          children: "\u2709\uFE0F Mail AWB"
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#fd7e14",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: () => forwardOrderToSuppliers(order.id),
+                          children: "\u{1F4E4} Forward to Suppliers"
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                        "button",
+                        {
+                          style: {
+                            padding: "4px 8px",
+                            border: "none",
+                            borderRadius: "3px",
+                            backgroundColor: "#28a745",
+                            color: "white",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          },
+                          onClick: () => {
+                            setStatusChangeOrderId(order.id);
+                            setStatusChangeValue(order.status);
+                          },
+                          children: "\u270F\uFE0F Update"
+                        }
+                      )
+                    ] })
                   ] }) })
                 ] }, index)) })
               ] }),
@@ -21323,7 +21424,8 @@ This will:
                   /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("strong", { children: Math.ceil(filteredOrders.length / 50) }),
                   " \xA0\xB7\xA0 ",
                   filteredOrders.length,
-                  " comenzi total"
+                  " ",
+                  ordersViewMode === "payment-attempts" ? t2("orders.paymentAttemptsTotal") : t2("orders.ordersTotal")
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
                   "button",
@@ -21335,9 +21437,9 @@ This will:
                   }
                 )
               ] })
-            ] }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: "No orders found" }),
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: "Orders will appear here once customers start purchasing your products." }),
+            ] }) : ordersLoading ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6", color: "#6c757d" }, children: t2("orders.loadingOrders") }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { padding: "40px", textAlign: "center", background: "#f8f9fa", borderRadius: "6px", border: "1px solid #dee2e6" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { style: { color: "#666", fontSize: "18px", marginBottom: "15px" }, children: ordersViewMode === "payment-attempts" ? t2("orders.noPaymentAttempts") : t2("orders.noOrders") }),
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { style: { color: "#6c757d", marginBottom: "20px" }, children: ordersViewMode === "payment-attempts" ? t2("orders.noPaymentAttemptsDesc") : t2("orders.noOrdersDesc") }),
               /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
                 "button",
                 {

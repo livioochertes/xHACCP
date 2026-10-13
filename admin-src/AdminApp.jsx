@@ -399,6 +399,9 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         return saved || 'all';
       });
       const [orders, setOrders] = useState([]);
+      const [ordersLoading, setOrdersLoading] = useState(false);
+      const ordersRequestIdRef = React.useRef(0);
+      const [ordersViewMode, setOrdersViewMode] = useState('orders');
       const [wmsOverview, setWmsOverview] = useState({ partners: [], routing: [] });
       const [wmsLoading, setWmsLoading] = useState(false);
       const [wmsPartnerForm, setWmsPartnerForm] = useState({ name: '', code: '' });
@@ -838,9 +841,9 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
       // Refetch orders from server when market filter changes (server-side filtering)
       useEffect(() => {
         if (activeView === 'orders') {
-          fetchOrders(marketFilter);
+          fetchOrders(marketFilter, ordersViewMode);
         }
-      }, [marketFilter, activeView]);
+      }, [marketFilter, activeView, ordersViewMode]);
 
       useEffect(() => {
         if (activeView !== 'dashboard') return undefined;
@@ -895,12 +898,19 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         let filtered = orders;
         
         if (searchTerm) {
-          filtered = filtered.filter(order => 
-            order.id.toString().includes(searchTerm) ||
-            ((order.shippingAddress.firstName || '') + ' ' + (order.shippingAddress.lastName || '')).toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.shippingAddress.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.status.toLowerCase().includes(searchTerm.toLowerCase())
-          );
+          const normalizedSearch = searchTerm.toLowerCase();
+          filtered = filtered.filter(order => {
+            const shippingAddress = order.shippingAddress && typeof order.shippingAddress === 'object'
+              ? order.shippingAddress
+              : {};
+            const customerName = `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.toLowerCase();
+            return String(order.id).includes(searchTerm) ||
+              customerName.includes(normalizedSearch) ||
+              String(shippingAddress.city || '').toLowerCase().includes(normalizedSearch) ||
+              String(order.status || '').toLowerCase().includes(normalizedSearch) ||
+              String(order.paymentStatus || '').toLowerCase().includes(normalizedSearch) ||
+              String(order.paymentMethod || '').toLowerCase().includes(normalizedSearch);
+          });
         }
 
         if (companySearch) {
@@ -999,10 +1009,19 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         }
       };
 
-      const fetchOrders = async (mktFilter) => {
+      const fetchOrders = async (mktFilter, viewMode = ordersViewMode) => {
+        const requestId = ++ordersRequestIdRef.current;
+        setOrdersLoading(true);
         try {
           const mkt = mktFilter || marketFilter;
-          const url = (mkt && mkt !== 'all') ? `/admin/api/orders?market=${mkt}` : '/admin/api/orders';
+          const params = new URLSearchParams();
+          if (mkt && mkt !== 'all') params.set('market', mkt);
+          if (viewMode === 'payment-attempts') {
+            params.set('view', 'payment-attempts');
+            params.set('limit', '500');
+          }
+          const query = params.toString();
+          const url = query ? `/admin/api/orders?${query}` : '/admin/api/orders';
           const response = await fetch(url, {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -1011,13 +1030,19 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
           
           const data = await response.json();
           
-          if (response.ok) {
+          if (response.ok && requestId === ordersRequestIdRef.current) {
             setOrders(data);
-          } else {
+          } else if (!response.ok && requestId === ordersRequestIdRef.current) {
             console.error('Failed to fetch orders:', data.message);
           }
         } catch (err) {
-          console.error('Network error fetching orders:', err);
+          if (requestId === ordersRequestIdRef.current) {
+            console.error('Network error fetching orders:', err);
+          }
+        } finally {
+          if (requestId === ordersRequestIdRef.current) {
+            setOrdersLoading(false);
+          }
         }
       };
 
@@ -3965,8 +3990,12 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
             return (
               <div style={{background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                  <h3 style={{color: '#333', margin: '0'}}>📋 Order Management</h3>
-                  <div style={{display: 'flex', gap: '10px'}}>
+                  <h3 style={{color: '#333', margin: '0'}}>
+                    {ordersViewMode === 'payment-attempts'
+                      ? `💳 ${t('orders.paymentAttemptsTitle')}`
+                      : `📋 ${t('orders.title')}`}
+                  </h3>
+                  {ordersViewMode === 'orders' && <div style={{display: 'flex', gap: '10px'}}>
                     <button
                       className="btn"
                       style={{background: '#28a745', width: 'auto', padding: '8px 16px'}}
@@ -3988,10 +4017,60 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                     >
                       📈 Analytics
                     </button>
-                  </div>
+                  </div>}
                 </div>
+                <div role="tablist" aria-label={t('orders.title')} style={{display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'12px'}}>
+                  {[
+                    { mode: 'orders', label: t('orders.normalOrdersTab') },
+                    { mode: 'payment-attempts', label: t('orders.paymentAttemptsTab') },
+                  ].map(tab => (
+                    <button
+                      key={tab.mode}
+                      type="button"
+                      role="tab"
+                      aria-selected={ordersViewMode === tab.mode}
+                      onClick={() => {
+                        if (ordersViewMode === tab.mode) return;
+                        setOrdersViewMode(tab.mode);
+                        setOrders([]);
+                        setOrdersPage(1);
+                        setSelectedOrders([]);
+                        setSearchTerm('');
+                        setCompanySearch('');
+                        setStatusFilter('all');
+                      }}
+                      style={{
+                        width:'auto',
+                        padding:'9px 14px',
+                        border:`1px solid ${ordersViewMode === tab.mode ? '#0d6efd' : '#ced4da'}`,
+                        borderRadius:'6px',
+                        background:ordersViewMode === tab.mode ? '#0d6efd' : '#fff',
+                        color:ordersViewMode === tab.mode ? '#fff' : '#343a40',
+                        fontWeight:ordersViewMode === tab.mode ? 700 : 500,
+                        cursor:'pointer',
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                  {ordersViewMode === 'payment-attempts' && (
+                    <button
+                      type="button"
+                      onClick={() => fetchOrders(marketFilter, ordersViewMode)}
+                      disabled={ordersLoading}
+                      style={{width:'auto',padding:'9px 14px',border:'1px solid #ced4da',borderRadius:'6px',background:'#fff',color:'#343a40',cursor:'pointer'}}
+                    >
+                      ↻ {ordersLoading ? t('orders.loadingOrders') : t('orders.refreshPaymentAttempts')}
+                    </button>
+                  )}
+                </div>
+                {ordersViewMode === 'payment-attempts' && (
+                  <div role="note" style={{padding:'11px 14px',marginBottom:'18px',border:'1px solid #b8daff',borderRadius:'6px',background:'#f1f7ff',color:'#23456b',fontSize:'13px'}}>
+                    {t('orders.paymentAttemptsDescription')}
+                  </div>
+                )}
                 <div style={{marginBottom: '20px'}}>
-                  <h4 style={{color: '#333', marginBottom: '15px'}}>Order Actions</h4>
+                  <h4 style={{color: '#333', marginBottom: '15px'}}>{t('orders.orderActions')}</h4>
                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
                     <button 
                       className="btn" 
@@ -4000,7 +4079,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                     >
                       🔍 Search & Filter
                     </button>
-                    <button 
+                    {ordersViewMode === 'orders' && <button 
                       className="btn" 
                       style={{background: '#28a745', width: 'auto', padding: '8px 16px'}}
                       onClick={() => {
@@ -4013,8 +4092,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                       }}
                     >
                       🔄 Bulk Operations
-                    </button>
-                    <button 
+                    </button>}
+                    {ordersViewMode === 'orders' && <button 
                       className="btn" 
                       style={{background: '#dc3545', width: 'auto', padding: '8px 16px'}}
                       onClick={() => {
@@ -4026,7 +4105,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                       }}
                     >
                       🛠️ Order Tools
-                    </button>
+                    </button>}
                   </div>
                 </div>
                 
@@ -4118,7 +4197,9 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                       </button>
                     </div>
                     <div style={{marginTop: '10px', color: '#666', fontSize: '14px'}}>
-                      Showing {filteredOrders.length} of {orders.length} orders
+                      {ordersViewMode === 'payment-attempts'
+                        ? t('orders.paymentAttemptsShowing', {count: filteredOrders.length, total: orders.length})
+                        : t('orders.showing', {count: filteredOrders.length, total: orders.length})}
                     </div>
                   </div>
                 )}
@@ -4128,7 +4209,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                     <table style={{width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed'}}>
                       <thead>
                         <tr style={{backgroundColor: '#f5f5f5'}}>
-                          <th style={{padding: '8px', textAlign: 'center', borderBottom: '2px solid #ddd', width: '40px', minWidth: '40px', whiteSpace: 'nowrap'}}>
+                          {ordersViewMode === 'orders' && <th style={{padding: '8px', textAlign: 'center', borderBottom: '2px solid #ddd', width: '40px', minWidth: '40px', whiteSpace: 'nowrap'}}>
                             <input 
                               type="checkbox" 
                               onChange={(e) => {
@@ -4140,7 +4221,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                               }}
                               checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
                             />
-                          </th>
+                          </th>}
                           <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '70px'}}>Order ID</th>
                           <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '150px'}}>Client</th>
                           <th style={{padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #ddd', width: '280px'}}>Firmă</th>
@@ -4153,7 +4234,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                       <tbody>
                         {filteredOrders.slice((ordersPage - 1) * 50, ordersPage * 50).map((order, index) => (
                           <tr key={index} style={{borderBottom: '1px solid #eee'}}>
-                            <td style={{padding: '8px', textAlign: 'center'}}>
+                            {ordersViewMode === 'orders' && <td style={{padding: '8px', textAlign: 'center'}}>
                               <input 
                                 type="checkbox" 
                                 checked={selectedOrders.includes(order.id)}
@@ -4165,7 +4246,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                   }
                                 }}
                               />
-                            </td>
+                            </td>}
                             <td style={{padding: '8px 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
                               #{order.id}
                               <span style={{marginLeft: '4px', padding: '1px 5px', borderRadius: '3px', fontSize: '10px', fontWeight: 'bold', background: (order.market||'ro')==='ro' ? '#fff3cd' : (order.market==='fr' ? '#cfe2ff' : '#d1e7dd'), color: '#333'}}>{(order.market||'ro').toUpperCase()}</span>
@@ -4194,6 +4275,11 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                               }}>
                                 {order.status === 'in_delivery' ? 'In Delivery' : order.status === 'manual_processing' ? '⏳ Manual...' : order.status === 'manual_failed' ? '❌ Manual eșuat' : order.status === 'cash_on_delivery' ? 'COD' : order.status}
                               </span>
+                              {ordersViewMode === 'payment-attempts' && (
+                                <div style={{marginTop:'5px',fontSize:'11px',color:'#6c757d'}}>
+                                  {String(order.paymentMethod || '').toUpperCase()} · {order.paymentStatus || 'pending'}
+                                </div>
+                              )}
                               {order.source === 'manual_admin' && (
                                 <span style={{display:'inline-block',marginLeft:'4px',padding:'2px 5px',borderRadius:'3px',backgroundColor:'#fd7e14',color:'white',fontSize:'10px',fontWeight:'bold',verticalAlign:'middle'}} title="Comanda procesata manual de admin">🖐 Manual</span>
                               )}
@@ -4218,6 +4304,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                 >
                                   👁️ View
                                 </button>
+                                {ordersViewMode === 'orders' && <>
                                 {order.status === 'pending' && (
                                   <button 
                                     style={{
@@ -4342,6 +4429,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                 >
                                   ✏️ Update
                                 </button>
+                                </>}
                               </div>
                             </td>
                           </tr>
@@ -4356,7 +4444,7 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                           style={{padding: '6px 14px', border: '1px solid #ced4da', borderRadius: '4px', background: ordersPage === 1 ? '#e9ecef' : 'white', cursor: ordersPage === 1 ? 'default' : 'pointer', color: ordersPage === 1 ? '#aaa' : '#333'}}
                         >← Anterior</button>
                         <span style={{fontSize: '13px', color: '#555'}}>
-                          Pagina <strong>{ordersPage}</strong> din <strong>{Math.ceil(filteredOrders.length / 50)}</strong> &nbsp;·&nbsp; {filteredOrders.length} comenzi total
+                          Pagina <strong>{ordersPage}</strong> din <strong>{Math.ceil(filteredOrders.length / 50)}</strong> &nbsp;·&nbsp; {filteredOrders.length} {ordersViewMode === 'payment-attempts' ? t('orders.paymentAttemptsTotal') : t('orders.ordersTotal')}
                         </span>
                         <button
                           onClick={() => setOrdersPage(p => Math.min(Math.ceil(filteredOrders.length / 50), p + 1))}
@@ -4366,10 +4454,18 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                       </div>
                     )}
                   </div>
+                ) : ordersLoading ? (
+                  <div style={{padding:'40px',textAlign:'center',background:'#f8f9fa',borderRadius:'6px',border:'1px solid #dee2e6',color:'#6c757d'}}>
+                    {t('orders.loadingOrders')}
+                  </div>
                 ) : (
                   <div style={{padding: '40px', textAlign: 'center', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6'}}>
-                    <p style={{color: '#666', fontSize: '18px', marginBottom: '15px'}}>No orders found</p>
-                    <p style={{color: '#6c757d', marginBottom: '20px'}}>Orders will appear here once customers start purchasing your products.</p>
+                    <p style={{color: '#666', fontSize: '18px', marginBottom: '15px'}}>
+                      {ordersViewMode === 'payment-attempts' ? t('orders.noPaymentAttempts') : t('orders.noOrders')}
+                    </p>
+                    <p style={{color: '#6c757d', marginBottom: '20px'}}>
+                      {ordersViewMode === 'payment-attempts' ? t('orders.noPaymentAttemptsDesc') : t('orders.noOrdersDesc')}
+                    </p>
                     <button 
                       className="btn" 
                       style={{background: '#007bff', width: 'auto', padding: '12px 24px'}}

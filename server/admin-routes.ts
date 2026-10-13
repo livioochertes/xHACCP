@@ -79,6 +79,7 @@ import {
 } from "./admin-auth";
 import { registerAdminAccountManagementRoutes } from "./admin-account-management-routes";
 import { registerPaymentHealthAdminRoutes } from "./payment-health-admin-routes";
+import { filterOrdersForAdminList } from "./admin-payment-attempts";
 import { registerProductSeoAdminRoutes } from "./product-seo-admin-routes";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
@@ -1963,13 +1964,13 @@ export async function registerAdminRoutes(app: Express) {
   // Admin Order Management Routes
   app.get("/admin/api/orders", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
     try {
-      const { status, limit = 50, offset = 0, supplierId, market } = req.query;
+      const { status, limit = 50, offset = 0, supplierId, market, view } = req.query;
       
       const orders = await storage.getOrders();
-      
-      let filteredOrders = orders;
+      const listMode = view === "payment-attempts" ? "payment-attempts" : "orders";
+      let filteredOrders = filterOrdersForAdminList(orders, listMode);
       if (status) {
-        filteredOrders = orders.filter(order => order.status === status);
+        filteredOrders = filteredOrders.filter(order => order.status === status);
       }
       
       // Enforce market restriction for non-superadmins

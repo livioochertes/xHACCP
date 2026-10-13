@@ -26,6 +26,7 @@
 - [Viva checkout error handling](viva-checkout-error-handling.md) — payment failures must stay JSON/user-safe; correlate logs without logging source codes or customer payloads.
 - [Viva production egress blocking](viva-production-egress-blocking.md) — dev OAuth may pass while Production gets HTML 403 from provider edge filtering.
 - [Payment callback idempotency](payment-callback-idempotency.md) — callbacks and webhooks must atomically claim the paid transition before invoice/email side effects.
+- [Unpaid checkout visibility](unpaid-checkout-visibility.md) — keep unpaid Viva/PayPal checkout attempts for reconciliation, but separate them from normal orders in admin.
 - [Provider-confirmed payment expiry](provider-payment-expiry.md) — only provider-confirmed terminal states can release pending voucher holds; local age or browser cancellation alone is not enough.
 - [French order documents email](fr-order-documents-email.md) — send one FR invoice+MyFlyingBox email only after both artifacts exist; claim after readiness and release on send failure.
 - [Invoice order cardinality](invoice-order-cardinality.md) — one order can retain multiple invoice records across fallback, issuance, and reissuance flows.
