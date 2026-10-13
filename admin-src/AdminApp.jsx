@@ -6751,28 +6751,6 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                                       })}
                                     </small>
                                   )}
-                                  {Object.values(campaign.delivery?.historicalEventAnalytics || {}).some(metric => metric.eventCount > 0) && (
-                                    <div style={{marginTop: '8px', paddingTop: '7px', borderTop: '1px dashed #cbd5e1'}}>
-                                      <strong>{t('marketing.historyMetricsTitle')}</strong>
-                                      <div style={{fontSize: '11px', color: '#64748b', marginTop: '3px'}}>
-                                        {t('marketing.historyMetricsDescription')}
-                                      </div>
-                                      <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px 12px', marginTop: '5px'}}>
-                                        {campaignAnalyticsMetrics.map(item => {
-                                          const metric = campaign.delivery.historicalEventAnalytics[item.key] || {eventCount: 0, uniqueRecipients: 0};
-                                          return (
-                                            <span key={`history-${item.key}`}>
-                                              <strong>{t(`marketing.${item.label}`)}:</strong>{' '}
-                                              {t('marketing.deliveryAnalyticsMetric', {
-                                                events: metric.eventCount,
-                                                recipients: metric.uniqueRecipients
-                                              })}
-                                            </span>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
                                 </div>
                                 <div style={{display: 'grid', gap: '2px', marginTop: '5px'}}>
                                   {campaign.delivery.batches.map(batch => {

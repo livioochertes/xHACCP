@@ -11558,19 +11558,17 @@
       deliveryAnalyticsMetric: "{{events}} events \xB7 {{recipients}} unique recipients",
       deliveryAnalyticsRate: "{{rate}} of delivered recipients",
       deliveryEngagementDisclaimer: "Opens can include automated scans or privacy-protection activity; treat them as indicative, not proof that a person read the message.",
-      liveWebhookMetrics: "Live events received by this app's SendGrid webhook",
-      historyMetricsTitle: "Recovered historical SendGrid events",
-      historyMetricsDescription: "Imported from SendGrid Email Logs; shown separately and not added to live webhook counts.",
+      liveWebhookMetrics: "SendGrid events received live or synchronized from history; each event is counted once",
       applicationEventSummary: "App-recorded unsubscribe events: {{events}} events \xB7 {{recipients}} recipients",
-      historyImportButton: "Recover SendGrid history",
+      historyImportButton: "Sync SendGrid history",
       historyImporting: "Recovering SendGrid history ({{processed}}/{{total}} messages)\u2026",
       historyRecoveryTitle: "Automatic SendGrid history recovery",
       historyImportPending: "Waiting for SendGrid logs to become available. History expires {{date}}.",
       historyImportAutoRunning: "In progress ({{processed}}/{{total}} messages).",
       historyImportAutoFailed: "Recovery failed: {{error}}",
-      historyImportAutoComplete: "Complete: {{events}} historical events recovered.",
+      historyImportAutoComplete: "Complete: {{events}} SendGrid events synchronized with campaign metrics.",
       historyImportAutoNoData: "Complete: no matching SendGrid history was found.",
-      historyImportAutoNoMissing: "Complete: SendGrid logs were checked; no additional events were missing.",
+      historyImportAutoNoMissing: "Complete: SendGrid logs were checked and synchronized.",
       historyImportExpired: "SendGrid's 30-day history window expired {{date}}; it can no longer be recovered.",
       historyImportConfirm: "Retrieve retained SendGrid activity for \u201C{{name}}\u201D? Existing webhook events will not be counted twice.",
       historyImportSuccess: "SendGrid returned {{messages}} messages; {{matched}} matched campaign recipients and {{events}} historical events were found. {{unmatched}} messages could not be matched.",
@@ -12757,19 +12755,17 @@
       deliveryAnalyticsMetric: "{{events}} evenimente \xB7 {{recipients}} destinatari unici",
       deliveryAnalyticsRate: "{{rate}} din destinatarii livra\u021Bi",
       deliveryEngagementDisclaimer: "Deschiderile pot include scan\u0103ri automate sau protec\u021Bii de confiden\u021Bialitate; sunt indicatori, nu dovad\u0103 c\u0103 mesajul a fost citit.",
-      liveWebhookMetrics: "Evenimente primite \xEEn timp real de webhook-ul SendGrid al aplica\u021Biei",
-      historyMetricsTitle: "Evenimente istorice SendGrid recuperate",
-      historyMetricsDescription: "Importate din SendGrid Email Logs; afi\u0219ate separat \u0219i nead\u0103ugate la totalurile webhook-ului live.",
+      liveWebhookMetrics: "Evenimente SendGrid primite \xEEn timp real sau sincronizate din istoric; fiecare eveniment este num\u0103rat o singur\u0103 dat\u0103",
       applicationEventSummary: "Dezabon\u0103ri \xEEnregistrate de aplica\u021Bie: {{events}} evenimente \xB7 {{recipients}} destinatari",
-      historyImportButton: "Recupereaz\u0103 istoricul SendGrid",
+      historyImportButton: "Sincronizeaz\u0103 istoricul SendGrid",
       historyImporting: "Se recupereaz\u0103 istoricul SendGrid ({{processed}}/{{total}} mesaje)\u2026",
       historyRecoveryTitle: "Recuperare automat\u0103 a istoricului SendGrid",
       historyImportPending: "Se a\u0219teapt\u0103 jurnalele SendGrid. Istoricul expir\u0103 la {{date}}.",
       historyImportAutoRunning: "\xCEn curs ({{processed}}/{{total}} mesaje).",
       historyImportAutoFailed: "Recuperarea a e\u0219uat: {{error}}",
-      historyImportAutoComplete: "Finalizat: {{events}} evenimente istorice recuperate.",
+      historyImportAutoComplete: "Finalizat: {{events}} evenimente SendGrid sincronizate cu statisticile campaniei.",
       historyImportAutoNoData: "Finalizat: nu a fost g\u0103sit istoric SendGrid corespunz\u0103tor.",
-      historyImportAutoNoMissing: "Finalizat: jurnalele SendGrid au fost verificate; nu lipseau evenimente suplimentare.",
+      historyImportAutoNoMissing: "Finalizat: jurnalele SendGrid au fost verificate \u0219i sincronizate.",
       historyImportExpired: "Fereastra SendGrid de p\u0103strare a istoricului de 30 de zile a expirat la {{date}}; datele nu mai pot fi recuperate.",
       historyImportConfirm: "Recuperezi activitatea SendGrid \xEEnc\u0103 p\u0103strat\u0103 pentru \u201E{{name}}\u201D? Evenimentele deja primite prin webhook nu vor fi num\u0103rate de dou\u0103 ori.",
       historyImportSuccess: "SendGrid a returnat {{messages}} mesaje; au fost asociate {{matched}} contacte ale campaniei \u0219i {{events}} evenimente istorice. {{unmatched}} mesaje nu au putut fi asociate.",
@@ -13956,19 +13952,17 @@
       deliveryAnalyticsMetric: "{{events}} \xE9v\xE9nements \xB7 {{recipients}} destinataires uniques",
       deliveryAnalyticsRate: "{{rate}} des destinataires livr\xE9s",
       deliveryEngagementDisclaimer: "Les ouvertures peuvent inclure des robots ou des protections de confidentialit\xE9 ; elles sont indicatives et ne prouvent pas la lecture du message.",
-      liveWebhookMetrics: "\xC9v\xE9nements re\xE7us en direct par le webhook SendGrid de l\u2019application",
-      historyMetricsTitle: "\xC9v\xE9nements SendGrid historiques r\xE9cup\xE9r\xE9s",
-      historyMetricsDescription: "Import\xE9s depuis SendGrid Email Logs ; affich\xE9s s\xE9par\xE9ment, sans les ajouter aux totaux du webhook.",
+      liveWebhookMetrics: "\xC9v\xE9nements SendGrid re\xE7us en direct ou synchronis\xE9s depuis l\u2019historique ; chaque \xE9v\xE9nement est compt\xE9 une seule fois",
       applicationEventSummary: "D\xE9sabonnements enregistr\xE9s par l\u2019application : {{events}} \xE9v\xE9nements \xB7 {{recipients}} destinataires",
-      historyImportButton: "R\xE9cup\xE9rer l\u2019historique SendGrid",
+      historyImportButton: "Synchroniser l\u2019historique SendGrid",
       historyImporting: "R\xE9cup\xE9ration de l\u2019historique SendGrid ({{processed}}/{{total}} messages)\u2026",
       historyRecoveryTitle: "R\xE9cup\xE9ration automatique de l\u2019historique SendGrid",
       historyImportPending: "En attente des journaux SendGrid. L\u2019historique expire le {{date}}.",
       historyImportAutoRunning: "En cours ({{processed}}/{{total}} messages).",
       historyImportAutoFailed: "\xC9chec de la r\xE9cup\xE9ration : {{error}}",
-      historyImportAutoComplete: "Termin\xE9 : {{events}} \xE9v\xE9nements historiques r\xE9cup\xE9r\xE9s.",
+      historyImportAutoComplete: "Termin\xE9 : {{events}} \xE9v\xE9nements SendGrid synchronis\xE9s avec les statistiques de la campagne.",
       historyImportAutoNoData: "Termin\xE9 : aucun historique SendGrid correspondant n\u2019a \xE9t\xE9 trouv\xE9.",
-      historyImportAutoNoMissing: "Termin\xE9 : les journaux SendGrid ont \xE9t\xE9 v\xE9rifi\xE9s ; aucun \xE9v\xE9nement suppl\xE9mentaire ne manquait.",
+      historyImportAutoNoMissing: "Termin\xE9 : les journaux SendGrid ont \xE9t\xE9 v\xE9rifi\xE9s et synchronis\xE9s.",
       historyImportExpired: "La p\xE9riode de conservation SendGrid de 30 jours a expir\xE9 le {{date}} ; l\u2019historique ne peut plus \xEAtre r\xE9cup\xE9r\xE9.",
       historyImportConfirm: "R\xE9cup\xE9rer l\u2019activit\xE9 SendGrid conserv\xE9e pour \xAB {{name}} \xBB ? Les \xE9v\xE9nements d\xE9j\xE0 re\xE7us par webhook ne seront pas compt\xE9s deux fois.",
       historyImportSuccess: "SendGrid a renvoy\xE9 {{messages}} messages ; {{matched}} destinataires de la campagne et {{events}} \xE9v\xE9nements historiques ont \xE9t\xE9 trouv\xE9s. {{unmatched}} messages n\u2019ont pas pu \xEAtre associ\xE9s.",
@@ -23448,25 +23442,7 @@ This action cannot be undone.`)) {
                         Object.values(campaign.delivery?.applicationEventAnalytics || {}).some((metric) => metric.eventCount > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("small", { style: { display: "block", marginTop: "4px", color: "#64748b" }, children: t2("marketing.applicationEventSummary", {
                           events: campaign.delivery.applicationEventAnalytics.unsubscribes?.eventCount || 0,
                           recipients: campaign.delivery.applicationEventAnalytics.unsubscribes?.uniqueRecipients || 0
-                        }) }),
-                        Object.values(campaign.delivery?.historicalEventAnalytics || {}).some((metric) => metric.eventCount > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: { marginTop: "8px", paddingTop: "7px", borderTop: "1px dashed #cbd5e1" }, children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("strong", { children: t2("marketing.historyMetricsTitle") }),
-                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { fontSize: "11px", color: "#64748b", marginTop: "3px" }, children: t2("marketing.historyMetricsDescription") }),
-                          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px 12px", marginTop: "5px" }, children: campaignAnalyticsMetrics.map((item) => {
-                            const metric = campaign.delivery.historicalEventAnalytics[item.key] || { eventCount: 0, uniqueRecipients: 0 };
-                            return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
-                              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("strong", { children: [
-                                t2(`marketing.${item.label}`),
-                                ":"
-                              ] }),
-                              " ",
-                              t2("marketing.deliveryAnalyticsMetric", {
-                                events: metric.eventCount,
-                                recipients: metric.uniqueRecipients
-                              })
-                            ] }, `history-${item.key}`);
-                          }) })
-                        ] })
+                        }) })
                       ] }),
                       /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: { display: "grid", gap: "2px", marginTop: "5px" }, children: campaign.delivery.batches.map((batch) => {
                         const batchStatus = batch.status === "sending" ? t2("marketing.statusSending") : batch.status === "partial" ? t2("marketing.statusPartial") : batch.status === "failed" ? t2("marketing.statusFailed") : t2("marketing.statusSent");

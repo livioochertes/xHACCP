@@ -61,7 +61,6 @@ export interface MarketingCampaignDeliverySummary {
   batchSize: number;
   counts: Record<MarketingCampaignDeliveryStatus, number>;
   eventAnalytics: Record<string, { eventCount: number; uniqueRecipients: number }>;
-  historicalEventAnalytics: Record<string, { eventCount: number; uniqueRecipients: number }>;
   applicationEventAnalytics: Record<string, { eventCount: number; uniqueRecipients: number }>;
   batches: Array<{
     id: number;
@@ -502,7 +501,7 @@ async function refreshBatchCounts(batchId: number): Promise<void> {
   const [counts] = await db.select({
     accepted: sql<number>`count(*) filter (where ${marketingCampaignRecipients.acceptedAt} is not null)::int`,
     delivered: sql<number>`count(*) filter (where ${marketingCampaignRecipients.deliveredAt} is not null)::int`,
-    failed: sql<number>`count(*) filter (where ${marketingCampaignRecipients.status} in ('failed', 'unknown'))::int`,
+    failed: sql<number>`count(*) filter (where ${marketingCampaignRecipients.status} in ('failed', 'unknown', 'bounced', 'dropped', 'spam_report'))::int`,
     pending: sql<number>`count(*) filter (where ${marketingCampaignRecipients.status} in ('queued', 'submitting'))::int`,
   })
     .from(marketingCampaignRecipients)
@@ -736,20 +735,6 @@ export async function getMarketingCampaignDeliverySummaries(
         machineOpens: { eventCount: 0, uniqueRecipients: 0 },
         clicks: { eventCount: 0, uniqueRecipients: 0 },
       },
-      historicalEventAnalytics: {
-        processed: { eventCount: 0, uniqueRecipients: 0 },
-        delivered: { eventCount: 0, uniqueRecipients: 0 },
-        deferred: { eventCount: 0, uniqueRecipients: 0 },
-        bounces: { eventCount: 0, uniqueRecipients: 0 },
-        blocked: { eventCount: 0, uniqueRecipients: 0 },
-        dropped: { eventCount: 0, uniqueRecipients: 0 },
-        spamReports: { eventCount: 0, uniqueRecipients: 0 },
-        unsubscribes: { eventCount: 0, uniqueRecipients: 0 },
-        groupResubscribes: { eventCount: 0, uniqueRecipients: 0 },
-        opens: { eventCount: 0, uniqueRecipients: 0 },
-        machineOpens: { eventCount: 0, uniqueRecipients: 0 },
-        clicks: { eventCount: 0, uniqueRecipients: 0 },
-      },
       applicationEventAnalytics: {
         unsubscribes: { eventCount: 0, uniqueRecipients: 0 },
       },
@@ -778,7 +763,7 @@ export async function getMarketingCampaignDeliverySummaries(
   }
 
   const eventCategory = sql<string>`case
-    when ${sendgridCampaignWebhookEvents.eventType} in ('open', 'machine_open') then 'opens'
+    when ${sendgridCampaignWebhookEvents.eventType} = 'open' then 'opens'
     when ${sendgridCampaignWebhookEvents.eventType} = 'click' then 'clicks'
     when ${sendgridCampaignWebhookEvents.eventType} in ('unsubscribe', 'group_unsubscribe', 'app_unsubscribe') then 'unsubscribes'
     when ${sendgridCampaignWebhookEvents.eventType} = 'bounce' then 'bounces'
@@ -788,7 +773,10 @@ export async function getMarketingCampaignDeliverySummaries(
   end`;
   const eventRows = await db.select({
     campaignId: marketingCampaignRecipients.campaignId,
-    eventSource: sendgridCampaignWebhookEvents.eventSource,
+    analyticsSource: sql<string>`case
+      when ${sendgridCampaignWebhookEvents.eventSource} = 'application' then 'application'
+      else 'provider'
+    end`,
     category: eventCategory,
     eventCount: sql<number>`count(*)::int`,
     uniqueRecipients: sql<number>`count(distinct ${sendgridCampaignWebhookEvents.recipientId})::int`,
@@ -802,11 +790,9 @@ export async function getMarketingCampaignDeliverySummaries(
   for (const row of eventRows) {
     const summary = summaries.get(row.campaignId);
     if (summary) {
-      const analytics = row.eventSource === "historical_import"
-        ? summary.historicalEventAnalytics
-        : row.eventSource === "application"
-          ? summary.applicationEventAnalytics
-          : summary.eventAnalytics;
+      const analytics = row.analyticsSource === "application"
+        ? summary.applicationEventAnalytics
+        : summary.eventAnalytics;
       analytics[row.category] = {
         eventCount: Number(row.eventCount),
         uniqueRecipients: Number(row.uniqueRecipients),
@@ -816,7 +802,10 @@ export async function getMarketingCampaignDeliverySummaries(
 
   const machineOpenRows = await db.select({
     campaignId: marketingCampaignRecipients.campaignId,
-    eventSource: sendgridCampaignWebhookEvents.eventSource,
+    analyticsSource: sql<string>`case
+      when ${sendgridCampaignWebhookEvents.eventSource} = 'application' then 'application'
+      else 'provider'
+    end`,
     eventCount: sql<number>`count(*)::int`,
     uniqueRecipients: sql<number>`count(distinct ${sendgridCampaignWebhookEvents.recipientId})::int`,
   }).from(sendgridCampaignWebhookEvents)
@@ -830,16 +819,17 @@ export async function getMarketingCampaignDeliverySummaries(
     ))
     .groupBy(
       marketingCampaignRecipients.campaignId,
-      sendgridCampaignWebhookEvents.eventSource,
+      sql`case
+        when ${sendgridCampaignWebhookEvents.eventSource} = 'application' then 'application'
+        else 'provider'
+      end`,
     );
   for (const row of machineOpenRows) {
     const summary = summaries.get(row.campaignId);
     if (summary) {
-      const analytics = row.eventSource === "historical_import"
-        ? summary.historicalEventAnalytics
-        : row.eventSource === "application"
-          ? summary.applicationEventAnalytics
-          : summary.eventAnalytics;
+      const analytics = row.analyticsSource === "application"
+        ? summary.applicationEventAnalytics
+        : summary.eventAnalytics;
       analytics.machineOpens = {
         eventCount: Number(row.eventCount),
         uniqueRecipients: Number(row.uniqueRecipients),
@@ -983,35 +973,95 @@ async function persistHistoricalCampaignEvents(events: SendGridHistoryEvent[]): 
       });
   }
 
-  const unsubscribedRecipientIds = [...new Set(events
-    .filter((event) => ["unsubscribe", "group_unsubscribe", "app_unsubscribe"].includes(event.eventType))
-    .map((event) => event.recipientId))];
-  if (!unsubscribedRecipientIds.length) return;
+  const recipientIds = [...new Set(events.map((event) => event.recipientId))];
+  if (!recipientIds.length) return;
+  const eventsByRecipient = new Map<number, SendGridHistoryEvent[]>();
+  for (const event of events) {
+    const recipientEvents = eventsByRecipient.get(event.recipientId) || [];
+    recipientEvents.push(event);
+    eventsByRecipient.set(event.recipientId, recipientEvents);
+  }
+  const batchesToRefresh = new Set<number>();
 
-  const unsubscribeRecipients = await db.select({
-    prospectId: marketingCampaignRecipients.prospectId,
-  }).from(marketingCampaignRecipients)
-    .where(and(
-      inArray(marketingCampaignRecipients.id, unsubscribedRecipientIds),
-      sql`${marketingCampaignRecipients.prospectId} IS NOT NULL`,
-    ));
-  const prospectIds = [...new Set(unsubscribeRecipients
-    .map((row) => row.prospectId)
-    .filter((id): id is number => id !== null))];
-  if (!prospectIds.length) return;
+  for (const recipientId of recipientIds) {
+    const recipientEvents = (eventsByRecipient.get(recipientId) || [])
+      .sort((left, right) => (left.occurredAt?.getTime() || 0) - (right.occurredAt?.getTime() || 0));
 
-  const now = new Date();
-  await db.transaction(async (tx) => {
-    await tx.update(marketingProspects)
-      .set({
-        subscriptionStatus: "unsubscribed",
-        unsubscribedAt: sql`COALESCE(${marketingProspects.unsubscribedAt}, ${now})`,
-        updatedAt: now,
-      })
-      .where(inArray(marketingProspects.id, prospectIds));
-    await tx.delete(marketingProspectListContacts)
-      .where(inArray(marketingProspectListContacts.prospectId, prospectIds));
-  });
+    const batchId = await db.transaction(async (tx) => {
+      const [recipient] = await tx.select().from(marketingCampaignRecipients)
+        .where(eq(marketingCampaignRecipients.id, recipientId))
+        .for("update")
+        .limit(1);
+      if (!recipient) return null;
+      let status = recipient.status as MarketingCampaignDeliveryStatus;
+      let deliveredAt = recipient.deliveredAt;
+      let lastEvent = recipient.lastEvent;
+      let lastEventAt = recipient.lastEventAt;
+      let lastError = recipient.lastError;
+      let changed = false;
+
+      for (const event of recipientEvents) {
+        const deliveryEventName = event.eventType === "blocked" ? "deferred"
+          : event.eventType === "app_unsubscribe" ? "unsubscribe"
+            : event.eventType;
+        const next = nextDeliveryStatus(status, deliveryEventName);
+        if (!next) continue;
+        status = next;
+        lastEvent = event.eventType;
+        lastEventAt = event.occurredAt || new Date();
+        if (next === "delivered") deliveredAt = event.occurredAt || new Date();
+        if (next === "bounced") lastError = "hard_bounce";
+        else if (next === "spam_report") lastError = "spam_report";
+        else if (next === "unsubscribed") lastError = "unsubscribed";
+        else if (next === "dropped") lastError = "sendgrid_dropped";
+        changed = true;
+      }
+      if (!changed) return null;
+
+      const now = new Date();
+      await tx.update(marketingCampaignRecipients)
+        .set({
+          status,
+          deliveredAt,
+          lastEvent,
+          lastEventAt,
+          lastError,
+          updatedAt: now,
+        })
+        .where(eq(marketingCampaignRecipients.id, recipient.id));
+      if (recipient.prospectId && status === "bounced") {
+        await tx.update(marketingProspects)
+          .set({
+            emailSuppressedAt: sql`COALESCE(${marketingProspects.emailSuppressedAt}, ${now})`,
+            emailSuppressionReason: sql`COALESCE(${marketingProspects.emailSuppressionReason}, 'hard_bounce')`,
+            updatedAt: now,
+          })
+          .where(eq(marketingProspects.id, recipient.prospectId));
+      } else if (recipient.prospectId && status === "spam_report") {
+        await tx.update(marketingProspects)
+          .set({
+            emailSuppressedAt: sql`COALESCE(${marketingProspects.emailSuppressedAt}, ${now})`,
+            emailSuppressionReason: sql`COALESCE(${marketingProspects.emailSuppressionReason}, 'spam_report')`,
+            updatedAt: now,
+          })
+          .where(eq(marketingProspects.id, recipient.prospectId));
+      } else if (recipient.prospectId && status === "unsubscribed") {
+        await tx.update(marketingProspects)
+          .set({
+            subscriptionStatus: "unsubscribed",
+            unsubscribedAt: sql`COALESCE(${marketingProspects.unsubscribedAt}, ${now})`,
+            updatedAt: now,
+          })
+          .where(eq(marketingProspects.id, recipient.prospectId));
+        await tx.delete(marketingProspectListContacts)
+          .where(eq(marketingProspectListContacts.prospectId, recipient.prospectId));
+      }
+      return recipient.batchId;
+    });
+    if (batchId) batchesToRefresh.add(batchId);
+  }
+
+  for (const batchId of batchesToRefresh) await refreshBatchCounts(batchId);
 }
 
 async function importSendGridCampaignHistory(
