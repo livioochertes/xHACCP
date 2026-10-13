@@ -3,9 +3,9 @@ name: Viva production egress blocking
 description: How to distinguish valid Viva credentials from provider-side blocking of Production deployment traffic.
 ---
 
-Every server-side Viva request must send the explicit `User-Agent: xHACCP/1.0` header through the shared helper. If Viva returns an HTML `403 Access Denied`, the payment-health pipeline records an edge-denial code and sends a Production alert with status, response type, and sanitized provider reference.
+Every server-side Viva request must send the explicit `User-Agent: xHACCP/1.0` header through the shared helper. It is required but does not guarantee that Viva's edge will always accept Production traffic. If Viva returns an HTML `403 Access Denied`, the payment-health pipeline records an edge-denial code and sends a Production alert with status, response type, and sanitized provider reference.
 
-**Why:** Production previously received Akamai HTML denials. After adding the explicit header, RO checkout succeeded; FR then returned structured `invalid_client` until its separate OAuth credential pair was corrected. Header and credentials are distinct failure causes.
+**Why:** Production previously received Akamai HTML denials. After adding the explicit header, RO checkout succeeded; FR then returned structured `invalid_client` until its separate OAuth credential pair was corrected. Later, Production again recorded FR and RO HTML 403 edge denials despite the header. Header, credentials, and provider-side edge filtering are distinct failure causes.
 
 **How to apply:** Keep the header on all Viva API calls, preserve the provider reference and UTC timestamp, and use the payment-health alert to escalate genuine 403 HTML edge denials to Viva. Do not treat JSON `invalid_client` as Akamai blocking and do not fall back to another marketplace account, currency, or sandbox endpoint.
 
