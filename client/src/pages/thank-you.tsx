@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { usePageSeo } from "@/lib/use-page-seo";
 import { getMarketFromHostname } from "@/lib/queryClient";
+import { clearVivaCheckoutDraft } from "@/lib/viva-checkout-draft";
 import { getPaymentEventName, getPaymentStatus, trackEvent } from "@/lib/analytics";
 import OrderContactDetails from "@/components/order-contact-details";
 
@@ -96,6 +97,7 @@ export default function ThankYou() {
 
   useEffect(() => {
     if (!paymentSuccessful) return;
+    clearVivaCheckoutDraft(market);
     clearCart();
     window.scrollTo({ top: 0, behavior: "instant" });
     // This is intentionally mount-only: CartProvider recreates clearCart after

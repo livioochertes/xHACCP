@@ -6,6 +6,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { apiRequest } from '@/lib/queryClient';
 import { getMarketFromHostname } from '@/lib/queryClient';
 import { trackEvent } from '@/lib/analytics';
+import { clearVivaCheckoutDraft, saveVivaCheckoutDraft, type VivaCheckoutDraftInput } from '@/lib/viva-checkout-draft';
 import { CreditCard, Loader2, ExternalLink } from 'lucide-react';
 
 interface CartItem {
@@ -24,9 +25,10 @@ interface VivaPaymentProps {
   orderData?: any;
   isFrenchMarket?: boolean;
   isRecurring?: boolean;
+  checkoutDraft?: () => VivaCheckoutDraftInput;
 }
 
-export default function VivaPayment({ amount, currency, onError, disabled, cartItems, voucherCode, orderData, isFrenchMarket = false, isRecurring = false }: VivaPaymentProps) {
+export default function VivaPayment({ amount, currency, onError, disabled, cartItems, voucherCode, orderData, isFrenchMarket = false, isRecurring = false, checkoutDraft }: VivaPaymentProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -34,7 +36,10 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
   useEffect(() => {
     // Returning from Viva can restore this page from the browser's back-forward
     // cache, including the stale loading state from before the redirect.
-    const handlePageShow = () => setIsLoading(false);
+    const handlePageShow = (event: PageTransitionEvent) => {
+      setIsLoading(false);
+      if (event.persisted) clearVivaCheckoutDraft(getMarketFromHostname());
+    };
     window.addEventListener('pageshow', handlePageShow);
     return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
@@ -56,6 +61,11 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
       const data = await response.json();
 
       if (data.checkoutUrl) {
+        try {
+          if (checkoutDraft) saveVivaCheckoutDraft(getMarketFromHostname(), checkoutDraft());
+        } catch {
+          // A draft-storage issue must not prevent redirecting to the provider.
+        }
         trackEvent("payment_started", {
           value: Number(amount.toFixed(2)),
           currency,

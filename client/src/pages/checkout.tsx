@@ -20,6 +20,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { getCartLinePrice, getCartTaxSnapshot } from "@/lib/market-pricing";
+import { clearVivaCheckoutDraft, consumeVivaCheckoutDraft } from "@/lib/viva-checkout-draft";
 import { calculateShippingQuote } from "@shared/shipping-pricing";
 import { defaultPriceDisplayMode } from "@shared/market-pricing";
 import paypalOfficialLogo from "@/assets/paypal-official-logo.png";
@@ -185,7 +186,7 @@ export default function Checkout() {
   const market = getMarketFromHostname();
   const isFrenchMarket = market === "fr";
   const checkoutSchema = useMemo(() => createCheckoutSchema(t, isFrenchMarket), [t, isFrenchMarket]);
-  const { user, isAuthenticated, login } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, login } = useAuth();
   const [step, setStep] = useState(isAuthenticated ? 2 : 1);
   const checkoutTopRef = useRef<HTMLDivElement>(null);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
@@ -210,6 +211,8 @@ export default function Checkout() {
   } | null>(null);
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [voucherError, setVoucherError] = useState("");
+  const [isRestoringVoucher, setIsRestoringVoucher] = useState(false);
+  const pendingVoucherRestoreRef = useRef<string | null>(null);
 
   // Confirmed order summary shown after COD placement
   const [confirmedOrder, setConfirmedOrder] = useState<{
@@ -254,7 +257,7 @@ export default function Checkout() {
   const checkoutStartedRef = useRef(false);
 
   // Fetch shipping settings (includes VAT percentage)
-  const { data: shippingSettings } = useQuery({
+  const { data: shippingSettings, isFetched: shippingSettingsFetched } = useQuery({
     queryKey: ['/api/shipping-settings'],
     queryFn: async () => {
       const response = await fetch('/api/shipping-settings', {
@@ -383,6 +386,38 @@ export default function Checkout() {
   }, [isAuthenticated, user, form]);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    const draft = consumeVivaCheckoutDraft(market);
+    if (!draft) return;
+
+    const defaults = getDefaultFormValues();
+    const restoredValues = draft.formValues as Partial<CheckoutFormData>;
+    form.reset({
+      ...defaults,
+      ...restoredValues,
+      shippingAddress: {
+        ...defaults.shippingAddress,
+        ...(restoredValues.shippingAddress || {}),
+      },
+      billingAddress: {
+        ...defaults.billingAddress,
+        ...(restoredValues.billingAddress || {}),
+      },
+      accountPassword: "",
+      confirmAccountPassword: "",
+      recurringConsent: false,
+    });
+
+    setStep(draft.step >= 1 && draft.step <= 3 ? draft.step : 3);
+    setVoucherCode(draft.appliedVoucherCode || draft.voucherInput);
+    if (draft.appliedVoucherCode) {
+      pendingVoucherRestoreRef.current = draft.appliedVoucherCode;
+      setIsRestoringVoucher(true);
+    }
+  }, [authLoading, isAuthenticated, user, market, form]);
+
+  useEffect(() => {
     if (checkoutTopRef.current) {
       checkoutTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -487,6 +522,7 @@ export default function Checkout() {
         payment_method: variables.paymentMethod,
         market: getMarketFromHostname(),
       });
+      clearVivaCheckoutDraft(market);
       clearCart();
       if (getMarketFromHostname() === "fr") {
         localStorage.setItem("xhaccp_pending_order_summary", JSON.stringify(summary));
@@ -611,9 +647,11 @@ export default function Checkout() {
   }, [step, cart, finalTotal, cartCurrency]);
 
   // Apply voucher function
-  const handleApplyVoucher = async () => {
-    if (!voucherCode.trim()) {
+  const handleApplyVoucher = async (codeOverride?: string, restoring = false) => {
+    const code = (codeOverride ?? voucherCode).trim();
+    if (!code) {
       setVoucherError(t('checkout.voucherEmpty'));
+      if (restoring) setIsRestoringVoucher(false);
       return;
     }
     
@@ -631,7 +669,7 @@ export default function Checkout() {
             : {}),
         },
         body: JSON.stringify({ 
-          code: voucherCode.trim(), 
+          code,
           orderTotal: subtotal.toString(),
           email: form.getValues("email"),
         })
@@ -642,11 +680,13 @@ export default function Checkout() {
       if (response.ok && data.valid) {
         setAppliedVoucher(data.voucher);
         setVoucherCode("");
-        trackEvent("voucher_applied", {
-          discount_amount: Number(data.voucher.discountAmount) || 0,
-          discount_type: data.voucher.discountType || "unknown",
-          market: getMarketFromHostname(),
-        });
+        if (!restoring) {
+          trackEvent("voucher_applied", {
+            discount_amount: Number(data.voucher.discountAmount) || 0,
+            discount_type: data.voucher.discountType || "unknown",
+            market: getMarketFromHostname(),
+          });
+        }
         toast({
           title: t('checkout.voucherApplied'),
           description: `${t('checkout.voucherAppliedDesc')} -${data.voucher.discountAmount} ${currencySymbol}`,
@@ -659,8 +699,23 @@ export default function Checkout() {
       setVoucherError(t('checkout.voucherFailed'));
     } finally {
       setVoucherLoading(false);
+      if (restoring) setIsRestoringVoucher(false);
     }
   };
+
+  useEffect(() => {
+    const code = pendingVoucherRestoreRef.current;
+    if (!code || voucherLoading || !cart.length || !shippingSettingsFetched) return;
+
+    pendingVoucherRestoreRef.current = null;
+    if (!shippingSettings) {
+      setVoucherError(t('checkout.voucherFailed'));
+      setIsRestoringVoucher(false);
+      return;
+    }
+
+    void handleApplyVoucher(code, true);
+  }, [cart.length, shippingSettingsFetched, shippingSettings, voucherLoading, subtotal, voucherCode, watchedEmail, t]);
   
   const handleRemoveVoucher = () => {
     setAppliedVoucher(null);
@@ -1834,6 +1889,7 @@ export default function Checkout() {
                                 <RadioGroup
                                   value={field.value}
                                   onValueChange={field.onChange}
+                                  disabled={isRestoringVoucher || voucherLoading}
                                   className="space-y-3"
                                 >
                                     <div className={`flex items-center space-x-3 p-4 border-2 rounded-lg transition-colors ${field.value === 'viva' ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
@@ -1914,6 +1970,7 @@ export default function Checkout() {
                       <VivaPayment
                         amount={finalTotal}
                         currency={cartCurrency}
+                        disabled={isRestoringVoucher || voucherLoading}
                         cartItems={cart.map(item => ({
                           productId: item.product.id,
                           quantity: item.quantity,
@@ -1923,6 +1980,12 @@ export default function Checkout() {
                         voucherCode={appliedVoucher?.code}
                         isFrenchMarket={isFrenchMarket}
                          isRecurring={hasSubscription}
+                        checkoutDraft={() => ({
+                          step,
+                          formValues: form.getValues() as unknown as Record<string, unknown>,
+                          voucherInput: voucherCode,
+                          appliedVoucherCode: appliedVoucher?.code ?? null,
+                        })}
                         orderData={(() => {
                           const values = form.getValues();
                           const shippingAddr = { ...values.shippingAddress };
@@ -1966,6 +2029,7 @@ export default function Checkout() {
                     {form.watch("paymentMethod") === "paypal" && isFrenchMarket && !hasSubscription && (
                       <PayPalPayment
                         amount={finalTotal}
+                        disabled={isRestoringVoucher || voucherLoading}
                         cartItems={cart.map(item => ({ productId: item.product.id, quantity: item.quantity, price: getUnitPrice(item).toFixed(2), compositeConfiguration: item.compositeConfiguration }))}
                         voucherCode={appliedVoucher?.code}
                         orderData={(() => {
@@ -2194,7 +2258,7 @@ export default function Checkout() {
                       />
                       <Button 
                         type="button"
-                        onClick={handleApplyVoucher}
+                        onClick={() => handleApplyVoucher()}
                         disabled={voucherLoading || !voucherCode.trim()}
                         variant="outline"
                         size="sm"

@@ -23,6 +23,7 @@ import { getPublicCategorySlug } from "@/lib/category-slugs";
 import type { Category, ProductWithCategory, BlogPost } from "@shared/schema";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { getMarketFromHostname } from "@/lib/queryClient";
+import { clearVivaCheckoutDraft } from "@/lib/viva-checkout-draft";
 import OrderContactDetails from "@/components/order-contact-details";
 
 interface ShippingSettings {
@@ -84,6 +85,7 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get('payment');
     if (paymentStatus === 'success') {
+      clearVivaCheckoutDraft(market);
       clearCart();
       const stored = localStorage.getItem('xhaccp_pending_order_summary');
       if (stored) {
