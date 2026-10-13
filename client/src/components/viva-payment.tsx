@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +30,14 @@ export default function VivaPayment({ amount, currency, onError, disabled, cartI
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { t } = useTranslation();
+
+  useEffect(() => {
+    // Returning from Viva can restore this page from the browser's back-forward
+    // cache, including the stale loading state from before the redirect.
+    const handlePageShow = () => setIsLoading(false);
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
 
   const handlePayment = async () => {
     if (isLoading || disabled) return;
