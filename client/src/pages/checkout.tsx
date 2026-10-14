@@ -12,8 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { FaCcAmex, FaCcMastercard, FaCcVisa } from "react-icons/fa";
-import { SiStripe } from "react-icons/si";
+import { SiAmericanexpress, SiMastercard, SiStripe, SiVisa } from "react-icons/si";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -1937,11 +1936,24 @@ export default function Checkout() {
                                           <Badge variant="secondary" className="text-xs">{t('checkout.recommended')}</Badge>
                                         </div>
                                         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                                          <div className="flex items-center gap-1.5" aria-label="Visa, Mastercard and American Express cards">
-                                            <FaCcVisa title="Visa" aria-hidden="true" className="h-6 w-8 text-[#1434CB]" />
-                                            <FaCcMastercard title="Mastercard" aria-hidden="true" className="h-6 w-8 text-[#EB001B]" />
-                                            <FaCcAmex title="American Express" aria-hidden="true" className="h-6 w-8 text-[#006FCF]" />
-                                            <span className="sr-only">Visa, Mastercard, American Express</span>
+                                          <div
+                                            className="flex flex-wrap items-center gap-2"
+                                            role="group"
+                                            aria-label={isFrenchMarket
+                                              ? "Cartes acceptées : Visa, Mastercard et American Express"
+                                              : market === "ro"
+                                                ? "Carduri acceptate: Visa, Mastercard și American Express"
+                                                : "Accepted cards: Visa, Mastercard and American Express"}
+                                          >
+                                            <span className="inline-flex h-8 min-w-[3.25rem] items-center justify-center rounded border border-slate-200 bg-white px-2">
+                                              <SiVisa title="Visa" aria-hidden="true" className="h-5 w-auto text-[#1434CB]" />
+                                            </span>
+                                            <span className="inline-flex h-8 min-w-[3.25rem] items-center justify-center rounded border border-slate-200 bg-white px-2">
+                                              <SiMastercard title="Mastercard" aria-hidden="true" className="h-5 w-auto text-[#EB001B]" />
+                                            </span>
+                                            <span className="inline-flex h-8 min-w-[3.25rem] items-center justify-center rounded border border-slate-200 bg-white px-2">
+                                              <SiAmericanexpress title="American Express" aria-hidden="true" className="h-5 w-auto text-[#006FCF]" />
+                                            </span>
                                           </div>
                                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
                                             {t('checkout.poweredBy')}
