@@ -916,6 +916,8 @@ export class DatabaseStorage implements IStorage {
         billingAddress: orders.billingAddress,
         paymentMethod: orders.paymentMethod,
         paymentStatus: orders.paymentStatus,
+        paymentProviderOrderId: orders.paymentProviderOrderId,
+        paymentTransactionId: orders.paymentTransactionId,
         notes: orders.notes,
         awbNumber: orders.awbNumber,
         awbCourier: orders.awbCourier,
