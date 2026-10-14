@@ -11,6 +11,7 @@ import {
 import { buildPublicTrackingUrl } from './public-tracking.js';
 import { getProspectUnsubscribeUrl } from './prospect-marketing-security';
 import { formatEventVoucherDiscount, EVENT_VOUCHER_ACTIVATION_DAYS } from './event-voucher';
+import { buildAdminOrderUrl } from './admin-order-link';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const VERIFIED_SENDER: string = process.env.SENDGRID_FROM_EMAIL || 'noreply@xhaccp.com';
@@ -80,6 +81,12 @@ interface EmailParams {
   replyTo?: string;
   attachments?: EmailAttachment[];
   headers?: Record<string, string>;
+  trackingSettings?: {
+    clickTracking?: {
+      enable?: boolean;
+      enableText?: boolean;
+    };
+  };
   suppressRecipientLog?: boolean;
   customArgs?: Record<string, string>;
 }
@@ -128,6 +135,10 @@ export async function sendEmailWithOutcome(params: EmailParams): Promise<EmailSe
 
     if (params.headers) {
       emailData.headers = params.headers;
+    }
+
+    if (params.trackingSettings) {
+      emailData.trackingSettings = params.trackingSettings;
     }
     
     if (params.replyTo) {
@@ -670,14 +681,9 @@ export async function sendNewOrderNotificationEmail(
   const billingAddress = order.billingAddress as any;
   const isTestEmail = options.testMode === true;
   
-  // Create admin URL for order management
-  const orderMarket = (order.market || 'ro').toLowerCase();
-  const adminOrigin = orderMarket === 'fr'
-    ? 'https://xhaccp.fr'
-    : orderMarket === 'com'
-      ? 'https://xhaccp.com'
-      : 'https://xhaccp.ro';
-  const adminOrderUrl = isTestEmail ? '' : `${adminOrigin}/admin#orders-${order.id}`;
+  // Use a direct query-based deep link. Email clients and click trackers often
+  // mishandle URL fragments, so the admin also keeps hash links only for legacy emails.
+  const adminOrderUrl = isTestEmail ? '' : buildAdminOrderUrl(order.id, order.market);
   
   const orderItemsText = order.items
     .map(item => `- ${orderItemNameText(item)} (Qty: ${item.quantity}) - ${item.totalPrice} ${orderCurrency(order)}`)
@@ -806,7 +812,7 @@ export async function sendNewOrderNotificationEmail(
       ${isTestEmail ? '' : `<div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
         <p style="margin: 0; color: #666;">
           Direct admin link: 
-          <a href="${adminOrderUrl}" style="color: #27ae60;">${adminOrigin}/admin#orders-${order.id}</a>
+          <a href="${adminOrderUrl}" style="color: #27ae60;">${adminOrderUrl}</a>
         </p>
         <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
           xHACCP - Order Management System
@@ -852,11 +858,11 @@ export async function sendNewOrderNotificationEmail(
     
     ${isTestEmail ? 'This message verifies email delivery only. No database order, payment, invoice, or shipment exists.' : `🚨 ACTION REQUIRED:
     1. Review order details above
-    2. Access admin panel: ${adminOrderUrl}
+    2. Access admin panel: ${isTestEmail ? 'No order link for test email' : adminOrderUrl}
     3. Verify product availability
     4. Accept the order to begin processing`}
     
-    Direct link: ${adminOrigin}/admin#orders-${order.id}
+    Direct link: ${isTestEmail ? 'No order link for test email' : adminOrderUrl}
   `;
 
   return await sendEmail({
@@ -865,6 +871,14 @@ export async function sendNewOrderNotificationEmail(
     subject: `${isTestEmail ? '[TEST ONLY — NO ORDER] ' : '🔔 '}${isTestEmail ? 'French order notification email test' : `New Order #${order.id} - Awaiting Review & Acceptance`}`,
     text: textContent,
     html: html,
+    // Keep operational order links direct; marketing campaign tracking remains
+    // enabled independently.
+    trackingSettings: {
+      clickTracking: {
+        enable: false,
+        enableText: false,
+      },
+    },
   });
 }
 

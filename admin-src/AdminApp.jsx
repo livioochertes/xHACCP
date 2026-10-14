@@ -449,6 +449,11 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
       const [bulkOperation, setBulkOperation] = useState('');
       const [bulkResults, setBulkResults] = useState(null);
       const [deepLinkedOrderId] = useState(() => {
+        const queryOrderId = new URLSearchParams(window.location.search).get('order');
+        if (queryOrderId && /^\d+$/.test(queryOrderId)) {
+          const parsedOrderId = Number(queryOrderId);
+          if (Number.isSafeInteger(parsedOrderId) && parsedOrderId > 0) return parsedOrderId;
+        }
         const match = window.location.hash.match(/^#orders-(\d+)$/);
         return match ? Number(match[1]) : null;
       });
