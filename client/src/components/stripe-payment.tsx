@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useEffect, useRef } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { SiStripe } from "react-icons/si";
 import {
@@ -41,6 +40,11 @@ interface StripePaymentProps {
     voucherInput: string;
     appliedVoucherCode: string | null;
   };
+}
+
+interface StripePaymentFormProps extends StripePaymentProps {
+  isProcessing: boolean;
+  setIsProcessing: (isProcessing: boolean) => void;
 }
 
 function makeCheckoutAttemptId(fingerprint: string, market: string) {
@@ -117,15 +121,14 @@ async function confirmStripeOrder(
   props.onSuccess(paymentIntentId, Number(setup.orderId));
 }
 
-function StripeCardForm(props: StripePaymentProps) {
+function StripeCardForm(props: StripePaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!stripe || !elements || isLoading || props.disabled) return;
-    setIsLoading(true);
+    if (!stripe || !elements || props.isProcessing || props.disabled) return;
+    props.setIsProcessing(true);
     try {
       const { setup, attemptId } = await createStripePaymentSession(props);
 
@@ -162,18 +165,6 @@ function StripeCardForm(props: StripePaymentProps) {
         throw new Error("Stripe has not confirmed the payment yet");
       }
 
-      const confirmation = await apiRequest("POST", "/api/payments/stripe/confirm", {
-        paymentIntentId: result.paymentIntent.id,
-      });
-      const confirmed = await confirmation.json();
-      if (confirmed.status !== "paid" || Number(confirmed.orderId) !== Number(setup.orderId)) {
-        throw new Error("The payment is still being verified. Please do not submit it again.");
-      }
-      clearCheckoutAttempt(props.market, attemptId);
-      toast({
-        title: "Payment successful",
-        description: "Your card payment has been confirmed.",
-      });
       await confirmStripeOrder(props, setup, attemptId, result.paymentIntent.id, toast);
     } catch (error: any) {
       const message = error?.message || "Card payment could not be completed";
@@ -184,7 +175,7 @@ function StripeCardForm(props: StripePaymentProps) {
       });
       props.onError(message);
     } finally {
-      setIsLoading(false);
+      props.setIsProcessing(false);
     }
   };
 
@@ -256,17 +247,120 @@ function StripeCardForm(props: StripePaymentProps) {
       <Button
         type="button"
         onClick={handleSubmit}
-        disabled={!stripe || isLoading || props.disabled}
+        disabled={!stripe || props.isProcessing || props.disabled}
         className="w-full"
       >
-        {isLoading ? "Processing…" : `Pay ${props.amount.toFixed(2)} ${props.currency}`}
+        {props.isProcessing ? "Processing…" : `Pay ${props.amount.toFixed(2)} ${props.currency}`}
       </Button>
+    </div>
+  );
+}
+
+function StripeWalletCheckout(props: StripePaymentFormProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const { toast } = useToast();
+  const [walletAvailable, setWalletAvailable] = useState<boolean | null>(null);
+
+  const handleConfirm = async (event: Parameters<
+    NonNullable<React.ComponentProps<typeof ExpressCheckoutElement>["onConfirm"]>
+  >[0]) => {
+    if (!stripe || !elements || props.isProcessing || props.disabled) {
+      event.paymentFailed({ reason: "fail", message: "Checkout is temporarily unavailable." });
+      return;
+    }
+
+    props.setIsProcessing(true);
+    try {
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        throw new Error(submitError.message || "Check your payment details and try again.");
+      }
+
+      const { setup, attemptId } = await createStripePaymentSession(props);
+      if (setup.alreadyPaid && setup.orderId && setup.paymentIntentId) {
+        clearCheckoutAttempt(props.market, attemptId);
+        props.onSuccess(setup.paymentIntentId, Number(setup.orderId));
+        return;
+      }
+      if (!setup.clientSecret || !setup.paymentIntentId || !setup.orderId) {
+        throw new Error("Stripe did not return a usable payment session");
+      }
+
+      const result = await stripe.confirmPayment({
+        elements,
+        clientSecret: setup.clientSecret,
+        redirect: "if_required",
+      });
+      if (result.error) {
+        throw new Error(result.error.message || "Wallet payment failed");
+      }
+      if (!result.paymentIntent || result.paymentIntent.status !== "succeeded") {
+        throw new Error("Stripe has not confirmed the payment yet");
+      }
+
+      await confirmStripeOrder(props, setup, attemptId, result.paymentIntent.id, toast);
+    } catch (error: any) {
+      const message = error?.message || "Wallet payment could not be completed";
+      event.paymentFailed({ reason: "fail", message });
+      toast({
+        title: "Payment failed",
+        description: message,
+        variant: "destructive",
+      });
+      props.onError(message);
+    } finally {
+      props.setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className={walletAvailable === false ? "hidden" : "space-y-3"}>
+      <ExpressCheckoutElement
+        onReady={({ availablePaymentMethods }) => {
+          setWalletAvailable(Boolean(
+            availablePaymentMethods?.applePay || availablePaymentMethods?.googlePay,
+          ));
+        }}
+        onConfirm={handleConfirm}
+        options={{
+          buttonHeight: 48,
+          buttonType: { applePay: "buy", googlePay: "buy" },
+          buttonTheme: { applePay: "black", googlePay: "black" },
+          layout: { maxColumns: 2, maxRows: 1, overflow: "never" },
+          paymentMethods: {
+            applePay: "always",
+            googlePay: "always",
+            amazonPay: "never",
+            klarna: "never",
+            link: "never",
+            paypal: "never",
+          },
+        }}
+      />
+      {walletAvailable && (
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
+          <span>{props.market === "fr" ? "ou payer par carte" : props.market === "ro" ? "sau plătește cu cardul" : "or pay by card"}</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+      )}
     </div>
   );
 }
 
 export default function StripePayment(props: StripePaymentProps) {
   const stripePromise = useMemo(() => loadStripe(props.publishableKey), [props.publishableKey]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const formProps: StripePaymentFormProps = { ...props, isProcessing, setIsProcessing };
+  const locale = props.market === "fr" ? "fr" : props.market === "ro" ? "ro" : "en";
+  const walletElementsOptions = {
+    mode: "payment" as const,
+    amount: Math.max(0, Math.round(props.amount * 100)),
+    currency: props.currency.toLowerCase(),
+    setupFutureUsage: props.orderData.recurringConsent ? "off_session" as const : undefined,
+    locale,
+  } as const;
   return (
     <Card className="w-full">
       <CardHeader>
@@ -281,9 +375,14 @@ export default function StripePayment(props: StripePaymentProps) {
             ? "Your card will be saved securely for the agreed subscription renewals."
             : "Card details are processed securely by Stripe."}
         </p>
-        <Elements stripe={stripePromise}>
-          <StripeCardForm {...props} />
-        </Elements>
+        <div className="space-y-4">
+          <Elements stripe={stripePromise} options={walletElementsOptions}>
+            <StripeWalletCheckout {...formProps} />
+          </Elements>
+          <Elements stripe={stripePromise}>
+            <StripeCardForm {...formProps} />
+          </Elements>
+        </div>
       </CardContent>
     </Card>
   );
