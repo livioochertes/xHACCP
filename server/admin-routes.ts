@@ -81,6 +81,8 @@ import { registerAdminAccountManagementRoutes } from "./admin-account-management
 import { registerPaymentHealthAdminRoutes } from "./payment-health-admin-routes";
 import { filterOrdersForAdminList } from "./admin-payment-attempts";
 import { registerProductSeoAdminRoutes } from "./product-seo-admin-routes";
+import { getStripeClient } from "./stripe-payments";
+import type { PaymentMarket } from "./payment-health-policy";
 
 const JWT_SIGNING_SECRET: string = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
   throw new Error("JWT_SECRET or SESSION_SECRET must be configured");
@@ -2205,6 +2207,80 @@ export async function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error('Error fetching order:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch order' });
+    }
+  });
+
+  app.post("/admin/api/orders/:id/mark-refunded", authenticateAdmin, async (req: AdminAuthRequest, res: Response) => {
+    const orderId = Number(req.params.id);
+    if (!Number.isSafeInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid order ID" });
+    }
+
+    try {
+      const order = await storage.getOrder(orderId);
+      if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+      if (!canAccessMarket(req, order.market || "ro")) {
+        return res.status(403).json({ success: false, message: "Access denied for this market" });
+      }
+      if (order.paymentMethod !== "stripe" || !order.paymentProviderOrderId) {
+        return res.status(409).json({ success: false, message: "This order has no linked Stripe payment." });
+      }
+      if (!["pending", "paid", "refunded"].includes(order.paymentStatus)) {
+        return res.status(409).json({ success: false, message: "This order's payment status cannot be marked refunded." });
+      }
+      if (!["pending", "cancelled", "canceled"].includes(order.status)) {
+        return res.status(409).json({ success: false, message: "Only pending or cancelled orders can be marked refunded here." });
+      }
+
+      const market = (order.market || "ro") as PaymentMarket;
+      const stripe = getStripeClient(market);
+      const paymentIntent = await stripe.paymentIntents.retrieve(order.paymentProviderOrderId);
+      const currency = String(order.currency || "").toLowerCase();
+      const amountCents = Math.round(Number(order.totalAmount) * 100);
+      if (
+        paymentIntent.status !== "succeeded" ||
+        paymentIntent.metadata.xhaccp_order_id !== String(order.id) ||
+        paymentIntent.metadata.xhaccp_market !== market ||
+        paymentIntent.currency !== currency ||
+        paymentIntent.amount_received !== amountCents
+      ) {
+        return res.status(409).json({ success: false, message: "Stripe payment does not match this order." });
+      }
+
+      const chargeId = typeof paymentIntent.latest_charge === "string"
+        ? paymentIntent.latest_charge
+        : paymentIntent.latest_charge?.id;
+      if (!chargeId) {
+        return res.status(409).json({ success: false, message: "Stripe has no charge associated with this payment." });
+      }
+
+      const charge = await stripe.charges.retrieve(chargeId);
+      const refunds = await stripe.refunds.list({ charge: charge.id, limit: 100 });
+      const successfulRefundAmount = refunds.data
+        .filter(refund => refund.status === "succeeded")
+        .reduce((total, refund) => total + refund.amount, 0);
+      if (
+        refunds.has_more ||
+        charge.currency !== currency ||
+        charge.amount !== amountCents ||
+        !charge.refunded ||
+        charge.amount_refunded !== charge.amount ||
+        successfulRefundAmount !== charge.amount
+      ) {
+        return res.status(409).json({ success: false, message: "Stripe does not confirm a successful full refund for this payment." });
+      }
+
+      const updatedOrder = await storage.markOrderRefunded(orderId, paymentIntent.id);
+      if (!updatedOrder) {
+        return res.status(409).json({ success: false, message: "The order changed and could not be marked refunded." });
+      }
+      return res.json({ success: true, order: updatedOrder });
+    } catch (error) {
+      console.error("[Admin] Stripe refund verification failed", {
+        orderId,
+        error: error instanceof Error ? error.name : "UnknownError",
+      });
+      return res.status(502).json({ success: false, message: "Could not verify the refund with Stripe." });
     }
   });
 

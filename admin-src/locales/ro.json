@@ -390,6 +390,11 @@
     "shippingAddress": "Adresă de Livrare",
     "paymentMethod": "Metodă de Plată",
     "paymentStatus": "Status Plată",
+    "refunded": "Rambursată",
+    "markRefunded": "Marchează plata ca rambursată",
+    "confirmMarkRefunded": "Verifică rambursarea integrală în Stripe și marchează această comandă ca anulată și rambursată?",
+    "markRefundedSuccess": "Stripe a confirmat rambursarea integrală. Comanda este anulată și rambursată.",
+    "markRefundedError": "Nu s-a putut verifica o rambursare integrală în Stripe.",
     "downloadInvoice": "Descarcă Factură"
   },
   "users": {

@@ -390,6 +390,11 @@
     "shippingAddress": "Shipping Address",
     "paymentMethod": "Payment Method",
     "paymentStatus": "Payment Status",
+    "refunded": "Refunded",
+    "markRefunded": "Mark payment as refunded",
+    "confirmMarkRefunded": "Verify a full refund in Stripe and mark this order as cancelled and refunded?",
+    "markRefundedSuccess": "Stripe confirmed the full refund. The order is marked cancelled and refunded.",
+    "markRefundedError": "Could not verify a successful full refund in Stripe.",
     "downloadInvoice": "Download Invoice"
   },
   "users": {

@@ -239,6 +239,7 @@ export interface IStorage {
   ): Promise<PendingProviderPaymentOrder[]>;
   markOrderPaid(id: number, paymentTransactionId?: string): Promise<Order | null>;
   markOrderPaymentFailed(id: number): Promise<Order | null>;
+  markOrderRefunded(id: number, paymentProviderOrderId: string): Promise<Order | null>;
   updateOrderStatus(id: number, status: string): Promise<Order>;
   acceptOrder(id: number): Promise<Order | null>;
   linkGuestOrdersToUser(email: string, userId: number): Promise<number>;
@@ -981,6 +982,8 @@ export class DatabaseStorage implements IStorage {
         billingAddress: orders.billingAddress,
         paymentMethod: orders.paymentMethod,
         paymentStatus: orders.paymentStatus,
+        paymentProviderOrderId: orders.paymentProviderOrderId,
+        paymentTransactionId: orders.paymentTransactionId,
         notes: orders.notes,
         awbNumber: orders.awbNumber,
         awbCourier: orders.awbCourier,
@@ -1294,6 +1297,44 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(orders.id, id), eq(orders.paymentStatus, "pending")))
       .returning();
     return updatedOrder ?? null;
+  }
+
+  async markOrderRefunded(id: number, paymentProviderOrderId: string): Promise<Order | null> {
+    return db.transaction(async (tx) => {
+      const [current] = await tx.select().from(orders)
+        .where(eq(orders.id, id))
+        .limit(1)
+        .for("update");
+      if (
+        !current ||
+        current.paymentMethod !== "stripe" ||
+        current.paymentProviderOrderId !== paymentProviderOrderId ||
+        !["pending", "paid", "refunded"].includes(current.paymentStatus) ||
+        !["pending", "cancelled", "canceled"].includes(current.status)
+      ) {
+        return null;
+      }
+      if (current.paymentStatus === "refunded" && current.status === "cancelled") {
+        return current;
+      }
+
+      const [updatedOrder] = await tx.update(orders)
+        .set({
+          paymentStatus: "refunded",
+          paymentTransactionId: current.paymentTransactionId || paymentProviderOrderId,
+          status: "cancelled",
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(orders.id, id),
+          eq(orders.paymentMethod, "stripe"),
+          eq(orders.paymentProviderOrderId, paymentProviderOrderId),
+          inArray(orders.paymentStatus, ["pending", "paid", "refunded"]),
+          inArray(orders.status, ["pending", "cancelled", "canceled"]),
+        ))
+        .returning();
+      return updatedOrder ?? null;
+    });
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order> {

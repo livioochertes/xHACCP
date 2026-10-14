@@ -390,6 +390,11 @@
     "shippingAddress": "Adresse de livraison",
     "paymentMethod": "Mode de paiement",
     "paymentStatus": "Statut du paiement",
+    "refunded": "Remboursé",
+    "markRefunded": "Marquer le paiement comme remboursé",
+    "confirmMarkRefunded": "Vérifier le remboursement intégral dans Stripe et marquer cette commande comme annulée et remboursée ?",
+    "markRefundedSuccess": "Stripe a confirmé le remboursement intégral. La commande est annulée et remboursée.",
+    "markRefundedError": "Impossible de vérifier un remboursement intégral dans Stripe.",
     "downloadInvoice": "Télécharger la facture"
   },
   "users": {

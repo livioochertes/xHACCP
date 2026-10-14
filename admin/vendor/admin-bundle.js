@@ -10817,6 +10817,11 @@
       shippingAddress: "Shipping Address",
       paymentMethod: "Payment Method",
       paymentStatus: "Payment Status",
+      refunded: "Refunded",
+      markRefunded: "Mark payment as refunded",
+      confirmMarkRefunded: "Verify a full refund in Stripe and mark this order as cancelled and refunded?",
+      markRefundedSuccess: "Stripe confirmed the full refund. The order is marked cancelled and refunded.",
+      markRefundedError: "Could not verify a successful full refund in Stripe.",
       downloadInvoice: "Download Invoice"
     },
     users: {
@@ -12083,6 +12088,11 @@
       shippingAddress: "Adres\u0103 de Livrare",
       paymentMethod: "Metod\u0103 de Plat\u0103",
       paymentStatus: "Status Plat\u0103",
+      refunded: "Rambursat\u0103",
+      markRefunded: "Marcheaz\u0103 plata ca rambursat\u0103",
+      confirmMarkRefunded: "Verific\u0103 rambursarea integral\u0103 \xEEn Stripe \u0219i marcheaz\u0103 aceast\u0103 comand\u0103 ca anulat\u0103 \u0219i rambursat\u0103?",
+      markRefundedSuccess: "Stripe a confirmat rambursarea integral\u0103. Comanda este anulat\u0103 \u0219i rambursat\u0103.",
+      markRefundedError: "Nu s-a putut verifica o rambursare integral\u0103 \xEEn Stripe.",
       downloadInvoice: "Descarc\u0103 Factur\u0103"
     },
     users: {
@@ -13349,6 +13359,11 @@
       shippingAddress: "Adresse de livraison",
       paymentMethod: "Mode de paiement",
       paymentStatus: "Statut du paiement",
+      refunded: "Rembours\xE9",
+      markRefunded: "Marquer le paiement comme rembours\xE9",
+      confirmMarkRefunded: "V\xE9rifier le remboursement int\xE9gral dans Stripe et marquer cette commande comme annul\xE9e et rembours\xE9e ?",
+      markRefundedSuccess: "Stripe a confirm\xE9 le remboursement int\xE9gral. La commande est annul\xE9e et rembours\xE9e.",
+      markRefundedError: "Impossible de v\xE9rifier un remboursement int\xE9gral dans Stripe.",
       downloadInvoice: "T\xE9l\xE9charger la facture"
     },
     users: {
@@ -20078,6 +20093,24 @@ Failed: ${result.failed}`);
         }
       } catch (err) {
         return { success: false, message: "Network error" };
+      }
+    };
+    const markStripeOrderRefunded = async (orderId) => {
+      try {
+        const response = await fetch(`/admin/api/orders/${orderId}/mark-refunded`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (!response.ok) return { success: false, message: data.message };
+        fetchOrders();
+        setSelectedOrder((current) => current && current.id === orderId ? { ...current, ...data.order } : current);
+        return { success: true };
+      } catch (err) {
+        return { success: false, message: t2("orders.markRefundedError") };
       }
     };
     const generateAWB = async (orderId) => {
@@ -30262,19 +30295,40 @@ Cordialement,`
                   backgroundColor: (() => {
                     const pm = selectedOrder.paymentMethod;
                     if (pm === "cash_on_delivery" || pm === "cod" || pm === "cash") return "#fff3cd";
+                    if (selectedOrder.paymentStatus === "refunded") return "#d1ecf1";
                     return selectedOrder.paymentStatus === "paid" ? "#d4edda" : "#f8d7da";
                   })(),
                   color: (() => {
                     const pm = selectedOrder.paymentMethod;
                     if (pm === "cash_on_delivery" || pm === "cod" || pm === "cash") return "#856404";
+                    if (selectedOrder.paymentStatus === "refunded") return "#0c5460";
                     return selectedOrder.paymentStatus === "paid" ? "#155724" : "#721c24";
                   })()
                 }, children: (() => {
                   const pm = selectedOrder.paymentMethod;
                   if (pm === "cash_on_delivery" || pm === "cod" || pm === "cash") return "Ramburs / Numerar";
+                  if (selectedOrder.paymentStatus === "refunded") return t2("orders.refunded");
                   return selectedOrder.paymentStatus === "paid" ? "Pl\u0103tit \u2713" : selectedOrder.paymentStatus || "Nepl\u0103tit";
                 })() })
               ] }),
+              selectedOrder.paymentMethod === "stripe" && selectedOrder.paymentStatus !== "refunded" && ["pending", "cancelled", "canceled"].includes(selectedOrder.status) && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                "button",
+                {
+                  type: "button",
+                  className: "btn",
+                  style: { background: "#0c5460", marginTop: "8px" },
+                  onClick: async () => {
+                    if (!window.confirm(t2("orders.confirmMarkRefunded"))) return;
+                    const result = await markStripeOrderRefunded(selectedOrder.id);
+                    if (result.success) {
+                      alert(t2("orders.markRefundedSuccess"));
+                    } else {
+                      alert(result.message || t2("orders.markRefundedError"));
+                    }
+                  },
+                  children: t2("orders.markRefunded")
+                }
+              ),
               (() => {
                 const sc = parseFloat(selectedOrder.shippingCost || "0");
                 const total = parseFloat(selectedOrder.totalAmount || "0");

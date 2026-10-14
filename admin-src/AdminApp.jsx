@@ -3027,6 +3027,28 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
         }
       };
 
+      const markStripeOrderRefunded = async (orderId) => {
+        try {
+          const response = await fetch(`/admin/api/orders/${orderId}/mark-refunded`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          const data = await response.json();
+          if (!response.ok) return { success: false, message: data.message };
+
+          fetchOrders();
+          setSelectedOrder(current => current && current.id === orderId
+            ? { ...current, ...data.order }
+            : current);
+          return { success: true };
+        } catch (err) {
+          return { success: false, message: t('orders.markRefundedError') };
+        }
+      };
+
       // AWB Generation Function
       const generateAWB = async (orderId) => {
         try {
@@ -12766,21 +12788,44 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                         padding: '3px 8px',
                         borderRadius: '4px',
                         fontSize: '13px',
-                        backgroundColor: (() => {
+                         backgroundColor: (() => {
                           const pm = selectedOrder.paymentMethod;
                           if (pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash') return '#fff3cd';
+                           if (selectedOrder.paymentStatus === 'refunded') return '#d1ecf1';
                           return selectedOrder.paymentStatus === 'paid' ? '#d4edda' : '#f8d7da';
                         })(),
                         color: (() => {
                           const pm = selectedOrder.paymentMethod;
                           if (pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash') return '#856404';
+                           if (selectedOrder.paymentStatus === 'refunded') return '#0c5460';
                           return selectedOrder.paymentStatus === 'paid' ? '#155724' : '#721c24';
                         })()
                       }}>{(() => {
                         const pm = selectedOrder.paymentMethod;
                         if (pm === 'cash_on_delivery' || pm === 'cod' || pm === 'cash') return 'Ramburs / Numerar';
+                         if (selectedOrder.paymentStatus === 'refunded') return t('orders.refunded');
                         return selectedOrder.paymentStatus === 'paid' ? 'Plătit ✓' : (selectedOrder.paymentStatus || 'Neplătit');
                       })()}</span></p>
+                      {selectedOrder.paymentMethod === 'stripe' &&
+                        selectedOrder.paymentStatus !== 'refunded' &&
+                        ['pending', 'cancelled', 'canceled'].includes(selectedOrder.status) && (
+                        <button
+                          type="button"
+                          className="btn"
+                          style={{background: '#0c5460', marginTop: '8px'}}
+                          onClick={async () => {
+                            if (!window.confirm(t('orders.confirmMarkRefunded'))) return;
+                            const result = await markStripeOrderRefunded(selectedOrder.id);
+                            if (result.success) {
+                              alert(t('orders.markRefundedSuccess'));
+                            } else {
+                              alert(result.message || t('orders.markRefundedError'));
+                            }
+                          }}
+                        >
+                          {t('orders.markRefunded')}
+                        </button>
+                      )}
                       {(() => {
                         const sc = parseFloat(selectedOrder.shippingCost || '0');
                         const total = parseFloat(selectedOrder.totalAmount || '0');

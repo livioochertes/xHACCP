@@ -24,6 +24,7 @@
 - [Viva currency-specific sources](viva-currency-specific-sources.md) — Viva source codes can reject currencies they do not support; never reuse the RO source for FR EUR payments.
 - [Viva market configuration](viva-market-configuration.md) — initial checkout and recurring renewals must resolve through one market-specific credential/currency mapping.
 - [Stripe market payments](stripe-market-payments.md) — .fr uses its own account; .ro/.com share another; wallet domains must be registered in the matching account.
+- [Stripe refund reconciliation](stripe-refund-reconciliation.md) — mark local orders refunded only after Stripe confirms successful refunds for the full matching charge.
 - [Viva checkout error handling](viva-checkout-error-handling.md) — payment failures must stay JSON/user-safe; correlate logs without logging source codes or customer payloads.
 - [Viva production egress blocking](viva-production-egress-blocking.md) — keep the explicit User-Agent, but expect edge denials to recur; alerts include Viva references.
 - [Payment callback idempotency](payment-callback-idempotency.md) — callbacks and webhooks must atomically claim the paid transition before invoice/email side effects.
