@@ -4654,6 +4654,19 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         if (paymentIntent.metadata.xhaccp_order_id !== String(order.id)) {
           return res.status(409).json({ message: "Stripe payment does not match the local order" });
         }
+        if (paymentIntent.status === "succeeded") {
+          const result = await reconcileStripePaymentIntent(paymentIntent, market, "callback");
+          if (result.status === "paid") {
+            return res.json({
+              orderId: order.id,
+              alreadyPaid: true,
+              paymentIntentId: paymentIntent.id,
+            });
+          }
+          return res.status(502).json({
+            message: "Stripe confirmed the charge, but the order is still being updated. Do not pay again.",
+          });
+        }
       } else {
         let customer;
         if (hasSubscription) {
@@ -4717,6 +4730,53 @@ Always be helpful, professional, and focus on practical solutions. When recommen
     }
   });
 
+  function stripeFailureContext(error: unknown) {
+    const value = error as {
+      name?: unknown;
+      message?: unknown;
+      code?: unknown;
+      type?: unknown;
+      statusCode?: unknown;
+      constraint?: unknown;
+      table?: unknown;
+      column?: unknown;
+    } | null;
+    const safeName = /^[A-Za-z0-9_.-]{1,80}$/.test(String(value?.name || ""))
+      ? String(value?.name)
+      : "Error";
+    const safeCode = /^[A-Za-z0-9_.-]{1,80}$/.test(String(value?.code || ""))
+      ? String(value?.code)
+      : undefined;
+    const safeType = /^[A-Za-z0-9_.-]{1,80}$/.test(String(value?.type || ""))
+      ? String(value?.type)
+      : undefined;
+    const safeField = (field: unknown) =>
+      /^[A-Za-z0-9_.-]{1,100}$/.test(String(field || "")) ? String(field) : undefined;
+    const knownReasons = new Set([
+      "Stripe payment metadata does not match a supported marketplace",
+      "Stripe payment does not match the local order",
+      "Stripe payment amount or currency does not match the local order",
+      "Local order was paid with a different transaction",
+      "Stripe payment could not claim the local order",
+      "Stripe did not save a reusable payment method for the subscription",
+      "Stripe payment succeeded but subscription setup needs retry",
+    ]);
+    const message = typeof value?.message === "string" && knownReasons.has(value.message)
+      ? value.message
+      : undefined;
+    const statusCode = Number(value?.statusCode);
+    return {
+      name: safeName,
+      ...(safeCode ? { code: safeCode } : {}),
+      ...(safeType ? { type: safeType } : {}),
+      ...(Number.isInteger(statusCode) && statusCode >= 100 && statusCode <= 599 ? { statusCode } : {}),
+      ...(safeField(value?.constraint) ? { constraint: safeField(value?.constraint) } : {}),
+      ...(safeField(value?.table) ? { table: safeField(value?.table) } : {}),
+      ...(safeField(value?.column) ? { column: safeField(value?.column) } : {}),
+      ...(message ? { reason: message } : {}),
+    };
+  }
+
   app.post("/api/payments/stripe/confirm", optionalAuth, async (req: AuthRequest, res) => {
     const market = getMarketFromRequest(req) as "ro" | "fr" | "com";
     const paymentIntentId = String(req.body?.paymentIntentId || "");
@@ -4731,7 +4791,10 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const result = await reconcileStripePaymentIntent(paymentIntent, market, "callback");
       return res.json(result);
     } catch (error) {
-      console.error("[Stripe] Payment confirmation could not be verified", market);
+      console.error("[Stripe] Payment confirmation could not be verified", JSON.stringify({
+        market,
+        ...stripeFailureContext(error),
+      }));
       await observePayment({ provider: "stripe", market, stage: "callback", status: "error",
         code: "STRIPE_PAYMENT_CONFIRMATION_FAILED" });
       return res.status(502).json({ message: "The payment could not yet be verified. Please do not retry the card charge." });
@@ -4775,7 +4838,11 @@ Always be helpful, professional, and focus on practical solutions. When recommen
         }
       }
       return res.json({ received: true });
-    } catch {
+    } catch (error) {
+      console.error("[Stripe] Webhook payment reconciliation failed", JSON.stringify({
+        market: endpointMarket,
+        ...stripeFailureContext(error),
+      }));
       await observePayment({ provider: "stripe", market: endpointMarket, stage: "webhook", status: "error",
         code: "STRIPE_WEBHOOK_PROCESSING_FAILED" });
       return res.status(500).send("Stripe event could not be processed");
@@ -4813,9 +4880,19 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       throw new Error("Local order was paid with a different transaction");
     }
 
-    const claimedOrder = order.paymentStatus === "paid"
-      ? null
-      : await storage.markOrderPaid(orderId, paymentIntent.id);
+    let claimedOrder: Awaited<ReturnType<typeof storage.markOrderPaid>> = null;
+    if (order.paymentStatus !== "paid") {
+      try {
+        claimedOrder = await storage.markOrderPaid(orderId, paymentIntent.id);
+      } catch (error) {
+        console.error("[Stripe] Local paid-state transition failed", JSON.stringify({
+          market: orderMarket,
+          orderId,
+          ...stripeFailureContext(error),
+        }));
+        throw error;
+      }
+    }
     const paidOrder = await storage.getOrder(orderId);
     if (!paidOrder || paidOrder.paymentStatus !== "paid" ||
         (paidOrder.paymentTransactionId && paidOrder.paymentTransactionId !== paymentIntent.id)) {

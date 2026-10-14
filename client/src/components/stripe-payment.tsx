@@ -109,7 +109,13 @@ async function confirmStripeOrder(
   const confirmation = await apiRequest("POST", "/api/payments/stripe/confirm", {
     paymentIntentId,
   });
-  const confirmed = await confirmation.json();
+  const confirmed = await confirmation.json().catch(() => null);
+  if (!confirmation.ok) {
+    throw new Error(
+      confirmed?.message ||
+        "The payment may have succeeded. Do not submit the charge again; contact support if the order remains pending.",
+    );
+  }
   if (confirmed.status !== "paid" || Number(confirmed.orderId) !== Number(setup.orderId)) {
     throw new Error("The payment is still being verified. Please do not submit it again.");
   }
