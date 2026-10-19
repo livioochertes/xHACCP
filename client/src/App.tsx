@@ -23,6 +23,7 @@ const B2B = lazy(() => import("@/pages/b2b"));
 const Returns = lazy(() => import("@/pages/returns"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
+const MentionsLegales = lazy(() => import("@/pages/mentions-legales"));
 const Invoice = lazy(() => import("@/pages/invoice"));
 const Blog = lazy(() => import("@/pages/blog"));
 const BlogPostPage = lazy(() => import("@/pages/blog-post"));
@@ -72,6 +73,7 @@ function Router() {
           <Route path="/returns" component={Returns} />
           <Route path="/terms" component={Terms} />
           <Route path="/privacy" component={Privacy} />
+          <Route path="/mentions-legales" component={MentionsLegales} />
           <Route path="/invoice/:invoiceId" component={Invoice} />
           <Route path="/blog" component={Blog} />
           <Route path="/blog/:slug" component={BlogPostPage} />

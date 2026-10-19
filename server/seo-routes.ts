@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { PublicPage } from "@shared/public-page";
 import { canonicalBaseUrl } from "@shared/canonical-url";
 import { isPublicSpaPath } from "@shared/public-routing";
+import { FRENCH_LEGAL_NOTICE } from "@shared/french-legal-notice";
 import { renderArticleContent, renderProductContent } from "./public-content";
 import { buildCatalogBody } from "./public-catalog";
 import fs from "fs";
@@ -73,6 +74,58 @@ function buildFrenchCompanyInfoHtml(company: CompanySettings | undefined): strin
   ].filter(Boolean);
 
   return details.join("\n");
+}
+
+function buildFrenchLegalNoticeHtml(base: string, company: CompanySettings | undefined): string {
+  const addressLines = [
+    company?.address,
+    [company?.zipCode, company?.city].filter(Boolean).join(" "),
+    company?.country,
+  ].filter((line): line is string => Boolean(line));
+
+  const companyDetails = [
+    company?.name ? `<p><strong>${escapeHtml(company.name)}</strong></p>` : "",
+    ...addressLines.map((line) => `<p>${escapeHtml(line)}</p>`),
+    company?.vatNumber ? `<p>Numéro de TVA intracommunautaire : ${escapeHtml(company.vatNumber)}</p>` : "",
+    company?.email
+      ? `<p>Courriel : <a href="mailto:${escapeHtml(company.email)}">${escapeHtml(company.email)}</a></p>`
+      : "",
+    company?.phone
+      ? `<p>Téléphone : <a href="tel:${escapeHtml(company.phone)}">${escapeHtml(company.phone)}</a></p>`
+      : "",
+  ].filter(Boolean).join("\n");
+
+  const legal = FRENCH_LEGAL_NOTICE;
+  return `
+<main lang="fr" style="font-family:sans-serif;max-width:900px;margin:0 auto;padding:1.5rem;line-height:1.65">
+  <h1>Mentions légales</h1>
+  <p>Informations légales relatives au site xHACCP France, destiné aux professionnels de la restauration.</p>
+  <section aria-labelledby="publisher">
+    <h2 id="publisher">Éditeur du site</h2>
+    ${companyDetails}
+    <p>SIREN : ${escapeHtml(legal.siren)}</p>
+    <p>SIRET : ${escapeHtml(legal.siret)}</p>
+    <p>${escapeHtml(legal.rcsNumber)} R.C.S. ${escapeHtml(legal.rcsCourt)}</p>
+    <p>Capital social : ${escapeHtml(legal.shareCapital)}</p>
+  </section>
+  <section aria-labelledby="publication-director">
+    <h2 id="publication-director">Directeur de la publication</h2>
+    <p>${escapeHtml(legal.publicationDirector)}</p>
+  </section>
+  <section aria-labelledby="hosting">
+    <h2 id="hosting">Hébergement</h2>
+    <p>Hébergeur : ${escapeHtml(legal.hostingProvider)}.</p>
+    <p>Région des centres de données : ${escapeHtml(legal.hostingRegion)}.</p>
+  </section>
+  <nav aria-label="Documents juridiques">
+    <h2>Documents utiles</h2>
+    <ul>
+      <li><a href="${escapeHtml(base)}/terms">Conditions générales</a></li>
+      <li><a href="${escapeHtml(base)}/privacy">Politique de confidentialité</a></li>
+      <li><a href="${escapeHtml(base)}/returns">Politique de retour et de remboursement</a></li>
+    </ul>
+  </nav>
+</main>`;
 }
 
 /**
@@ -350,6 +403,12 @@ const STATIC_META_BY_LANG: Record<string, Record<string, StaticMetaFn>> = {
       description:
         "Droit de rétractation et retours des consommateurs en France. Formulaire en ligne gratuit conformément aux règles applicables depuis le 19 juin 2026.",
       canonical: base + "/returns",
+    }),
+    "/mentions-legales": (base) => ({
+      title: "Mentions légales | xHACCP France",
+      description:
+        "Informations légales sur xHACCP France : identité de l’éditeur, coordonnées, direction de la publication et hébergement.",
+      canonical: base + "/mentions-legales",
     }),
     "/blog": (base) => ({
       title: "Blog HACCP & Restauration – Ressources pour la sécurité alimentaire | xHACCP",
@@ -757,6 +816,33 @@ export function registerSeoRoutes(
       }
     });
   }
+
+  app.get("/mentions-legales", async (req, res, next) => {
+    if (!wantsHtml(req)) return next();
+    try {
+      const market = marketHelpers?.getMarket(req) ?? (req as any).market ?? "ro";
+      (req as any).market = market;
+      if (market !== "fr") {
+        res.status(404);
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        setMarketAwareCacheHeaders(res, "no-store");
+        return await sendPublicHtml(req, res, build404Html(req));
+      }
+
+      const base = getBaseUrl(req);
+      const metaFn = getStaticMeta("/mentions-legales", base, "fr");
+      if (!metaFn) return next();
+      const company = await storage.getCompanySettingsByMarket("fr");
+      const meta = metaFn(base);
+      const bodyHtml = buildFrenchLegalNoticeHtml(base, company);
+      const html = injectMeta(getIndexHtml(), meta, "fr", bodyHtml);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      setMarketAwareCacheHeaders(res, "public, max-age=300");
+      return await sendPublicHtml(req, res, html);
+    } catch (err) {
+      next(err);
+    }
+  });
 
   app.get("/chef-event", async (req, res, next) => {
     if (!wantsHtml(req)) return next();

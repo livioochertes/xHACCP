@@ -116,6 +116,54 @@ test("French legal SEO pages render seller registration details from French comp
   }
 });
 
+test("French legal notice is prerendered with French data and unavailable on other markets", async () => {
+  const app = express();
+  app.use((req: any, _res, next) => { req.market = req.headers["x-market"] || "fr"; next(); });
+  registerSeoRoutes(app, storage);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>(resolve => server.once("listening", resolve));
+  const address = server.address() as { port: number };
+  const get = async (market: "fr" | "ro") => {
+    const response = await fetch(`http://127.0.0.1:${address.port}/mentions-legales`, {
+      headers: {
+        Accept: "text/html",
+        "X-Market": market,
+        "X-Forwarded-Host": `xhaccp.${market}`,
+      },
+    });
+    return { response, html: await response.text() };
+  };
+
+  try {
+    const french = await get("fr");
+    const $ = load(french.html);
+    assert.equal(french.response.status, 200);
+    assert.equal($("html").attr("lang"), "fr");
+    assert.equal($("title").text(), "Mentions légales | xHACCP France");
+    assert.equal($('link[rel="canonical"]').attr("href"), "https://xhaccp.fr/mentions-legales");
+    assert.match($('meta[name="description"]').attr("content") || "", /identité de l’éditeur/);
+    assert.match($("#public-root h1").text(), /Mentions légales/);
+    assert.match($("#public-root").text(), /108 196 536/);
+    assert.match($("#public-root").text(), /108 196 536 00016/);
+    assert.match($("#public-root").text(), /108 196 536 R\.C\.S\. Paris/);
+    assert.match($("#public-root").text(), /1 000 EUR/);
+    assert.match($("#public-root").text(), /Jerome Clement/);
+    assert.match($("#public-root").text(), /Google Cloud Platform/);
+    assert.match($("#public-root").text(), /Union européenne/);
+    assert.match($("#public-root").text(), /French company from settings/);
+    assert.equal($("#public-root a[href$='/terms']").length, 1);
+    assert.equal($("#public-root a[href$='/privacy']").length, 1);
+    assert.equal($("#public-root a[href$='/returns']").length, 1);
+
+    const romanian = await get("ro");
+    assert.equal(romanian.response.status, 404);
+    assert.match(romanian.html, /noindex,follow/);
+    assert.doesNotMatch(romanian.html, /French company from settings|108 196 536 00016|Jerome Clement/);
+  } finally {
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  }
+});
+
 test("public HTML includes real localized content, pagination and metadata", async () => {
   const app = express();
   app.use((req: any, _res, next) => { req.market = req.headers["x-market"] || "fr"; next(); });

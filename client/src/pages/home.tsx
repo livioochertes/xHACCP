@@ -809,6 +809,14 @@ export default function Home() {
               <Link href="/privacy" className="hover:text-white ml-2">{t('footer.privacyPolicy')}</Link> |
               <Link href="/terms" className="hover:text-white ml-2">{t('footer.termsConditions')}</Link> |
               <Link href="/returns" className="hover:text-white ml-2">{t('footer.returnRefundPolicy')}</Link>
+              {market === "fr" && (
+                <>
+                  {" | "}
+                  <Link href="/mentions-legales" className="hover:text-white ml-2">
+                    Mentions légales
+                  </Link>
+                </>
+              )}
             </p>
           </div>
         </div>
