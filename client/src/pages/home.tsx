@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useLanguage } from "@/contexts/language-context";
 import { usePageSeo } from "@/lib/use-page-seo";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
@@ -40,6 +41,7 @@ import { publicLogo, featureImage } from "@/lib/public-images";
 
 export default function Home() {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const { toast } = useToast();
   const { clearCart } = useCart();
   const { contact } = useCompanySettings();
@@ -163,8 +165,6 @@ export default function Home() {
   );
 
   useEffect(() => {
-    if (market !== "fr") return;
-
     let timeoutId: number;
     const refreshEstimate = () => {
       setEstimatedCustomerCount(getEstimatedCustomerCount(new Date()));
@@ -180,7 +180,7 @@ export default function Home() {
     );
 
     return () => window.clearTimeout(timeoutId);
-  }, [market]);
+  }, []);
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();
@@ -227,13 +227,11 @@ export default function Home() {
     { icon: MessageSquare, text: t('home.features.support') },
     {
       icon: Users,
-      text: market === "fr"
-        ? t('home.features.customers').replace(
-            /10[,.]?000/,
-            estimatedCustomerCount.toLocaleString("fr-FR"),
-          )
-        : t('home.features.customers'),
-      isEstimate: market === "fr",
+      text: t('home.features.customers').replace(
+        "{count}",
+        estimatedCustomerCount.toLocaleString(language),
+      ),
+      isEstimate: true,
     },
   ];
 
@@ -365,10 +363,10 @@ export default function Home() {
                 {indicator.isEstimate && (
                   <span
                     className="customer-estimate-badge"
-                    title="Projection estimative : environ 10 nouveaux clients par jour, pas un comptage en temps réel."
+                    title={t('home.features.customersEstimateTitle')}
                   >
                     <span className="customer-estimate-dot" aria-hidden="true" />
-                    Estimation
+                    {t('home.features.customersEstimate')}
                   </span>
                 )}
               </div>
