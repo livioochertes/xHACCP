@@ -201,26 +201,47 @@ export default function Home() {
     { icon: Users, text: t('home.features.customers') },
   ];
 
-  const testimonials = [
-    {
-      name: "Sarah Johnson",
-      role: "Restaurant Manager",
-      rating: 5,
-      comment: "Excellent quality labels and fast shipping. Our restaurant has been using xHACCP for over 2 years now. Highly recommended!",
-    },
-    {
-      name: "Mike Chen",
-      role: "Food Service Director",
-      rating: 5,
-      comment: "The B2B pricing has saved us hundreds of dollars. Great customer service and the products are exactly what we need for compliance.",
-    },
-    {
-      name: "Lisa Rodriguez",
-      role: "Cafe Owner",
-      rating: 5,
-      comment: "Professional quality equipment at competitive prices. The HACCP compliance kit was exactly what our cafe needed for inspection.",
-    },
-  ];
+  const testimonials = market === "fr"
+    ? [
+        {
+          name: "Jean-Claude",
+          role: "Chef",
+          rating: 5,
+          comment: "La qualité des étiquettes de traçabilité alimentaire a dépassé mes attentes. Avant d’utiliser xHACCP, je retrouvais de nombreuses traces de colle sur les contenants. Ce problème a complètement disparu. Je les recommande, mais c’est surtout leur qualité qui parle d’elle-même !",
+        },
+        {
+          name: "Vincent",
+          role: "Chef",
+          rating: 5,
+          comment: "Même si je n’ai pas utilisé l’impression automatique avec KitOff au début, la couleur présente sur les deux faces de l’étiquette m’aidait déjà à repérer rapidement et correctement les produits périmés ou proches de leur date limite. Maintenant que j’utilise aussi l’impression automatique, tout est encore plus facile. Merci xHACCP !",
+        },
+        {
+          name: "Gibert",
+          role: "Chef",
+          rating: 5,
+          comment: "Traçabilité, conformité et qualité : ce sont les trois choses que xHACCP m’apporte. Et, sans aucun doute, je ne sais pas comment je ferais sans les alertes que je reçois chaque matin. Mon travail est beaucoup plus simple ; j’ai désormais plus de temps pour réfléchir à mes recettes. Merci xHACCP !",
+        },
+      ]
+    : [
+        {
+          name: "Sarah Johnson",
+          role: "Restaurant Manager",
+          rating: 5,
+          comment: "Excellent quality labels and fast shipping. Our restaurant has been using xHACCP for over 2 years now. Highly recommended!",
+        },
+        {
+          name: "Mike Chen",
+          role: "Food Service Director",
+          rating: 5,
+          comment: "The B2B pricing has saved us hundreds of dollars. Great customer service and the products are exactly what we need for compliance.",
+        },
+        {
+          name: "Lisa Rodriguez",
+          role: "Cafe Owner",
+          rating: 5,
+          comment: "Professional quality equipment at competitive prices. The HACCP compliance kit was exactly what our cafe needed for inspection.",
+        },
+      ];
 
   return (
     <div className="min-h-screen bg-slate-50">
