@@ -1,5 +1,5 @@
 import "./_group.css";
-import { BarChart3, Check, Cookie, LockKeyhole, Settings2, ShieldCheck, ShoppingBasket } from "lucide-react";
+import { BarChart3, Check, Cookie, LockKeyhole, Settings2, ShoppingBasket } from "lucide-react";
 import { useState } from "react";
 
 export function ReferenceStyle() {
@@ -28,22 +28,22 @@ export function ReferenceStyle() {
               <Cookie size={23} strokeWidth={1.8} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-                <h2 className="m-0 text-lg font-bold text-[#122d3b]">Vos choix de confidentialité</h2>
-                <a href="/privacy#cookie-details" className="text-xs font-semibold text-[#087f78] underline underline-offset-2">En savoir plus</a>
-              </div>
+              <h2 className="m-0 text-lg font-bold text-[#122d3b]">{settings ? "Paramètres des cookies" : "Vos choix de confidentialité"}</h2>
               <p className="mb-0 mt-1 max-w-4xl text-sm leading-5 text-slate-600">
-                Les cookies nécessaires assurent le fonctionnement du site. Les mesures d’audience et le suivi interne des paniers restent désactivés jusqu’à votre choix.
+                {settings
+                  ? "Choisissez les catégories facultatives que vous autorisez. Le stockage nécessaire reste toujours actif."
+                  : "Les cookies nécessaires assurent le fonctionnement du site. Les cookies facultatifs ne sont utilisés qu’avec votre accord."}
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
-                <span className="inline-flex items-center gap-1.5"><LockKeyhole size={13} className="text-[#087f78]" /> Nécessaires toujours actifs</span>
-                <span className="inline-flex items-center gap-1.5"><ShieldCheck size={13} className="text-[#087f78]" /> Vous pouvez modifier vos choix à tout moment</span>
-              </div>
             </div>
           </div>
 
           {settings && (
             <div className="mt-4 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:col-span-2">
+                <strong className="flex items-center gap-2 text-sm text-slate-800"><LockKeyhole size={15} className="text-[#087f78]" /> Nécessaires · toujours actifs</strong>
+                <small className="mt-1 block text-xs leading-5 text-slate-600">Ils assurent la sécurité, la langue, le panier et le paiement. Ils ne peuvent pas être désactivés.</small>
+                <a href="/privacy#cookie-details" className="mt-2 inline-block text-xs font-semibold text-[#087f78] underline underline-offset-2">Détails sur la confidentialité</a>
+              </div>
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3">
                 <input type="checkbox" checked={analytics} onChange={event => setAnalytics(event.target.checked)} className="mt-1 accent-[#087f78]" />
                 <span><strong className="flex items-center gap-2 text-sm text-slate-800"><BarChart3 size={15} className="text-[#087f78]" /> Mesure d’audience</strong>
@@ -59,17 +59,23 @@ export function ReferenceStyle() {
             </div>
           )}
 
-          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <button onClick={() => setSettings(value => !value)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              <Settings2 size={16} /> {settings ? "Masquer les options" : "Personnaliser"}
-            </button>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button className="min-h-10 rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Tout refuser</button>
-              {settings && <button className="min-h-10 rounded-lg border border-[#087f78] bg-white px-5 text-sm font-semibold text-[#087f78]">Enregistrer mes choix</button>}
-              <button className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#087f78] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#076e68]">
-                <Check size={16} /> Tout accepter
-              </button>
-            </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
+            {settings ? (
+              <>
+                <button onClick={() => setSettings(false)} className="order-2 min-h-10 rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 sm:order-none">Annuler</button>
+                <button className="order-1 col-span-2 min-h-10 rounded-lg bg-[#087f78] px-5 text-sm font-semibold text-white sm:order-none sm:col-span-1">Enregistrer mes choix</button>
+              </>
+            ) : (
+              <>
+                <button className="order-1 min-h-10 rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:order-none">Tout refuser</button>
+                <button onClick={() => setSettings(true)} className="order-3 col-span-2 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:order-none sm:col-span-1">
+                  <Settings2 size={16} /> Personnaliser
+                </button>
+                <button className="order-2 min-h-10 inline-flex items-center justify-center gap-2 rounded-lg bg-[#087f78] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#076e68] sm:order-none">
+                  <Check size={16} /> Tout accepter
+                </button>
+              </>
+            )}
           </div>
         </div>
       </aside>

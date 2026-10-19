@@ -5,7 +5,6 @@ import {
   Cookie,
   LockKeyhole,
   Settings2,
-  ShieldCheck,
   ShoppingBasket,
 } from "lucide-react";
 import {
@@ -24,10 +23,10 @@ import "./cookie-consent-banner.css";
 const COPY = {
   en: {
     title: "Your privacy choices",
-    intro: "Necessary storage keeps the site and checkout working. Analytics and internal cart monitoring stay off until you choose.",
+    intro: "We use necessary cookies to run the site. Optional cookies are used only if you choose them.",
+    customizeIntro: "Choose which optional categories to allow. Necessary storage is always active.",
     essential: "Necessary storage is always active for security, language, cart and checkout.",
     essentialLabel: "Necessary · always active",
-    changeAnytime: "You can change your choices at any time",
     analytics: "Analytics",
     analyticsDetail: "Analytics events are sent only after consent. Google Tag Manager loads only on xhaccp.fr after you agree.",
     cart: "Internal cart monitoring",
@@ -35,7 +34,6 @@ const COPY = {
     reject: "Reject optional",
     accept: "Accept all",
     customize: "Customize",
-    hideOptions: "Hide options",
     settings: "Cookie settings",
     save: "Save choices",
     cancel: "Cancel",
@@ -44,10 +42,10 @@ const COPY = {
   },
   fr: {
     title: "Vos choix de confidentialité",
-    intro: "Le stockage nécessaire assure le fonctionnement du site et du paiement. La mesure d’audience et le suivi interne des paniers restent désactivés jusqu’à votre choix.",
+    intro: "Les cookies nécessaires assurent le fonctionnement du site. Les cookies facultatifs ne sont utilisés qu’avec votre accord.",
+    customizeIntro: "Choisissez les catégories facultatives que vous autorisez. Le stockage nécessaire reste toujours actif.",
     essential: "Le stockage nécessaire au fonctionnement, à la sécurité, à la langue, au panier et au paiement reste actif.",
     essentialLabel: "Nécessaires · toujours actifs",
-    changeAnytime: "Vous pouvez modifier vos choix à tout moment",
     analytics: "Mesure d’audience",
     analyticsDetail: "Les événements de mesure ne sont envoyés qu’après votre accord. Google Tag Manager est chargé uniquement sur xhaccp.fr et après votre accord.",
     cart: "Suivi interne des paniers",
@@ -55,7 +53,6 @@ const COPY = {
     reject: "Tout refuser",
     accept: "Tout accepter",
     customize: "Personnaliser",
-    hideOptions: "Masquer les options",
     settings: "Paramètres des cookies",
     save: "Enregistrer mes choix",
     cancel: "Annuler",
@@ -64,10 +61,10 @@ const COPY = {
   },
   ro: {
     title: "Opțiunile tale de confidențialitate",
-    intro: "Stocarea necesară menține site-ul și plata funcționale. Analiza de trafic și monitorizarea internă a coșurilor rămân oprite până alegi.",
+    intro: "Folosim cookie-uri necesare pentru funcționarea site-ului. Cookie-urile opționale se folosesc doar dacă alegi asta.",
+    customizeIntro: "Alege categoriile opționale pe care le permiți. Stocarea necesară rămâne mereu activă.",
     essential: "Stocarea necesară pentru securitate, limbă, coș și plată rămâne activă.",
     essentialLabel: "Necesare · mereu active",
-    changeAnytime: "Poți modifica opțiunile oricând",
     analytics: "Analiză de trafic",
     analyticsDetail: "Evenimentele de analiză sunt trimise numai după acordul tău. Google Tag Manager se încarcă numai pe xhaccp.fr și numai după acord.",
     cart: "Monitorizare internă a coșurilor",
@@ -75,7 +72,6 @@ const COPY = {
     reject: "Respinge opționalele",
     accept: "Acceptă tot",
     customize: "Personalizează",
-    hideOptions: "Ascunde opțiunile",
     settings: "Setări cookie-uri",
     save: "Salvează opțiunile",
     cancel: "Anulează",
@@ -180,19 +176,19 @@ export default function CookieConsentBanner() {
           </div>
           <div className="cookie-consent__intro">
             <div className="cookie-consent__heading-row">
-              <h2>{copy.title}</h2>
-              <a href="/privacy#cookie-details">{copy.details}</a>
+              <h2>{customizing ? copy.settings : copy.title}</h2>
+              {customizing && <a href="/privacy#cookie-details">{copy.details}</a>}
             </div>
-            <p>{copy.intro}</p>
-            <div className="cookie-consent__trust">
-              <span><LockKeyhole size={14} aria-hidden="true" />{copy.essentialLabel}</span>
-              <span><ShieldCheck size={14} aria-hidden="true" />{copy.changeAnytime}</span>
-            </div>
+            <p>{customizing ? copy.customizeIntro : copy.intro}</p>
           </div>
         </div>
 
         {customizing ? (
           <div className="cookie-consent__options">
+            <div className="cookie-consent__essential">
+              <strong><LockKeyhole size={16} aria-hidden="true" />{copy.essentialLabel}</strong>
+              <p>{copy.essential}</p>
+            </div>
             {showAnalytics && (
               <label className="cookie-consent__option">
                 <input
@@ -218,20 +214,7 @@ export default function CookieConsentBanner() {
               </span>
             </label>
           </div>
-        ) : (
-          <div className="cookie-consent__summary">
-            {showAnalytics && (
-              <div className="cookie-consent__summary-card">
-                <strong><BarChart3 size={16} aria-hidden="true" />{copy.analytics}</strong>
-                <p>{copy.analyticsDetail}</p>
-              </div>
-            )}
-            <div className="cookie-consent__summary-card">
-              <strong><ShoppingBasket size={16} aria-hidden="true" />{copy.cart}</strong>
-              <p>{copy.cartDetail}</p>
-            </div>
-          </div>
-        )}
+        ) : null}
 
         {deletionPending && (
           <p className="cookie-consent__deletion" role="status">{copy.deletionPending}</p>
@@ -249,13 +232,6 @@ export default function CookieConsentBanner() {
                 className="cookie-consent__button cookie-consent__button--secondary"
               >
                 {copy.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={() => setCustomizing(false)}
-                className="cookie-consent__button cookie-consent__button--text"
-              >
-                <Settings2 size={16} aria-hidden="true" />{copy.hideOptions}
               </button>
             </>
           ) : (
