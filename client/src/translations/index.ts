@@ -2601,7 +2601,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'home.features.compliant': 'Produits Conformes HACCP',
     'home.features.certified': 'Certifié par l\'Industrie',
     'home.features.support': 'Support 24/7',
-    'home.features.customers': 'Plus de 10,000 Clients Satisfaits',
+    'home.features.customers': '10,000 Clients Satisfaits',
     'home.categories.title': 'Acheter par Catégorie',
     'home.categories.subtitle': 'Trouvez l\'équipement parfait pour votre cuisine',
     'home.categories.viewAll': 'Voir Tout',

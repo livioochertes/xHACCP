@@ -23,6 +23,10 @@ import { getPublicCategorySlug } from "@/lib/category-slugs";
 import type { Category, ProductWithCategory, BlogPost } from "@shared/schema";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { getMarketFromHostname } from "@/lib/queryClient";
+import {
+  getCustomerCounterRefreshDelayMs,
+  getEstimatedCustomerCount,
+} from "@/lib/estimated-customer-counter";
 import { clearVivaCheckoutDraft } from "@/lib/viva-checkout-draft";
 import OrderContactDetails from "@/components/order-contact-details";
 
@@ -154,6 +158,29 @@ export default function Home() {
   
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
+  const [estimatedCustomerCount, setEstimatedCustomerCount] = useState(
+    () => getEstimatedCustomerCount(new Date()),
+  );
+
+  useEffect(() => {
+    if (market !== "fr") return;
+
+    let timeoutId: number;
+    const refreshEstimate = () => {
+      setEstimatedCustomerCount(getEstimatedCustomerCount(new Date()));
+      timeoutId = window.setTimeout(
+        refreshEstimate,
+        getCustomerCounterRefreshDelayMs(),
+      );
+    };
+
+    timeoutId = window.setTimeout(
+      refreshEstimate,
+      getCustomerCounterRefreshDelayMs(),
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [market]);
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();
@@ -198,7 +225,16 @@ export default function Home() {
     { icon: Shield, text: t('home.features.compliant') },
     { icon: Award, text: t('home.features.certified') },
     { icon: MessageSquare, text: t('home.features.support') },
-    { icon: Users, text: t('home.features.customers') },
+    {
+      icon: Users,
+      text: market === "fr"
+        ? t('home.features.customers').replace(
+            /10[,.]?000/,
+            estimatedCustomerCount.toLocaleString("fr-FR"),
+          )
+        : t('home.features.customers'),
+      isEstimate: market === "fr",
+    },
   ];
 
   const testimonials = market === "fr"
@@ -323,7 +359,18 @@ export default function Home() {
             {trustIndicators.map((indicator, index) => (
               <div key={index} className="trust-indicator">
                 <indicator.icon className="h-5 w-5" />
-                <span className="text-sm text-slate-600">{indicator.text}</span>
+                <span className="text-sm text-slate-600" aria-live={indicator.isEstimate ? "polite" : undefined}>
+                  {indicator.text}
+                </span>
+                {indicator.isEstimate && (
+                  <span
+                    className="customer-estimate-badge"
+                    title="Projection estimative : environ 10 nouveaux clients par jour, pas un comptage en temps réel."
+                  >
+                    <span className="customer-estimate-dot" aria-hidden="true" />
+                    Estimation
+                  </span>
+                )}
               </div>
             ))}
           </div>

@@ -13,6 +13,7 @@ import { calculateShippingQuote } from "@shared/shipping-pricing";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useProductTranslations } from "@/hooks/useProductTranslation";
 import { trackEvent } from "@/lib/analytics";
 
 export default function Cart() {
@@ -38,6 +39,13 @@ export default function Cart() {
   });
 
   const validCart = cart.filter(item => item.product && item.product.price);
+  const translationProductIds = [...new Set(validCart.flatMap(item => [
+    item.product.id,
+    ...(item.compositeConfiguration?.components ?? []).map(component => component.componentProductId),
+  ]).filter((productId): productId is number => typeof productId === "number"))];
+  const { getTranslation } = useProductTranslations(translationProductIds);
+  const getProductTranslation = (item: typeof validCart[number]) =>
+    getTranslation(item.product.id, item.product.name, item.product.description ?? null);
   const defaultVatPercentage = Number(shippingSettings?.vatPercentage ?? 0);
   const getLinePrice = (item: typeof validCart[number]) =>
     getCartLinePrice(item, market, defaultVatPercentage);
@@ -152,31 +160,33 @@ export default function Cart() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
-              {validCart.map((item) => (
-                <Card key={item.id}>
-                  <CardContent className="p-3 sm:p-6">
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <img
-                        src={item.product?.imageUrl || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=150&h=150"}
-                        alt={item.product?.name || "Product"}
-                        className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg flex-shrink-0"
-                      />
+              {validCart.map((item) => {
+                const translatedProduct = getProductTranslation(item);
+                return (
+                    <Card key={item.id}>
+                      <CardContent className="p-3 sm:p-6">
+                        <div className="flex items-start gap-3 sm:gap-4">
+                          <img
+                            src={item.product?.imageUrl || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=150&h=150"}
+                            alt={translatedProduct.name || "Product"}
+                            className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg flex-shrink-0"
+                          />
                       
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-semibold text-primary mb-1 text-sm sm:text-base truncate">
-                            {item.product?.name || "Unknown Product"}
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveItem(item.id, item.product?.name || "Unknown Product")}
-                            className="text-red-600 hover:text-red-700 flex-shrink-0 h-7 w-7 p-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="font-semibold text-primary mb-1 text-sm sm:text-base truncate">
+                                {translatedProduct.name || "Unknown Product"}
+                              </h3>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveItem(item.id, translatedProduct.name || "Unknown Product")}
+                                className="text-red-600 hover:text-red-700 flex-shrink-0 h-7 w-7 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">
                           {item.product?.price ? formatPrice(getUnitPrice(item).toFixed(2), item.product.currency) : "0.00"} {t('cart.each')}
                           <span className="ml-1 text-xs">
                             {getLinePrice(item).priceDisplayMode === "net"
@@ -196,13 +206,23 @@ export default function Cart() {
                             return <span className="ml-1 text-xs text-emerald-600 font-medium">(-{active.discountPercent}%)</span>;
                           })()}
                         </p>
-                        {item.compositeConfiguration?.components?.length ? (
-                          <div className="mb-2 text-xs text-muted-foreground space-y-1">
-                            {item.compositeConfiguration.components.map(component => (
-                              <div key={component.componentProductId}>• {component.name || component.productCode || `#${component.componentProductId}`} × {component.quantity}</div>
-                            ))}
-                          </div>
-                        ) : null}
+                            {item.compositeConfiguration?.components?.length ? (
+                              <div className="mb-2 text-xs text-muted-foreground space-y-1">
+                                {item.compositeConfiguration.components.map(component => {
+                                  const originalName = component.name || component.productCode || `#${component.componentProductId}`;
+                                  const translatedName = getTranslation(
+                                    component.componentProductId,
+                                    originalName,
+                                    null,
+                                  ).name;
+                                  return (
+                                    <div key={component.componentProductId}>
+                                      • {translatedName} × {component.quantity}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : null}
                         
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center space-x-2">
@@ -230,18 +250,19 @@ export default function Cart() {
                             {item.product?.price ? formatPrice((getUnitPrice(item) * item.quantity).toFixed(2), item.product.currency) : "0.00"}
                           </span>
                         </div>
-                      </div>
-                    </div>
-                    {item.product?.description && (
-                      <div className="hidden md:block mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {item.product.description}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                          </div>
+                        </div>
+                        {translatedProduct.description && (
+                          <div className="hidden md:block mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {translatedProduct.description}
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                );
+              })}
             </div>
 
             <div className="lg:col-span-1">

@@ -61,3 +61,4 @@
 - [Market-specific legal pages](market-specific-legal-pages.md) — select legal copy and seller/return details by storefront market, independently of UI language.
 - [Product SEO generation](product-seo-generation.md) — draft from same-market catalog products first; require manual review and activation before publishing localized copy.
 - [Workflow port timeouts](workflow-port-timeouts.md) — verify a live listener and HTTP response before retrying; a startup log alone does not prove the web port remains available.
+- [Metro customer estimate](metro-customer-estimate.md) — Metro Romania brings roughly 3,500 new customers per year, with stronger acquisition in spring and autumn; projected counts must be labeled as estimates.
