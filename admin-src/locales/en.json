@@ -19,6 +19,7 @@
     "googleFeed": "Google Feed",
     "wms": "WMS",
     "paymentHealth": "Payment health",
+    "abandonedCarts": "Abandoned carts",
     "navigation": "Admin navigation",
     "workspace": "Your workspace",
     "openMenu": "Admin menu",
@@ -31,6 +32,34 @@
     "operations": "Sales & operations",
     "growth": "Marketing & promotions",
     "administration": "Administration"
+  },
+  "cartAbandonment": {
+    "title": "Abandoned carts",
+    "subtitle": "Carts with consent and no activity for at least one hour. Internal alerts only; no customer recovery emails are sent.",
+    "privacyNotice": "Anonymous records contain only product IDs, quantities, market and timestamps. No visitor email or IP is shown. Records expire after 90 days.",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…",
+    "loading": "Loading abandoned carts…",
+    "empty": "No abandoned carts for this market.",
+    "anonymous": "Anonymous visitor",
+    "account": "Signed-in account",
+    "lastActivity": "Last cart activity",
+    "abandonedAt": "Marked abandoned",
+    "expiry": "Data expires",
+    "alertIssue": "Alert detail",
+    "errorAuth": "You do not have access to this market.",
+    "errorLoad": "Could not load abandoned carts. Try again.",
+    "showing": "Showing {{from}}–{{to}} of {{total}} carts",
+    "previous": "Previous",
+    "next": "Next",
+    "status": {
+      "pending": "Alert pending",
+      "sending": "Sending alert",
+      "sent": "Alert accepted",
+      "retryable": "Retry scheduled",
+      "failed": "Alert failed",
+      "unknown": "Delivery unconfirmed"
+    }
   },
   "reports": {
     "title": "Reports",

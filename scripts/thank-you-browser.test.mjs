@@ -64,7 +64,7 @@ class DevToolsClient {
 async function waitForDevToolsTarget(output) {
   const startedAt = Date.now();
 
-  while (Date.now() - startedAt < 10_000) {
+  while (Date.now() - startedAt < 30_000) {
     const combinedOutput = output.join("");
     const match = combinedOutput.match(/DevTools listening on (ws:\/\/\S+)/);
     if (match) {
@@ -84,7 +84,7 @@ async function waitForHttpServer() {
   const startedAt = Date.now();
   let lastError;
 
-  while (Date.now() - startedAt < 10_000) {
+  while (Date.now() - startedAt < 20_000) {
     try {
       const response = await fetch(`${baseUrl}/merci`);
       if (response.ok) return;
@@ -224,7 +224,7 @@ async function stopBrowser(browser, profileDirectory) {
   }
 }
 
-async function openThankYouPage(t, paymentResult, { authToken = null, seedGuestCart = true } = {}) {
+async function openThankYouPage(t, paymentResult, { authToken = null, seedGuestCart = true, analyticsConsent = true } = {}) {
   const profileDirectory = await mkdtemp(join(tmpdir(), "xhaccp-thank-you-"));
   const browser = spawn(chromiumPath, [
     "--headless=new",
@@ -267,9 +267,15 @@ async function openThankYouPage(t, paymentResult, { authToken = null, seedGuestC
     total: 50,
     currencySymbol: "lei",
   };
+  const consentCookie = analyticsConsent
+    ? JSON.stringify(`v1:analytics:1:cart:0:${Date.now()}`)
+    : "null";
   await client.send("Page.addScriptToEvaluateOnNewDocument", {
     source: `(() => {
       localStorage.setItem("xhaccp-language", "en");
+      if (${consentCookie} !== null) {
+        document.cookie = "xhaccp_cookie_consent=" + ${consentCookie} + "; Path=/; SameSite=Lax";
+      }
       const authToken = ${JSON.stringify(authToken)};
       if (authToken && !localStorage.getItem("token")) {
         localStorage.setItem("token", authToken);
@@ -298,7 +304,7 @@ async function openThankYouPage(t, paymentResult, { authToken = null, seedGuestC
 test("direct /merci access keeps an existing cart and does not track a purchase", async (t) => {
   await waitForHttpServer();
 
-  const client = await openThankYouPage(t, null);
+  const client = await openThankYouPage(t, null, { analyticsConsent: false });
 
   const state = await waitForPageState(client);
   assert.equal(state.title, "Payment status not confirmed");

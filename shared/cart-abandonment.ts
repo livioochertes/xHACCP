@@ -12,8 +12,12 @@ export interface CartAbandonmentLine {
 }
 
 export function isCartMonitoringConsentCookie(value: string | null | undefined): boolean {
-  return value === `${CART_MONITORING_CONSENT_VERSION}:analytics:1:cart:1` ||
-    value === `${CART_MONITORING_CONSENT_VERSION}:analytics:0:cart:1`;
+  if (typeof value !== "string") return false;
+  const match = value.match(new RegExp(`^${CART_MONITORING_CONSENT_VERSION}:analytics:[01]:cart:1:(\\d{13})$`));
+  if (!match) return false;
+  const consentAt = Number(match[1]);
+  const ageMs = Date.now() - consentAt;
+  return ageMs >= -5 * 60 * 1000 && ageMs <= 180 * 24 * 60 * 60 * 1000;
 }
 
 export function isValidCartMonitoringId(value: unknown): value is string {

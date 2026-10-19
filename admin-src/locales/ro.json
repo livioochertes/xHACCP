@@ -19,6 +19,7 @@
     "googleFeed": "Google Feed",
     "wms": "WMS",
     "paymentHealth": "Starea plăților",
+    "abandonedCarts": "Coșuri abandonate",
     "navigation": "Navigarea Admin",
     "workspace": "Spațiul tău de lucru",
     "openMenu": "Meniu Admin",
@@ -31,6 +32,34 @@
     "operations": "Vânzări și operațiuni",
     "growth": "Marketing și promovare",
     "administration": "Administrare"
+  },
+  "cartAbandonment": {
+    "title": "Coșuri abandonate",
+    "subtitle": "Coșuri monitorizate cu consimțământ, fără activitate timp de cel puțin o oră. Doar alerte interne; nu trimitem e-mailuri de recuperare către clienți.",
+    "privacyNotice": "Înregistrările anonime conțin doar ID-urile produselor, cantitățile, piața și datele activității. E-mailul și IP-ul vizitatorului nu sunt afișate. Datele expiră după 90 de zile.",
+    "refresh": "Reîncarcă",
+    "refreshing": "Se reîncarcă…",
+    "loading": "Se încarcă lista de coșuri…",
+    "empty": "Nu există coșuri abandonate pentru această piață.",
+    "anonymous": "Vizitator anonim",
+    "account": "Cont autentificat",
+    "lastActivity": "Ultima activitate în coș",
+    "abandonedAt": "Marcat abandonat",
+    "expiry": "Datele expiră",
+    "alertIssue": "Detalii alertă",
+    "errorAuth": "Nu ai acces la această piață.",
+    "errorLoad": "Nu s-a putut încărca lista. Încearcă din nou.",
+    "showing": "Se afișează {{from}}–{{to}} din {{total}} coșuri",
+    "previous": "Anterior",
+    "next": "Următor",
+    "status": {
+      "pending": "Alertă în așteptare",
+      "sending": "Se trimite alerta",
+      "sent": "Alertă acceptată",
+      "retryable": "Reîncercare programată",
+      "failed": "Alertă eșuată",
+      "unknown": "Confirmare neclară"
+    }
   },
   "reports": {
     "title": "Rapoarte",

@@ -4,6 +4,8 @@ import { apiRequest, getMarketFromHostname } from "@/lib/queryClient";
 import { trackEvent } from "@/lib/analytics";
 import { useAuth } from "@/hooks/useAuth";
 import type { CartItemWithProduct, CompositeConfiguration } from "@shared/schema";
+import { COOKIE_CONSENT_CHANGED_EVENT, getOrCreateCartMonitoringId, readCookiePreferences } from "@/lib/cookie-consent";
+import { CART_MONITORING_CONSENT_STORAGE_KEY } from "@shared/cart-abandonment";
 
 interface CartContextType {
   cart: CartItemWithProduct[];
@@ -26,6 +28,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [lastAuthenticatedCart, setLastAuthenticatedCart] = useState<CartItemWithProduct[]>(
     () => queryClient.getQueryData<CartItemWithProduct[]>(["/api/cart"]) ?? [],
   );
+  const [guestCartHydrated, setGuestCartHydrated] = useState(false);
+  const [consentRevision, setConsentRevision] = useState(0);
 
   // Load the guest cart once. An expired authenticated session uses the
   // server-cart snapshot below instead of falling back to this empty cart.
@@ -51,6 +55,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
+    setGuestCartHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    const onConsentChange = (event?: Event) => {
+      if (event?.type === "storage" &&
+          (event as StorageEvent).key !== CART_MONITORING_CONSENT_STORAGE_KEY) return;
+      setConsentRevision(revision => revision + 1);
+    };
+    window.addEventListener(COOKIE_CONSENT_CHANGED_EVENT, onConsentChange);
+    window.addEventListener("storage", onConsentChange);
+    return () => {
+      window.removeEventListener(COOKIE_CONSENT_CHANGED_EVENT, onConsentChange);
+      window.removeEventListener("storage", onConsentChange);
+    };
   }, []);
 
   // Load authenticated user's cart from API
@@ -91,6 +110,42 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       ? lastAuthenticatedCart
       : localCart;
   const isLoading = authLoading || (isAuthenticated && apiLoading);
+
+  useEffect(() => {
+    if (readCookiePreferences()?.cartMonitoring !== true) return;
+    if (authLoading || (isAuthenticated && (apiCart === undefined || sessionExpired)) ||
+        (!isAuthenticated && !guestCartHydrated)) return;
+
+    const cartMonitoringId = getOrCreateCartMonitoringId();
+    if (!cartMonitoringId) return;
+    const payload = isAuthenticated
+      ? {}
+      : {
+          items: cart.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            compositeConfiguration: item.compositeConfiguration
+              ? {
+                  components: item.compositeConfiguration.components.map(component => ({
+                    componentProductId: component.componentProductId,
+                    quantity: component.quantity,
+                  })),
+                }
+              : undefined,
+          })),
+        };
+    void apiRequest("POST", "/api/cart-monitoring", payload).catch(error => {
+      console.warn("Cart monitoring sync failed; checkout is unaffected.", error);
+    });
+  }, [
+    apiCart,
+    authLoading,
+    cart,
+    consentRevision,
+    guestCartHydrated,
+    isAuthenticated,
+    sessionExpired,
+  ]);
 
   const addToCartMutation = useMutation<
     { product: any; quantity: number } | Response,

@@ -4604,7 +4604,6 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const fingerprint = crypto.createHash("sha256").update(JSON.stringify({
         market,
         userId: req.userId ?? null,
-        cartTrackingKeyHash: getCartTrackingKeyHashFromRequest(req) ?? null,
         currency: serverCurrency,
         cartItems,
         voucherCode: voucherCode || null,

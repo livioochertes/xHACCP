@@ -19,6 +19,7 @@
     "googleFeed": "Google Feed",
     "wms": "WMS",
     "paymentHealth": "État des paiements",
+    "abandonedCarts": "Paniers abandonnés",
     "navigation": "Navigation Admin",
     "workspace": "Votre espace de travail",
     "openMenu": "Menu Admin",
@@ -31,6 +32,34 @@
     "operations": "Ventes et opérations",
     "growth": "Marketing et promotions",
     "administration": "Administration"
+  },
+  "cartAbandonment": {
+    "title": "Paniers abandonnés",
+    "subtitle": "Paniers suivis avec consentement, sans activité depuis au moins une heure. Alertes internes uniquement ; aucun e-mail de relance n’est envoyé.",
+    "privacyNotice": "Les enregistrements anonymes contiennent uniquement les identifiants des produits, les quantités, le marché et les dates. Aucun e-mail ni aucune adresse IP des visiteurs n’est affiché. Suppression après 90 jours.",
+    "refresh": "Actualiser",
+    "refreshing": "Actualisation…",
+    "loading": "Chargement des paniers abandonnés…",
+    "empty": "Aucun panier abandonné pour ce marché.",
+    "anonymous": "Visiteur anonyme",
+    "account": "Compte connecté",
+    "lastActivity": "Dernière activité du panier",
+    "abandonedAt": "Déclaré abandonné",
+    "expiry": "Expiration des données",
+    "alertIssue": "Détail de l’alerte",
+    "errorAuth": "Vous n’avez pas accès à ce marché.",
+    "errorLoad": "Impossible de charger les paniers. Réessayez.",
+    "showing": "{{from}}–{{to}} sur {{total}} paniers",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "status": {
+      "pending": "Alerte en attente",
+      "sending": "Envoi de l’alerte",
+      "sent": "Alerte acceptée",
+      "retryable": "Nouvelle tentative prévue",
+      "failed": "Échec de l’alerte",
+      "unknown": "Envoi non confirmé"
+    }
   },
   "reports": {
     "title": "Rapports",

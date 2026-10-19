@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/components/cart-provider";
+import CookieConsentBanner from "@/components/cookie-consent-banner";
 import { LanguageProvider } from "@/contexts/language-context";
 import Header from "@/components/header";
 import AiChatWidget from "@/components/ai-chat-widget";
@@ -93,6 +94,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <Router />
+            <CookieConsentBanner />
           </TooltipProvider>
         </CartProvider>
       </LanguageProvider>

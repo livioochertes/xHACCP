@@ -37,8 +37,10 @@ function writeCookie(name: string, value: string, maxAge: number): void {
 export function readCookiePreferences(): CookiePreferences | null {
   const value = cookieValue(CART_MONITORING_CONSENT_COOKIE);
   if (!value) return null;
-  const match = value.match(/^v1:analytics:([01]):cart:([01])$/);
+  const match = value.match(/^v1:analytics:([01]):cart:([01]):(\d{13})$/);
   if (!match || CART_MONITORING_CONSENT_VERSION !== "v1") return null;
+  const consentAgeMs = Date.now() - Number(match[3]);
+  if (consentAgeMs < -5 * 60 * 1000 || consentAgeMs > CONSENT_MAX_AGE_SECONDS * 1000) return null;
   return { analytics: match[1] === "1", cartMonitoring: match[2] === "1" };
 }
 
@@ -49,6 +51,10 @@ export function hasAnalyticsConsent(): boolean {
 function isFrenchStorefront(): boolean {
   const hostname = window.location.hostname;
   return hostname === "xhaccp.fr" || hostname.endsWith(".xhaccp.fr");
+}
+
+export function shouldOfferAnalyticsConsent(): boolean {
+  return typeof window !== "undefined";
 }
 
 function clearKnownGoogleAnalyticsCookies(): void {
@@ -121,22 +127,22 @@ function clearCartMonitoringId(): void {
   document.cookie = `${CART_MONITORING_ID_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
 }
 
-export async function saveCookiePreferences(preferences: CookiePreferences): Promise<boolean> {
+export async function saveCookiePreferences(preferences: CookiePreferences): Promise<{
+  reloadRequired: boolean;
+  cartDeletionPending: boolean;
+}> {
   const previous = readCookiePreferences();
   const next = {
-    analytics: Boolean(preferences.analytics),
+    analytics: shouldOfferAnalyticsConsent() && Boolean(preferences.analytics),
     cartMonitoring: Boolean(preferences.cartMonitoring),
   };
 
+  let cartDeletionPending = false;
   if (previous?.cartMonitoring && !next.cartMonitoring) {
-    try {
-      await fetch("/api/cart-monitoring", { method: "DELETE", credentials: "same-origin" });
-    } finally {
-      clearCartMonitoringId();
-    }
+    cartDeletionPending = !(await removeCartMonitoringData());
   }
 
-  const consentValue = `${CART_MONITORING_CONSENT_VERSION}:analytics:${next.analytics ? "1" : "0"}:cart:${next.cartMonitoring ? "1" : "0"}`;
+  const consentValue = `${CART_MONITORING_CONSENT_VERSION}:analytics:${next.analytics ? "1" : "0"}:cart:${next.cartMonitoring ? "1" : "0"}:${Date.now()}`;
   writeCookie(CART_MONITORING_CONSENT_COOKIE, consentValue, CONSENT_MAX_AGE_SECONDS);
   try {
     localStorage.setItem(CART_MONITORING_CONSENT_STORAGE_KEY, consentValue);
@@ -146,14 +152,24 @@ export async function saveCookiePreferences(preferences: CookiePreferences): Pro
 
   syncGoogleTagManager(next.analytics);
   window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_CHANGED_EVENT, { detail: next }));
-  return Boolean(previous?.analytics && !next.analytics);
+  return {
+    reloadRequired: Boolean(previous?.analytics && !next.analytics),
+    cartDeletionPending,
+  };
 }
 
-export async function removeCartMonitoringData(): Promise<void> {
+export async function removeCartMonitoringData(): Promise<boolean> {
+  if (!cookieValue(CART_MONITORING_ID_COOKIE)) return true;
   try {
-    await fetch("/api/cart-monitoring", { method: "DELETE", credentials: "same-origin" });
-  } finally {
-    clearCartMonitoringId();
+    const response = await fetch("/api/cart-monitoring", { method: "DELETE", credentials: "same-origin" });
+    if (response.ok) {
+      clearCartMonitoringId();
+      return true;
+    }
+    return false;
+  } catch {
+    // Keep the opaque ID for a later deletion retry; it contains no user data.
+    return false;
   }
 }
 

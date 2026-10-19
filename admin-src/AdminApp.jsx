@@ -8,6 +8,7 @@ import AIRecommendationCampaigns from "./AIRecommendationCampaigns.jsx";
 import AdminReports from "./AdminReports.jsx";
 import AdminTwoFactorSettings from "./AdminTwoFactorSettings.jsx";
 import PaymentHealth from "./PaymentHealth.jsx";
+import AbandonedCarts from "./AbandonedCarts.jsx";
 import { defaultPriceDisplayMode, resolveMarketPricePair } from "../shared/market-pricing";
 import {
   broadcastCategoryTranslationUpdate,
@@ -7086,6 +7087,8 @@ function MarketingPagination({ page, totalItems, pageSize, onPageChange, t }) {
                 </section>
               </div>
             );
+          case 'abandoned-carts':
+            return <AbandonedCarts token={token} market={selectedMarketTab} locale={i18n.language} t={t} />;
 
           case 'company-settings':
             return (

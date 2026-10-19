@@ -47,6 +47,7 @@ const navGroups = [
     items: [
       { id: 'orders', labelKey: 'nav.orders', icon: ShoppingBasket },
       { id: 'invoices', labelKey: 'nav.invoices', icon: ReceiptText },
+      { id: 'abandoned-carts', labelKey: 'nav.abandonedCarts', icon: ShoppingBasket },
     ],
   },
   {

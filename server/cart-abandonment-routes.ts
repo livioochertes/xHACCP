@@ -34,17 +34,36 @@ export function registerCartAbandonmentRoutes(app: Express): void {
           return res.status(204).end();
         }
 
-        const input = req.userId
-          ? await getAuthenticatedCartTrackingInput(req)
-          : await getGuestCartTrackingInput(req, req.body?.items);
+        if (req.userId) {
+          const input = await getAuthenticatedCartTrackingInput(req);
+          if (!input) {
+            await deleteTrackedCart(cartKeyHash);
+            return res.status(204).end();
+          }
+          await syncTrackedCart({
+            cartKeyHash: input.cartKeyHash,
+            market: input.market,
+            userId: input.userId,
+            items: input.items,
+            consentAt: input.consentAt,
+            activityAt: input.activityAt,
+          });
+          return res.status(204).end();
+        }
+
+        if (Array.isArray(req.body?.items) && req.body.items.length === 0) {
+          await deleteTrackedCart(cartKeyHash);
+          return res.status(204).end();
+        }
+        const input = await getGuestCartTrackingInput(req, req.body?.items);
         if (!input) return res.status(204).end();
 
         await syncTrackedCart({
           cartKeyHash: input.cartKeyHash,
           market: input.market,
-          userId: "userId" in input ? input.userId : null,
+          userId: null,
           items: input.items,
-          activityAt: "activityAt" in input ? input.activityAt : null,
+          consentAt: input.consentAt,
         });
         return res.status(204).end();
       } catch (error) {
@@ -70,8 +89,14 @@ export function registerCartAbandonmentRoutes(app: Express): void {
     authenticateAdmin,
     async (req: Request, res: Response) => {
       const requestedMarket = typeof req.query.market === "string" ? req.query.market : "all";
+      const requestedLimit = Number(req.query.limit ?? 50);
+      const requestedOffset = Number(req.query.offset ?? 0);
       if (requestedMarket !== "all" && !SUPPORTED_MARKETS.includes(requestedMarket as any)) {
         return res.status(400).json({ message: "Unsupported market" });
+      }
+      if (!Number.isSafeInteger(requestedLimit) || requestedLimit < 1 || requestedLimit > 100 ||
+          !Number.isSafeInteger(requestedOffset) || requestedOffset < 0) {
+        return res.status(400).json({ message: "Invalid pagination" });
       }
       const markets = requestedMarket === "all"
         ? [...SUPPORTED_MARKETS].filter(market => canAccessMarket(req as any, market))
@@ -80,8 +105,8 @@ export function registerCartAbandonmentRoutes(app: Express): void {
           : [];
       if (!markets.length) return res.status(403).json({ message: "Access denied for this market" });
       try {
-        const carts = await listAbandonedCartAdminRows(markets);
-        return res.json({ carts });
+        const result = await listAbandonedCartAdminRows(markets, requestedOffset, requestedLimit);
+        return res.json(result);
       } catch (error) {
         console.error("[Cart Abandonment] Admin list failed", error);
         return res.status(500).json({ message: "Could not load abandoned carts" });

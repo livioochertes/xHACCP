@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useTranslation } from "../hooks/useTranslation";
+import { useLanguage } from "../contexts/language-context";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Link } from "wouter";
@@ -25,6 +26,7 @@ import {
 
 export default function Privacy() {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const { contact, market } = useCompanySettings();
   const companyName = contact.name || "NAMARTE";
   const companyPhone = formatCompanyPhone(contact.phone, market);
@@ -33,6 +35,32 @@ export default function Privacy() {
     [contact.zipCode, contact.city].filter(Boolean).join(" "),
     contact.country,
   ].filter(Boolean).join(", ");
+  const cookieDetails = language === "fr"
+    ? {
+        title: "Cookies et choix de confidentialité",
+        intro: "Les fonctions nécessaires au site, à la sécurité, au panier et au paiement restent actives. Les fonctions facultatives ne sont activées qu’après votre choix dans le bandeau de consentement ; vous pouvez modifier ou retirer ce choix à tout moment avec le bouton « Paramètres des cookies ».",
+        analytics: "Mesure d’audience : les événements d’analyse ne sont envoyés qu’après votre accord. Sur xhaccp.fr, Google Tag Manager (conteneur GTM-5WC2V3BF) n’est chargé qu’après cet accord. Les balises configurées dans ce conteneur peuvent traiter des informations de navigation. Les catégories publicitaires restent refusées par défaut.",
+        cart: "Suivi interne des paniers : après votre accord, nous conservons un identifiant pseudonyme, le marché, les identifiants des produits, les quantités et les dates d’activité, pendant 90 jours maximum. Après une heure sans activité, une seule alerte interne est envoyée à notre équipe via SendGrid. Pour les utilisateurs connectés, l’enregistrement peut être associé à l’identifiant de leur compte. Nous ne collectons pas l’adresse e-mail ni l’adresse IP des visiteurs anonymes pour ce suivi et nous n’envoyons pas d’e-mail de relance aux clients.",
+        withdrawal: "Vous pouvez retirer votre accord depuis « Paramètres des cookies ». Nous envoyons alors une demande de suppression du suivi de panier ; en cas de coupure temporaire, la suppression est réessayée au retour de la connexion. Le retrait n’annule pas les traitements effectués avant celui-ci.",
+        settings: "Ouvrir les paramètres des cookies",
+      }
+    : language === "ro"
+      ? {
+          title: "Cookie-uri și opțiuni de confidențialitate",
+          intro: "Funcțiile necesare site-ului, securității, coșului și plății rămân active. Funcțiile opționale se activează doar după alegerea ta în bannerul de consimțământ; poți modifica sau retrage alegerea oricând din butonul „Setări cookie-uri”.",
+          analytics: "Analiză: evenimentele de analiză sunt trimise numai după acordul tău. Pe xhaccp.fr, Google Tag Manager (containerul GTM-5WC2V3BF) se încarcă numai după acest acord. Etichetele configurate în container pot procesa informații despre navigare. Categoriile de publicitate sunt refuzate implicit.",
+          cart: "Monitorizare internă a coșurilor: după acord, păstrăm un identificator pseudonim, piața, ID-urile produselor, cantitățile și datele activității cel mult 90 de zile. După o oră fără activitate, echipa primește o singură alertă internă prin SendGrid. Pentru utilizatorii autentificați, înregistrarea poate fi asociată cu ID-ul contului. Pentru vizitatorii anonimi nu colectăm e-mailul sau IP-ul în acest scop și nu trimitem e-mailuri de recuperare către clienți.",
+          withdrawal: "Poți retrage acordul din „Setări cookie-uri”. Trimitem o cerere de ștergere a înregistrării coșului; dacă apare o întrerupere temporară, reîncercăm după restabilirea conexiunii. Retragerea nu afectează prelucrările efectuate înainte de retragere.",
+          settings: "Deschide setările cookie-urilor",
+        }
+      : {
+          title: "Cookies and privacy choices",
+          intro: "Storage required for the site, security, cart and checkout remains active. Optional functions are enabled only after you choose them in the consent banner. You can change or withdraw your choice at any time with the “Cookie settings” button.",
+          analytics: "Analytics: analytics events are sent only after you consent. On xhaccp.fr, Google Tag Manager (container GTM-5WC2V3BF) loads only after that consent. Tags configured in the container may process browsing information. Advertising consent categories remain denied by default.",
+          cart: "Internal cart monitoring: after consent, we retain a pseudonymous identifier, market, product IDs, quantities and activity timestamps for up to 90 days. After one hour without activity, one internal alert is sent to our team through SendGrid. For signed-in users, the record may be associated with their account ID. We do not collect anonymous visitors’ email addresses or IP addresses for this feature and do not send customer cart-recovery emails.",
+          withdrawal: "You can withdraw consent using “Cookie settings”. We request deletion of the cart record; if there is a temporary connection failure, we retry when the connection returns. Withdrawal does not affect processing that took place before it.",
+          settings: "Open cookie settings",
+        };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -170,6 +198,29 @@ export default function Privacy() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="cookie-details" className="py-12 bg-slate-50 scroll-mt-24">
+        <div className="container mx-auto px-4">
+          <Card className="max-w-4xl mx-auto border-teal-200">
+            <CardHeader>
+              <CardTitle>{cookieDetails.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-slate-700 leading-relaxed">
+              <p>{cookieDetails.intro}</p>
+              <p>{cookieDetails.analytics}</p>
+              <p>{cookieDetails.cart}</p>
+              <p>{cookieDetails.withdrawal}</p>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event("xhaccp-open-cookie-settings"))}
+                className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800"
+              >
+                {cookieDetails.settings}
+              </button>
+            </CardContent>
+          </Card>
         </div>
       </section>
 

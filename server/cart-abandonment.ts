@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { Request } from "express";
 import {
   and,
+  count,
   desc,
   eq,
   gte,
@@ -22,7 +23,6 @@ import {
   productMarkets,
   products,
   type CartAbandonmentCart,
-  type CartAbandonmentLine,
 } from "@shared/schema";
 import {
   CART_ABANDONMENT_DELAY_MS,
@@ -33,6 +33,7 @@ import {
   isCartMonitoringConsentCookie,
   isValidCartMonitoringId,
   normalizeCartAbandonmentItems,
+  type CartAbandonmentLine,
 } from "@shared/cart-abandonment";
 import { db } from "./db";
 import { getSenderForMarket, sendEmailWithOutcome } from "./email-service";
@@ -122,6 +123,13 @@ export function getCartTrackingKeyHashFromRequest(
   return createHash("sha256").update(cartId).digest("hex");
 }
 
+function getCartConsentAtFromRequest(req: Request): Date | null {
+  const value = getRequestCookie(req, CART_MONITORING_CONSENT_COOKIE);
+  const match = value?.match(/^v1:analytics:[01]:cart:1:(\d{13})$/);
+  if (!match || !isCartMonitoringConsentCookie(value)) return null;
+  return new Date(Number(match[1]));
+}
+
 export function hashCartMonitoringId(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -146,6 +154,9 @@ function retentionDeadline(now: Date): Date {
 
 export async function deleteTrackedCart(cartKeyHash: string): Promise<void> {
   await ensureCartAbandonmentSchema();
+  await db.update(orders)
+    .set({ cartTrackingKeyHash: null })
+    .where(eq(orders.cartTrackingKeyHash, cartKeyHash));
   await db.delete(cartAbandonmentCarts)
     .where(eq(cartAbandonmentCarts.cartKeyHash, cartKeyHash));
 }
@@ -155,6 +166,7 @@ export async function syncTrackedCart(input: {
   market: string;
   userId: number | null;
   items: CartAbandonmentLine[];
+  consentAt?: Date | null;
   activityAt?: Date | null;
   now?: Date;
 }): Promise<void> {
@@ -188,7 +200,7 @@ export async function syncTrackedCart(input: {
     userId: input.userId,
     items,
     consentVersion: CART_MONITORING_CONSENT_VERSION,
-    consentAt: now,
+    consentAt: input.consentAt || now,
     cartUpdatedAt: updatedAt,
     abandonedAt: null,
     resolvedAt: null,
@@ -262,13 +274,20 @@ async function resolveCompletedCarts(now: Date): Promise<void> {
     .limit(250);
   for (const cart of rows) {
     try {
-      if (await findCompletedOrder(cart)) {
-        await db.update(cartAbandonmentCarts)
+      const order = await findCompletedOrder(cart);
+      if (order) {
+        const [resolved] = await db.update(cartAbandonmentCarts)
           .set({ resolvedAt: now, updatedAt: now })
           .where(and(
             eq(cartAbandonmentCarts.id, cart.id),
             isNull(cartAbandonmentCarts.resolvedAt),
-          ));
+          ))
+          .returning({ id: cartAbandonmentCarts.id });
+        if (resolved) {
+          await db.update(orders)
+            .set({ cartTrackingKeyHash: null })
+            .where(eq(orders.id, order.id));
+        }
       }
     } catch (error) {
       console.error("[Cart Abandonment] Could not resolve completed cart", cart.id, error);
@@ -337,9 +356,9 @@ async function sendAbandonedCartAlert(cart: CartAbandonmentCart): Promise<void> 
     eq(cartAbandonmentCarts.alertStatus, "pending"),
     and(
       eq(cartAbandonmentCarts.alertStatus, "retryable"),
-      lt(
-        cartAbandonmentCarts.alertAttemptedAt,
-        new Date(now.getTime() - ALERT_RETRY_DELAY_MS),
+      or(
+        isNull(cartAbandonmentCarts.alertAttemptedAt),
+        lt(cartAbandonmentCarts.alertAttemptedAt, new Date(now.getTime() - ALERT_RETRY_DELAY_MS)),
       ),
       lt(cartAbandonmentCarts.alertAttempts, MAX_ALERT_ATTEMPTS),
     ),
@@ -355,8 +374,11 @@ async function sendAbandonedCartAlert(cart: CartAbandonmentCart): Promise<void> 
     })
     .where(and(
       eq(cartAbandonmentCarts.id, cart.id),
+      isNotNull(cartAbandonmentCarts.abandonedAt),
       isNull(cartAbandonmentCarts.resolvedAt),
       isNull(cartAbandonmentCarts.alertSentAt),
+      gt(cartAbandonmentCarts.expiresAt, now),
+      lte(cartAbandonmentCarts.cartUpdatedAt, new Date(now.getTime() - CART_ABANDONMENT_DELAY_MS)),
       claimable,
     ))
     .returning();
@@ -364,6 +386,7 @@ async function sendAbandonedCartAlert(cart: CartAbandonmentCart): Promise<void> 
 
   const market = claimed.market === "fr" || claimed.market === "com" ? claimed.market : "ro";
   const copy = MARKET_COPY[market];
+  try {
   const productNames = await getProductNames(claimed.items || []);
   const itemLines = (claimed.items || []).slice(0, 30).map(item => {
     const name = productNames.get(item.productId) || `#${item.productId}`;
@@ -376,7 +399,7 @@ async function sendAbandonedCartAlert(cart: CartAbandonmentCart): Promise<void> 
   const text = [
     copy.title,
     `${copy.label}: .${market}`,
-    `${copy.visitor === MARKET_COPY.ro.visitor ? copy.visitor : (claimed.userId ? copy.account : copy.visitor)}`,
+    `${claimed.userId ? copy.account : copy.visitor}`,
     `${copy.lastActivity}: ${claimed.cartUpdatedAt.toISOString()}`,
     "",
     copy.items,
@@ -396,7 +419,6 @@ async function sendAbandonedCartAlert(cart: CartAbandonmentCart): Promise<void> 
       <p style="font-size:12px;color:#64748b">Internal alert only. No customer email address or IP address is included.</p>
     </div>`;
 
-  try {
     const outcome = await sendEmailWithOutcome({
       to: CART_ABANDONMENT_ALERT_RECIPIENT,
       from: getSenderForMarket(market),
@@ -440,22 +462,31 @@ async function sendAbandonedCartAlert(cart: CartAbandonmentCart): Promise<void> 
   }
 }
 
-export async function listAbandonedCartAdminRows(markets: string[]): Promise<Array<Record<string, unknown>>> {
+export async function listAbandonedCartAdminRows(
+  markets: string[],
+  offset = 0,
+  limit = 50,
+): Promise<{ carts: Array<Record<string, unknown>>; total: number }> {
   await ensureCartAbandonmentSchema();
   const now = new Date();
   await resolveCompletedCarts(now);
+  const filter = and(
+    inArray(cartAbandonmentCarts.market, markets),
+    isNotNull(cartAbandonmentCarts.abandonedAt),
+    isNull(cartAbandonmentCarts.resolvedAt),
+    gt(cartAbandonmentCarts.expiresAt, now),
+  );
+  const [{ total: totalCount }] = await db.select({ total: count() })
+    .from(cartAbandonmentCarts)
+    .where(filter);
   const rows = await db.select()
     .from(cartAbandonmentCarts)
-    .where(and(
-      inArray(cartAbandonmentCarts.market, markets),
-      isNotNull(cartAbandonmentCarts.abandonedAt),
-      isNull(cartAbandonmentCarts.resolvedAt),
-      gt(cartAbandonmentCarts.expiresAt, now),
-    ))
+    .where(filter)
     .orderBy(desc(cartAbandonmentCarts.abandonedAt))
-    .limit(250);
+    .limit(limit)
+    .offset(offset);
   const names = await getProductNames(rows.flatMap(row => row.items || []));
-  return rows.map(row => ({
+  const carts = rows.map(row => ({
     id: row.id,
     market: row.market,
     accountType: row.userId ? "account" : "anonymous",
@@ -477,6 +508,7 @@ export async function listAbandonedCartAdminRows(markets: string[]): Promise<Arr
     alertError: row.alertError,
     expiresAt: row.expiresAt,
   }));
+  return { carts, total: Number(totalCount || 0) };
 }
 
 let monitorRunning = false;
@@ -490,9 +522,19 @@ export async function runCartAbandonmentMonitor(now = new Date()): Promise<{
   monitorRunning = true;
   try {
     await ensureCartAbandonmentSchema();
-    const expiredRows = await db.delete(cartAbandonmentCarts)
-      .where(lt(cartAbandonmentCarts.expiresAt, now))
-      .returning({ id: cartAbandonmentCarts.id });
+    const expiredRows = await db.select({
+      id: cartAbandonmentCarts.id,
+      cartKeyHash: cartAbandonmentCarts.cartKeyHash,
+    })
+      .from(cartAbandonmentCarts)
+      .where(lt(cartAbandonmentCarts.expiresAt, now));
+    if (expiredRows.length) {
+      await db.update(orders)
+        .set({ cartTrackingKeyHash: null })
+        .where(inArray(orders.cartTrackingKeyHash, expiredRows.map(row => row.cartKeyHash)));
+      await db.delete(cartAbandonmentCarts)
+        .where(inArray(cartAbandonmentCarts.id, expiredRows.map(row => row.id)));
+    }
     const cutoff = new Date(now.getTime() - CART_ABANDONMENT_DELAY_MS);
     const active = await db.select()
       .from(cartAbandonmentCarts)
@@ -507,13 +549,20 @@ export async function runCartAbandonmentMonitor(now = new Date()): Promise<{
     let due = 0;
     for (const cart of active) {
       try {
-        if (await findCompletedOrder(cart)) {
-          await db.update(cartAbandonmentCarts)
+        const order = await findCompletedOrder(cart);
+        if (order) {
+          const [resolved] = await db.update(cartAbandonmentCarts)
             .set({ resolvedAt: now, updatedAt: now })
             .where(and(
               eq(cartAbandonmentCarts.id, cart.id),
               isNull(cartAbandonmentCarts.resolvedAt),
-            ));
+            ))
+            .returning({ id: cartAbandonmentCarts.id });
+          if (resolved) {
+            await db.update(orders)
+              .set({ cartTrackingKeyHash: null })
+              .where(eq(orders.id, order.id));
+          }
           continue;
         }
         const [abandoned] = await db.update(cartAbandonmentCarts)
@@ -551,6 +600,7 @@ export async function runCartAbandonmentMonitor(now = new Date()): Promise<{
         isNotNull(cartAbandonmentCarts.abandonedAt),
         isNull(cartAbandonmentCarts.resolvedAt),
         isNull(cartAbandonmentCarts.alertSentAt),
+      gt(cartAbandonmentCarts.expiresAt, now),
         or(
           eq(cartAbandonmentCarts.alertStatus, "pending"),
           and(
@@ -596,9 +646,10 @@ export function startCartAbandonmentMonitorScheduler(): void {
 export async function getGuestCartTrackingInput(
   req: Request,
   rawItems: unknown,
-): Promise<{ cartKeyHash: string; market: string; items: CartAbandonmentLine[] } | null> {
+): Promise<{ cartKeyHash: string; market: string; items: CartAbandonmentLine[]; consentAt: Date } | null> {
   const cartKeyHash = getCartTrackingKeyHashFromRequest(req);
-  if (!cartKeyHash) return null;
+  const consentAt = getCartConsentAtFromRequest(req);
+  if (!cartKeyHash || !consentAt) return null;
   const items = normalizeCartAbandonmentItems(rawItems);
   if (!items || items.length === 0) return null;
   const ids = [...new Set(items.flatMap(item => [
@@ -618,14 +669,15 @@ export async function getGuestCartTrackingInput(
       eq(products.status, "active"),
     ));
   if (new Set(available.map(product => product.id)).size !== ids.length) return null;
-  return { cartKeyHash, market, items };
+  return { cartKeyHash, market, items, consentAt };
 }
 
 export async function getAuthenticatedCartTrackingInput(
   req: Request & { userId?: number },
-): Promise<{ cartKeyHash: string; market: string; userId: number; items: CartAbandonmentLine[]; activityAt: Date | null } | null> {
+): Promise<{ cartKeyHash: string; market: string; userId: number; items: CartAbandonmentLine[]; activityAt: Date | null; consentAt: Date } | null> {
   const cartKeyHash = getCartTrackingKeyHashFromRequest(req);
-  if (!cartKeyHash || !req.userId) return null;
+  const consentAt = getCartConsentAtFromRequest(req);
+  if (!cartKeyHash || !consentAt || !req.userId) return null;
   await ensureCartAbandonmentSchema();
   const marketValue = (req as Request & { market?: string }).market;
   const market = marketValue === "fr" || marketValue === "com" ? marketValue : "ro";
@@ -651,5 +703,5 @@ export async function getAuthenticatedCartTrackingInput(
     const updatedAt = new Date(row.updatedAt);
     return !latest || updatedAt > latest ? updatedAt : latest;
   }, null);
-  return { cartKeyHash, market, userId: req.userId, items, activityAt };
+  return { cartKeyHash, market, userId: req.userId, items, activityAt, consentAt };
 }
