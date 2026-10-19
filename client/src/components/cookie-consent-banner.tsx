@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import {
+  BarChart3,
+  Check,
+  Cookie,
+  LockKeyhole,
+  Settings2,
+  ShieldCheck,
+  ShoppingBasket,
+} from "lucide-react";
+import {
   applyStoredCookiePreferences,
   COOKIE_CONSENT_CHANGED_EVENT,
   readCookiePreferences,
@@ -10,19 +19,23 @@ import {
 } from "../lib/cookie-consent";
 import { useLanguage } from "../contexts/language-context";
 import { CART_MONITORING_CONSENT_STORAGE_KEY } from "@shared/cart-abandonment";
+import "./cookie-consent-banner.css";
 
 const COPY = {
   en: {
     title: "Your privacy choices",
-    intro: "Essential storage keeps the site and checkout working. Optional cookies are off until you choose.",
+    intro: "Necessary storage keeps the site and checkout working. Analytics and internal cart monitoring stay off until you choose.",
+    essential: "Necessary storage is always active for security, language, cart and checkout.",
+    essentialLabel: "Necessary · always active",
+    changeAnytime: "You can change your choices at any time",
     analytics: "Analytics",
-    analyticsDetail: "Allows analytics events. Google Tag Manager loads only on xhaccp.fr after consent.",
-    cart: "Anonymous cart monitoring",
-    cartDetail: "Stores product IDs, quantities and timestamps for up to 90 days. After one hour without cart activity, our team receives one internal email alert. For signed-in users, the record can be linked to their account ID. We do not store an anonymous visitor’s email or IP for this feature, and we do not send cart-recovery emails.",
-    essential: "Essential storage is always active for security, language, cart and checkout functions.",
+    analyticsDetail: "Analytics events are sent only after consent. Google Tag Manager loads only on xhaccp.fr after you agree.",
+    cart: "Internal cart monitoring",
+    cartDetail: "With your consent, product IDs, quantities and activity times are stored for up to 90 days. After one hour without cart activity, our team receives one internal alert. Signed-in records may be linked to your account. We do not collect an anonymous visitor’s email or IP for this feature, and we do not send cart-recovery emails.",
     reject: "Reject optional",
     accept: "Accept all",
     customize: "Customize",
+    hideOptions: "Hide options",
     settings: "Cookie settings",
     save: "Save choices",
     cancel: "Cancel",
@@ -31,15 +44,18 @@ const COPY = {
   },
   fr: {
     title: "Vos choix de confidentialité",
-    intro: "Le stockage nécessaire assure le fonctionnement du site et du paiement. Les options restent désactivées jusqu’à votre choix.",
-    analytics: "Mesure d’audience sur le site français",
-    analyticsDetail: "Autorise les événements d’analyse. Google Tag Manager n’est chargé sur xhaccp.fr qu’après votre accord.",
-    cart: "Suivi des paniers anonymes",
-    cartDetail: "Enregistre les identifiants des produits, les quantités et les dates pendant 90 jours maximum. Après une heure sans activité sur le panier, notre équipe reçoit une alerte interne par e-mail. Pour les utilisateurs connectés, l’enregistrement peut être associé à leur identifiant de compte. Nous ne stockons ni l’adresse e-mail ni l’adresse IP des visiteurs anonymes pour cette fonction et n’envoyons pas d’e-mail de relance.",
+    intro: "Le stockage nécessaire assure le fonctionnement du site et du paiement. La mesure d’audience et le suivi interne des paniers restent désactivés jusqu’à votre choix.",
     essential: "Le stockage nécessaire au fonctionnement, à la sécurité, à la langue, au panier et au paiement reste actif.",
+    essentialLabel: "Nécessaires · toujours actifs",
+    changeAnytime: "Vous pouvez modifier vos choix à tout moment",
+    analytics: "Mesure d’audience",
+    analyticsDetail: "Les événements de mesure ne sont envoyés qu’après votre accord. Google Tag Manager est chargé uniquement sur xhaccp.fr et après votre accord.",
+    cart: "Suivi interne des paniers",
+    cartDetail: "Avec votre accord, les identifiants des produits, les quantités et les dates d’activité sont conservés pendant 90 jours maximum. Après une heure sans activité, notre équipe reçoit une alerte interne. Pour les utilisateurs connectés, l’enregistrement peut être associé à leur compte. Nous ne collectons ni l’adresse e-mail ni l’adresse IP des visiteurs anonymes pour cette fonction et n’envoyons pas d’e-mail de relance.",
     reject: "Tout refuser",
     accept: "Tout accepter",
     customize: "Personnaliser",
+    hideOptions: "Masquer les options",
     settings: "Paramètres des cookies",
     save: "Enregistrer mes choix",
     cancel: "Annuler",
@@ -48,15 +64,18 @@ const COPY = {
   },
   ro: {
     title: "Opțiunile tale de confidențialitate",
-    intro: "Stocarea necesară menține site-ul și plata funcționale. Cookie-urile opționale rămân dezactivate până alegi.",
-    analytics: "Analiză pe magazinul francez",
-    analyticsDetail: "Permite evenimentele de analiză. Google Tag Manager se încarcă pe xhaccp.fr numai după acord.",
-    cart: "Monitorizarea coșurilor anonime",
-    cartDetail: "Păstrăm ID-urile produselor, cantitățile și datele timp de cel mult 90 de zile. După o oră fără activitate în coș, echipa primește o alertă internă prin e-mail. Pentru utilizatorii autentificați, înregistrarea poate fi asociată cu ID-ul contului. Pentru vizitatorii anonimi nu salvăm e-mailul sau IP-ul în acest scop și nu trimitem e-mailuri de recuperare a coșului.",
+    intro: "Stocarea necesară menține site-ul și plata funcționale. Analiza de trafic și monitorizarea internă a coșurilor rămân oprite până alegi.",
     essential: "Stocarea necesară pentru securitate, limbă, coș și plată rămâne activă.",
+    essentialLabel: "Necesare · mereu active",
+    changeAnytime: "Poți modifica opțiunile oricând",
+    analytics: "Analiză de trafic",
+    analyticsDetail: "Evenimentele de analiză sunt trimise numai după acordul tău. Google Tag Manager se încarcă numai pe xhaccp.fr și numai după acord.",
+    cart: "Monitorizare internă a coșurilor",
+    cartDetail: "Cu acordul tău, păstrăm ID-urile produselor, cantitățile și datele activității cel mult 90 de zile. După o oră fără activitate, echipa primește o alertă internă. Înregistrările utilizatorilor autentificați pot fi asociate cu ID-ul contului. Pentru vizitatorii anonimi nu colectăm e-mailul sau IP-ul în acest scop și nu trimitem e-mailuri de recuperare a coșului.",
     reject: "Respinge opționalele",
     accept: "Acceptă tot",
     customize: "Personalizează",
+    hideOptions: "Ascunde opțiunile",
     settings: "Setări cookie-uri",
     save: "Salvează opțiunile",
     cancel: "Anulează",
@@ -80,8 +99,11 @@ export default function CookieConsentBanner() {
   useEffect(() => {
     applyStoredCookiePreferences();
     const sync = (event?: Event) => {
-      if (event?.type === "storage" &&
-          (event as StorageEvent).key !== CART_MONITORING_CONSENT_STORAGE_KEY) return;
+      if (
+        event?.type === "storage" &&
+        (event as StorageEvent).key !== CART_MONITORING_CONSENT_STORAGE_KEY
+      ) return;
+
       const hadActiveGtm = Boolean(document.getElementById("xhaccp-consented-gtm"));
       const next = readCookiePreferences();
       applyStoredCookiePreferences();
@@ -95,6 +117,7 @@ export default function CookieConsentBanner() {
     };
     window.addEventListener(COOKIE_CONSENT_CHANGED_EVENT, sync);
     window.addEventListener("storage", sync);
+
     const openSettings = () => {
       const current = readCookiePreferences();
       setDraft(current || { analytics: false, cartMonitoring: false });
@@ -102,6 +125,7 @@ export default function CookieConsentBanner() {
       setIsOpen(true);
     };
     window.addEventListener("xhaccp-open-cookie-settings", openSettings);
+
     const retryRemovalWhenOnline = () => {
       if (readCookiePreferences()?.cartMonitoring !== true) void removeCartMonitoringData();
     };
@@ -109,6 +133,7 @@ export default function CookieConsentBanner() {
     if (readCookiePreferences()?.cartMonitoring !== true) {
       void removeCartMonitoringData().catch(() => {});
     }
+
     return () => {
       window.removeEventListener(COOKIE_CONSENT_CHANGED_EVENT, sync);
       window.removeEventListener("storage", sync);
@@ -138,72 +163,127 @@ export default function CookieConsentBanner() {
           setCustomizing(true);
           setIsOpen(true);
         }}
-        style={settingsButtonStyle}
+        className="cookie-settings-trigger"
       >
+        <Cookie size={15} aria-hidden="true" />
         {copy.settings}
       </button>
     );
   }
 
   return (
-    <aside
-      role="dialog"
-      aria-label={copy.title}
-      aria-modal="false"
-      style={bannerStyle}
-    >
-      <div style={{ maxWidth: 980, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}>
-          <div>
-            <h2 style={{ margin: "0 0 7px", fontSize: 19, color: "#132b3c" }}>{copy.title}</h2>
-            <p style={{ margin: 0, color: "#475569", fontSize: 14, lineHeight: 1.5 }}>{copy.intro}</p>
+    <aside className="cookie-consent" role="dialog" aria-label={copy.title} aria-modal="false">
+      <div className="cookie-consent__inner">
+        <div className="cookie-consent__intro-row">
+          <div className="cookie-consent__icon" aria-hidden="true">
+            <Cookie size={24} strokeWidth={1.8} />
           </div>
-          <a href="/privacy#cookie-details" style={{ color: "#087f78", fontSize: 13, whiteSpace: "nowrap" }}>
-            {copy.details}
-          </a>
+          <div className="cookie-consent__intro">
+            <div className="cookie-consent__heading-row">
+              <h2>{copy.title}</h2>
+              <a href="/privacy#cookie-details">{copy.details}</a>
+            </div>
+            <p>{copy.intro}</p>
+            <div className="cookie-consent__trust">
+              <span><LockKeyhole size={14} aria-hidden="true" />{copy.essentialLabel}</span>
+              <span><ShieldCheck size={14} aria-hidden="true" />{copy.changeAnytime}</span>
+            </div>
+          </div>
         </div>
 
-        <p style={{ margin: "10px 0 14px", fontSize: 12, color: "#64748b" }}>{copy.essential}</p>
-
-        {customizing && (
-          <div style={preferencesPanelStyle}>
+        {customizing ? (
+          <div className="cookie-consent__options">
             {showAnalytics && (
-              <label style={toggleLabelStyle}>
-                <input type="checkbox" checked={draft.analytics} onChange={event => setDraft(current => ({ ...current, analytics: event.target.checked }))} />
-                <span><strong>{copy.analytics}</strong><small>{copy.analyticsDetail}</small></span>
+              <label className="cookie-consent__option">
+                <input
+                  type="checkbox"
+                  checked={draft.analytics}
+                  onChange={event => setDraft(current => ({ ...current, analytics: event.target.checked }))}
+                />
+                <span className="cookie-consent__option-copy">
+                  <strong><BarChart3 size={16} aria-hidden="true" />{copy.analytics}</strong>
+                  <small>{copy.analyticsDetail}</small>
+                </span>
               </label>
             )}
-            <label style={toggleLabelStyle}>
-              <input type="checkbox" checked={draft.cartMonitoring} onChange={event => setDraft(current => ({ ...current, cartMonitoring: event.target.checked }))} />
-              <span><strong>{copy.cart}</strong><small>{copy.cartDetail}</small></span>
+            <label className="cookie-consent__option">
+              <input
+                type="checkbox"
+                checked={draft.cartMonitoring}
+                onChange={event => setDraft(current => ({ ...current, cartMonitoring: event.target.checked }))}
+              />
+              <span className="cookie-consent__option-copy">
+                <strong><ShoppingBasket size={16} aria-hidden="true" />{copy.cart}</strong>
+                <small>{copy.cartDetail}</small>
+              </span>
             </label>
           </div>
-        )}
-
-        {!customizing && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, margin: "14px 0" }}>
-            {showAnalytics && <div style={choiceCardStyle}><strong>{copy.analytics}</strong><p>{copy.analyticsDetail}</p></div>}
-            <div style={choiceCardStyle}><strong>{copy.cart}</strong><p>{copy.cartDetail}</p></div>
+        ) : (
+          <div className="cookie-consent__summary">
+            {showAnalytics && (
+              <div className="cookie-consent__summary-card">
+                <strong><BarChart3 size={16} aria-hidden="true" />{copy.analytics}</strong>
+                <p>{copy.analyticsDetail}</p>
+              </div>
+            )}
+            <div className="cookie-consent__summary-card">
+              <strong><ShoppingBasket size={16} aria-hidden="true" />{copy.cart}</strong>
+              <p>{copy.cartDetail}</p>
+            </div>
           </div>
         )}
 
         {deletionPending && (
-          <p role="status" style={{ margin: "10px 0 0", color: "#9a4d3d", fontSize: 12, lineHeight: 1.5 }}>
-            {copy.deletionPending}
-          </p>
+          <p className="cookie-consent__deletion" role="status">{copy.deletionPending}</p>
         )}
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginTop: 14 }}>
+        <div className={`cookie-consent__actions${customizing ? " cookie-consent__actions--editing" : ""}`}>
           {customizing ? (
             <>
-              <button type="button" onClick={() => void save(draft)} style={primaryButtonStyle}>{copy.save}</button>
-              <button type="button" onClick={() => preferences ? (setIsOpen(false), setCustomizing(false)) : setCustomizing(false)} style={secondaryButtonStyle}>{copy.cancel}</button>
+              <button type="button" onClick={() => void save(draft)} className="cookie-consent__button cookie-consent__button--primary">
+                <Check size={16} aria-hidden="true" />{copy.save}
+              </button>
+              <button
+                type="button"
+                onClick={() => preferences ? (setIsOpen(false), setCustomizing(false)) : setCustomizing(false)}
+                className="cookie-consent__button cookie-consent__button--secondary"
+              >
+                {copy.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomizing(false)}
+                className="cookie-consent__button cookie-consent__button--text"
+              >
+                <Settings2 size={16} aria-hidden="true" />{copy.hideOptions}
+              </button>
             </>
           ) : (
             <>
-              <button type="button" onClick={() => void save({ analytics: false, cartMonitoring: false })} style={secondaryButtonStyle}>{copy.reject}</button>
-              <button type="button" onClick={() => void save({ analytics: showAnalytics, cartMonitoring: true })} style={primaryButtonStyle}>{copy.accept}</button>
-              <button type="button" onClick={() => { setDraft(preferences || { analytics: false, cartMonitoring: false }); setCustomizing(true); }} style={secondaryButtonStyle}>{copy.customize}</button>
+              <button
+                type="button"
+                onClick={() => void save({ analytics: false, cartMonitoring: false })}
+                className="cookie-consent__button cookie-consent__button--secondary"
+              >
+                {copy.reject}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(preferences || { analytics: false, cartMonitoring: false });
+                  setCustomizing(true);
+                }}
+                className="cookie-consent__button cookie-consent__button--secondary"
+              >
+                <Settings2 size={16} aria-hidden="true" />{copy.customize}
+              </button>
+              <button
+                type="button"
+                onClick={() => void save({ analytics: showAnalytics, cartMonitoring: true })}
+                className="cookie-consent__button cookie-consent__button--primary"
+              >
+                <Check size={16} aria-hidden="true" />{copy.accept}
+              </button>
             </>
           )}
         </div>
@@ -211,77 +291,3 @@ export default function CookieConsentBanner() {
     </aside>
   );
 }
-
-const bannerStyle: React.CSSProperties = {
-  position: "fixed",
-  zIndex: 10000,
-  inset: "auto 0 0",
-  background: "#fff",
-  borderTop: "1px solid #d7e0e8",
-  boxShadow: "0 -8px 32px rgba(15, 23, 42, 0.16)",
-  padding: "18px max(20px, calc((100vw - 1080px) / 2)) calc(18px + env(safe-area-inset-bottom))",
-  maxHeight: "85vh",
-  overflowY: "auto",
-};
-
-const preferencesPanelStyle: React.CSSProperties = {
-  display: "grid",
-  gap: 12,
-  padding: 14,
-  border: "1px solid #e2e8f0",
-  borderRadius: 10,
-  background: "#f8fafc",
-};
-
-const toggleLabelStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "20px 1fr",
-  alignItems: "start",
-  gap: 10,
-  cursor: "pointer",
-  color: "#1e293b",
-  fontSize: 14,
-};
-
-const choiceCardStyle: React.CSSProperties = {
-  padding: 12,
-  border: "1px solid #e2e8f0",
-  borderRadius: 9,
-  color: "#1e293b",
-  fontSize: 13,
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  border: "1px solid #087f78",
-  background: "#087f78",
-  color: "white",
-  borderRadius: 7,
-  padding: "10px 15px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  border: "1px solid #94a3b8",
-  background: "white",
-  color: "#1e293b",
-  borderRadius: 7,
-  padding: "10px 15px",
-  fontWeight: 600,
-  cursor: "pointer",
-};
-
-const settingsButtonStyle: React.CSSProperties = {
-  position: "fixed",
-  zIndex: 9998,
-  left: 12,
-  bottom: "calc(12px + env(safe-area-inset-bottom))",
-  border: "1px solid #cbd5e1",
-  borderRadius: 999,
-  background: "white",
-  color: "#334155",
-  padding: "7px 11px",
-  fontSize: 12,
-  cursor: "pointer",
-  boxShadow: "0 2px 10px rgba(15, 23, 42, .12)",
-};
