@@ -805,10 +805,10 @@ export default function Home() {
 
           <div className="border-t border-slate-700 mt-8 pt-8 text-center">
             <p className="text-slate-300">
-              &copy; 2025 xHACCP. All rights reserved. | 
-              <Link href="/privacy" className="hover:text-white ml-2">Privacy Policy</Link> | 
-              <Link href="/terms" className="hover:text-white ml-2">Terms & Conditions</Link> |
-              <Link href="/returns" className="hover:text-white ml-2">Return &amp; Refund Policy</Link>
+              {t('footer.copyright')} |
+              <Link href="/privacy" className="hover:text-white ml-2">{t('footer.privacyPolicy')}</Link> |
+              <Link href="/terms" className="hover:text-white ml-2">{t('footer.termsConditions')}</Link> |
+              <Link href="/returns" className="hover:text-white ml-2">{t('footer.returnRefundPolicy')}</Link>
             </p>
           </div>
         </div>
