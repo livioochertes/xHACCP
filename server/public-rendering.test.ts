@@ -123,7 +123,7 @@ test("French legal notice is prerendered with French data and unavailable on oth
   const server = app.listen(0, "127.0.0.1");
   await new Promise<void>(resolve => server.once("listening", resolve));
   const address = server.address() as { port: number };
-  const get = async (market: "fr" | "ro") => {
+  const get = async (market: "fr" | "ro" | "com") => {
     const response = await fetch(`http://127.0.0.1:${address.port}/mentions-legales`, {
       headers: {
         Accept: "text/html",
@@ -155,10 +155,16 @@ test("French legal notice is prerendered with French data and unavailable on oth
     assert.equal($("#public-root a[href$='/privacy']").length, 1);
     assert.equal($("#public-root a[href$='/returns']").length, 1);
 
-    const romanian = await get("ro");
-    assert.equal(romanian.response.status, 404);
-    assert.match(romanian.html, /noindex,follow/);
-    assert.doesNotMatch(romanian.html, /French company from settings|108 196 536 00016|Jerome Clement/);
+    for (const otherMarket of ["ro", "com"] as const) {
+      const nonFrench = await get(otherMarket);
+      assert.equal(nonFrench.response.status, 404, otherMarket);
+      assert.match(nonFrench.html, /noindex,follow/);
+      assert.doesNotMatch(
+        nonFrench.html,
+        /French company from settings|108 196 536 00016|Jerome Clement/,
+        otherMarket,
+      );
+    }
   } finally {
     await new Promise<void>(resolve => server.close(() => resolve()));
   }

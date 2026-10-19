@@ -926,7 +926,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
       const market = getMarketFromRequest(req);
       if (market === "fr") {
-        staticPages.push({ url: '/chef-event', priority: '0.7', changefreq: 'monthly' });
+        staticPages.push(
+          { url: '/chef-event', priority: '0.7', changefreq: 'monthly' },
+          { url: '/mentions-legales', priority: '0.3', changefreq: 'yearly' },
+        );
       }
       const allRawProducts = await storage.getProducts({ limit: 10000 });
       const products = (await Promise.all(allRawProducts.map(async p => {
