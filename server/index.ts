@@ -25,6 +25,8 @@ import { startPaymentExpiryScheduler } from "./payment-expiry-scheduler";
 import { startDbKeepAlive } from "./db";
 import { startMarketingCampaignDeliveryWorker } from "./marketing-campaign-delivery";
 import { registerSendGridCampaignWebhook } from "./sendgrid-campaign-webhook";
+import { registerCartAbandonmentRoutes } from "./cart-abandonment-routes";
+import { ensureCartAbandonmentSchema, startCartAbandonmentMonitorScheduler } from "./cart-abandonment";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -152,6 +154,7 @@ app.use((req, res, next) => {
   // Register admin routes FIRST before any other middleware
   registerSendGridCampaignWebhook(app);
   await registerAdminRoutes(app);
+  registerCartAbandonmentRoutes(app);
   registerWmsRoutes(app);
   registerMarketingAdminRoutes(app);
   registerProspectMarketingAdminRoutes(app);
@@ -160,6 +163,7 @@ app.use((req, res, next) => {
   registerCustomerPasswordSetupRoutes(app);
   
   app.use(createPaymentHealthMiddleware());
+  await ensureCartAbandonmentSchema();
   const server = await registerRoutes(app);
 
   startMarketingCampaignDeliveryWorker();
@@ -170,6 +174,7 @@ app.use((req, res, next) => {
   // and prices stay aligned with the latest marketplace data.
   startGoogleMerchantFeedScheduler();
   startCartReminderScheduler();
+  startCartAbandonmentMonitorScheduler();
   startSubscriptionScheduler();
   startPaymentExpiryScheduler();
   startPaymentHealthNotifications();

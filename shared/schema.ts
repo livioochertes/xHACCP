@@ -359,6 +359,7 @@ export const orders = pgTable("orders", {
   paypalCheckoutFingerprint: varchar("paypal_checkout_fingerprint", { length: 64 }),
   stripeCheckoutAttemptId: varchar("stripe_checkout_attempt_id", { length: 36 }),
   stripeCheckoutFingerprint: varchar("stripe_checkout_fingerprint", { length: 64 }),
+  cartTrackingKeyHash: varchar("cart_tracking_key_hash", { length: 64 }),
   paymentTransactionId: varchar("payment_transaction_id", { length: 120 }),
   paymentStatus: varchar("payment_status", { length: 50 }).notNull().default("pending"),
   notes: text("notes"),
@@ -384,6 +385,7 @@ export const orders = pgTable("orders", {
   paypalCheckoutAttemptIdUnique: uniqueIndex("orders_paypal_checkout_attempt_id_unique").on(table.paypalCheckoutAttemptId),
   stripeCheckoutAttemptIdUnique: uniqueIndex("orders_stripe_checkout_attempt_id_unique").on(table.stripeCheckoutAttemptId),
   paymentTransactionIdUnique: uniqueIndex("orders_payment_transaction_id_unique").on(table.paymentTransactionId),
+  cartTrackingKeyHashIndex: index("orders_cart_tracking_key_hash_idx").on(table.cartTrackingKeyHash),
 }));
 
 // Order items table
@@ -605,6 +607,34 @@ export const abandonedCartReminders = pgTable("abandoned_cart_reminders", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
   userMarketUnique: uniqueIndex("abandoned_cart_reminders_user_market_unique").on(table.userId, table.market),
+}));
+
+// A consent-gated, time-limited snapshot used only for internal abandoned-cart
+// monitoring. The browser identifier is hashed before it is persisted.
+export const cartAbandonmentCarts = pgTable("cart_abandonment_carts", {
+  id: serial("id").primaryKey(),
+  cartKeyHash: varchar("cart_key_hash", { length: 64 }).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  market: varchar("market", { length: 10 }).notNull(),
+  items: jsonb("items").$type<import("./cart-abandonment.js").CartAbandonmentLine[]>().notNull().default([]),
+  consentVersion: varchar("consent_version", { length: 40 }).notNull(),
+  consentAt: timestamp("consent_at").notNull(),
+  cartUpdatedAt: timestamp("cart_updated_at").notNull().defaultNow(),
+  abandonedAt: timestamp("abandoned_at"),
+  resolvedAt: timestamp("resolved_at"),
+  alertStatus: varchar("alert_status", { length: 20 }).notNull().default("pending"),
+  alertAttempts: integer("alert_attempts").notNull().default(0),
+  alertClaimedAt: timestamp("alert_claimed_at"),
+  alertAttemptedAt: timestamp("alert_attempted_at"),
+  alertSentAt: timestamp("alert_sent_at"),
+  alertError: text("alert_error"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  cartKeyHashUnique: uniqueIndex("cart_abandonment_carts_cart_key_hash_unique").on(table.cartKeyHash),
+  marketAbandonedIdx: index("cart_abandonment_carts_market_abandoned_idx").on(table.market, table.abandonedAt),
+  expiresIdx: index("cart_abandonment_carts_expires_idx").on(table.expiresAt),
 }));
 
 // Reviews table
@@ -1315,6 +1345,7 @@ export type InsertCartItem = Omit<typeof cartItems.$inferInsert, "compositeConfi
   compositeConfiguration?: CompositeConfiguration | null;
 };
 export type AbandonedCartReminder = typeof abandonedCartReminders.$inferSelect;
+export type CartAbandonmentCart = typeof cartAbandonmentCarts.$inferSelect;
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Supplier = typeof suppliers.$inferSelect;

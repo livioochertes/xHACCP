@@ -64,6 +64,7 @@ import {
 } from "./viva-config";
 import { withVivaUserAgent } from "./viva-http";
 import { summarizePaymentProviderFailure } from "./payment-auth-diagnostics";
+import { getCartTrackingKeyHashFromRequest } from "./cart-abandonment";
 import {
   getGoogleMerchantFeedXml,
   type MerchantMarket,
@@ -2863,6 +2864,7 @@ Sitemap: ${baseUrl}/sitemap.xml
 
       const orderData = {
         userId: getVoucherOrderUserId(validatedVoucher, req.userId),
+        cartTrackingKeyHash: getCartTrackingKeyHashFromRequest(req),
         market: orderMarket,
         currency: marketSettingsMap.get(orderMarket)?.currency ?? (orderMarket === "ro" ? "RON" : "EUR"),
         status: "pending",
@@ -4261,6 +4263,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
             voucherOwnerUserId != null ? { ownerUserId: voucherOwnerUserId } : null,
             userId,
           ),
+          cartTrackingKeyHash: getCartTrackingKeyHashFromRequest(req),
           market: vivaMarket,
           currency: serverCurrency,
           status: 'pending',
@@ -4601,6 +4604,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
       const fingerprint = crypto.createHash("sha256").update(JSON.stringify({
         market,
         userId: req.userId ?? null,
+        cartTrackingKeyHash: getCartTrackingKeyHashFromRequest(req) ?? null,
         currency: serverCurrency,
         cartItems,
         voucherCode: voucherCode || null,
@@ -4613,6 +4617,7 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           voucherOwnerUserId != null ? { ownerUserId: voucherOwnerUserId } : null,
           req.userId ?? null,
         ),
+        cartTrackingKeyHash: getCartTrackingKeyHashFromRequest(req),
         market,
         currency: serverCurrency,
         status: "pending",
@@ -5453,7 +5458,9 @@ Always be helpful, professional, and focus on practical solutions. When recommen
           }
           const notes = `${orderData.notes || ""}${voucher ? `${orderData.notes ? "\n" : ""}Voucher: ${voucher.code} (-${discountAmount.toFixed(2)})` : ""}`;
           return storage.createPayPalOrderForAttempt({
-            userId: getVoucherOrderUserId(voucher, req.userId), market: "fr", currency: "EUR", status: "pending",
+            userId: getVoucherOrderUserId(voucher, req.userId),
+            cartTrackingKeyHash: getCartTrackingKeyHashFromRequest(req),
+            market: "fr", currency: "EUR", status: "pending",
             totalAmount: total.toFixed(2), shippingCost: taxSnapshot.shippingGrossAmount,
             subtotalNet: taxSnapshot.subtotalNet,
             subtotalGross: taxSnapshot.subtotalGross,

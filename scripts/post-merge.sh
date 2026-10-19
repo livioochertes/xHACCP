@@ -48,6 +48,7 @@ async function migrate() {
     for (const migrationPath of [
       'migrations/0023_sendgrid_campaign_history_source.sql',
       'migrations/0024_sendgrid_campaign_history_imports.sql',
+      'migrations/0026_cart_abandonment_monitoring.sql',
     ]) {
       await client.query(fs.readFileSync(migrationPath, 'utf8'));
     }
