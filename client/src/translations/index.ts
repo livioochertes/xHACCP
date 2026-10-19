@@ -547,6 +547,7 @@ export interface TranslationKeys {
   'footer.b2bSolutions': string;
   'footer.contact': string;
   'footer.categories': string;
+  'footer.legalInformation': string;
   'footer.newsletter': string;
   
   // Contact form
@@ -1292,6 +1293,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'B2B Solutions',
     'footer.contact': 'Contact',
     'footer.categories': 'Categories',
+    'footer.legalInformation': 'Legal information',
     'footer.newsletter': 'Newsletter',
     
     // Contact form
@@ -1932,6 +1934,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'Soluciones B2B',
     'footer.contact': 'Contacto',
     'footer.categories': 'Categorías',
+    'footer.legalInformation': 'Información legal',
     'footer.newsletter': 'Boletín',
     
     // Contact form
@@ -2673,6 +2676,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'Solutions B2B',
     'footer.contact': 'Contact',
     'footer.categories': 'Catégories',
+    'footer.legalInformation': 'Informations légales',
     'footer.newsletter': 'Newsletter',
     
     // Contact form
@@ -3353,6 +3357,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'B2B-Lösungen',
     'footer.contact': 'Kontakt',
     'footer.categories': 'Kategorien',
+    'footer.legalInformation': 'Rechtliche Informationen',
     'footer.newsletter': 'Newsletter',
     
     // Contact form
@@ -3913,6 +3918,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'Soluții B2B',
     'footer.contact': 'Contact',
     'footer.categories': 'Categorii',
+    'footer.legalInformation': 'Informații legale',
     'footer.newsletter': 'Newsletter',
     
     // Contact form
@@ -4304,6 +4310,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'Soluzioni B2B',
     'footer.contact': 'Contatti',
     'footer.categories': 'Categorie',
+    'footer.legalInformation': 'Informazioni legali',
     'footer.newsletter': 'Newsletter',
     'footer.support': 'Supporto',
     'footer.needHelp': 'Hai bisogno di aiuto?',
@@ -4646,6 +4653,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'Soluções B2B',
     'footer.contact': 'Contato',
     'footer.categories': 'Categorias',
+    'footer.legalInformation': 'Informações legais',
     'footer.newsletter': 'Newsletter',
     
     // Account
@@ -4968,6 +4976,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'B2B解决方案',
     'footer.contact': '联系我们',
     'footer.categories': '类别',
+    'footer.legalInformation': '法律信息',
     'footer.newsletter': '新闻简报',
     'footer.support': '支持',
     'footer.needHelp': '需要帮助吗？',
@@ -5300,6 +5309,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'B2Bソリューション',
     'footer.contact': 'お問い合わせ',
     'footer.categories': 'カテゴリー',
+    'footer.legalInformation': '法的情報',
     'footer.newsletter': 'ニュースレター',
     'footer.support': 'サポート',
     'footer.needHelp': 'ヘルプが必要ですか？',
@@ -5632,6 +5642,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'B2B 솔루션',
     'footer.contact': '연락처',
     'footer.categories': '카테고리',
+    'footer.legalInformation': '법률 정보',
     'footer.newsletter': '뉴스레터',
     
     // Account
@@ -5966,6 +5977,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'footer.b2bSolutions': 'حلول B2B',
     'footer.contact': 'اتصل بنا',
     'footer.categories': 'الفئات',
+    'footer.legalInformation': 'معلومات قانونية',
     'footer.newsletter': 'النشرة الإخبارية',
     
     // Account

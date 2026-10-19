@@ -752,17 +752,20 @@ export default function Home() {
               </ul>
             </div>
 
-            {/* Categories */}
+            {/* Legal information */}
             <div>
-              <h3 className="text-lg font-semibold text-white mb-4">{t('footer.categories')}</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">{t('footer.legalInformation')}</h3>
               <ul className="space-y-2">
-                {categories.map((category) => (
-                  <li key={category.id}>
-                    <Link href={`/products?category=${getPublicCategorySlug(category.slug)}`} className="text-slate-300 hover:text-white transition-colors">
-                      {getCategoryName(category)}
+                <li><Link href="/privacy" className="text-slate-300 hover:text-white transition-colors">{t('footer.privacyPolicy')}</Link></li>
+                <li><Link href="/terms" className="text-slate-300 hover:text-white transition-colors">{t('footer.termsConditions')}</Link></li>
+                <li><Link href="/returns" className="text-slate-300 hover:text-white transition-colors">{t('footer.returnRefundPolicy')}</Link></li>
+                {market === "fr" && (
+                  <li>
+                    <Link href="/mentions-legales" className="text-slate-300 hover:text-white transition-colors">
+                      Mentions légales
                     </Link>
                   </li>
-                ))}
+                )}
               </ul>
             </div>
 
@@ -805,18 +808,7 @@ export default function Home() {
 
           <div className="border-t border-slate-700 mt-8 pt-8 text-center">
             <p className="text-slate-300">
-              {t('footer.copyright')} |
-              <Link href="/privacy" className="hover:text-white ml-2">{t('footer.privacyPolicy')}</Link> |
-              <Link href="/terms" className="hover:text-white ml-2">{t('footer.termsConditions')}</Link> |
-              <Link href="/returns" className="hover:text-white ml-2">{t('footer.returnRefundPolicy')}</Link>
-              {market === "fr" && (
-                <>
-                  {" | "}
-                  <Link href="/mentions-legales" className="hover:text-white ml-2">
-                    Mentions légales
-                  </Link>
-                </>
-              )}
+              {t('footer.copyright')}
             </p>
           </div>
         </div>
