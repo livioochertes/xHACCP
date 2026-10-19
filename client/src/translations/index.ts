@@ -2384,7 +2384,7 @@ const translations: Record<Language, Partial<TranslationKeys>> = {
     'checkout.countryRequired': 'Le pays est obligatoire',
     'checkout.invalidEmail': 'Adresse e-mail invalide',
     'checkout.emailPlaceholder': 'your@email.com',
-    'checkout.phonePlaceholder': '+40 7XX XXX XXX',
+    'checkout.phonePlaceholder': '+33 7XX XXX XXX',
     'checkout.countyPlaceholder': 'ex. 75, 31 ou 2A',
     'checkout.departmentSearch': 'Rechercher par code ou nom du département',
     'checkout.noDepartmentsFound': 'Aucun département correspondant trouvé',
