@@ -1,6 +1,6 @@
 :root {
-  --cookie-accent: #f28c28;
-  --cookie-accent-dark: #df7614;
+  --cookie-accent: #059669;
+  --cookie-accent-dark: #047857;
   --cookie-ink: #303740;
   --cookie-muted: #59636f;
   --cookie-line: #dfe3e8;
@@ -100,8 +100,8 @@
 }
 
 .cookie-consent__badge--choice {
-  background: #e9f0ff;
-  color: #4266af;
+  background: #f0fdf4;
+  color: #047857;
 }
 
 .cookie-consent__close,
@@ -176,7 +176,7 @@
 .cookie-settings-trigger:focus-visible,
 .cookie-settings-dialog__close:focus-visible,
 .cookie-settings-dialog a:focus-visible {
-  outline: 3px solid rgba(242, 140, 40, 0.38);
+  outline: 3px solid rgba(5, 150, 105, 0.35);
   outline-offset: 2px;
 }
 
@@ -293,15 +293,15 @@
 }
 
 .cookie-settings-row__icon--necessary {
-  color: #3d9b67;
+  color: #047857;
 }
 
 .cookie-settings-row__icon--analytics {
-  color: #4775d1;
+  color: #059669;
 }
 
 .cookie-settings-row__icon--cart {
-  color: #9259c7;
+  color: #10b981;
 }
 
 .cookie-settings-row__copy {
