@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   BarChart3,
   Check,
@@ -6,7 +7,10 @@ import {
   LockKeyhole,
   Settings2,
   ShoppingBasket,
+  ShieldCheck,
+  X,
 } from "lucide-react";
+import { Switch } from "./ui/switch";
 import {
   applyStoredCookiePreferences,
   COOKIE_CONSENT_CHANGED_EVENT,
@@ -20,62 +24,82 @@ import { useLanguage } from "../contexts/language-context";
 import { CART_MONITORING_CONSENT_STORAGE_KEY } from "@shared/cart-abandonment";
 import "./cookie-consent-banner.css";
 
+const DEFAULT_PREFERENCES: CookiePreferences = { analytics: false, cartMonitoring: false };
+
 const COPY = {
   en: {
-    title: "Your privacy choices",
-    intro: "We use necessary cookies to run the site. Optional cookies are used only if you choose them.",
-    customizeIntro: "Choose which optional categories to allow. Necessary storage is always active.",
-    essential: "Necessary storage is always active for security, language, cart and checkout.",
-    essentialLabel: "Necessary · always active",
-    analytics: "Analytics",
-    analyticsDetail: "Analytics events are sent only after consent. Google Tag Manager loads only on xhaccp.fr after you agree.",
-    cart: "Internal cart monitoring",
-    cartDetail: "With your consent, product IDs, quantities and activity times are stored for up to 90 days. After one hour without cart activity, our team receives one internal alert. Signed-in records may be linked to your account. We do not collect an anonymous visitor’s email or IP for this feature, and we do not send cart-recovery emails.",
-    reject: "Reject optional",
+    bannerTitle: "We use cookies to enhance your experience",
+    bannerIntro: "Necessary cookies keep the site working. Optional cookies help us improve it and are used only with your choice.",
+    bannerLink: "Cookie policy",
+    necessaryBadge: "Necessary always active",
+    controlBadge: "Your choice",
+    reject: "Reject non-essential",
     accept: "Accept all",
     customize: "Customize",
     settings: "Cookie settings",
-    save: "Save choices",
+    close: "Close cookie notice",
+    dialogTitle: "Cookie preferences",
+    dialogIntro: "Manage your cookie preferences. Necessary cookies cannot be disabled because they are required for the website to work.",
+    necessary: "Necessary cookies",
+    alwaysActive: "Always active",
+    necessaryDetail: "Required for security, language selection, cart and checkout. These cookies and storage cannot be switched off.",
+    analytics: "Analytics",
+    analyticsDetail: "Allows analytics events after consent. Google Tag Manager is loaded only on xhaccp.fr and only after you agree.",
+    cart: "Internal cart monitoring",
+    cartDetail: "With your consent, product IDs, quantities and activity times are stored for up to 90 days. After one hour without cart activity, our team receives one internal alert. Signed-in records may be linked to your account. We do not collect an anonymous visitor’s email or IP for this feature, and we do not send cart-recovery emails.",
+    details: "Read privacy details",
+    save: "Save my choices",
     cancel: "Cancel",
-    details: "Privacy details",
     deletionPending: "Your choice is saved. We could not confirm deletion of the existing cart record yet; it will be retried when your connection is available.",
   },
   fr: {
-    title: "Vos choix de confidentialité",
-    intro: "Les cookies nécessaires assurent le fonctionnement du site. Les cookies facultatifs ne sont utilisés qu’avec votre accord.",
-    customizeIntro: "Choisissez les catégories facultatives que vous autorisez. Le stockage nécessaire reste toujours actif.",
-    essential: "Le stockage nécessaire au fonctionnement, à la sécurité, à la langue, au panier et au paiement reste actif.",
-    essentialLabel: "Nécessaires · toujours actifs",
-    analytics: "Mesure d’audience",
-    analyticsDetail: "Les événements de mesure ne sont envoyés qu’après votre accord. Google Tag Manager est chargé uniquement sur xhaccp.fr et après votre accord.",
-    cart: "Suivi interne des paniers",
-    cartDetail: "Avec votre accord, les identifiants des produits, les quantités et les dates d’activité sont conservés pendant 90 jours maximum. Après une heure sans activité, notre équipe reçoit une alerte interne. Pour les utilisateurs connectés, l’enregistrement peut être associé à leur compte. Nous ne collectons ni l’adresse e-mail ni l’adresse IP des visiteurs anonymes pour cette fonction et n’envoyons pas d’e-mail de relance.",
+    bannerTitle: "Nous utilisons des cookies pour améliorer votre expérience",
+    bannerIntro: "Les cookies nécessaires assurent le fonctionnement du site. Les cookies facultatifs ne sont utilisés qu’avec votre accord.",
+    bannerLink: "Politique relative aux cookies",
+    necessaryBadge: "Nécessaires toujours actifs",
+    controlBadge: "Votre choix",
     reject: "Tout refuser",
     accept: "Tout accepter",
     customize: "Personnaliser",
     settings: "Paramètres des cookies",
+    close: "Fermer l’information sur les cookies",
+    dialogTitle: "Préférences relatives aux cookies",
+    dialogIntro: "Gérez vos préférences. Les cookies nécessaires ne peuvent pas être désactivés, car ils sont indispensables au fonctionnement du site.",
+    necessary: "Cookies nécessaires",
+    alwaysActive: "Toujours actifs",
+    necessaryDetail: "Nécessaires à la sécurité, au choix de la langue, au panier et au paiement. Ces cookies et stockages ne peuvent pas être désactivés.",
+    analytics: "Mesure d’audience",
+    analyticsDetail: "Autorise l’envoi d’événements de mesure après votre accord. Google Tag Manager est chargé uniquement sur xhaccp.fr et après votre accord.",
+    cart: "Suivi interne des paniers",
+    cartDetail: "Avec votre accord, les identifiants des produits, les quantités et les dates d’activité sont conservés pendant 90 jours maximum. Après une heure sans activité, notre équipe reçoit une alerte interne. Pour les utilisateurs connectés, l’enregistrement peut être associé à leur compte. Nous ne collectons ni l’adresse e-mail ni l’adresse IP des visiteurs anonymes pour cette fonction et n’envoyons pas d’e-mail de relance.",
+    details: "Lire les détails sur la confidentialité",
     save: "Enregistrer mes choix",
     cancel: "Annuler",
-    details: "Détails sur la confidentialité",
     deletionPending: "Votre choix est enregistré. La suppression de l’enregistrement du panier n’a pas encore été confirmée ; elle sera réessayée lorsque votre connexion sera disponible.",
   },
   ro: {
-    title: "Opțiunile tale de confidențialitate",
-    intro: "Folosim cookie-uri necesare pentru funcționarea site-ului. Cookie-urile opționale se folosesc doar dacă alegi asta.",
-    customizeIntro: "Alege categoriile opționale pe care le permiți. Stocarea necesară rămâne mereu activă.",
-    essential: "Stocarea necesară pentru securitate, limbă, coș și plată rămâne activă.",
-    essentialLabel: "Necesare · mereu active",
-    analytics: "Analiză de trafic",
-    analyticsDetail: "Evenimentele de analiză sunt trimise numai după acordul tău. Google Tag Manager se încarcă numai pe xhaccp.fr și numai după acord.",
-    cart: "Monitorizare internă a coșurilor",
-    cartDetail: "Cu acordul tău, păstrăm ID-urile produselor, cantitățile și datele activității cel mult 90 de zile. După o oră fără activitate, echipa primește o alertă internă. Înregistrările utilizatorilor autentificați pot fi asociate cu ID-ul contului. Pentru vizitatorii anonimi nu colectăm e-mailul sau IP-ul în acest scop și nu trimitem e-mailuri de recuperare a coșului.",
+    bannerTitle: "Folosim cookie-uri pentru o experiență mai bună",
+    bannerIntro: "Cookie-urile necesare mențin site-ul funcțional. Cookie-urile opționale ne ajută să-l îmbunătățim și se folosesc numai dacă alegi asta.",
+    bannerLink: "Politica privind cookie-urile",
+    necessaryBadge: "Necesare, mereu active",
+    controlBadge: "Tu alegi",
     reject: "Respinge opționalele",
     accept: "Acceptă tot",
     customize: "Personalizează",
     settings: "Setări cookie-uri",
+    close: "Închide informarea despre cookie-uri",
+    dialogTitle: "Preferințe pentru cookie-uri",
+    dialogIntro: "Gestionează preferințele pentru cookie-uri. Cookie-urile necesare nu pot fi dezactivate, fiind necesare pentru funcționarea site-ului.",
+    necessary: "Cookie-uri necesare",
+    alwaysActive: "Mereu active",
+    necessaryDetail: "Sunt necesare pentru securitate, alegerea limbii, coș și plată. Aceste cookie-uri și stocări nu pot fi dezactivate.",
+    analytics: "Analiză de trafic",
+    analyticsDetail: "Permite trimiterea evenimentelor de analiză după acordul tău. Google Tag Manager se încarcă numai pe xhaccp.fr și numai după acord.",
+    cart: "Monitorizare internă a coșurilor",
+    cartDetail: "Cu acordul tău, păstrăm ID-urile produselor, cantitățile și datele activității cel mult 90 de zile. După o oră fără activitate, echipa primește o alertă internă. Înregistrările utilizatorilor autentificați pot fi asociate cu ID-ul contului. Pentru vizitatorii anonimi nu colectăm e-mailul sau IP-ul în acest scop și nu trimitem e-mailuri de recuperare a coșului.",
+    details: "Citește detaliile despre confidențialitate",
     save: "Salvează opțiunile",
     cancel: "Anulează",
-    details: "Detalii despre confidențialitate",
     deletionPending: "Opțiunea a fost salvată. Ștergerea înregistrării existente a coșului nu a fost încă confirmată; vom reîncerca atunci când conexiunea este disponibilă.",
   },
 } as const;
@@ -90,7 +114,7 @@ export default function CookieConsentBanner() {
   const [isOpen, setIsOpen] = useState(() => readCookiePreferences() === null);
   const [customizing, setCustomizing] = useState(false);
   const [deletionPending, setDeletionPending] = useState(false);
-  const [draft, setDraft] = useState<CookiePreferences>({ analytics: false, cartMonitoring: false });
+  const [draft, setDraft] = useState<CookiePreferences>(() => readCookiePreferences() || DEFAULT_PREFERENCES);
 
   useEffect(() => {
     applyStoredCookiePreferences();
@@ -105,6 +129,7 @@ export default function CookieConsentBanner() {
       applyStoredCookiePreferences();
       setPreferences(next);
       setIsOpen(next === null);
+      setCustomizing(false);
       if (next) setDraft(next);
       if (next?.cartMonitoring !== true) void removeCartMonitoringData();
       if (event?.type === "storage" && hadActiveGtm && next?.analytics !== true) {
@@ -115,10 +140,9 @@ export default function CookieConsentBanner() {
     window.addEventListener("storage", sync);
 
     const openSettings = () => {
-      const current = readCookiePreferences();
-      setDraft(current || { analytics: false, cartMonitoring: false });
+      setDraft(readCookiePreferences() || DEFAULT_PREFERENCES);
+      setDeletionPending(false);
       setCustomizing(true);
-      setIsOpen(true);
     };
     window.addEventListener("xhaccp-open-cookie-settings", openSettings);
 
@@ -140,6 +164,12 @@ export default function CookieConsentBanner() {
 
   if (window.location.pathname.startsWith("/admin")) return null;
 
+  const openSettings = () => {
+    setDraft(readCookiePreferences() || DEFAULT_PREFERENCES);
+    setDeletionPending(false);
+    setCustomizing(true);
+  };
+
   const save = async (next: CookiePreferences) => {
     const result = await saveCookiePreferences(next);
     setPreferences(next);
@@ -150,120 +180,170 @@ export default function CookieConsentBanner() {
     if (result.reloadRequired) window.location.reload();
   };
 
-  if (!isOpen && preferences) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          setDraft(preferences);
-          setCustomizing(true);
-          setIsOpen(true);
-        }}
-        className="cookie-settings-trigger"
-      >
-        <Cookie size={15} aria-hidden="true" />
-        {copy.settings}
-      </button>
-    );
-  }
-
   return (
-    <aside className="cookie-consent" role="dialog" aria-label={copy.title} aria-modal="false">
-      <div className="cookie-consent__inner">
-        <div className="cookie-consent__intro-row">
-          <div className="cookie-consent__icon" aria-hidden="true">
-            <Cookie size={24} strokeWidth={1.8} />
-          </div>
-          <div className="cookie-consent__intro">
-            <div className="cookie-consent__heading-row">
-              <h2>{customizing ? copy.settings : copy.title}</h2>
-              {customizing && <a href="/privacy#cookie-details">{copy.details}</a>}
+    <>
+      {isOpen && !customizing ? (
+        <aside className="cookie-consent" aria-label={copy.bannerTitle}>
+          <div className="cookie-consent__inner">
+            <div className="cookie-consent__banner-main">
+              <div className="cookie-consent__icon" aria-hidden="true">
+                <Cookie size={21} strokeWidth={1.8} />
+              </div>
+              <div className="cookie-consent__banner-copy">
+                <h2>{copy.bannerTitle}</h2>
+                <p>
+                  {copy.bannerIntro}{" "}
+                  <a href="/privacy#cookie-details">{copy.bannerLink}</a>
+                </p>
+                <div className="cookie-consent__badges">
+                  <span className="cookie-consent__badge cookie-consent__badge--necessary">
+                    <LockKeyhole size={12} aria-hidden="true" />{copy.necessaryBadge}
+                  </span>
+                  <span className="cookie-consent__badge cookie-consent__badge--choice">
+                    <ShieldCheck size={12} aria-hidden="true" />{copy.controlBadge}
+                  </span>
+                </div>
+                <div className="cookie-consent__actions">
+                  <button
+                    type="button"
+                    onClick={() => void save({ analytics: showAnalytics, cartMonitoring: true })}
+                    className="cookie-consent__button cookie-consent__button--primary"
+                  >
+                    <Check size={15} aria-hidden="true" />{copy.accept}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void save({ analytics: false, cartMonitoring: false })}
+                    className="cookie-consent__button cookie-consent__button--secondary"
+                  >
+                    {copy.reject}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openSettings}
+                    className="cookie-consent__button cookie-consent__button--secondary"
+                  >
+                    <Settings2 size={15} aria-hidden="true" />{copy.customize}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="cookie-consent__close"
+                aria-label={copy.close}
+                onClick={() => setIsOpen(false)}
+              >
+                <X size={17} aria-hidden="true" />
+              </button>
             </div>
-            <p>{customizing ? copy.customizeIntro : copy.intro}</p>
           </div>
-        </div>
+        </aside>
+      ) : null}
 
-        {customizing ? (
-          <div className="cookie-consent__options">
-            <div className="cookie-consent__essential">
-              <strong><LockKeyhole size={16} aria-hidden="true" />{copy.essentialLabel}</strong>
-              <p>{copy.essential}</p>
-            </div>
-            {showAnalytics && (
-              <label className="cookie-consent__option">
-                <input
-                  type="checkbox"
-                  checked={draft.analytics}
-                  onChange={event => setDraft(current => ({ ...current, analytics: event.target.checked }))}
+      {!isOpen && !customizing ? (
+        <button type="button" onClick={openSettings} className="cookie-settings-trigger">
+          <Cookie size={15} aria-hidden="true" />
+          {copy.settings}
+        </button>
+      ) : null}
+
+      <DialogPrimitive.Root open={customizing} onOpenChange={setCustomizing}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="cookie-settings-overlay" />
+          <DialogPrimitive.Content className="cookie-settings-dialog">
+            <header className="cookie-settings-dialog__header">
+              <div className="cookie-settings-dialog__title-icon" aria-hidden="true">
+                <Settings2 size={24} />
+              </div>
+              <div>
+                <DialogPrimitive.Title className="cookie-settings-dialog__title">
+                  {copy.dialogTitle}
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Description className="cookie-settings-dialog__intro">
+                  {copy.dialogIntro}
+                </DialogPrimitive.Description>
+              </div>
+              <DialogPrimitive.Close className="cookie-settings-dialog__close" aria-label={copy.close}>
+                <X size={21} aria-hidden="true" />
+              </DialogPrimitive.Close>
+            </header>
+
+            <div className="cookie-settings-dialog__rows">
+              <section className="cookie-settings-row">
+                <div className="cookie-settings-row__icon cookie-settings-row__icon--necessary">
+                  <LockKeyhole size={19} aria-hidden="true" />
+                </div>
+                <div className="cookie-settings-row__copy">
+                  <div className="cookie-settings-row__title">
+                    <h3>{copy.necessary}</h3>
+                    <span>{copy.alwaysActive}</span>
+                  </div>
+                  <p>{copy.necessaryDetail}</p>
+                </div>
+                <Switch checked disabled aria-label={copy.necessary} className="cookie-settings-row__switch" />
+              </section>
+
+              {showAnalytics && (
+                <section className="cookie-settings-row">
+                  <div className="cookie-settings-row__icon cookie-settings-row__icon--analytics">
+                    <BarChart3 size={19} aria-hidden="true" />
+                  </div>
+                  <div className="cookie-settings-row__copy">
+                    <h3>{copy.analytics}</h3>
+                    <p>{copy.analyticsDetail}</p>
+                  </div>
+                  <Switch
+                    checked={draft.analytics}
+                    onCheckedChange={checked => setDraft(current => ({ ...current, analytics: checked }))}
+                    aria-label={copy.analytics}
+                    className="cookie-settings-row__switch"
+                  />
+                </section>
+              )}
+
+              <section className="cookie-settings-row">
+                <div className="cookie-settings-row__icon cookie-settings-row__icon--cart">
+                  <ShoppingBasket size={19} aria-hidden="true" />
+                </div>
+                <div className="cookie-settings-row__copy">
+                  <h3>{copy.cart}</h3>
+                  <p>{copy.cartDetail}</p>
+                </div>
+                <Switch
+                  checked={draft.cartMonitoring}
+                  onCheckedChange={checked => setDraft(current => ({ ...current, cartMonitoring: checked }))}
+                  aria-label={copy.cart}
+                  className="cookie-settings-row__switch"
                 />
-                <span className="cookie-consent__option-copy">
-                  <strong><BarChart3 size={16} aria-hidden="true" />{copy.analytics}</strong>
-                  <small>{copy.analyticsDetail}</small>
-                </span>
-              </label>
+              </section>
+            </div>
+
+            {deletionPending && (
+              <p className="cookie-settings-dialog__pending" role="status">{copy.deletionPending}</p>
             )}
-            <label className="cookie-consent__option">
-              <input
-                type="checkbox"
-                checked={draft.cartMonitoring}
-                onChange={event => setDraft(current => ({ ...current, cartMonitoring: event.target.checked }))}
-              />
-              <span className="cookie-consent__option-copy">
-                <strong><ShoppingBasket size={16} aria-hidden="true" />{copy.cart}</strong>
-                <small>{copy.cartDetail}</small>
-              </span>
-            </label>
-          </div>
-        ) : null}
 
-        {deletionPending && (
-          <p className="cookie-consent__deletion" role="status">{copy.deletionPending}</p>
-        )}
-
-        <div className={`cookie-consent__actions${customizing ? " cookie-consent__actions--editing" : ""}`}>
-          {customizing ? (
-            <>
-              <button type="button" onClick={() => void save(draft)} className="cookie-consent__button cookie-consent__button--primary">
-                <Check size={16} aria-hidden="true" />{copy.save}
-              </button>
-              <button
-                type="button"
-                onClick={() => preferences ? (setIsOpen(false), setCustomizing(false)) : setCustomizing(false)}
-                className="cookie-consent__button cookie-consent__button--secondary"
-              >
-                {copy.cancel}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => void save({ analytics: false, cartMonitoring: false })}
-                className="cookie-consent__button cookie-consent__button--secondary"
-              >
-                {copy.reject}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDraft(preferences || { analytics: false, cartMonitoring: false });
-                  setCustomizing(true);
-                }}
-                className="cookie-consent__button cookie-consent__button--secondary"
-              >
-                <Settings2 size={16} aria-hidden="true" />{copy.customize}
-              </button>
-              <button
-                type="button"
-                onClick={() => void save({ analytics: showAnalytics, cartMonitoring: true })}
-                className="cookie-consent__button cookie-consent__button--primary"
-              >
-                <Check size={16} aria-hidden="true" />{copy.accept}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </aside>
+            <footer className="cookie-settings-dialog__footer">
+              <a href="/privacy#cookie-details">{copy.details}</a>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setCustomizing(false)}
+                  className="cookie-consent__button cookie-consent__button--secondary"
+                >
+                  {copy.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void save(draft)}
+                  className="cookie-consent__button cookie-consent__button--primary"
+                >
+                  <Check size={15} aria-hidden="true" />{copy.save}
+                </button>
+              </div>
+            </footer>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+    </>
   );
 }
